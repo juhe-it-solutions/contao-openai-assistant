@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 http://docs.oasis-open.org/xliff/v1.2/os/xliff-core-1.2-strict.xsd">
+    <file source-language="en" target-language="en" datatype="plaintext" original="tl_openai_config.xlf">
+        <body>
+            <trans-unit id="tl_openai_config.header">
+                <source>OpenAI Configuration</source>
+                <target>OpenAI Configuration</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.intro">
+                <source>Here you can manage your OpenAI configurations. Each configuration requires an API key and will create a vector store for file-based knowledge.</source>
+                <target>Here you can manage your OpenAI configurations. Each configuration requires an API key and will create a vector store for file-based knowledge.</target>
+            </trans-unit>
+            <!-- Legend Labels -->
+            <trans-unit id="tl_openai_config.title_legend">
+                <source>Base settings OpenAI configuration</source>
+                <target>Base settings OpenAI configuration</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.config_legend">
+                <source>Vector store</source>
+                <target>Vector store</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.settings_legend">
+                <source>Model settings</source>
+                <target>Model settings</target>
+            </trans-unit>
+            
+            <!-- Field Labels -->
+            <trans-unit id="tl_openai_config.title.0">
+                <source>Configuration Name</source>
+                <target>Configuration</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.title.1">
+                <source>Enter a descriptive name for this OpenAI configuration.</source>
+                <target>Enter a descriptive name for this OpenAI configuration.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.api_key.0">
+                <source>API key/Secret key</source>
+                <target>API key/Secret key</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.api_key.1">
+                <source>Enter your project based OpenAI API key/secret key and validate it with "Check key".</source>
+                <target>Enter your project based OpenAI API key/secret key and validate it with "Check key".</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.vector_store_id.0">
+                <source>Vector Store ID</source>
+                <target>Vector Store ID</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.vector_store_id.1">
+                <source>The OpenAI Vector Store ID (automatically generated).</source>
+                <target>The OpenAI Vector Store ID (automatically generated).</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.max_tokens.0">
+                <source>Maximum Tokens</source>
+                <target>Maximum Tokens</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.max_tokens.1">
+                <source>Maximum number of tokens to generate in responses.</source>
+                <target>Maximum number of tokens to generate in responses.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.temperature.0">
+                <source>Temperature</source>
+                <target>Temperature</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.temperature.1">
+                <source>Controls randomness in responses (0.0 = deterministic, 2.0 = very random).</source>
+                <target>Controls randomness in responses (0.0 = deterministic, 2.0 = very random).</target>
+            </trans-unit>
+            
+            <!-- Operation Labels -->
+            <trans-unit id="tl_openai_config.files">
+                <source>File upload for OpenAI vectore store</source>
+                <target>File upload for OpenAI vectore store</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.assistants">
+                <source>Assistants</source>
+                <target>Assistants</target>
+            </trans-unit>
+
+            <!-- API-key validation -->
+            <trans-unit id="tl_openai_config.check_api_key">
+                <source>Check key</source>
+                <target>Check key</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.no_api_key">
+                <source>Please enter an API key first.</source>
+                <target>Please enter an API key first.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.api_key_valid">
+                <source>API key is valid!</source>
+                <target>API key is valid!</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.api_key_invalid">
+                <source>API key is invalid!</source>
+                <target>API key is invalid!</target>
+            </trans-unit>
+
+            <!-- Create Operation -->
+            <trans-unit id="tl_openai_config.new.0">
+                <source>New Configuration</source>
+                <target>New Configuration</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.new.1">
+                <source>Create a new OpenAI configuration</source>
+                <target>Create a new OpenAI configuration</target>
+            </trans-unit>
+
+            <!-- Welcome Message -->
+            <trans-unit id="tl_openai_config.welcome_heading">
+                <source>OpenAI base configuration</source>
+                <target>OpenAI base configuration</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.welcome_message1">
+                <source>Welcome to the OpenAI Configuration Area.</source>
+                <target>Welcome to the OpenAI Configuration Area.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.welcome_message2">
+                <source>Here you can create your OpenAI configuration and enter your API key/Secret Key.</source>
+                <target>Here you can create your OpenAI configuration and enter your API key/Secret Key.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.navigation_message">
+                <source>Use the 2 icons on the right to access file upload and OpenAI assistant setup.</source>
+                <target>Use the 2 icons on the right to access file upload and OpenAI assistant setup.</target>
+            </trans-unit>
+            
+            <!-- Single Config Limitation Notice -->
+            <trans-unit id="tl_openai_config.single_config_heading">
+                <source>Single Configuration</source>
+                <target>Single Configuration</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.single_config_message">
+                <source>Only one OpenAI configuration is allowed. If a configuration already exists, you will be redirected to edit it.</source>
+                <target>Only one OpenAI configuration is allowed. If a configuration already exists, you will be redirected to edit it.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.single_config_redirect">
+                <source>Only one OpenAI configuration is allowed. You are being redirected to the existing configuration.</source>
+                <target>Only one OpenAI configuration is allowed. You are being redirected to the existing configuration.</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

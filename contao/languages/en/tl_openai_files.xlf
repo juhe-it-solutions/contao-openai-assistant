@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 http://docs.oasis-open.org/xliff/v1.2/os/xliff-core-1.2-strict.xsd">
+    <file source-language="en" target-language="en" datatype="plaintext" original="tl_openai_files.xlf">
+        <body>
+            <trans-unit id="tl_openai_files.header">
+                <source>OpenAI Files</source>
+                <target>OpenAI Files</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.intro">
+                <source>Here you can manage your files for OpenAI. Upload documents that will be used to train your assistants. Supported formats: PDF, TXT, MD, DOCX, XLSX, PPTX, JSON, CSV.</source>
+                <target>Here you can manage your files for OpenAI. Upload documents that will be used to train your assistants. Supported formats: PDF, TXT, MD, DOCX, XLSX, PPTX, JSON, CSV.</target>
+            </trans-unit>
+            <!-- Legend Labels -->
+            <trans-unit id="tl_openai_files.file_legend">
+                <source>File Upload</source>
+                <target>File Upload</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.openai_legend">
+                <source>OpenAI Information</source>
+                <target>OpenAI Information</target>
+            </trans-unit>
+            
+            <!-- Field Labels -->
+            <trans-unit id="tl_openai_files.filename.0">
+                <source>Filename</source>
+                <target>Filename</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.filename.1">
+                <source>The name of the uploaded file.</source>
+                <target>The name of the uploaded file.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.file_upload.0">
+                <source>Select Files</source>
+                <target>Select Files</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.file_upload.1">
+                <source>Select one or more files to upload in the OpenAI vector store (.pdf, .txt, .md, .docx, .xlsx, .pptx, .json, .csv).</source>
+                <target>Select one or more files to upload in the OpenAI vector store (.pdf, .txt, .md, .docx, .xlsx, .pptx, .json, .csv).</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.openai_file_id.0">
+                <source>OpenAI File ID</source>
+                <target>OpenAI File ID</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.openai_file_id.1">
+                <source>The OpenAI file ID after successful upload.</source>
+                <target>The OpenAI file ID after successful upload.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.status.0">
+                <source>Status</source>
+                <target>Status</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.status.1">
+                <source>Current processing status of the file.</source>
+                <target>Current processing status of the file.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.file_size.0">
+                <source>File Size</source>
+                <target>File Size</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.file_size.1">
+                <source>Size of the uploaded file in bytes.</source>
+                <target>Size of the uploaded file in bytes.</target>
+            </trans-unit>
+            
+            <!-- Status Options -->
+            <trans-unit id="tl_openai_files.status_options.pending">
+                <source>Pending</source>
+                <target>Pending</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.status_options.processing">
+                <source>Processing</source>
+                <target>Processing</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.status_options.uploaded">
+                <source>Uploaded</source>
+                <target>Uploaded</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.status_options.completed">
+                <source>Completed</source>
+                <target>Completed</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.status_options.failed">
+                <source>Failed</source>
+                <target>Failed</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.status_options.error">
+                <source>Error</source>
+                <target>Error</target>
+            </trans-unit>
+            
+            <!-- Global Operations -->
+            <trans-unit id="tl_openai_files.upload">
+                <source>Upload File(s)</source>
+                <target>Upload File(s)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.new.0">
+                <source>New File</source>
+                <target>Upload new file</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.new.1">
+                <source>Upload a new file to the OpenAI vector store</source>
+                <target>Upload a new file to the OpenAI vector store</target>
+            </trans-unit>
+            
+            <!-- Welcome Message -->
+            <trans-unit id="tl_openai_files.welcome_heading">
+                <source>File upload</source>
+                <target>File upload</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.welcome_message1">
+                <source>Welcome to the file upload screen.</source>
+                <target>Welcome to the file upload screen.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.welcome_message2">
+                <source>Here you can upload files to your OpenAI vector store.</source>
+                <target>Here you can upload files to your OpenAI vector store.</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

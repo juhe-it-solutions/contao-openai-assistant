@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.1" xmlns="urn:oasis:names:tc:xliff:document:1.1">
+    <file source-language="en" target-language="de" datatype="plaintext" original="tl_module.xlf">
+        <body>
+            <trans-unit id="FMD.ai_chat.0">
+                <source>AI-Chatbot</source>
+                <target>KI-Chatbot</target>
+            </trans-unit>
+            <trans-unit id="FMD.ai_chat.1">
+                <source>Adds an AI-powered chat widget to your website</source>
+                <target>Fügt ein KI-gesteuertes Chat-Widget zu Ihrer Website hinzu</target>
+            </trans-unit>
+            <trans-unit id="tl_module.chat_legend">
+                <source>Chat Settings</source>
+                <target>Chat-Einstellungen</target>
+            </trans-unit>
+            <trans-unit id="tl_module.chatPosition.0">
+                <source>Chat Position</source>
+                <target>Chat-Position</target>
+            </trans-unit>
+            <trans-unit id="tl_module.chatPosition.1">
+                <source>Select where the chat widget should appear on the page</source>
+                <target>Wählen Sie, wo das Chat-Widget auf der Seite erscheinen soll.</target>
+            </trans-unit>
+            <trans-unit id="tl_module.chatPosition.right-bottom">
+                <source>Right bottom</source>
+                <target>Rechts unten</target>
+            </trans-unit>
+            <trans-unit id="tl_module.chatPosition.right-center">
+                <source>Right center</source>
+                <target>Rechts mittig</target>
+            </trans-unit>
+            <trans-unit id="tl_module.chatPosition.left-bottom">
+                <source>Left bottom</source>
+                <target>Links unten</target>
+            </trans-unit>
+            <trans-unit id="tl_module.chatPosition.left-center">
+                <source>Left center</source>
+                <target>Links mittig</target>
+            </trans-unit>
+            <trans-unit id="tl_module.chat_title.0">
+                <source>Chat Title</source>
+                <target>Chat-Titel</target>
+            </trans-unit>
+            <trans-unit id="tl_module.chat_title.1">
+                <source>Title displayed in the chat widget header</source>
+                <target>Titel, der im Chat-Widget-Header angezeigt wird</target>
+            </trans-unit>
+            <trans-unit id="tl_module.welcome_message.0">
+                <source>Welcome Message</source>
+                <target>Willkommensnachricht</target>
+            </trans-unit>
+            <trans-unit id="tl_module.welcome_message.1">
+                <source>Message displayed in the chat input placeholder</source>
+                <target>Nachricht, die als Platzhalter im Chat-Eingabefeld angezeigt wird</target>
+            </trans-unit>
+            <trans-unit id="tl_module.initial_bot_message.0">
+                <source>Initial Bot Message</source>
+                <target>Erste Bot-Nachricht</target>
+            </trans-unit>
+            <trans-unit id="tl_module.initial_bot_message.1">
+                <source>First message displayed by the bot when chat opens</source>
+                <target>Erste Nachricht, die vom Bot angezeigt wird, wenn der Chat geöffnet wird</target>
+            </trans-unit>
+            <trans-unit id="tl_module.initial_state.0">
+                <source>Initial State</source>
+                <target>Anfangsstatus</target>
+            </trans-unit>
+            <trans-unit id="tl_module.initial_state.1">
+                <source>Select whether the chat should start expanded or collapsed</source>
+                <target>Wählen Sie, ob der Chat erweitert oder eingeklappt starten soll</target>
+            </trans-unit>
+            <trans-unit id="tl_module.initial_state.collapsed">
+                <source>Collapsed (show toggle button)</source>
+                <target>Eingeklappt (Toggle-Button anzeigen)</target>
+            </trans-unit>
+            <trans-unit id="tl_module.initial_state.expanded">
+                <source>Expanded (show chat window)</source>
+                <target>Erweitert (Chat-Fenster anzeigen)</target>
+            </trans-unit>
+            <trans-unit id="tl_module.base_font_size.0">
+                <source>Base Font Size</source>
+                <target>Basis-Schriftgröße</target>
+            </trans-unit>
+            <trans-unit id="tl_module.base_font_size.1">
+                <source>Select the base font size for the chat widget. All other font sizes will scale proportionally.</source>
+                <target>Wählen Sie die Basis-Schriftgröße für das Chat-Widget. Alle anderen Schriftgrößen werden proportional skaliert.</target>
+            </trans-unit>
+            <trans-unit id="tl_module.base_font_size.12px">
+                <source>12px - Small</source>
+                <target>12px - Klein</target>
+            </trans-unit>
+            <trans-unit id="tl_module.base_font_size.14px">
+                <source>14px - Default</source>
+                <target>14px - Standard</target>
+            </trans-unit>
+            <trans-unit id="tl_module.base_font_size.16px">
+                <source>16px - Medium</source>
+                <target>16px - Mittel</target>
+            </trans-unit>
+            <trans-unit id="tl_module.base_font_size.18px">
+                <source>18px - Large</source>
+                <target>18px - Groß</target>
+            </trans-unit>
+            <trans-unit id="tl_module.base_font_size.20px">
+                <source>20px - Extra Large</source>
+                <target>20px - Sehr groß</target>
+            </trans-unit>
+            <trans-unit id="tl_module.colors_legend">
+                <source>Color Settings</source>
+                <target>Farbeinstellungen</target>
+            </trans-unit>
+            <trans-unit id="tl_module.dark_bg_primary.0">
+                <source>Dark Theme - Primary Background</source>
+                <target>Dunkles Theme - Primärer Hintergrund</target>
+            </trans-unit>
+            <trans-unit id="tl_module.dark_bg_primary.1">
+                <source>Primary background color for dark theme</source>
+                <target>Primäre Hintergrundfarbe für dunkles Theme</target>
+            </trans-unit>
+            <trans-unit id="tl_module.dark_bg_secondary.0">
+                <source>Dark Theme - Secondary Background</source>
+                <target>Dunkles Theme - Sekundärer Hintergrund</target>
+            </trans-unit>
+            <trans-unit id="tl_module.dark_bg_secondary.1">
+                <source>Secondary background color for dark theme</source>
+                <target>Sekundäre Hintergrundfarbe für dunkles Theme</target>
+            </trans-unit>
+            <trans-unit id="tl_module.dark_text_primary.0">
+                <source>Dark Theme - Primary Text</source>
+                <target>Dunkles Theme - Primärer Text</target>
+            </trans-unit>
+            <trans-unit id="tl_module.dark_text_primary.1">
+                <source>Primary text color for dark theme</source>
+                <target>Primäre Textfarbe für dunkles Theme</target>
+            </trans-unit>
+            <trans-unit id="tl_module.dark_text_secondary.0">
+                <source>Dark Theme - Secondary Text</source>
+                <target>Dunkles Theme - Sekundärer Text</target>
+            </trans-unit>
+            <trans-unit id="tl_module.dark_text_secondary.1">
+                <source>Secondary text color for dark theme</source>
+                <target>Sekundäre Textfarbe für dunkles Theme</target>
+            </trans-unit>
+            <trans-unit id="tl_module.light_bg_primary.0">
+                <source>Light Theme - Primary Background</source>
+                <target>Helles Theme - Primärer Hintergrund</target>
+            </trans-unit>
+            <trans-unit id="tl_module.light_bg_primary.1">
+                <source>Primary background color for light theme</source>
+                <target>Primäre Hintergrundfarbe für helles Theme</target>
+            </trans-unit>
+            <trans-unit id="tl_module.light_bg_secondary.0">
+                <source>Light Theme - Secondary Background</source>
+                <target>Helles Theme - Sekundärer Hintergrund</target>
+            </trans-unit>
+            <trans-unit id="tl_module.light_bg_secondary.1">
+                <source>Secondary background color for light theme</source>
+                <target>Sekundäre Hintergrundfarbe für helles Theme</target>
+            </trans-unit>
+            <trans-unit id="tl_module.light_text_primary.0">
+                <source>Light Theme - Primary Text</source>
+                <target>Helles Theme - Primärer Text</target>
+            </trans-unit>
+            <trans-unit id="tl_module.light_text_primary.1">
+                <source>Primary text color for light theme</source>
+                <target>Primäre Textfarbe für helles Theme</target>
+            </trans-unit>
+            <trans-unit id="tl_module.light_text_secondary.0">
+                <source>Light Theme - Secondary Text</source>
+                <target>Helles Theme - Sekundärer Text</target>
+            </trans-unit>
+            <trans-unit id="tl_module.light_text_secondary.1">
+                <source>Secondary text color for light theme</source>
+                <target>Sekundäre Textfarbe für helles Theme</target>
+            </trans-unit>
+            <trans-unit id="tl_module.dark_toggle_icon_color.0">
+                <source>Dark Theme - Toggle Button &amp; Icon Color</source>
+                <target>Dunkles Theme - Farbe Toggle Button &amp; Icons</target>
+            </trans-unit>
+            <trans-unit id="tl_module.dark_toggle_icon_color.1">
+                <source>Color for toggle buttons and icons in dark theme (6-digit hex code without #)</source>
+                <target>Farbe für Toggle-Buttons und Icons im dunklen Theme (6-stelliger Hex-Code ohne #)</target>
+            </trans-unit>
+            <trans-unit id="tl_module.light_toggle_icon_color.0">
+                <source>Light Theme - Toggle Button &amp; Icon Color</source>
+                <target>Helles Theme - Farbe Toggle Button &amp; Icons</target>
+            </trans-unit>
+            <trans-unit id="tl_module.light_toggle_icon_color.1">
+                <source>Color for toggle buttons and icons in light theme (6-digit hex code without #)</source>
+                <target>Farbe für Toggle-Buttons und Icons im hellen Theme (6-stelliger Hex-Code ohne #)</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff> 

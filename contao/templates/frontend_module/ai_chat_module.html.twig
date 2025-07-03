@@ -1,0 +1,76 @@
+{# AI Chat Module Template for Contao 5 with CSRF Protection #}
+
+{# Load CSS and JavaScript assets #}
+{% add to head %}
+<link rel="stylesheet" href="/bundles/contaoopenaiassistant/css/ai-chat.css">
+{% endadd %}
+
+{% add to body %}
+<script src="/bundles/contaoopenaiassistant/js/ai-chat.js"></script>
+{% endadd %}
+
+<div class="{{ module_class }}{% if custom_css %} {{ custom_css }}{% endif %} theme-{{ theme }}" id="{{ module_id }}" data-position="{{ chat_position|default('bottom-right') }}" data-initial-message="{{ initial_bot_message|default('Hallo! Wie kann ich dir helfen?')|escape('html_attr') }}" data-initial-state="{{ initial_state|default('collapsed') }}" role="region" aria-label="AI Chat Module" style="--ai-chat-font-size-base: {{ base_font_size|default('14px') }};
+            --ai-chat-light-bg-primary: #{{ light_bg_primary|default('f8f9fa') }};
+            --ai-chat-light-bg-secondary: #{{ light_bg_secondary|default('e1e5e9') }};
+            --ai-chat-light-text-primary: #{{ light_text_primary|default('333') }};
+            --ai-chat-light-text-secondary: #{{ light_text_secondary|default('666') }};
+            --ai-chat-light-toggle-icon-color: #{{ light_toggle_icon_color|default('007bff') }};
+            --ai-chat-dark-bg-primary: #{{ dark_bg_primary|default('121212') }};
+            --ai-chat-dark-bg-secondary: #{{ dark_bg_secondary|default('1e1e1e') }};
+            --ai-chat-dark-text-primary: #{{ dark_text_primary|default('ff6600') }};
+            --ai-chat-dark-text-secondary: #{{ dark_text_secondary|default('fdfdf1') }};
+            --ai-chat-dark-toggle-icon-color: #{{ dark_toggle_icon_color|default('ff6600') }};">
+    <div class="ai-chat-container">
+        <div class="ai-chat-header">
+            <h3 class="ai-chat-title" id="ai-chat-title-{{ module_id|replace({'ai-chat-': ''}) }}">{{ chat_title|default('Assistent - JUHE IT-solutions.') }}</h3>
+            <p class="ai-chat-subheadline" id="ai-chat-subheadline-{{ module_id|replace({'ai-chat-': ''}) }}">{{ welcome_message|default('Wie kann ich dir helfen?') }}</p>
+            <button type="button"
+                    class="ai-chat-theme-toggle"
+                    aria-label="Theme wechseln"
+                    title="Theme wechseln">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor"/>
+                </svg>
+            </button>
+            <button type="button"
+                    class="ai-chat-minimize"
+                    aria-label="Chat minimieren"
+                    aria-expanded="true"
+                    aria-controls="ai-chat-log-{{ module_id|replace({'ai-chat-': ''}) }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="ai-chat-log" id="ai-chat-log-{{ module_id|replace({'ai-chat-': ''}) }}" role="log" aria-live="polite" aria-labelledby="ai-chat-title-{{ module_id|replace({'ai-chat-': ''}) }}"></div>
+
+        <div class="ai-chat-input-container">
+            <form class="ai-chat-form" action="{{ chat_endpoint }}" method="post" aria-labelledby="ai-chat-subheadline-{{ module_id|replace({'ai-chat-': ''}) }}">
+                {# CSRF Token - Hidden field for security #}
+                <input type="hidden" 
+                       name="REQUEST_TOKEN" 
+                       value="{{ csrf_token }}" 
+                       id="csrf-token-{{ module_id }}">
+                
+                <textarea class="ai-chat-input"
+                          name="message"
+                          placeholder="Frage hier eingeben..."
+                          rows="1"
+                          autocomplete="off"
+                          required
+                          aria-label="Frage eingeben"></textarea>
+                <button type="submit"
+                        class="ai-chat-send"
+                        title="Frage abschicken"
+                        data-endpoint="{{ chat_endpoint }}"
+                        data-token-endpoint="{{ token_endpoint }}"
+                        aria-label="Frage abschicken">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+</div> 

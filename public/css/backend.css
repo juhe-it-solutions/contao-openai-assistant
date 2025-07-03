@@ -1,0 +1,9 @@
+/* AI Tools Backend Menu Icon */
+
+/* Core Contao approach - background image on group element */
+#tl_navigation .group-ai_tools {
+    background: url('../icons/ai-tools.svg') 3px 2px no-repeat;
+    background-position: left;
+}
+
+/* Remove API Status Indicator Styles and related rules */ 

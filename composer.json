@@ -1,0 +1,27 @@
+{
+  "name": "juhe-it-solutions/contao-openai-assistant",
+  "description": "OpenAI Assistant integration for Contao CMS",
+  "type": "contao-bundle",
+  "version": "1.0.0",
+  "license": "LGPL-3.0-or-later",
+  "authors": [
+    {
+      "name": "JUHE IT-solutions",
+      "email": "office@juhe-it-solutions.at",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": ">=8.1",
+    "contao/core-bundle": ">=5.3"
+  },
+  "autoload": {
+    "psr-4": {
+      "JuheItSolutions\\ContaoOpenaiAssistant\\": "src/"
+    }
+  },
+  "extra": {
+    "contao-manager-plugin": "JuheItSolutions\\ContaoOpenaiAssistant\\ContaoManagerPlugin"
+  },
+  "keywords": ["contao", "openai", "assistant", "ai", "chatbot"]
+} 

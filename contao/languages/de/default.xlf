@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+    <file source-language="en" target-language="de" datatype="plaintext" original="default.xlf">
+        <body>
+            <trans-unit id="MSC.openai_dashboard">
+                <source>OpenAI Dashboard</source>
+                <target>OpenAI-Dashboard</target>
+            </trans-unit>
+            <trans-unit id="MSC.file_uploaded_successfully">
+                <source>File uploaded successfully</source>
+                <target>Datei erfolgreich hochgeladen</target>
+            </trans-unit>
+            <trans-unit id="MSC.vector_store_created">
+                <source>Vector store created successfully</source>
+                <target>OpenAI-Vector Store erfolgreich erstellt</target>
+            </trans-unit>
+            <trans-unit id="MSC.assistant_created">
+                <source>Assistant created successfully</source>
+                <target>OpenAI-Assistent erfolgreich erstellt</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff> 

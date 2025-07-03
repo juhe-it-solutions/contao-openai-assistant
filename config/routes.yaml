@@ -1,0 +1,40 @@
+# config/routes.yaml
+contao_api_key_validate:
+    path: /contao/api-key-validate
+    controller: JuheItSolutions\ContaoOpenaiAssistant\Controller\ApiValidationController::validateApiKey
+    methods: [POST]
+    defaults:
+        _scope: backend
+        _token_check: true
+
+ai_chat_send:
+    path: /ai-chat/send
+    controller: JuheItSolutions\ContaoOpenaiAssistant\Controller\AiChatController::send
+    methods: [POST]
+    defaults:
+        _scope: frontend
+        _token_check: true
+        _bypass_maintenance: true
+        _public: true
+        _allow_anonymous: true
+
+ai_chat_history:
+    path: /ai-chat/history
+    controller: JuheItSolutions\ContaoOpenaiAssistant\Controller\AiChatController::getHistory
+    methods: [GET]
+    defaults:
+        _scope: frontend
+        _token_check: true
+        _bypass_maintenance: true
+        _public: true
+        _allow_anonymous: true
+
+ai_chat_token:
+    path: /ai-chat/token
+    controller: JuheItSolutions\ContaoOpenaiAssistant\Controller\AiChatController::getToken
+    methods: [GET]
+    defaults:
+        _scope: frontend
+        _bypass_maintenance: true
+        _public: true
+        _allow_anonymous: true

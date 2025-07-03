@@ -1,0 +1,118 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: false
+
+    JuheItSolutions\ContaoOpenaiAssistant\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Tests/'
+
+    # AiChatController
+    JuheItSolutions\ContaoOpenaiAssistant\Controller\AiChatController:
+        arguments:
+            $csrfTokenManager: '@contao.csrf.token_manager'
+            $csrfTokenName: '%contao.csrf_token_name%'
+        public: true
+
+    # ApiValidationController
+    JuheItSolutions\ContaoOpenaiAssistant\Controller\ApiValidationController:
+        arguments:
+            $httpClient: '@http_client'
+            $logger: '@monolog.logger.contao'
+            $csrfTokenManager: '@contao.csrf.token_manager'
+            $csrfTokenName: '%contao.csrf_token_name%'
+        public: true
+
+    # BackendModule Controller
+    JuheItSolutions\ContaoOpenaiAssistant\Controller\BackendModule\OpenAiDashboardController:
+        public: true
+
+    # FrontendModule Controller
+    JuheItSolutions\ContaoOpenaiAssistant\Controller\FrontendModule\AiChatModuleController:
+        public: true
+
+    # OpenAI Assistant Service
+    JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiAssistant:
+        arguments:
+            $http: '@http_client'
+            $logger: '@monolog.logger.contao'
+            $connection: '@doctrine.dbal.default_connection'
+        public: true
+
+    # Encryption Service
+    JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService:
+        arguments:
+            $logger: '@monolog.logger.contao'
+        public: true
+
+    # OpenAiConfigListener
+    JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener:
+        arguments:
+            $httpClient: '@http_client'
+            $logger: '@monolog.logger.contao'
+            $csrfTokenManager: '@contao.csrf.token_manager'
+            $csrfTokenName: '%contao.csrf_token_name%'
+            $requestStack: '@request_stack'
+            $connection: '@doctrine.dbal.default_connection'
+        public: true
+        tags:
+            - { name: contao.callback, table: tl_openai_config, target: config.onload, method: onLoadCallback }
+            - { name: contao.callback, table: tl_openai_config, target: fields.api_key.load, method: processApiKeyForDisplay }
+            - { name: contao.callback, table: tl_openai_config, target: list.label, method: addIcon }
+            - { name: contao.callback, table: tl_openai_config, target: list.header, method: addHeader }
+            - { name: contao.callback, table: tl_openai_config, target: fields.api_key.wizard, method: apiKeyWizard }
+            - { name: contao.callback, table: tl_openai_config, target: fields.api_key.save, method: processApiKeyForStorage }
+            - { name: contao.callback, table: tl_openai_config, target: config.onsubmit, method: createVectorStore }
+            - { name: contao.callback, table: tl_openai_config, target: config.ondelete, method: deleteVectorStore }
+            - { name: contao.callback, table: tl_openai_config, target: config.oncopy, method: copyVectorStore }
+
+    # OpenAiFilesListener
+    JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiFilesListener:
+        arguments:
+            $httpClient: '@http_client'
+            $projectDir: '%kernel.project_dir%'
+            $logger: '@monolog.logger.contao'
+            $configListener: '@JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener'
+            $requestStack: '@request_stack'
+            $connection: '@doctrine.dbal.default_connection'
+            $csrfTokenManager: '@contao.csrf.token_manager'
+            $csrfTokenName: '%contao.csrf_token_name%'
+        public: true
+        tags:
+            - { name: contao.callback, table: tl_openai_files, target: fields.file_upload.save, method: uploadToOpenAI }
+            - { name: contao.callback, table: tl_openai_files, target: list.child_record, method: listFiles }
+            - { name: contao.callback, table: tl_openai_files, target: config.ondelete, method: deleteFromOpenAI }
+            - { name: contao.callback, table: tl_openai_files, target: list.header, method: addHeader }
+
+    # OpenAiAssistantsListener
+    JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiAssistantsListener:
+        arguments:
+            $httpClient: '@http_client'
+            $logger: '@monolog.logger.contao'
+            $connection: '@doctrine.dbal.default_connection'
+            $csrfTokenManager: '@contao.csrf.token_manager'
+            $csrfTokenName: '%contao.csrf_token_name%'
+            $requestStack: '@request_stack'
+        public: true
+        tags:
+            - { name: contao.callback, table: tl_openai_assistants, target: config.onload, method: onLoadCallback }
+            - { name: contao.callback, table: tl_openai_assistants, target: fields.model.options, method: getAvailableModels }
+            - { name: contao.callback, table: tl_openai_assistants, target: fields.model.save, method: validateModel }
+            - { name: contao.callback, table: tl_openai_assistants, target: fields.model_manual.save, method: validateManualModel }
+            - { name: contao.callback, table: tl_openai_assistants, target: fields.top_p.save, method: validateTopP }
+            - { name: contao.callback, table: tl_openai_assistants, target: fields.temperature.save, method: validateTemperature }
+            - { name: contao.callback, table: tl_openai_assistants, target: list.header, method: addHeader }
+            - { name: contao.callback, table: tl_openai_assistants, target: list.label, method: listAssistants }
+            - { name: contao.callback, table: tl_openai_assistants, target: list.child_record, method: listAssistants }
+            - { name: contao.callback, table: tl_openai_assistants, target: config.ondelete, method: deleteAssistant }
+            - { name: contao.callback, table: tl_openai_assistants, target: config.onsubmit, method: createOrUpdateAssistant }
+
+    # Security Voter
+    JuheItSolutions\ContaoOpenaiAssistant\Security\Voter\AiChatVoter:
+        tags:
+            - { name: security.voter }
+

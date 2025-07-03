@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 http://docs.oasis-open.org/xliff/v1.2/os/xliff-core-1.2-strict.xsd">
+    <file source-language="en" target-language="en" datatype="plaintext" original="tl_openai_assistants.xlf">
+        <body>
+            <trans-unit id="tl_openai_assistants.header">
+                <source>OpenAI Assistants</source>
+                <target>OpenAI Assistants</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.intro">
+                <source>Here you can manage your OpenAI assistants. Create and configure assistants that will use your uploaded files as knowledge base.</source>
+                <target>Here you can manage your OpenAI assistants. Create and configure assistants that will use your uploaded files as knowledge base.</target>
+            </trans-unit>
+            <!-- Field Labels -->
+            <trans-unit id="tl_openai_assistants.name.0">
+                <source>Name</source>
+                <target>Name</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.name.1">
+                <source>Enter a name for your OpenAI assistant.</source>
+                <target>Enter a name for your OpenAI assistant.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.description.0">
+                <source>Description</source>
+                <target>Description</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.description.1">
+                <source>Enter a description for your OpenAI assistant.</source>
+                <target>Enter a description for your OpenAI assistant.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.model.0">
+                <source>Model</source>
+                <target>Model</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.model.1">
+                <source>Select the OpenAI model to use for this assistant. All available models are shown. Model compatibility is validated when you save.</source>
+                <target>Select the OpenAI model to use for this assistant. All available models are shown. Model compatibility is validated when you save.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.model_manual.0">
+                <source>Custom Model</source>
+                <target>Custom Model</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.model_manual.1">
+                <source>Enter a custom OpenAI model name (e.g., gpt-4o-mini, gpt-4-turbo-preview). Only use this if you select "Enter Custom Model" above.</source>
+                <target>Enter a custom OpenAI model name (e.g., gpt-4o-mini, gpt-4-turbo-preview). Only use this if you select "Enter Custom Model" above.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.max_tokens.0">
+                <source>Max Tokens</source>
+                <target>Max Tokens</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.max_tokens.1">
+                <source>Maximum number of tokens to generate in responses.</source>
+                <target>Maximum number of tokens to generate in responses.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.temperature.0">
+                <source>Temperature</source>
+                <target>Temperature</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.temperature.1">
+                <source>Controls randomness in responses (0.0 = deterministic, 2.0 = very random).</source>
+                <target>Controls randomness in responses (0.0 = deterministic, 2.0 = very random).</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.top_p.0">
+                <source>Top P</source>
+                <target>Top P</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.top_p.1">
+                <source>Controls diversity via nucleus sampling (0.0 = focused, 1.0 = diverse).</source>
+                <target>Controls diversity via nucleus sampling (0.0 = focused, 1.0 = diverse).</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.system_instructions.0">
+                <source>System Instructions</source>
+                <target>System Instructions</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.system_instructions.1">
+                <source>Enter system instructions for your OpenAI assistant.</source>
+                <target>Enter system instructions for your OpenAI assistant.</target>
+            </trans-unit>
+            
+            <!-- Legend Labels -->
+            <trans-unit id="tl_openai_assistants.title_legend">
+                <source>Title and Description</source>
+                <target>Title and Description</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.model_legend">
+                <source>Model Settings</source>
+                <target>Model Settings</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.settings_legend">
+                <source>Advanced Settings</source>
+                <target>Advanced Settings</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.instructions_legend">
+                <source>System Instructions</source>
+                <target>System Instructions</target>
+            </trans-unit>
+            
+            <!-- OpenAI Legend and Fields -->
+            <trans-unit id="tl_openai_assistants.openai_legend">
+                <source>OpenAI Integration</source>
+                <target>OpenAI Integration</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.openai_assistant_id.0">
+                <source>OpenAI Assistant ID</source>
+                <target>OpenAI Assistant ID</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.openai_assistant_id.1">
+                <source>The unique identifier of this assistant in OpenAI (automatically generated).</source>
+                <target>The unique identifier of this assistant in OpenAI (automatically generated).</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.status.0">
+                <source>Status</source>
+                <target>Status</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.status.1">
+                <source>The current status of this assistant in OpenAI.</source>
+                <target>The current status of this assistant in OpenAI.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.status_options.active">
+                <source>Active</source>
+                <target>Active</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.status_options.creating">
+                <source>Creating</source>
+                <target>Creating</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.status_options.failed">
+                <source>Failed</source>
+                <target>Failed</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.status_options.pending">
+                <source>Pending</source>
+                <target>Pending</target>
+            </trans-unit>
+            
+            <!-- Operations -->
+            <trans-unit id="tl_openai_assistants.new.0">
+                <source>Create OpenAI Assistant</source>
+                <target>Create OpenAI Assistant</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.new.1">
+                <source>Create a new OpenAI Assistant</source>
+                <target>Create a new OpenAI Assistant</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.edit">
+                <source>Edit Assistant</source>
+                <target>Edit Assistant</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.delete">
+                <source>Delete Assistant</source>
+                <target>Delete Assistant</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.show">
+                <source>Show Assistant</source>
+                <target>Show Assistant</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.deleteConfirm">
+                <source>Are you sure you want to delete this assistant? This will also remove it from OpenAI.</source>
+                <target>Are you sure you want to delete this assistant? This will also remove it from OpenAI.</target>
+            </trans-unit>
+            
+            <!-- Welcome Message -->
+            <trans-unit id="tl_openai_assistants.welcome_heading">
+                <source>OpenAI Assistant</source>
+                <target>OpenAI Assistant</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.welcome_message1">
+                <source>Welcome to the OpenAI Assistant screen.</source>
+                <target>Welcome to the OpenAI Assistant screen.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.welcome_message2">
+                <source>Here you can create and manage your OpenAI assistant.</source>
+                <target>Here you can create and manage your OpenAI assistant.</target>
+            </trans-unit>
+            
+            <!-- Model Selection Info -->
+            <trans-unit id="tl_openai_assistants.model_info_heading">
+                <source>Model Selection Tips</source>
+                <target>Model Selection Tips (in the 'create assistant screen')</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.model_info_dynamic">
+                <source>All Models: All available models from your OpenAI account are shown</source>
+                <target>All Models: All available models from your OpenAI account are shown</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.model_info_custom">
+                <source>Custom Models: Select "Enter Custom Model" to use any OpenAI model</source>
+                <target>Custom Models: Select "Enter Custom Model" to use any OpenAI model</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.model_info_compatibility">
+                <source>Model Validation: Model compatibility is checked when you save the assistant</source>
+                <target>Model Validation: For technical reasons the model compatibility is only checked when you save the assistant.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.model_info_help">
+                <source>Need Help?</source>
+                <target>Need Help?</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.model_info_link">
+                <source>View all available models on OpenAI Platform</source>
+                <target>View all available models on OpenAI Platform</target>
+            </trans-unit>
+            
+            <!-- Form Labels and Placeholders -->
+            <trans-unit id="tl_openai_assistants.model_select_placeholder">
+                <source>-- Select Model --</source>
+                <target>-- Select Model --</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.model_manual_placeholder">
+                <source>e.g., gpt-4o-mini, gpt-4-turbo-preview</source>
+                <target>e.g., gpt-4o-mini, gpt-4-turbo-preview</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.model_manual_option">
+                <source>-- Enter Custom Model --</source>
+                <target>-- Enter Custom Model --</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.model_validation_error">
+                <source>Please enter a custom model name when selecting manual override.</source>
+                <target>Please enter a custom model name when selecting manual override.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.model_required">
+                <source>Please select a model or enter a custom model name.</source>
+                <target>Please select a model or enter a custom model name.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.model_incompatible_error">
+                <source>The selected model "%s" is not compatible with OpenAI Assistants API. Please select a compatible model from the list.</source>
+                <target>The selected model "%s" is not compatible with OpenAI Assistants API. Please select a different model from the list.</target>
+            </trans-unit>
+            
+            <!-- Single Assistant Limitation Notice -->
+            <trans-unit id="tl_openai_assistants.single_assistant_heading">
+                <source>Single Assistant</source>
+                <target>Single Assistant</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.single_assistant_message">
+                <source>Only one assistant is allowed per configuration. If an assistant already exists for this configuration, you will be redirected to edit it.</source>
+                <target>Only one assistant is allowed per configuration. If an assistant already exists for this configuration, you will be redirected to edit it.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_assistants.single_assistant_redirect">
+                <source>Only one assistant is allowed per configuration. You are being redirected to the existing assistant.</source>
+                <target>Only one assistant is allowed per configuration. You are being redirected to the existing assistant.</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff> 
