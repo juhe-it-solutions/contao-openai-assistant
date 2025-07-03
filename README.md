@@ -25,7 +25,7 @@ While I'm super proud of what we've built here, I gotta be honest - I don't have
 - ⭐ Give it a star if you find it useful
 - ☕ [Buy me a coffee](https://buymeacoffee.com/juliuscaesar1) if this extension helps you out!
 
-**No guarantees** that everything will be worked on immediately, but I'll check them out when I find the time to do so! This is open source, after all - feel free to fork and improve it! 🎯
+**No guarantees** that everything will be addressed immediately, but I’ll take a look when time allows! Since this is open source, feel free to fork and enhance it! 🎯
 
 ## 🚀 Features
 
@@ -60,7 +60,14 @@ While I'm super proud of what we've built here, I gotta be honest - I don't have
 
 ## 🚀 Quick Start
 
-### Installation
+### 🛠️ Installation using Contao Manager
+
+The extension can easily be installed using the Contao Manager.
+Just search for the extension with keywords 'openai', 'openai-assistant', 'chatbot',... 
+
+### 🛠️ Installation using composer
+
+For detailed installation instructions, see [docs/installation.md](docs/installation.md).
 
 1. **Install the extension**:
    ```bash
@@ -84,10 +91,6 @@ While I'm super proud of what we've built here, I gotta be honest - I don't have
    - Add module to your page layout
 
 📚 **For detailed documentation, see the [docs/](docs/) directory.**
-
-## 🛠️ Installation
-
-For detailed installation instructions, see [docs/installation.md](docs/installation.md).
 
 ### Manual Installation (Alternative)
 
@@ -127,6 +130,7 @@ If you prefer manual installation:
 Before setting up the extension, you need:
 
 1. **OpenAI Account**: Create an account at [platform.openai.com](https://platform.openai.com)
+2. **Create Project**: e.g. Chatbot for website xyz
 2. **API Key**: Generate a secret key in your OpenAI project
 3. **Assistants API Access**: Ensure your account has access to the Assistants API
 4. **Contao 5.3+**: Ensure you're running Contao 5.3 or higher (recommended: Contao 5.5)
@@ -139,14 +143,14 @@ After installing the extension via Contao Manager, you will see a new entry in y
 
 ##### 1a. Create OpenAI Configuration
 - Click **"New configuration"**
-- Enter your OpenAI API key/Secret key
+- Enter your OpenAI API key/Secret key and press button "Validate key"
 - Save the configuration
 - The system will automatically validate your API key
 
 ##### 1b. Upload Knowledge Base Files
 - Click the **3rd icon "File Upload"**
 - Click **"New file"**
-- Choose files containing company information or other data on which the OpenAI assistant should rely
+- Choose files containing website-/company information or other data on which the OpenAI assistant should rely
 - Supported formats: PDF, TXT, MD, DOCX, XLSX, PPTX, JSON, CSV
 
 ##### 1c. Create OpenAI Assistant
@@ -171,7 +175,7 @@ After installing the extension via Contao Manager, you will see a new entry in y
 - **Theme**: Light or dark mode
 - **Colors**: Customize all theme colors (background, text, buttons)
 - **Font Size**: Adjustable base font size (12px to 20px)
-- **Messages**: Set custom titles and welcome messages
+- **Messages**: Set custom titles and welcome messages for the frontend chatbot
 
 #### 3. Integration
 
@@ -294,84 +298,6 @@ The extension supports multiple levels of API key security:
 
 📖 **For detailed security documentation, see [docs/security/api-key-management.md](docs/security/api-key-management.md)**
 
-## 📁 Project Structure
-
-```
-src/
-├── Command/                          # Console commands
-│   ├── TestAssistantCreationCommand.php
-│   └── TestOpenAiServicesCommand.php
-├── Controller/                       # Controllers
-│   ├── AiChatController.php         # Frontend chat controller
-│   ├── ApiValidationController.php  # API validation
-│   ├── BackendModule/               # Backend modules
-│   └── FrontendModule/              # Frontend modules
-├── EventListener/                    # Event listeners
-│   ├── OpenAiAssistantsListener.php # Assistant management
-│   ├── OpenAiConfigListener.php     # Configuration management
-│   └── OpenAiFilesListener.php      # File upload handling
-├── Security/                         # Security components
-│   └── Voter/
-└── Service/                          # Services
-    └── OpenAiAssistant.php          # Main OpenAI service
-
-contao/
-├── config/                          # Contao configuration
-├── dca/                            # Data container arrays
-│   ├── tl_module.php               # Module configuration
-│   ├── tl_openai_assistants.php    # Assistants table
-│   ├── tl_openai_config.php        # Configuration table
-│   └── tl_openai_files.php         # Files table
-├── languages/                      # Language files
-├── templates/                      # Twig templates (Contao 5)
-│   ├── .twig-root                  # Required for template discovery
-│   ├── backend_module/             # Backend module templates
-│   │   └── openai_dashboard.html.twig
-│   └── frontend_module/            # Frontend module templates
-│       └── ai_chat_module.html.twig
-└── migrations/                     # Database migrations
-
-public/
-└── bundles/
-    └── contaoopenaiassistant/      # Frontend assets (Contao 5)
-        └── ai-chat/
-            ├── ai-chat.css         # Styles
-            └── ai-chat.js          # JavaScript
-
-config/
-├── openai_config.php               # OpenAI configuration
-├── routes.yaml                     # Route definitions
-└── services.yaml                   # Service definitions
-```
-
-## 🎯 Template System (Contao 5)
-
-### Template Discovery
-
-The extension uses Contao 5's template discovery system:
-
-- **`.twig-root` file**: Required in `contao/templates/` to mark it as a Twig root directory
-- **Automatic discovery**: Templates are automatically found by Contao's template engine
-- **Bundle extension**: The bundle class extends `Symfony\Component\HttpKernel\Bundle\AbstractBundle` for proper template registration
-
-### Template Locations
-
-- **Backend templates**: `contao/templates/backend_module/`
-- **Frontend templates**: `contao/templates/frontend_module/`
-- **Asset loading**: Via `$GLOBALS['TL_CSS']` and `$GLOBALS['TL_JAVASCRIPT']` with `|static` suffix
-
-### Asset Management
-
-Frontend assets are loaded through Contao's asset system:
-
-```php
-// CSS loading
-$GLOBALS['TL_CSS'][] = 'bundles/contaoopenaiassistant/ai-chat/ai-chat.css|static';
-
-// JavaScript loading  
-$GLOBALS['TL_JAVASCRIPT'][] = 'bundles/contaoopenaiassistant/ai-chat/ai-chat.js|static';
-```
-
 ## 🗄️ Database Tables
 
 The extension creates three main database tables:
@@ -379,18 +305,6 @@ The extension creates three main database tables:
 - **`tl_openai_config`**: Stores OpenAI API configurations
 - **`tl_openai_assistants`**: Stores assistant configurations
 - **`tl_openai_files`**: Stores uploaded file metadata
-
-## 🔍 Console Commands
-
-The extension provides console commands for testing and maintenance:
-
-```bash
-# Test assistant creation
-php bin/console contao:test-assistant-creation
-
-# Test OpenAI services
-php bin/console contao:test-openai-services
-```
 
 ## 📚 Documentation
 
@@ -458,11 +372,13 @@ If you discover a security vulnerability, please report it privately via email t
 
 ## 🔄 Version History
 
-- **v1.0.0**: Initial release with basic assistant functionality
-- **v1.1.0**: Added file upload and vector store integration
-- **v1.2.0**: Enhanced frontend chat widget with themes
-- **v1.3.0**: Added color customization and accessibility features
-- **v1.4.0**: Contao 5.5 compatibility, improved template system, and asset management
+- **v0.0.1**: Initial release with basic assistant functionality
+- **v0.0.2**: Added file upload and vector store integration
+- **v0.0.3**: Enhanced frontend chat widget with themes
+- **v0.0.4**: Added color customization and accessibility features
+- **v0.0.5**: Contao 5.5 compatibility, improved template system, and asset management
+- **v0.0.6**: Model validation on save
+- **v1.0.0**: Initial prod release
 
 ## 🙏 Acknowledgments
 
