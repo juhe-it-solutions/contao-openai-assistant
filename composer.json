@@ -2,7 +2,7 @@
   "name": "juhe-it-solutions/contao-openai-assistant",
   "description": "OpenAI Assistant integration for Contao CMS",
   "type": "contao-bundle",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "LGPL-3.0-or-later",
   "authors": [
     {
