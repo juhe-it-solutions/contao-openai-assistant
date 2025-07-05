@@ -535,12 +535,7 @@
     }
     
     /* Ensure collapsed state works properly on mobile */
-    .mod_ai_chat.ai-chat-collapsed {
-        transform: none !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-    }
-    
+    .mod_ai_chat.ai-chat-collapsed,
     .mod_ai_chat.ai-chat-collapsed .ai-chat-container {
         display: none !important;
     }
