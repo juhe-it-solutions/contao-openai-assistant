@@ -176,8 +176,12 @@ function initAiChat(wrapper) {
     if (toggleButton) {
       toggleButton.hidden = true;
     }
-    if (input) {
-      input.focus();
+    // Only auto-focus input on desktop devices (width >= 768px)
+    if (input && window.innerWidth >= 768) {
+      // Small delay to ensure DOM transition is complete
+      setTimeout(() => {
+        input.focus();
+      }, 100);
     }
   };
 
@@ -460,10 +464,14 @@ function initAiChat(wrapper) {
   });
 }
 
-// Initialize all AI chat modules when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  const chatModules = document.querySelectorAll('.mod_ai_chat');
-  chatModules.forEach(module => {
-    initAiChat(module);
+  // Initialize all AI chat modules when DOM is ready
+  document.addEventListener('DOMContentLoaded', () => {
+    const chatModules = document.querySelectorAll('.mod_ai_chat');
+    chatModules.forEach(module => {
+      initAiChat(module);
+    });
   });
-});
+  
+  // Handle viewport height changes (for mobile browsers)
+  window.addEventListener('resize', appHeight);
+  window.addEventListener('orientationchange', appHeight);

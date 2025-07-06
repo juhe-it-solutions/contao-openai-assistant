@@ -73,6 +73,7 @@
              opacity   .5s ease;
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   font-size: var(--ai-chat-font-size-base);
+  z-index:99;
 }
 
 /* Ensure all elements within the chat widget inherit font-size */
@@ -89,7 +90,6 @@
 
 .mod_ai_chat .ai-chat-subheadline {
   font-size: var(--ai-chat-font-size-sm);
-  opacity: .8;
 }
 
 .mod_ai_chat .ai-chat-theme-toggle {
@@ -98,6 +98,7 @@
 
 .mod_ai_chat .ai-chat-minimize {
   font-size: var(--ai-chat-font-size-lg);
+  border-radius: 4px;
 }
 
 .mod_ai_chat .ai-chat-input {
@@ -235,7 +236,6 @@
 
 .ai-chat-subheadline {
     grid-row: 2;
-    opacity: .8;
 }
 
 .ai-chat-theme-toggle {
@@ -402,7 +402,6 @@
 .ai-chat-input:focus {
     outline: none;
     border-color: var(--ai-chat-text-primary);
-    box-shadow: 0 0 0 2px var(--ai-chat-focus-shadow);
 }
 
 .ai-chat-send {
@@ -475,7 +474,7 @@
     /* Make container full screen with padding */
     .ai-chat-container {
         height: 100vh !important; /* Fallback for browsers that do not support Custom Properties */
-        height: calc(var(--vh, 1vh) * 100 - 22px) !important;
+        height: calc(var(--vh, 1vh) * 100 - 1rem) !important;
         max-width: 100% !important;
         max-height: 100vh !important; /* Fallback for browsers that do not support Custom Properties */
         max-height: calc(var(--vh, 1vh) * 100 - 22px) !important;
@@ -631,8 +630,6 @@
 
 .ai-chat-send:focus, .ai-chat-minimize:focus, .ai-chat-theme-toggle:focus {
   outline: 2px solid var(--ai-chat-toggle-icon-color);
-  outline-offset: -5px;
-  box-shadow: 0 0 0 3px var(--ai-chat-toggle-focus-shadow);
 }
 
 /* Icon colors - apply configurable color to all icons */
