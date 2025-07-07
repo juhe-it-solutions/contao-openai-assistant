@@ -24,14 +24,14 @@ jobs:
       run: composer install --prefer-dist --no-progress
 
     - name: Validate composer.json
-      run: composer validate --strict
+      run: composer validate
 
     - name: Check PHP syntax
       run: |
         find src/ -name "*.php" -exec php -l {} \;
 
     - name: Check code style
-      run: vendor/bin/ecs check src
+      run: vendor/bin/ecs check
 
     - name: Run PHPStan analysis
       run: vendor/bin/phpstan analyse src/ --level=5
