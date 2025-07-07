@@ -1,8 +1,8 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: '[BUG] '
-labels: ['bug']
+title: ''
+labels: 'bug'
 assignees: ''
 
 ---
@@ -24,17 +24,14 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Environment (please complete the following information):**
- - OS: [e.g. Windows 10, macOS 12.0, Ubuntu 20.04]
- - PHP Version: [e.g. 8.1.0]
+ - OS: [e.g. Ubuntu 22.04]
+ - PHP Version: [e.g. 8.2.0]
  - Contao Version: [e.g. 5.3.0]
- - Extension Version: [e.g. 1.0.0]
- - Browser: [e.g. Chrome 120, Firefox 115, Safari 16]
+ - Browser: [e.g. chrome, safari]
+ - Version: [e.g. 22]
 
 **Additional context**
-Add any other context about the problem here, including:
-- Error messages from browser console
-- Contao system log entries
-- Any custom modifications made
+Add any other context about the problem here.
 
 **Checklist**
 - [ ] I have searched existing issues to avoid duplicates

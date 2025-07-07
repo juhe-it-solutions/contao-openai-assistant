@@ -46,7 +46,7 @@ Welcome to the documentation for the Contao OpenAI Assistant Bundle. This bundle
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
+This project is licensed under the LGPL-3.0-or-later License - see the [LICENSE](../LICENSE) file for details.
 
 ## 🆘 Support
 

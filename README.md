@@ -2,7 +2,7 @@
 
 [![License: LGPL-3.0-or-later](https://img.shields.io/badge/License-LGPL%203.0--or--later-blue.svg)](LICENSE)
 [![Contao](https://img.shields.io/badge/Contao-5.3+-green.svg)](https://contao.org)
-[![PHP](https://img.shields.io/badge/PHP-8.1+-purple.svg)](https://php.net)
+[![PHP](https://img.shields.io/badge/PHP-8.2+-purple.svg)](https://php.net)
 [![Production Ready](https://img.shields.io/badge/Production-Ready-brightgreen.svg)](https://github.com/juhe-it-solutions/contao-openai-assistant)
 [![Packagist](https://img.shields.io/packagist/v/juhe-it-solutions/contao-openai-assistant.svg)](https://packagist.org/packages/juhe-it-solutions/contao-openai-assistant)
 
@@ -25,7 +25,7 @@ While I'm super proud of what we've built here, I gotta be honest - I don't have
 - ⭐ Give it a star if you find it useful
 - ☕ [Buy me a coffee](https://buymeacoffee.com/juliuscaesar1) if this extension helps you out!
 
-**No guarantees** that everything will be addressed immediately, but I’ll take a look when time allows! Since this is open source, feel free to fork and enhance it! 🎯
+**No guarantees** that everything will be addressed immediately, but I'll take a look when time allows! Since this is open source, feel free to fork and enhance it! 🎯
 
 ## 🚀 Features
 
@@ -54,7 +54,7 @@ While I'm super proud of what we've built here, I gotta be honest - I don't have
 ## 📋 Requirements
 
 - **Contao**: 5.3 or higher (tested with Contao 5.5)
-- **PHP**: 8.1 or higher
+- **PHP**: 8.2 or higher
 - **OpenAI API Key**: Valid OpenAI API key with Assistants API access
 - **Composer**: For installation and dependency management
 
@@ -70,15 +70,15 @@ Just search for the extension with keywords 'openai', 'openai-assistant', 'chatb
 For detailed installation instructions, see [docs/installation.md](docs/installation.md).
 
 1. **Install the extension**:
-   ```bash
-   composer require juhe-it-solutions/contao-openai-assistant
-   ```
+```bash
+composer require juhe-it-solutions/contao-openai-assistant
+```
 
 2. **Run migrations and clear cache**:
-   ```bash
-   php bin/console contao:migrate
-   php bin/console cache:clear
-   ```
+```bash
+php bin/console contao:migrate
+php bin/console cache:clear
+```
 
 3. **Configure in Contao backend**:
    - Go to **AI-TOOLS → OpenAI Dashboard**
@@ -97,31 +97,31 @@ For detailed installation instructions, see [docs/installation.md](docs/installa
 If you prefer manual installation:
 
 1. **Download the extension**:
-   ```bash
-   git clone https://github.com/juhe-it-solutions/contao-openai-assistant.git
-   ```
+```bash
+git clone https://github.com/juhe-it-solutions/contao-openai-assistant.git
+```
 
 2. **Copy to your Contao installation**:
-   ```bash
-   cp -r contao-openai-assistant vendor/juhe-it-solutions/contao-openai-assistant/
-   ```
+```bash
+cp -r contao-openai-assistant vendor/juhe-it-solutions/contao-openai-assistant/
+```
 
 3. **Add to composer.json** (if not using Composer):
-   ```json
-   {
-     "autoload": {
-       "psr-4": {
-         "JuheItSolutions\\ContaoOpenaiAssistant\\": "vendor/juhe-it-solutions/contao-openai-assistant/src/"
-       }
-     }
-   }
-   ```
+```json
+{
+  "autoload": {
+    "psr-4": {
+      "JuheItSolutions\\ContaoOpenaiAssistant\\": "vendor/juhe-it-solutions/contao-openai-assistant/src/"
+    }
+  }
+}
+```
 
 4. **Run migrations and clear cache**:
-   ```bash
-   php bin/console contao:migrate
-   php bin/console cache:clear
-   ```
+```bash
+php bin/console contao:migrate
+php bin/console cache:clear
+```
 
 ## 🎯 How to Setup
 
@@ -188,40 +188,6 @@ After installing the extension via Contao Manager, you will see a new entry in y
 - Create a new content element
 - Choose "Module" as the element type
 - Select your AI-Chatbot module
-
-## 🧪 Testing & Code Quality
-
-This project includes automated testing and code quality checks via GitHub Actions:
-
-### Automated Checks
-- **Code Quality**: PHP syntax, ECS code style, PHPStan static analysis
-- **Code Formatting**: Automated formatting with validation
-- **Security**: Dependency vulnerability scanning
-
-
-### Local Development
-```bash
-# Install development dependencies
-composer install
-
-# Check code style
-vendor/bin/php-cs-fixer fix --dry-run --diff
-
-# Run static analysis
-vendor/bin/phpstan analyse src/
-
-# Format code
-vendor/bin/php-cs-fixer fix
-
-# Check security vulnerabilities
-composer audit --format=json 2>/dev/null || echo "Security check skipped (composer audit not available)"
-```
-
-### CI/CD Pipeline
-The GitHub Actions workflow runs on every push and pull request:
-1. **Code Quality**: PHP syntax, ECS code style, PHPStan static analysis
-2. **Code Formatting**: Automated formatting with validation
-3. **Security**: Dependency vulnerability scanning
 
 ## 🔄 How It Works (Real-World Process)
 

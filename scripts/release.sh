@@ -40,19 +40,31 @@ fi
 # Check if dependencies are installed
 if [ ! -d "vendor" ]; then
     echo -e "${YELLOW}📦 Installing dependencies...${NC}"
-    composer install
+    composer install --prefer-dist --no-progress
+fi
+
+# Check if tag already exists
+if git tag -l | grep -q "^$TAG$"; then
+    echo -e "${RED}❌ Error: Tag $TAG already exists${NC}"
+    exit 1
 fi
 
 # Update CHANGELOG.md
 echo -e "${BLUE}📝 Updating CHANGELOG.md...${NC}"
 # Note: You'll need to manually add the changelog entry
 
-# Run quality checks
-echo -e "${BLUE}🔍 Running quality checks...${NC}"
+# Run quality checks (matching CI workflow)
+echo -e "${BLUE}🔍 Running quality checks (matching CI workflow)...${NC}"
 
 echo -e "${YELLOW}📦 Validating composer.json...${NC}"
 if ! composer validate; then
     echo -e "${RED}❌ Composer validation failed${NC}"
+    exit 1
+fi
+
+echo -e "${YELLOW}📦 Installing dependencies...${NC}"
+if ! composer install --prefer-dist --no-progress; then
+    echo -e "${RED}❌ Dependency installation failed${NC}"
     exit 1
 fi
 
@@ -83,6 +95,18 @@ else
 fi
 
 echo -e "${GREEN}✅ All quality checks passed!${NC}"
+
+# Check if CHANGELOG.md has been updated
+if ! grep -q "## \[$VERSION\]" CHANGELOG.md 2>/dev/null; then
+    echo -e "${YELLOW}⚠️  Warning: CHANGELOG.md doesn't contain entry for version $VERSION${NC}"
+    echo -e "${YELLOW}💡 Please update CHANGELOG.md before proceeding${NC}"
+    read -p "Continue anyway? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${RED}❌ Release cancelled${NC}"
+        exit 1
+    fi
+fi
 
 # Create and push tag
 echo -e "${BLUE}🏷️  Creating tag $TAG...${NC}"
