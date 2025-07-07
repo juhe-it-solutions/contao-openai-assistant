@@ -147,7 +147,9 @@ This document outlines the system requirements for the Contao OpenAI Assistant B
 
 - **Git**: Version control
 - **Composer**: Dependency management
-- **PHPUnit**: Testing framework
+- **ECS**: Code style checking
+- **PHPStan**: Static analysis
+- **Composer Audit**: Security scanning
 - **Code Quality Tools**: PHP CS Fixer, PHPStan
 
 ### Development Environment

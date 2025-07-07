@@ -10,7 +10,7 @@ composer install
 # Run all quality checks locally
 vendor/bin/ecs check src
 vendor/bin/phpstan analyse src/ --level=5
-vendor/bin/security-checker security:check composer.lock
+composer audit
 composer validate --strict
 ```
 
@@ -41,7 +41,7 @@ git push origin v1.0.2
 | PHP Syntax | `php -l` | Validate syntax |
 | Code Style | `ecs check src` | PSR-12 compliance |
 | Static Analysis | `phpstan analyse src/` | Find bugs |
-| Security | `security-checker` | Vulnerability scan |
+| Security | `composer audit` | Vulnerability scan |
 | Composer | `composer validate` | Config validation |
 
 ## 🚨 Common Issues & Solutions
@@ -69,8 +69,8 @@ vendor/bin/phpstan analyse src/ --generate-baseline
 # Update dependencies
 composer update
 
-# Check specific package
-vendor/bin/security-checker security:check package/name
+# Check for vulnerabilities
+composer audit
 ```
 
 ## 📊 Release Process

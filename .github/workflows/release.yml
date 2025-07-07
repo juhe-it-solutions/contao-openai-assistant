@@ -37,7 +37,7 @@ jobs:
       run: vendor/bin/phpstan analyse src/ --level=5
 
     - name: Run security check
-      run: vendor/bin/security-checker security:check composer.lock
+      run: composer audit
 
     - name: Create Release
       uses: actions/create-release@v1

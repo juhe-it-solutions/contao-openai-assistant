@@ -117,19 +117,23 @@ test: add unit tests for encryption service
    # Add your OpenAI API key for testing
    ```
 
-5. **Run tests**:
+5. **Run quality checks**:
    ```bash
-   vendor/bin/phpunit
+   vendor/bin/ecs check
+   vendor/bin/phpstan analyse src/ --level=5
+   composer audit
    ```
 
 ### Testing
 
-#### Unit Tests
+#### Quality Checks
 
-Run the test suite:
+Run the quality checks:
 
 ```bash
-vendor/bin/phpunit
+vendor/bin/ecs check
+vendor/bin/phpstan analyse src/ --level=5
+composer audit
 ```
 
 #### Integration Tests
@@ -146,14 +150,14 @@ Test with a real Contao installation:
 Check code quality:
 
 ```bash
-# PHP CS Fixer
-vendor/bin/php-cs-fixer fix --dry-run
+# Easy Coding Standard (ECS)
+vendor/bin/ecs check
 
 # PHPStan
-vendor/bin/phpstan analyse
+vendor/bin/phpstan analyse src/ --level=5
 
-# Psalm
-vendor/bin/psalm
+# Security Check
+composer audit
 ```
 
 ## Project Structure

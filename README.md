@@ -215,7 +215,7 @@ vendor/bin/phpstan analyse src/
 vendor/bin/php-cs-fixer fix
 
 # Check security vulnerabilities
-vendor/bin/security-checker security:check composer.lock
+composer audit
 ```
 
 ### CI/CD Pipeline

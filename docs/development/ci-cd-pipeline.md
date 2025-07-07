@@ -104,7 +104,7 @@ The CI/CD pipeline consists of two main workflows:
 
 ```yaml
 - name: Run security check
-  run: vendor/bin/security-checker security:check composer.lock
+  run: composer audit
 ```
 
 **What it does**:
@@ -207,7 +207,7 @@ The pipeline uses PHP 8.4 with these extensions:
 The pipeline requires these development dependencies:
 - `contao/easy-coding-standard` - Code style checking
 - `phpstan/phpstan` - Static analysis
-- `enlightn/security-checker` - Security scanning
+- `roave/security-advisories` - Security scanning
 
 ## Troubleshooting
 
@@ -235,6 +235,7 @@ vendor/bin/phpstan analyse src/ --level=5
 **Solution**: Update dependencies
 ```bash
 composer update
+composer audit
 ```
 
 #### 4. Release Creation Fails
@@ -258,7 +259,7 @@ composer update
    composer install
    vendor/bin/ecs check src
    vendor/bin/phpstan analyse src/ --level=5
-   vendor/bin/security-checker security:check composer.lock
+   composer audit
    ```
 
 2. **Follow coding standards**:
@@ -335,7 +336,7 @@ PHPStan configuration for static analysis settings.
 1. **Test automation**: Add PHPUnit test execution
 2. **Coverage reporting**: Generate code coverage reports
 3. **Performance testing**: Add performance benchmarks
-4. **Dependency scanning**: Enhanced security scanning
+4. **Enhanced security scanning**: Additional vulnerability checks
 5. **Automated deployment**: Direct deployment to staging
 
 ### Integration Opportunities
@@ -352,7 +353,7 @@ PHPStan configuration for static analysis settings.
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
 - [Easy Coding Standard](https://github.com/symplify/easy-coding-standard)
 - [PHPStan](https://phpstan.org/)
-- [Security Checker](https://github.com/enlightn/security-checker)
+- [Composer Audit](https://getcomposer.org/doc/03-cli.md#audit)
 
 ### Getting Help
 

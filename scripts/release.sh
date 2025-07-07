@@ -40,7 +40,7 @@ composer validate --strict
 find src/ -name "*.php" -exec php -l {} \;
 vendor/bin/ecs check src
 vendor/bin/phpstan analyse src/ --level=5
-vendor/bin/security-checker security:check composer.lock
+composer audit
 
 echo "✅ All quality checks passed!"
 
