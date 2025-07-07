@@ -1,0 +1,17 @@
+parameters:
+    level: 5
+    paths:
+        - src
+    excludePaths:
+        - src/ContaoManagerPlugin.php
+        - src/ContaoOpenaiAssistantBundle.php
+    ignoreErrors:
+        - '#Access to an undefined property [a-zA-Z0-9\\_]+::\$pid#'
+        - '#Access to an undefined property Contao\\DataContainer::\$activeRecord#'
+        - '#Access to an undefined property object::\$[a-zA-Z0-9_]+#'
+        - '#Property [a-zA-Z0-9\\_]+::\$[a-zA-Z0-9_]+ is never read, only written#'
+        - '#Method [a-zA-Z0-9\\_]+::[a-zA-Z0-9_]+\(\) is unused#'
+        - '#If condition is always true#'
+        - '#Right side of \|\| is always false#'
+        - '#Left side of && is always true#'
+        - '#Attribute class Contao\\CoreBundle\\DependencyInjection\\Attribute\\AsBackendModule does not exist#' 

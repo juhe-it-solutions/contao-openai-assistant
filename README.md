@@ -4,7 +4,7 @@
 [![Contao](https://img.shields.io/badge/Contao-5.3+-green.svg)](https://contao.org)
 [![PHP](https://img.shields.io/badge/PHP-8.1+-purple.svg)](https://php.net)
 [![Production Ready](https://img.shields.io/badge/Production-Ready-brightgreen.svg)](https://github.com/juhe-it-solutions/contao-openai-assistant)
-<!-- [![Packagist](https://img.shields.io/packagist/v/juhe-it-solutions/contao-openai-assistant.svg)](https://packagist.org/packages/juhe-it-solutions/contao-openai-assistant) -->
+[![Packagist](https://img.shields.io/packagist/v/juhe-it-solutions/contao-openai-assistant.svg)](https://packagist.org/packages/juhe-it-solutions/contao-openai-assistant)
 
 ## About
 
@@ -189,6 +189,42 @@ After installing the extension via Contao Manager, you will see a new entry in y
 - Choose "Module" as the element type
 - Select your AI-Chatbot module
 
+## 🧪 Testing & Code Quality
+
+This project includes automated testing and code quality checks via GitHub Actions:
+
+### Automated Checks
+- **PHP Compatibility**: Tests against PHP 8.1, 8.2, and 8.3
+- **Code Quality**: Static analysis with PHPStan (level 5)
+- **Code Formatting**: Automated formatting with PHP CS Fixer
+- **Security**: Dependency vulnerability scanning
+- **Bundle Installation**: Tests Contao bundle installation and compatibility
+
+### Local Development
+```bash
+# Install development dependencies
+composer install
+
+# Check code style
+vendor/bin/php-cs-fixer fix --dry-run --diff
+
+# Run static analysis
+vendor/bin/phpstan analyse src/
+
+# Format code
+vendor/bin/php-cs-fixer fix
+
+# Check security vulnerabilities
+vendor/bin/security-checker security:check composer.lock
+```
+
+### CI/CD Pipeline
+The GitHub Actions workflow runs on every push and pull request:
+1. **PHP Compatibility**: Syntax checking and bundle installation test
+2. **Code Quality**: PHPStan static analysis
+3. **Code Formatting**: PHP CS Fixer style checking
+4. **Security**: Dependency vulnerability scanning
+
 ## 🔄 How It Works (Real-World Process)
 
 ### Behind the Scenes
@@ -369,16 +405,6 @@ If you discover a security vulnerability, please report it privately via email t
 ## Maintainers
 
 - [JUHE IT-solutions](https://github.com/juhe-it-solutions) – office@juhe-it-solutions.at
-
-## 🔄 Version History
-
-- **v0.0.1**: Initial release with basic assistant functionality
-- **v0.0.2**: Added file upload and vector store integration
-- **v0.0.3**: Enhanced frontend chat widget with themes
-- **v0.0.4**: Added color customization and accessibility features
-- **v0.0.5**: Contao 5.5 compatibility, improved template system, and asset management
-- **v0.0.6**: Model validation on save
-- **v1.0.0**: Initial prod release
 
 ## 🙏 Acknowledgments
 

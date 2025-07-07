@@ -1,5 +1,13 @@
 <?php
 
+/*
+ * This file is part of Contao Open Source CMS.
+ *  *
+ *  * (c) Leo Feyer
+ *  *
+ *  * @license LGPL-3.0-or-later
+ */
+
 declare(strict_types=1);
 
 namespace JuheItSolutions\ContaoOpenaiAssistant;
@@ -33,11 +41,11 @@ class ContaoManagerPlugin implements BundlePluginInterface, ConfigPluginInterfac
     public function getRouteCollection(LoaderResolverInterface $resolver, KernelInterface $kernel): ?RouteCollection
     {
         $file = '@ContaoOpenaiAssistantBundle/config/routes.yaml';
-        
-        if (!$resolver->resolve($file)) {
+
+        if (! $resolver->resolve($file)) {
             return null;
         }
-        
+
         return $resolver->resolve($file)->load($file);
     }
-} 
+}

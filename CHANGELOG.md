@@ -5,11 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.0.2] - 2024-12-19
+- CI/CD pipeline implementation with GitHub Actions, PHP compatibility testing (8.1-8.4), code quality checks (ECS/PHPStan), security scanning, and automated release workflow
+
+## [1.0.1] - 2024-12-19
+- Bug fixes (CSS, JS improvements)
+
 ## [1.0.0] - 2024-07-03
 
-### 🎉 Production Ready Release
+### 🎉 Initial Release
 
-This is the first production-ready release of the Contao OpenAI Assistant extension. The extension has been thoroughly tested and is ready for production use.
+Initial release of the Contao OpenAI Assistant extension.
 
 ### Added
 - Initial release of Contao OpenAI Assistant extension

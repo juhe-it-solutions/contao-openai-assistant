@@ -94,4 +94,34 @@ secrets/
 
 # Local development
 docker-compose.override.yml
-docker-compose.local.yml 
+docker-compose.local.yml
+
+# CI/CD and Development Tools
+# ECS cache
+.ecs_cache/
+
+# PHPStan cache
+.phpstan.cache
+
+# Test artifacts
+test-contao/
+tests/coverage/
+
+# Local test environments
+.local-test/
+test-*/
+
+# Cache directories
+.cache/
+cache/
+
+# Temporary CI files
+.ci-cache/
+.github/cache/
+
+# Local development overrides
+composer.local.json
+composer.local.lock
+
+# Scripts (keep release script)
+!scripts/release.sh 

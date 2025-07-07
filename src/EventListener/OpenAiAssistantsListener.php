@@ -1,12 +1,20 @@
 <?php
 
+/*
+ * This file is part of Contao Open Source CMS.
+ *  *
+ *  * (c) Leo Feyer
+ *  *
+ *  * @license LGPL-3.0-or-later
+ */
+
 declare(strict_types=1);
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\EventListener;
 
+use Contao\Controller;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\CoreBundle\Monolog\ContaoContext;
-use Contao\Controller;
 use Contao\DataContainer;
 use Contao\Environment;
 use Contao\Image;
@@ -15,8 +23,8 @@ use Contao\StringUtil;
 use Contao\System;
 use Doctrine\DBAL\Connection;
 use Psr\Log\LoggerInterface;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class OpenAiAssistantsListener
 {
@@ -36,167 +44,40 @@ class OpenAiAssistantsListener
     public function getAvailableModels(DataContainer $dc = null): array
     {
         $models = [];
-        
+
         // Try to get models from API if we have a DataContainer context
         if ($dc && $dc->activeRecord && $dc->activeRecord->pid) {
             try {
                 $apiKey = $this->getApiKeyFromEnvironment($dc->activeRecord->pid);
-                
+
                 if ($apiKey) {
                     $models = $this->fetchModelsFromApi($apiKey);
                 }
             } catch (\Exception $e) {
                 $this->logger->warning('Failed to fetch models from API', [
-                    'error' => $e->getMessage(),
-                    'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL)
+                    'error'  => $e->getMessage(),
+                    'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
                 ]);
             }
         }
-        
+
         // Create a new array with the custom model option in second position
         $orderedModels = [];
-        
+
         // Add the blank option first (if any models exist)
-        if (!empty($models)) {
+        if (! empty($models)) {
             $orderedModels[''] = $this->getTranslatedString('model_select_placeholder', '-- Select Model --');
         }
-        
+
         // Add the custom model option in second position
         $orderedModels['manual'] = $this->getTranslatedString('model_manual_option', '-- Enter Custom Model --');
-        
+
         // Add all the API models after the custom option
         foreach ($models as $key => $value) {
             $orderedModels[$key] = $value;
         }
-        
+
         return $orderedModels;
-    }
-    
-    /**
-     * Fetch models from OpenAI API
-     */
-    private function fetchModelsFromApi(string $apiKey): array
-    {
-        try {
-            $response = $this->httpClient->request('GET', 'https://api.openai.com/v1/models', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $apiKey,
-                    'Content-Type' => 'application/json'
-                ],
-                'timeout' => 30
-            ]);
-
-            $data = $response->toArray();
-            $models = [];
-
-            if (isset($data['data']) && is_array($data['data'])) {
-                foreach ($data['data'] as $model) {
-                    if (isset($model['id'])) {
-                        // Include all models - validation will happen when saving
-                        $models[$model['id']] = $model['id'];
-                    }
-                }
-            }
-            
-            ksort($models);
-            return $models;
-            
-        } catch (\Exception $e) {
-            $this->logger->error('Failed to fetch OpenAI models: ' . $e->getMessage());
-            return [];
-        }
-    }
-    
-    /**
-     * Validates if a model is compatible with the Assistants API via API call
-     */
-    private function validateModelViaApi(string $modelId, string $apiKey): bool
-    {
-        $this->logger->info(
-            'validateModelViaApi called',
-            [
-                'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                'model' => $modelId
-            ]
-        );
-
-        try {
-            // Try to create a minimal assistant with the model to test compatibility
-            $testData = [
-                'name' => 'Test Assistant',
-                'instructions' => 'Test assistant for model validation',
-                'model' => $modelId,
-                'tools' => []
-            ];
-
-            $headers = [
-                'Authorization' => 'Bearer ' . $apiKey,
-                'Content-Type' => 'application/json',
-                'OpenAI-Beta' => 'assistants=v2'
-            ];
-
-            $this->logger->info(
-                'Making API request to validate model',
-                [
-                    'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                    'model' => $modelId,
-                    'url' => 'https://api.openai.com/v1/assistants'
-                ]
-            );
-
-            $response = $this->httpClient->request('POST', 'https://api.openai.com/v1/assistants', [
-                'headers' => $headers,
-                'json' => $testData,
-                'timeout' => 30
-            ]);
-
-            $this->logger->info(
-                'API response received',
-                [
-                    'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                    'model' => $modelId,
-                    'status_code' => $response->getStatusCode()
-                ]
-            );
-
-            if ($response->getStatusCode() === 200) {
-                $responseData = json_decode($response->getContent(), true);
-                if (isset($responseData['id'])) {
-                    // Clean up the test assistant
-                    $this->httpClient->request('DELETE', 'https://api.openai.com/v1/assistants/' . $responseData['id'], [
-                        'headers' => $headers,
-                        'timeout' => 10
-                    ]);
-                    return true;
-                }
-            }
-
-            return false;
-        } catch (\Exception $e) {
-            $this->logger->error('Model validation failed for ' . $modelId . ': ' . $e->getMessage());
-            return false;
-        }
-    }
-    
-
-    
-
-    
-    /**
-     * Get translated string with fallback
-     */
-    private function getTranslatedString(string $key, string $fallback): string
-    {
-        $lang = $GLOBALS['TL_LANG']['tl_openai_assistants'] ?? [];
-        return $lang[$key] ?? $fallback;
-    }
-    
-    /**
-     * Strip HTML from text
-     */
-    private function stripHtml(string $text): string
-    {
-        return strip_tags($text);
     }
 
     /**
@@ -207,9 +88,9 @@ class OpenAiAssistantsListener
         $this->logger->info(
             'validateModel called',
             [
-                'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                'value' => $value,
-                'model_manual' => $dc->activeRecord->model_manual ?? 'not set'
+                'contao'       => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                'value'        => $value,
+                'model_manual' => $dc->activeRecord->model_manual ?? 'not set',
             ]
         );
 
@@ -217,7 +98,7 @@ class OpenAiAssistantsListener
         if ($value === 'manual') {
             return 'manual';
         }
-        
+
         // If no model is selected and no manual model is provided, throw an error on the model field
         if (empty($value)) {
             $manualModel = $dc->activeRecord->model_manual ?? '';
@@ -227,56 +108,13 @@ class OpenAiAssistantsListener
                 );
             }
         }
-        
+
         // For selected models, validate via API before saving
-        if (!empty($value)) {
+        if (! empty($value)) {
             $this->validateModelCompatibility($value, $dc);
         }
-        
+
         return $value;
-    }
-
-    /**
-     * Validates model compatibility with Assistants API before saving
-     */
-    private function validateModelCompatibility(string $modelId, DataContainer $dc): void
-    {
-        $this->logger->info(
-            'validateModelCompatibility called',
-            [
-                'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                'model' => $modelId,
-                'config_id' => $dc->activeRecord->pid ?? 0
-            ]
-        );
-
-        // Get API key from config
-        $apiKey = $this->getApiKeyFromEnvironment($dc->activeRecord->pid ?? 0);
-        
-        if (!$apiKey) {
-            throw new \InvalidArgumentException(
-                $this->getTranslatedString('no_api_key_error', 'No API key found in configuration. Please check your OpenAI configuration.')
-            );
-        }
-        
-        // Validate model via API
-        if (!$this->validateModelViaApi($modelId, $apiKey)) {
-            throw new \InvalidArgumentException(
-                sprintf(
-                    $this->getTranslatedString('model_incompatible_error', 'The model "%s" is not compatible with the Assistants API. Please select a different model.'),
-                    $modelId
-                )
-            );
-        }
-        
-        $this->logger->info(
-            'Model validation successful',
-            [
-                'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                'model' => $modelId,
-                'config_id' => $dc->activeRecord->pid ?? 0
-            ]
-        );
     }
 
     /**
@@ -288,8 +126,8 @@ class OpenAiAssistantsListener
             'validateManualModel called',
             [
                 'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                'value' => $value,
-                'model' => $dc->activeRecord->model ?? 'not set'
+                'value'  => $value,
+                'model'  => $dc->activeRecord->model ?? 'not set',
             ]
         );
 
@@ -300,11 +138,11 @@ class OpenAiAssistantsListener
                     $this->getTranslatedString('model_validation_error', 'Please enter a custom model name when selecting manual override.')
                 );
             }
-            
+
             // Validate the custom model via API
             $this->validateModelCompatibility($value, $dc);
         }
-        
+
         return $value;
     }
 
@@ -317,7 +155,7 @@ class OpenAiAssistantsListener
             'validateModelSelection called',
             [
                 'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                'value' => $value
+                'value'  => $value,
             ]
         );
 
@@ -327,7 +165,7 @@ class OpenAiAssistantsListener
                 $this->getTranslatedString('model_required', 'Please select a model or enter a custom model name.')
             );
         }
-        
+
         return $value;
     }
 
@@ -337,14 +175,16 @@ class OpenAiAssistantsListener
      */
     public function createOrUpdateAssistant(DataContainer $dc): void
     {
-        if (!$dc->activeRecord) {
+        if (! $dc->activeRecord) {
             $this->logger->warning('No active record available for assistant creation/update');
+
             return;
         }
 
         // Ensure we have a valid record ID
         if (empty($dc->activeRecord->id)) {
             $this->logger->error('No record ID available for assistant creation/update');
+
             return;
         }
 
@@ -352,22 +192,23 @@ class OpenAiAssistantsListener
             $this->logger->info(
                 'Starting assistant creation/update process',
                 [
-                    'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                    'contao'         => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
                     'assistant_name' => $dc->activeRecord->name,
-                    'config_id' => $dc->activeRecord->pid,
-                    'model' => $dc->activeRecord->model,
-                    'model_manual' => $dc->activeRecord->model_manual ?? 'not set',
-                    'record_id' => $dc->activeRecord->id
+                    'config_id'      => $dc->activeRecord->pid,
+                    'model'          => $dc->activeRecord->model,
+                    'model_manual'   => $dc->activeRecord->model_manual ?? 'not set',
+                    'record_id'      => $dc->activeRecord->id,
                 ]
             );
 
             // Get API key from config
             $apiKey = $this->getApiKeyFromEnvironment($dc->activeRecord->pid);
 
-            if (!$apiKey) {
+            if (! $apiKey) {
                 $this->logger->error('No API key found for config ID: ' . $dc->activeRecord->pid);
                 Message::addError('No API key found in configuration');
                 $this->updateStatus($dc->activeRecord->id, 'failed');
+
                 return;
             }
 
@@ -376,30 +217,31 @@ class OpenAiAssistantsListener
             if ($modelToUse === 'manual') {
                 $modelToUse = $dc->activeRecord->model_manual ?? '';
             }
-            
+
             if (empty($modelToUse)) {
                 $this->logger->error('No model specified for assistant creation');
                 Message::addError('No model specified. Please select a model or enter a custom model name.');
                 $this->updateStatus($dc->activeRecord->id, 'failed');
+
                 return;
             }
-            
+
             // Validate model compatibility - throw exception if validation fails
             $this->logger->info(
                 'About to validate model compatibility',
                 [
                     'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                    'model' => $modelToUse
+                    'model'  => $modelToUse,
                 ]
             );
-            
+
             $this->validateModelCompatibility($modelToUse, $dc);
-            
+
             $this->logger->info(
                 'Model validation passed, proceeding with assistant creation',
                 [
                     'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                    'model' => $modelToUse
+                    'model'  => $modelToUse,
                 ]
             );
 
@@ -409,10 +251,11 @@ class OpenAiAssistantsListener
                 [$dc->activeRecord->pid]
             );
 
-            if (!$vectorStoreConfig || !$vectorStoreConfig['vector_store_id']) {
+            if (! $vectorStoreConfig || ! $vectorStoreConfig['vector_store_id']) {
                 $this->logger->error('No vector store ID found for config ID: ' . $dc->activeRecord->pid);
                 Message::addError('No vector store ID found in configuration');
                 $this->updateStatus($dc->activeRecord->id, 'failed');
+
                 return;
             }
 
@@ -421,96 +264,98 @@ class OpenAiAssistantsListener
 
             // Prepare assistant data
             $assistantData = [
-                'name' => $dc->activeRecord->name,
+                'name'         => $dc->activeRecord->name,
                 'instructions' => $this->stripHtml($dc->activeRecord->system_instructions ?? ''),
-                'model' => $modelToUse,
-                'temperature' => (float)($dc->activeRecord->temperature ?? 0.25),
-                'top_p' => (float)($dc->activeRecord->top_p ?? 1),
-                'tools' => [
+                'model'        => $modelToUse,
+                'temperature'  => (float) ($dc->activeRecord->temperature ?? 0.25),
+                'top_p'        => (float) ($dc->activeRecord->top_p ?? 1),
+                'tools'        => [
                     [
-                        'type' => 'file_search'
-                    ]
+                        'type' => 'file_search',
+                    ],
                 ],
                 'tool_resources' => [
                     'file_search' => [
-                        'vector_store_ids' => [$vectorStoreConfig['vector_store_id']]
-                    ]
-                ]
+                        'vector_store_ids' => [$vectorStoreConfig['vector_store_id']],
+                    ],
+                ],
             ];
 
             $headers = [
                 'Authorization' => 'Bearer ' . $apiKey,
-                'Content-Type' => 'application/json',
-                'OpenAI-Beta' => 'assistants=v2'
+                'Content-Type'  => 'application/json',
+                'OpenAI-Beta'   => 'assistants=v2',
             ];
 
             // Check if we already have an OpenAI assistant ID
-            if (!empty($dc->activeRecord->openai_assistant_id)) {
+            if (! empty($dc->activeRecord->openai_assistant_id)) {
                 // Update existing assistant
                 $this->logger->info(
                     'Updating existing assistant',
                     [
-                        'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                        'assistant_id' => $dc->activeRecord->openai_assistant_id,
-                        'assistant_name' => $dc->activeRecord->name
+                        'contao'         => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                        'assistant_id'   => $dc->activeRecord->openai_assistant_id,
+                        'assistant_name' => $dc->activeRecord->name,
                     ]
                 );
 
                 $response = $this->httpClient->request('POST', 'https://api.openai.com/v1/assistants/' . $dc->activeRecord->openai_assistant_id, [
                     'headers' => $headers,
-                    'json' => $assistantData,
-                    'timeout' => 60
+                    'json'    => $assistantData,
+                    'timeout' => 60,
                 ]);
             } else {
                 // Create new assistant
                 $this->logger->info(
                     'Creating new assistant',
                     [
-                        'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                        'contao'         => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
                         'assistant_name' => $dc->activeRecord->name,
-                        'model' => $modelToUse
+                        'model'          => $modelToUse,
                     ]
                 );
 
                 $response = $this->httpClient->request('POST', 'https://api.openai.com/v1/assistants', [
                     'headers' => $headers,
-                    'json' => $assistantData,
-                    'timeout' => 60
+                    'json'    => $assistantData,
+                    'timeout' => 60,
                 ]);
             }
 
             if ($response->getStatusCode() !== 200) {
                 $this->logger->error('Failed to create/update assistant', [
-                    'status' => $response->getStatusCode(),
-                    'response' => $response->getContent(false)
+                    'status'   => $response->getStatusCode(),
+                    'response' => $response->getContent(false),
                 ]);
                 $this->updateStatus($dc->activeRecord->id, 'failed');
                 Message::addError('Failed to create/update assistant. Please check your configuration and try again.');
+
                 return;
             }
 
             $responseData = json_decode($response->getContent(), true);
-            if (!isset($responseData['id'])) {
+            if (! isset($responseData['id'])) {
                 $this->logger->error('Invalid response from OpenAI API', [
-                    'response' => $response->getContent(false)
+                    'response' => $response->getContent(false),
                 ]);
                 $this->updateStatus($dc->activeRecord->id, 'failed');
                 Message::addError('Invalid response from OpenAI API');
+
                 return;
             }
 
             $this->logger->info(
                 'Assistant successfully created/updated',
                 [
-                    'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                    'assistant_id' => $responseData['id'],
-                    'assistant_name' => $dc->activeRecord->name
+                    'contao'         => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                    'assistant_id'   => $responseData['id'],
+                    'assistant_name' => $dc->activeRecord->name,
                 ]
             );
 
             // Update the record with the assistant ID and set status to active
             $this->connection->executeQuery(
-                "UPDATE tl_openai_assistants SET openai_assistant_id = ?, status = ? WHERE id = ?",
+                'UPDATE tl_openai_assistants SET openai_assistant_id = ?, status = ? WHERE id = ?',
                 [$responseData['id'], 'active', $dc->activeRecord->id]
             );
 
@@ -519,29 +364,14 @@ class OpenAiAssistantsListener
         } catch (\Exception $e) {
             $this->logger->error('Error creating/updating assistant: ' . $e->getMessage());
             Message::addError('Failed to create/update assistant: ' . $e->getMessage());
-            
+
             // If we have a record ID, try to update its status
             if ($dc->activeRecord && $dc->activeRecord->id) {
                 $this->updateStatus($dc->activeRecord->id, 'failed');
             }
-            
+
             // Re-throw the exception to cause transaction rollback
             throw $e;
-        }
-    }
-
-    /**
-     * Update assistant status
-     */
-    private function updateStatus(int $assistantId, string $status): void
-    {
-        try {
-            $this->connection->executeQuery(
-                "UPDATE tl_openai_assistants SET status = ? WHERE id = ?",
-                [$status, $assistantId]
-            );
-        } catch (\Exception $e) {
-            $this->logger->error('Failed to update assistant status: ' . $e->getMessage());
         }
     }
 
@@ -551,22 +381,22 @@ class OpenAiAssistantsListener
     public function listAssistants($row): string
     {
         $statusColors = [
-            'active' => 'green',
+            'active'   => 'green',
             'creating' => 'orange',
-            'failed' => 'red',
-            'pending' => 'gray'
+            'failed'   => 'red',
+            'pending'  => 'gray',
         ];
 
         $statusIcons = [
-            'active' => '✓',
+            'active'   => '✓',
             'creating' => '⟳',
-            'failed' => '✗',
-            'pending' => '⏳'
+            'failed'   => '✗',
+            'pending'  => '⏳',
         ];
 
         $status = $row['status'] ?? 'pending';
-        $color = $statusColors[$status] ?? 'gray';
-        $icon = $statusIcons[$status] ?? '⏳';
+        $color  = $statusColors[$status] ?? 'gray';
+        $icon   = $statusIcons[$status] ?? '⏳';
 
         $label = sprintf(
             '<div class="tl_file_list"><span class="name">%s</span> <span class="model">[%s]</span> <span class="settings">(temp: %s, top_p: %s)</span> <span class="status" style="color: %s">%s %s</span>',
@@ -583,20 +413,11 @@ class OpenAiAssistantsListener
     }
 
     /**
-     * Validates API key format
-     */
-    private function isValidApiKeyFormat(string $apiKey): bool
-    {
-        // OpenAI API keys typically start with 'sk-' and are 51 characters long
-        return preg_match('/^sk-[A-Za-z0-9]{48}$/', $apiKey) === 1;
-    }
-
-    /**
      * Generates the sync button for the backend
      */
     public function syncButton($row, $href, $label, $title, $icon, $attributes): string
     {
-        if (!$row['openai_assistant_id']) {
+        if (! $row['openai_assistant_id']) {
             return '';
         }
 
@@ -615,11 +436,11 @@ class OpenAiAssistantsListener
     public function validateTopP($value, DataContainer $dc): string
     {
         $value = (float) $value;
-        
+
         if ($value < 0 || $value > 1) {
             throw new \Exception('Top P must be between 0 and 1');
         }
-        
+
         return (string) $value;
     }
 
@@ -629,77 +450,12 @@ class OpenAiAssistantsListener
     public function validateTemperature($value, DataContainer $dc): string
     {
         $value = (float) $value;
-        
+
         if ($value < 0 || $value > 2) {
             throw new \Exception('Temperature must be between 0 and 2');
         }
-        
-        return (string) $value;
-    }
 
-    /**
-     * Get API key from environment variable or database
-     * Environment variable takes precedence for security
-     */
-    private function getApiKeyFromEnvironment(int $configId): ?string
-    {
-        // Try environment variable first (most secure)
-        $envKey = sprintf('OPENAI_API_KEY_%d', $configId);
-        if (isset($_ENV[$envKey])) {
-            return $_ENV[$envKey];
-        }
-        
-        // Fallback to database (encrypted)
-        $config = $this->connection->fetchAssociative(
-            'SELECT api_key FROM tl_openai_config WHERE id = ?',
-            [$configId]
-        );
-        
-        if ($config && $config['api_key']) {
-            // Check if it's encrypted (base64 encoded and longer than typical API key)
-            if (strlen($config['api_key']) > 100) {
-                // Try to decrypt it using the same method as OpenAiConfigListener
-                return $this->decryptApiKey($config['api_key']);
-            } else {
-                // It's still in old base64 format, decode it
-                return base64_decode($config['api_key']);
-            }
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Generate encryption key (same as other services)
-     */
-    private function getEncryptionKey(): string
-    {
-        // Generate the same encryption key as in other services
-        $serverName = $_SERVER['SERVER_NAME'] ?? 'localhost';
-        $documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? '/';
-        return hash('sha256', $serverName . $documentRoot, true);
-    }
-    
-    /**
-     * Decrypt API key from storage (same as OpenAiConfigListener)
-     */
-    private function decryptApiKey(string $encryptedData): ?string
-    {
-        try {
-            $key = $this->getEncryptionKey();
-            $method = 'aes-256-cbc';
-            
-            $data = base64_decode($encryptedData);
-            $ivLength = openssl_cipher_iv_length($method);
-            $iv = substr($data, 0, $ivLength);
-            $encrypted = substr($data, $ivLength);
-            
-            $decrypted = openssl_decrypt($encrypted, $method, $key, 0, $iv);
-            
-            return $decrypted !== false ? $decrypted : null;
-        } catch (\Exception $e) {
-            return null;
-        }
+        return (string) $value;
     }
 
     /**
@@ -716,7 +472,7 @@ class OpenAiAssistantsListener
      */
     public function deleteAssistant(DataContainer $dc): void
     {
-        if (!$dc->activeRecord || empty($dc->activeRecord->openai_assistant_id)) {
+        if (! $dc->activeRecord || empty($dc->activeRecord->openai_assistant_id)) {
             return;
         }
 
@@ -724,17 +480,18 @@ class OpenAiAssistantsListener
             $this->logger->info(
                 'Starting assistant deletion process',
                 [
-                    'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                    'assistant_id' => $dc->activeRecord->openai_assistant_id,
-                    'assistant_name' => $dc->activeRecord->name
+                    'contao'         => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                    'assistant_id'   => $dc->activeRecord->openai_assistant_id,
+                    'assistant_name' => $dc->activeRecord->name,
                 ]
             );
 
             // Get API key from config
             $apiKey = $this->getApiKeyFromEnvironment($dc->activeRecord->pid);
-            
-            if (!$apiKey) {
+
+            if (! $apiKey) {
                 $this->logger->error('No API key found for config ID: ' . $dc->activeRecord->pid);
+
                 return;
             }
 
@@ -742,8 +499,8 @@ class OpenAiAssistantsListener
                 $response = $this->httpClient->request('DELETE', 'https://api.openai.com/v1/assistants/' . $dc->activeRecord->openai_assistant_id, [
                     'headers' => [
                         'Authorization' => 'Bearer ' . $apiKey,
-                        'OpenAI-Beta' => 'assistants=v2'
-                    ]
+                        'OpenAI-Beta'   => 'assistants=v2',
+                    ],
                 ]);
 
                 // If we get a 404, the assistant doesn't exist anymore, which is fine
@@ -751,19 +508,21 @@ class OpenAiAssistantsListener
                     $this->logger->info(
                         'Assistant already deleted from OpenAI platform',
                         [
-                            'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                            'assistant_id' => $dc->activeRecord->openai_assistant_id,
-                            'assistant_name' => $dc->activeRecord->name
+                            'contao'         => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                            'assistant_id'   => $dc->activeRecord->openai_assistant_id,
+                            'assistant_name' => $dc->activeRecord->name,
                         ]
                     );
+
                     return;
                 }
 
                 if ($response->getStatusCode() !== 200) {
                     $this->logger->error('Failed to delete assistant', [
-                        'status' => $response->getStatusCode(),
-                        'response' => $response->getContent(false)
+                        'status'   => $response->getStatusCode(),
+                        'response' => $response->getContent(false),
                     ]);
+
                     // Don't show error to user, just log it
                     return;
                 }
@@ -771,9 +530,9 @@ class OpenAiAssistantsListener
                 $this->logger->info(
                     'Assistant successfully deleted',
                     [
-                        'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                        'assistant_id' => $dc->activeRecord->openai_assistant_id,
-                        'assistant_name' => $dc->activeRecord->name
+                        'contao'         => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                        'assistant_id'   => $dc->activeRecord->openai_assistant_id,
+                        'assistant_name' => $dc->activeRecord->name,
                     ]
                 );
             } catch (\Exception $e) {
@@ -793,24 +552,24 @@ class OpenAiAssistantsListener
         if ($request && ($request->get('act') === 'create' || $request->get('act') === '')) {
             $this->checkSingleRecordLimitation($dc);
         }
-        
+
         // Get the current backend language
         $language = $GLOBALS['TL_LANGUAGE'] ?? 'en';
-        
+
         // Load language file if not already loaded
         System::loadLanguageFile('tl_openai_assistants', $language);
-        
+
         // Get translated strings
         $lang = $GLOBALS['TL_LANG']['tl_openai_assistants'];
-        
+
         // Create combined message with welcome and model selection tips
-        $combinedMessage = '<strong style="display: block; font-size: 22px; position: relative; top: -5px;">' . 
-                          ($lang['welcome_heading'] ?? 'OpenAI Assistant') . 
-                          '</strong>' . 
-                          ($lang['welcome_message1'] ?? 'Welcome to the OpenAI Assistant screen.') . 
+        $combinedMessage = '<strong style="display: block; font-size: 22px; position: relative; top: -5px;">' .
+                          ($lang['welcome_heading'] ?? 'OpenAI Assistant') .
+                          '</strong>' .
+                          ($lang['welcome_message1'] ?? 'Welcome to the OpenAI Assistant screen.') .
                           '<br>' .
                           ($lang['welcome_message2'] ?? 'Here you can create and manage your OpenAI assistant.');
-        
+
         // Add model selection tips
         $combinedMessage .= '<div style="margin: 15px 0 0 0; padding: 15px 13px; background: var(--info-bg); border-left: 4px solid #007cba; line-height: 1.3;">';
         $combinedMessage .= '<strong>💡 ' . ($lang['model_info_heading'] ?? 'Model Selection Tips') . ':</strong><br>';
@@ -819,9 +578,9 @@ class OpenAiAssistantsListener
         $combinedMessage .= '<span style="padding-left: 5px;">• <strong>' . ($lang['model_info_compatibility'] ?? 'Model Validation: Model compatibility is checked when you save the assistant') . '</strong><br></span>';
         $combinedMessage .= '<span style="padding-left: 5px;">• <strong>' . ($lang['model_info_help'] ?? 'Need Help?') . '</strong> <a href="https://platform.openai.com/docs/models" target="_blank" style="color: #007cba;">' . ($lang['model_info_link'] ?? 'View all available models on OpenAI Platform') . '</a></span>';
         $combinedMessage .= '</div>';
-        
+
         Message::addInfo($combinedMessage);
-        
+
         // Add JavaScript for model field enhancement
         $script = '<script>
         function toggleManualModelField(select) {
@@ -853,9 +612,270 @@ class OpenAiAssistantsListener
             }
         });
         </script>';
-        
+
         // Add the script to the page
         $GLOBALS['TL_BODY'][] = $script;
+    }
+
+    /**
+     * Fetch models from OpenAI API
+     */
+    private function fetchModelsFromApi(string $apiKey): array
+    {
+        try {
+            $response = $this->httpClient->request('GET', 'https://api.openai.com/v1/models', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $apiKey,
+                    'Content-Type'  => 'application/json',
+                ],
+                'timeout' => 30,
+            ]);
+
+            $data   = $response->toArray();
+            $models = [];
+
+            if (isset($data['data']) && is_array($data['data'])) {
+                foreach ($data['data'] as $model) {
+                    if (isset($model['id'])) {
+                        // Include all models - validation will happen when saving
+                        $models[$model['id']] = $model['id'];
+                    }
+                }
+            }
+
+            ksort($models);
+
+            return $models;
+
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to fetch OpenAI models: ' . $e->getMessage());
+
+            return [];
+        }
+    }
+
+    /**
+     * Validates if a model is compatible with the Assistants API via API call
+     */
+    private function validateModelViaApi(string $modelId, string $apiKey): bool
+    {
+        $this->logger->info(
+            'validateModelViaApi called',
+            [
+                'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                'model'  => $modelId,
+            ]
+        );
+
+        try {
+            // Try to create a minimal assistant with the model to test compatibility
+            $testData = [
+                'name'         => 'Test Assistant',
+                'instructions' => 'Test assistant for model validation',
+                'model'        => $modelId,
+                'tools'        => [],
+            ];
+
+            $headers = [
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type'  => 'application/json',
+                'OpenAI-Beta'   => 'assistants=v2',
+            ];
+
+            $this->logger->info(
+                'Making API request to validate model',
+                [
+                    'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                    'model'  => $modelId,
+                    'url'    => 'https://api.openai.com/v1/assistants',
+                ]
+            );
+
+            $response = $this->httpClient->request('POST', 'https://api.openai.com/v1/assistants', [
+                'headers' => $headers,
+                'json'    => $testData,
+                'timeout' => 30,
+            ]);
+
+            $this->logger->info(
+                'API response received',
+                [
+                    'contao'      => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                    'model'       => $modelId,
+                    'status_code' => $response->getStatusCode(),
+                ]
+            );
+
+            if ($response->getStatusCode() === 200) {
+                $responseData = json_decode($response->getContent(), true);
+                if (isset($responseData['id'])) {
+                    // Clean up the test assistant
+                    $this->httpClient->request('DELETE', 'https://api.openai.com/v1/assistants/' . $responseData['id'], [
+                        'headers' => $headers,
+                        'timeout' => 10,
+                    ]);
+
+                    return true;
+                }
+            }
+
+            return false;
+        } catch (\Exception $e) {
+            $this->logger->error('Model validation failed for ' . $modelId . ': ' . $e->getMessage());
+
+            return false;
+        }
+    }
+
+    /**
+     * Get translated string with fallback
+     */
+    private function getTranslatedString(string $key, string $fallback): string
+    {
+        $lang = $GLOBALS['TL_LANG']['tl_openai_assistants'] ?? [];
+
+        return $lang[$key] ?? $fallback;
+    }
+
+    /**
+     * Strip HTML from text
+     */
+    private function stripHtml(string $text): string
+    {
+        return strip_tags($text);
+    }
+
+    /**
+     * Validates model compatibility with Assistants API before saving
+     */
+    private function validateModelCompatibility(string $modelId, DataContainer $dc): void
+    {
+        $this->logger->info(
+            'validateModelCompatibility called',
+            [
+                'contao'    => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                'model'     => $modelId,
+                'config_id' => $dc->activeRecord->pid ?? 0,
+            ]
+        );
+
+        // Get API key from config
+        $apiKey = $this->getApiKeyFromEnvironment($dc->activeRecord->pid ?? 0);
+
+        if (! $apiKey) {
+            throw new \InvalidArgumentException(
+                $this->getTranslatedString('no_api_key_error', 'No API key found in configuration. Please check your OpenAI configuration.')
+            );
+        }
+
+        // Validate model via API
+        if (! $this->validateModelViaApi($modelId, $apiKey)) {
+            throw new \InvalidArgumentException(
+                sprintf(
+                    $this->getTranslatedString('model_incompatible_error', 'The model "%s" is not compatible with the Assistants API. Please select a different model.'),
+                    $modelId
+                )
+            );
+        }
+
+        $this->logger->info(
+            'Model validation successful',
+            [
+                'contao'    => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                'model'     => $modelId,
+                'config_id' => $dc->activeRecord->pid ?? 0,
+            ]
+        );
+    }
+
+    /**
+     * Update assistant status
+     */
+    private function updateStatus(int $assistantId, string $status): void
+    {
+        try {
+            $this->connection->executeQuery(
+                'UPDATE tl_openai_assistants SET status = ? WHERE id = ?',
+                [$status, $assistantId]
+            );
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to update assistant status: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Validates API key format
+     */
+    private function isValidApiKeyFormat(string $apiKey): bool
+    {
+        // OpenAI API keys typically start with 'sk-' and are 51 characters long
+        return preg_match('/^sk-[A-Za-z0-9]{48}$/', $apiKey) === 1;
+    }
+
+    /**
+     * Get API key from environment variable or database
+     * Environment variable takes precedence for security
+     */
+    private function getApiKeyFromEnvironment(int $configId): ?string
+    {
+        // Try environment variable first (most secure)
+        $envKey = sprintf('OPENAI_API_KEY_%d', $configId);
+        if (isset($_ENV[$envKey])) {
+            return $_ENV[$envKey];
+        }
+
+        // Fallback to database (encrypted)
+        $config = $this->connection->fetchAssociative(
+            'SELECT api_key FROM tl_openai_config WHERE id = ?',
+            [$configId]
+        );
+
+        if ($config && $config['api_key']) {
+            // Check if it's encrypted (base64 encoded and longer than typical API key)
+            if (strlen($config['api_key']) > 100) {
+                // Try to decrypt it using the same method as OpenAiConfigListener
+                return $this->decryptApiKey($config['api_key']);
+            }
+            // It's still in old base64 format, decode it
+            return base64_decode($config['api_key'], true);
+
+        }
+
+        return null;
+    }
+
+    /**
+     * Generate encryption key (same as other services)
+     */
+    private function getEncryptionKey(): string
+    {
+        // Generate the same encryption key as in other services
+        $serverName   = $_SERVER['SERVER_NAME'] ?? 'localhost';
+        $documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? '/';
+
+        return hash('sha256', $serverName . $documentRoot, true);
+    }
+
+    /**
+     * Decrypt API key from storage (same as OpenAiConfigListener)
+     */
+    private function decryptApiKey(string $encryptedData): ?string
+    {
+        try {
+            $key    = $this->getEncryptionKey();
+            $method = 'aes-256-cbc';
+
+            $data      = base64_decode($encryptedData, true);
+            $ivLength  = openssl_cipher_iv_length($method);
+            $iv        = substr($data, 0, $ivLength);
+            $encrypted = substr($data, $ivLength);
+
+            $decrypted = openssl_decrypt($encrypted, $method, $key, 0, $iv);
+
+            return $decrypted !== false ? $decrypted : null;
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     /**
@@ -865,7 +885,7 @@ class OpenAiAssistantsListener
     {
         // Get the parent config ID from the request or DataContainer
         $configId = null;
-        
+
         if ($dc && $dc->activeRecord && $dc->activeRecord->pid) {
             $configId = $dc->activeRecord->pid;
         } else {
@@ -875,11 +895,11 @@ class OpenAiAssistantsListener
                 $configId = $request->get('pid') ?: $request->get('id');
             }
         }
-        
-        if (!$configId) {
+
+        if (! $configId) {
             return; // No config context, allow creation
         }
-        
+
         // Check if there's already an assistant record for this config
         $existingAssistant = $this->connection->fetchAssociative(
             'SELECT id, name FROM tl_openai_assistants WHERE pid = ? LIMIT 1',
@@ -893,6 +913,4 @@ class OpenAiAssistantsListener
             Controller::redirect($url);
         }
     }
-
-
 }

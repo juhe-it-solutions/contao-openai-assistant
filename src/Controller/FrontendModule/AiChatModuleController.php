@@ -1,17 +1,25 @@
 <?php
 
+/*
+ * This file is part of Contao Open Source CMS.
+ *  *
+ *  * (c) Leo Feyer
+ *  *
+ *  * @license LGPL-3.0-or-later
+ */
+
 declare(strict_types=1);
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Controller\FrontendModule;
 
-use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiAssistant;
 use Contao\CoreBundle\Controller\FrontendModule\AbstractFrontendModuleController;
-use Contao\CoreBundle\Twig\FragmentTemplate;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
+use Contao\CoreBundle\DependencyInjection\Attribute\AsFrontendModule;
+use Contao\CoreBundle\Twig\FragmentTemplate;
 use Contao\ModuleModel;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiAssistant;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Contao\CoreBundle\DependencyInjection\Attribute\AsFrontendModule;
 
 #[AsFrontendModule(
     category: 'ai_tools',
@@ -24,7 +32,8 @@ class AiChatModuleController extends AbstractFrontendModuleController
     public function __construct(
         private readonly OpenAiAssistant $assistant,
         private readonly ContaoCsrfTokenManager $csrfTokenManager
-    ) {}
+    ) {
+    }
 
     protected function getResponse(FragmentTemplate $template, ModuleModel $model, Request $request): Response
     {
@@ -40,13 +49,13 @@ class AiChatModuleController extends AbstractFrontendModuleController
         $template->set('custom_css', $model->custom_css ?? '');
         $template->set('theme', $model->theme ?? 'dark');
         $template->set('base_font_size', $model->base_font_size ?? '14px');
-        
+
         // Chat text configuration
         $template->set('chat_title', $model->chat_title ?? 'Chat-Header-Titel');
         $template->set('welcome_message', $model->welcome_message ?? 'Wie kann ich dir helfen?');
         $template->set('initial_bot_message', $model->initial_bot_message ?? 'Hallo! Wie kann ich dir helfen?');
         $template->set('initial_state', $model->initial_state ?? 'collapsed');
-        
+
         // Color configuration
         $template->set('dark_toggle_icon_color', $model->dark_toggle_icon_color ?? 'ff6600');
         $template->set('light_toggle_icon_color', $model->light_toggle_icon_color ?? '007bff');
@@ -63,4 +72,4 @@ class AiChatModuleController extends AbstractFrontendModuleController
 
         return $template->getResponse();
     }
-} 
+}
