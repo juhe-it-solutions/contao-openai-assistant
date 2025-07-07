@@ -41,7 +41,7 @@ class OpenAiAssistantsListener
     /**
      * Gets available OpenAI models for assistants
      */
-    public function getAvailableModels(DataContainer $dc = null): array
+    public function getAvailableModels(?DataContainer $dc = null): array
     {
         $models = [];
 
