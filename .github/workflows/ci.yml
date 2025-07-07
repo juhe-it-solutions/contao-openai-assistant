@@ -79,7 +79,7 @@ jobs:
       run: composer install --prefer-dist --no-progress
 
     - name: Check code style
-      run: vendor/bin/ecs check --dry-run
+      run: vendor/bin/ecs check
 
     - name: Run PHPStan analysis
       run: vendor/bin/phpstan analyse src/ --level=5
