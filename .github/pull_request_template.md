@@ -18,9 +18,7 @@ Please describe the tests that you ran to verify your changes. Provide instructi
 - [ ] Tested on Contao 5.3
 - [ ] Tested on Contao 5.4
 - [ ] Tested on Contao 5.5
-- [ ] Tested with PHP 8.1
 - [ ] Tested with PHP 8.2
-- [ ] Tested with PHP 8.3
 
 ## Checklist:
 - [ ] My code follows the style guidelines of this project

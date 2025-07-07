@@ -1,169 +1,181 @@
 # CI/CD Quick Reference
 
-## 🚀 Quick Commands
+Quick reference for the Contao OpenAI Assistant CI/CD pipeline.
 
-### Local Quality Checks
+## Workflow Overview
+
+| Job | Command | Purpose |
+|-----|---------|---------|
+| Code Quality | `composer validate && vendor/bin/ecs check && vendor/bin/phpstan analyse src/` | Syntax, style, and static analysis |
+| Code Formatting | `vendor/bin/ecs check --fix` | Auto-fix formatting issues |
+| Security | `composer audit` | Vulnerability scan |
+
+## Local Testing Commands
+
+### Quick Validation
 ```bash
-# Install dependencies
-composer install
+composer validate && composer install --prefer-dist --no-progress && find src/ -name "*.php" -exec php -l {} \; && vendor/bin/ecs check && vendor/bin/phpstan analyse src/ --level=5
+```
 
-# Run all quality checks locally
-vendor/bin/ecs check src
-vendor/bin/phpstan analyse src/ --level=5
-composer audit --format=json 2>/dev/null || echo "Security check skipped (composer audit not available)"
+### Individual Tests
+```bash
+# Composer validation
 composer validate
+
+# PHP syntax check
+find src/ -name "*.php" -exec php -l {} \;
+
+# Code style check
+vendor/bin/ecs check
+
+# Static analysis
+vendor/bin/phpstan analyse src/ --level=5
+
+# Security audit
+composer audit --format=json 2>/dev/null || echo "Security check skipped (composer audit not available)"
 ```
 
-### Fix Code Style Issues
-```bash
-# Auto-fix ECS issues
-vendor/bin/ecs check src --fix
-```
+## CI/CD Pipeline
+
+### Triggers
+- **Push to main/develop** → Runs CI
+- **Pull request to main** → Runs CI
+- **Tag push (v*)** → Creates release
+
+### Jobs
+1. **Code Quality** - PHP 8.2, syntax, style, static analysis
+2. **Code Formatting** - PHP 8.2, auto-fix with validation
+3. **Security Check** - PHP 8.2, vulnerability scanning
+
+### PHP Requirements
+- **Version:** 8.2+
+- **Extensions:** mbstring, xml, ctype, iconv, intl, curl, json, dom, gd
+
+## Quality Tools
+
+| Tool | Purpose | Command |
+|------|---------|---------|
+| ECS | Code style | `vendor/bin/ecs check` |
+| PHPStan | Static analysis | `vendor/bin/phpstan analyse src/ --level=5` |
+| Composer Audit | Security | `composer audit --format=json 2>/dev/null \|\| echo "Security check skipped"` |
+
+## Release Process
 
 ### Create Release
 ```bash
-# Create and push tag (triggers release)
-git tag v1.0.2
-git push origin v1.0.2
+# Create and push tag
+git tag -a v1.0.3 -m "Release 1.0.3"
+git push origin v1.0.3
+
+# GitHub Actions will:
+# 1. Run all quality checks
+# 2. Create GitHub release
+# 3. Generate release notes
 ```
 
-## 📋 Workflow Summary
+### Release Notes Template
+```markdown
+## 🎉 Release v1.0.3
 
-| Workflow | Trigger | Purpose |
-|----------|---------|---------|
-| `ci.yml` | Push to main | Quality checks |
-| `release.yml` | Tag push (v*) | Release creation |
+### ✅ Quality Checks Passed
+- PHP syntax validation
+- Code style compliance (ECS)
+- Static analysis (PHPStan Level 5)
+- Security vulnerability scan
+- Composer validation
 
-## 🔍 Quality Checks
-
-| Check | Command | Purpose |
-|-------|---------|---------|
-| PHP Syntax | `php -l` | Validate syntax |
-| Code Style | `ecs check src` | PSR-12 compliance |
-| Static Analysis | `phpstan analyse src/` | Find bugs |
-| Security | `composer audit --format=json 2>/dev/null || echo "Security check skipped"` | Vulnerability scan |
-| Composer | `composer validate` | Config validation |
-
-## 🚨 Common Issues & Solutions
-
-### ECS Failures
+### 📦 Installation
 ```bash
-# Fix automatically
-vendor/bin/ecs check src --fix
-
-# Check specific file
-vendor/bin/ecs check src/YourFile.php
+composer require juhe-it-solutions/contao-openai-assistant
 ```
 
-### PHPStan Errors
-```bash
-# Run with specific level
-vendor/bin/phpstan analyse src/ --level=3
-
-# Generate baseline (ignore current errors)
-vendor/bin/phpstan analyse src/ --generate-baseline
+### 🔗 Links
+- [Documentation](https://github.com/juhe-it-solutions/contao-openai-assistant/tree/main/docs)
+- [Security Policy](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/SECURITY.md)
+- [Changelog](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/CHANGELOG.md)
 ```
 
-### Security Issues
+## Troubleshooting
+
+### Common Issues
+
+#### Dependency Conflicts
 ```bash
-# Update dependencies
 composer update
-
-# Check for vulnerabilities (if available)
-composer audit --format=json 2>/dev/null || echo "Security check skipped (composer audit not available)"
+composer validate
 ```
 
-## 📊 Release Process
-
-### 1. Prepare Release
+#### Code Style Issues
 ```bash
-# Update CHANGELOG.md
-# Test locally
-# Commit changes
-git add .
-git commit -m "Prepare release v1.0.2"
-git push origin main
+vendor/bin/ecs check --fix
 ```
 
-### 2. Create Release
+#### Static Analysis Errors
 ```bash
-# Create tag
-git tag v1.0.2
-
-# Push tag (triggers release workflow)
-git push origin v1.0.2
+vendor/bin/phpstan analyse src/ --level=5 --verbose
 ```
 
-### 3. Monitor Release
-- Check GitHub Actions tab
-- Verify release was created
-- Review release notes
+#### Security Vulnerabilities
+```bash
+composer audit
+composer update package-name
+```
 
-## 🛠️ Troubleshooting
+### Debugging
+```bash
+# Check PHP version
+php --version
 
-### Workflow Not Triggering
-- Check tag format: `v1.0.2` (not `1.0.2`)
-- Ensure tag is pushed to remote
-- Check GitHub Actions permissions
+# Check extensions
+php -m
 
-### Release Creation Fails
-- Check all quality checks pass
-- Verify GitHub token permissions
-- Review workflow logs
+# Verify Composer
+composer --version
 
-### Local vs CI Differences
-- Use same PHP version (8.4)
-- Install same dependencies
-- Run same commands locally
+# Test tools
+vendor/bin/ecs check --help
+vendor/bin/phpstan --help
+```
 
-## 📈 Monitoring
-
-### GitHub Actions
-- **Success Rate**: Monitor workflow success/failure
-- **Execution Time**: Track performance
-- **Resource Usage**: Monitor GitHub Actions minutes
-
-### Quality Metrics
-- **ECS Issues**: Track code style compliance
-- **PHPStan Errors**: Monitor static analysis
-- **Security Issues**: Track vulnerability reports
-
-## 🔧 Configuration Files
+## Configuration Files
 
 | File | Purpose |
 |------|---------|
-| `.github/workflows/ci.yml` | CI workflow |
+| `.github/workflows/ci.yml` | Main CI workflow |
 | `.github/workflows/release.yml` | Release workflow |
-| `ecs.php` | Code style rules |
-| `phpstan.neon` | Static analysis config |
+| `ecs.php` | Code style configuration |
+| `phpstan.neon` | Static analysis configuration |
+| `composer.json` | Dependencies and metadata |
 
-## 📚 Useful Links
+## Best Practices
 
-- [Full CI/CD Documentation](./ci-cd-pipeline.md)
-- [GitHub Actions](https://docs.github.com/en/actions)
+### Development
+- Run tests locally before pushing
+- Follow PSR-12 coding standards
+- Keep dependencies updated
+- Monitor security advisories
+
+### Releases
+- Use semantic versioning
+- Update CHANGELOG.md
+- Test thoroughly before tagging
+- Review release notes
+
+### Maintenance
+- Regular dependency updates
+- Monitor CI/CD performance
+- Keep documentation current
+- Security-first approach
+
+## Resources
+
+- [Local Testing Commands](local-testing-commands.md)
+- [CI/CD Pipeline Documentation](ci-cd-pipeline.md)
+- [Troubleshooting Guide](troubleshooting.md)
+- [Contao Documentation](https://docs.contao.org/)
 - [ECS Documentation](https://github.com/symplify/easy-coding-standard)
-- [PHPStan](https://phpstan.org/)
-
-## 🎯 Best Practices
-
-### Before Pushing
-1. Run quality checks locally
-2. Fix any issues found
-3. Test functionality
-4. Update documentation
-
-### Before Releasing
-1. Update CHANGELOG.md
-2. Test thoroughly
-3. Check for breaking changes
-4. Review release notes
-
-### Regular Maintenance
-1. Update dependencies monthly
-2. Monitor security advisories
-3. Review workflow performance
-4. Update documentation
+- [PHPStan Documentation](https://phpstan.org/)
 
 ---
 
-*Quick reference for CI/CD pipeline - Last updated: December 19, 2024* 
+*Version: 1.0* 

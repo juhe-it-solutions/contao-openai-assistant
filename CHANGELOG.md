@@ -7,54 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.2] - 2024-12-19
-- CI/CD pipeline implementation with GitHub Actions, PHP compatibility testing (8.1-8.4), code quality checks (ECS/PHPStan), security scanning, and automated release workflow
-
-## [1.0.1] - 2024-12-19
-- Bug fixes (CSS, JS improvements)
-
-## [1.0.0] - 2024-07-03
-
-### 🎉 Initial Release
-
-Initial release of the Contao OpenAI Assistant extension.
-
 ### Added
-- Initial release of Contao OpenAI Assistant extension
-- Backend management interface for OpenAI configurations
-- Assistant creation and management functionality
-- File upload and vector store integration
-- Frontend chatbot widget with customizable themes
+- Initial release of Contao OpenAI Assistant Bundle
+- OpenAI Assistant integration with backend management
+- Frontend chatbot with customizable styling
+- File upload support for knowledge base
+- Secure API key management with encryption
+- Vector store integration for file processing
+- Model selection with validation
 - CSRF protection and security features
-- Model selection with validation and custom model input option
-- Session management and conversation persistence
-- Responsive design with accessibility support
-- Multi-language support (English/German)
+- Responsive design with theme support
+- Comprehensive documentation and guides
 
-### Features
-- OpenAI API key encryption and secure storage
-- Automatic vector store creation and management
-- Real-time synchronization with OpenAI platform
-- Customizable chat widget positioning and styling
-- Rate limiting and error handling
-- Comprehensive logging and debugging support
-- Dynamic model selection with custom model input option in second position
+### Changed
+- CI/CD pipeline implementation with GitHub Actions, PHP 8.2 testing, code quality checks (ECS/PHPStan), security scanning, and automated release workflow
+- Simplified testing approach focusing on code quality, formatting, and security
+- PHP 8.2+ compatibility
 
 ### Security
 - API key encryption using AES-256-CBC
-- CSRF token validation
+- CSRF token validation for all forms
 - Input sanitization and validation
 - Secure file upload handling
+- Environment variable support for API keys
 
-### Technical
-- PHP 8.1+ compatibility
-- Contao 5.3+ compatibility
-- PSR-4 autoloading
-- Symfony service container integration
-- Event-driven architecture
+## [1.0.0] - 2024-12-19
 
-### Documentation
-- Comprehensive installation and configuration guides
-- Security documentation and best practices
-- Development documentation for contributors
-- API documentation and technical specifications 
+### Added
+- Initial release of Contao OpenAI Assistant Bundle
+- OpenAI Assistant integration with backend management
+- Frontend chatbot with customizable styling
+- File upload support for knowledge base
+- Secure API key management with encryption
+- Vector store integration for file processing
+- Model selection with validation
+- CSRF protection and security features
+- Responsive design with theme support
+- Comprehensive documentation and guides
+
+### Changed
+- CI/CD pipeline implementation with GitHub Actions, PHP 8.2 testing, code quality checks (ECS/PHPStan), security scanning, and automated release workflow
+- Simplified testing approach focusing on code quality, formatting, and security
+- PHP 8.2+ compatibility
+
+### Security
+- API key encryption using AES-256-CBC
+- CSRF token validation for all forms
+- Input sanitization and validation
+- Secure file upload handling
+- Environment variable support for API keys 

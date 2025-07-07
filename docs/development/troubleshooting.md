@@ -1,340 +1,387 @@
 # Troubleshooting Guide
 
-This guide helps you resolve common issues with the Contao OpenAI Assistant Bundle.
+Common issues and solutions for the Contao OpenAI Assistant CI/CD pipeline.
 
 ## Quick Diagnosis
 
-### Check System Status
-
-1. **Backend Access**: Can you access the KI-TOOLS menu?
-2. **OpenAI Dashboard**: Is the dashboard loading?
-3. **API Connection**: Are you getting connection errors?
-4. **Frontend Chatbot**: Is the chatbot appearing on your website?
-
-## Common Issues and Solutions
-
-### Backend Issues
-
-#### KI-TOOLS Menu Not Visible
-
-**Symptoms**: KI-TOOLS menu doesn't appear in backend navigation
-
-**Possible Causes**:
-- Bundle not properly installed
-- Database migration not run
-- User permissions insufficient
-
-**Solutions**:
+### Check Environment
 ```bash
-# 1. Check if bundle is installed
-composer show juhe-it-solutions/contao-openai-assistant
+# PHP version and extensions
+php --version
+php -m
 
-# 2. Run database migration
-php bin/console contao:migrate
+# Composer version
+composer --version
 
-# 3. Clear cache
-php bin/console cache:clear
-
-# 4. Check user permissions in Contao backend
+# Available tools
+vendor/bin/ecs --version
+vendor/bin/phpstan --version
 ```
 
-#### OpenAI Dashboard Not Loading
-
-**Symptoms**: Dashboard shows error or blank page
-
-**Possible Causes**:
-- JavaScript errors
-- Missing dependencies
-- Database connection issues
-
-**Solutions**:
-1. Check browser console for JavaScript errors
-2. Verify database connection
-3. Clear browser cache
-4. Check Contao system log
-
-### API Connection Issues
-
-#### Invalid API Key Error
-
-**Error Message**: `Invalid API key provided`
-
-**Solutions**:
-1. Verify API key format (starts with `sk-`)
-2. Check if key is copied correctly (no extra spaces)
-3. Verify key hasn't expired
-4. Test key in OpenAI platform
-
-#### Rate Limit Exceeded
-
-**Error Message**: `Rate limit exceeded`
-
-**Solutions**:
-1. Wait a few minutes before retrying
-2. Check your OpenAI usage limits
-3. Consider upgrading your OpenAI plan
-4. Implement request throttling
-
-#### Insufficient Credits
-
-**Error Message**: `You exceeded your current quota`
-
-**Solutions**:
-1. Add credits to your OpenAI account
-2. Check usage in OpenAI dashboard
-3. Monitor API usage in Contao backend
-
-### Model Selection Issues
-
-#### No Models Available
-
-**Symptoms**: Model dropdown is empty
-
-**Possible Causes**:
-- API key doesn't have model access
-- Network connectivity issues
-- API rate limiting
-
-**Solutions**:
-1. Check API key permissions
-2. Verify internet connection
-3. Try manual model entry
-4. Check fallback models are working
-
-#### Model Validation Fails
-
-**Error Message**: `Model not compatible with Assistants API`
-
-**Solutions**:
-1. Use a different model (GPT-4o, GPT-4o-mini, etc.)
-2. Check model availability in your account
-3. Try manual model entry with a known compatible model
-
-### File Upload Issues
-
-#### File Upload Fails
-
-**Error Message**: `File upload failed`
-
-**Possible Causes**:
-- File too large
-- Unsupported file type
-- API key doesn't have file upload access
-
-**Solutions**:
-1. Check file size (max 512MB)
-2. Verify file type (PDF, DOCX, TXT, etc.)
-3. Check API key permissions
-4. Try smaller file
-
-#### File Processing Error
-
-**Error Message**: `File processing failed`
-
-**Solutions**:
-1. Check file content (not corrupted)
-2. Try different file format
-3. Verify file is readable
-4. Check OpenAI service status
-
-### Frontend Chatbot Issues
-
-#### Chatbot Not Appearing
-
-**Symptoms**: Chatbot module doesn't show on website
-
-**Possible Causes**:
-- Module not added to page
-- CSS conflicts
-- JavaScript errors
-
-**Solutions**:
-1. Check if module is added to page layout
-2. Verify module is published
-3. Check browser console for errors
-4. Test in different browser
-
-#### Chatbot Not Responding
-
-**Symptoms**: Messages sent but no response
-
-**Possible Causes**:
-- Assistant not configured
-- API connection issues
-- JavaScript errors
-
-**Solutions**:
-1. Check assistant configuration in backend
-2. Verify API key is working
-3. Check browser console for errors
-4. Test API connection
-
-#### Styling Issues
-
-**Symptoms**: Chatbot looks broken or unstyled
-
-**Solutions**:
-1. Check if CSS files are loading
-2. Verify no CSS conflicts
-3. Clear browser cache
-4. Check responsive design
-
-### Database Issues
-
-#### Migration Errors
-
-**Error Message**: `Migration failed`
-
-**Solutions**:
+### Run Basic Tests
 ```bash
-# 1. Check database connection
-php bin/console doctrine:database:create --if-not-exists
-
-# 2. Run migrations manually
-php bin/console doctrine:migrations:migrate
-
-# 3. Check for conflicts
-php bin/console doctrine:schema:validate
+# Quick validation
+composer validate
+find src/ -name "*.php" -exec php -l {} \;
+vendor/bin/ecs check
+vendor/bin/phpstan analyse src/ --level=5
 ```
 
-#### Data Corruption
+## Common Issues
 
-**Symptoms**: Strange behavior, missing data
+### 1. Composer Validation Failures
 
-**Solutions**:
-1. Check database integrity
-2. Restore from backup
-3. Re-run migrations
-4. Clear cache
+#### Problem
+```bash
+composer validate
+# Error: The lock file is not up to date with the latest changes in composer.json
+```
 
-## Debug Mode
+#### Solution
+```bash
+# Update lock file
+composer update
 
-### Enable Debug Logging
+# Validate again
+composer validate
+```
 
+#### Prevention
+- Always run `composer update` after changing `composer.json`
+- Commit both `composer.json` and `composer.lock`
+- Use `composer install` for CI, `composer update` for development
+
+### 2. PHP Syntax Errors
+
+#### Problem
+```bash
+find src/ -name "*.php" -exec php -l {} \;
+# Parse error: syntax error, unexpected '}' in /path/to/file.php on line 123
+```
+
+#### Solution
+1. **Check the specific file mentioned**
+2. **Look for common syntax issues:**
+   - Missing semicolons
+   - Unclosed brackets/braces
+   - Invalid PHP 8.2 syntax
+   - Missing type hints
+
+#### Example Fix
 ```php
-// In config/config.php
-$GLOBALS['TL_CONFIG']['debugMode'] = true;
-$GLOBALS['TL_CONFIG']['logErrors'] = true;
+// Before (error)
+public function processData($data) {
+    return $data;
+}
+
+// After (fixed)
+public function processData(array $data): array {
+    return $data;
+}
 ```
 
-### Check Logs
+### 3. ECS Code Style Issues
 
+#### Problem
 ```bash
-# Contao system log
-tail -f var/logs/contao.log
-
-# Symfony debug log
-tail -f var/logs/dev.log
-
-# Error log
-tail -f var/logs/error.log
+vendor/bin/ecs check
+# Found 15 errors in 3 files
 ```
 
-### Browser Developer Tools
+#### Solution
+```bash
+# Auto-fix most issues
+vendor/bin/ecs check --fix
 
-1. **Console**: Check for JavaScript errors
-2. **Network**: Monitor API requests
-3. **Application**: Check local storage and cookies
-4. **Elements**: Inspect DOM structure
+# Check remaining issues
+vendor/bin/ecs check
+```
 
-## Performance Issues
+#### Common ECS Issues
+- **Missing type hints**: Add return types and parameter types
+- **Spacing issues**: Fix indentation and spacing
+- **Import ordering**: Organize use statements
+- **Line length**: Break long lines
 
-### Slow Loading
+#### Manual Fix Example
+```php
+// Before
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
 
-**Possible Causes**:
-- Large file uploads
-- Slow API responses
-- Database queries
+// After (alphabetical order)
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
+```
 
-**Solutions**:
-1. Optimize file sizes
-2. Implement caching
-3. Check database performance
-4. Monitor API response times
+### 4. PHPStan Static Analysis Errors
 
-### Memory Issues
+#### Problem
+```bash
+vendor/bin/phpstan analyse src/ --level=5
+# 10/10 [▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓] 100%
+# 
+#  ------ -------------------------------------------------------------------------
+#  Line   src/Controller/ApiController.php
+#  ------ -------------------------------------------------------------------------
+#  45     Call to an undefined method getRequest() on an object of type
+#         Symfony\Component\HttpFoundation\Request
+```
 
-**Error Message**: `Memory limit exceeded`
+#### Solution
+1. **Check the specific error**
+2. **Add proper type hints**
+3. **Use correct method names**
+4. **Handle nullable types**
 
-**Solutions**:
-1. Increase PHP memory limit
-2. Optimize file processing
-3. Implement chunked uploads
-4. Monitor memory usage
+#### Example Fix
+```php
+// Before (PHPStan error)
+public function handleRequest(Request $request): Response {
+    $data = $request->getRequest(); // Wrong method
+    return new Response($data);
+}
 
-## Security Issues
+// After (fixed)
+public function handleRequest(Request $request): Response {
+    $data = $request->getContent(); // Correct method
+    return new Response($data);
+}
+```
 
-### API Key Exposure
+### 5. Security Check Failures
 
-**Symptoms**: API key visible in logs or errors
+#### Problem
+```bash
+composer audit
+# Found 1 security vulnerability in 1 package
+```
 
-**Solutions**:
-1. Check encryption is working
-2. Review error handling
-3. Audit log output
-4. Rotate API key
+#### Solution
+```bash
+# Check specific vulnerabilities
+composer audit --format=json
 
-### Unauthorized Access
+# Update vulnerable package
+composer update package-name
 
-**Symptoms**: Users accessing restricted areas
+# Or update all packages
+composer update
+```
 
-**Solutions**:
-1. Check user permissions
-2. Review access controls
-3. Audit user activities
-4. Implement additional security
+#### Common Security Issues
+- **Outdated packages**: Update to latest versions
+- **Known CVEs**: Check security advisories
+- **Transitive dependencies**: Update parent packages
+
+### 6. Missing PHP Extensions
+
+#### Problem
+```bash
+composer install
+# The requested PHP extension gd is missing from your system
+```
+
+#### Solution
+```bash
+# Install required extensions (Ubuntu/Debian)
+sudo apt-get update
+sudo apt-get install php8.2-gd php8.2-xml php8.2-mbstring php8.2-curl
+
+# Or for other systems, install the specific extension
+```
+
+#### Required Extensions
+- `mbstring` - Multibyte string handling
+- `xml` - XML processing
+- `ctype` - Character type checking
+- `iconv` - Character encoding conversion
+- `intl` - Internationalization
+- `curl` - HTTP requests
+- `json` - JSON processing
+- `dom` - DOM manipulation
+- `gd` - Image processing
+
+### 7. CI/CD Workflow Failures
+
+#### Problem
+GitHub Actions workflow fails with unclear error messages.
+
+#### Solution
+1. **Check workflow logs** in GitHub Actions tab
+2. **Identify the failing job**
+3. **Look for specific error messages**
+4. **Run the same commands locally**
+
+#### Common CI Issues
+- **Cache problems**: Clear GitHub Actions cache
+- **Version mismatches**: Ensure same PHP version locally
+- **Permission issues**: Check repository permissions
+- **Timeout issues**: Optimize workflow performance
+
+### 8. Release Creation Failures
+
+#### Problem
+Release workflow runs but no GitHub release is created.
+
+#### Solution
+1. **Check all quality checks pass**
+2. **Verify tag format**: `v1.0.3` (not `1.0.3`)
+3. **Check GitHub token permissions**
+4. **Review workflow logs for specific errors**
+
+#### Debugging Steps
+```bash
+# Check tag format
+git tag -l
+
+# Verify tag push
+git push origin v1.0.3
+
+# Check GitHub Actions logs
+# Go to Actions tab → Release workflow → View logs
+```
+
+### 9. Dependency Conflicts
+
+#### Problem
+```bash
+composer install
+# Your requirements could not be resolved to an installable set of packages
+```
+
+#### Solution
+```bash
+# Update all dependencies
+composer update --with-all-dependencies
+
+# Or resolve conflicts manually
+composer why package-name
+composer update package-name
+```
+
+#### Common Conflicts
+- **PHP version requirements**: Ensure compatible PHP version
+- **Symfony version conflicts**: Update to compatible versions
+- **Transitive dependencies**: Update parent packages
+
+### 10. Performance Issues
+
+#### Problem
+CI/CD pipeline takes too long to run.
+
+#### Solution
+1. **Optimize caching**:
+   ```yaml
+   - uses: actions/cache@v3
+     with:
+       path: ~/.composer/cache
+       key: ${{ runner.os }}-php-8.2-composer-${{ hashFiles('**/composer.lock') }}
+   ```
+
+2. **Parallel execution**: Run independent jobs in parallel
+3. **Reduce dependencies**: Remove unused packages
+4. **Optimize commands**: Use `--no-progress` flags
+
+## Debugging Commands
+
+### Environment Check
+```bash
+# System information
+php --version
+php -m
+composer --version
+git --version
+
+# Available tools
+ls -la vendor/bin/
+```
+
+### Tool Testing
+```bash
+# Test ECS
+vendor/bin/ecs check --help
+
+# Test PHPStan
+vendor/bin/phpstan --help
+
+# Test Composer
+composer --help
+```
+
+### Cache Clearing
+```bash
+# Clear all caches
+rm -rf .ecs_cache/ .phpstan.cache/ .phpunit.result.cache .phpunit.cache
+composer clear-cache
+
+# Reinstall dependencies
+rm -rf vendor/
+composer install
+```
+
+## Prevention Strategies
+
+### Before Pushing
+1. **Run local tests**:
+   ```bash
+   composer validate
+   find src/ -name "*.php" -exec php -l {} \;
+   vendor/bin/ecs check
+   vendor/bin/phpstan analyse src/ --level=5
+   ```
+
+2. **Check for security issues**:
+   ```bash
+   composer audit
+   ```
+
+3. **Validate composer.json**:
+   ```bash
+   composer validate
+   ```
+
+### Regular Maintenance
+1. **Update dependencies monthly**:
+   ```bash
+   composer update
+   composer audit
+   ```
+
+2. **Monitor security advisories**:
+   - Check GitHub security tab
+   - Review dependency updates
+   - Update vulnerable packages promptly
+
+3. **Keep workflows updated**:
+   - Review GitHub Actions updates
+   - Update workflow syntax as needed
+   - Monitor for deprecated actions
 
 ## Getting Help
 
-### Before Contacting Support
+### Self-Service
+1. **Check this troubleshooting guide**
+2. **Review CI/CD documentation**
+3. **Search GitHub issues**
+4. **Run debugging commands**
 
-1. **Document the Issue**:
-   - Error messages (exact text)
-   - Steps to reproduce
-   - Browser/OS information
-   - Contao version
+### External Resources
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- [ECS Documentation](https://github.com/symplify/easy-coding-standard)
+- [PHPStan Documentation](https://phpstan.org/)
+- [Composer Documentation](https://getcomposer.org/doc/)
 
-2. **Check Logs**:
-   - System logs
-   - Error logs
-   - Browser console
+### Creating Issues
+When creating a GitHub issue, include:
+1. **Error message** (exact text)
+2. **Environment details** (PHP version, OS)
+3. **Steps to reproduce**
+4. **Expected vs actual behavior**
+5. **Relevant logs**
 
-3. **Test Basic Functionality**:
-   - API key works in OpenAI platform
-   - Contao backend is accessible
-   - Database is working
+---
 
-### Support Resources
-
-1. **Contao Documentation**: [docs.contao.org](https://docs.contao.org/)
-2. **OpenAI Documentation**: [platform.openai.com/docs](https://platform.openai.com/docs)
-3. **Bundle Documentation**: Check the docs directory
-4. **Community Forums**: Contao community forums
-
-### Contact Information
-
-When contacting support, include:
-- Contao version
-- Bundle version
-- PHP version
-- Error messages
-- Steps to reproduce
-- Log files (if relevant)
-
-## Prevention
-
-### Regular Maintenance
-
-1. **Monitor Usage**: Check API usage regularly
-2. **Update Regularly**: Keep bundle and Contao updated
-3. **Backup Data**: Regular database backups
-4. **Test Functionality**: Periodic testing of features
-
-### Best Practices
-
-1. **Use Strong API Keys**: Rotate keys regularly
-2. **Monitor Logs**: Check for unusual activity
-3. **Limit Access**: Restrict backend access
-4. **Test Changes**: Test in development environment first
-
-This troubleshooting guide should help you resolve most common issues. If you continue to experience problems, please contact support with detailed information about your specific situation. 
+*Version: 1.0* 

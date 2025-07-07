@@ -80,7 +80,7 @@ test: add unit tests for encryption service
 
 ### Prerequisites
 
-- PHP 8.1 or higher
+- PHP 8.2 or higher
 - Composer
 - Contao 5.0 or higher
 - OpenAI API key (for testing)

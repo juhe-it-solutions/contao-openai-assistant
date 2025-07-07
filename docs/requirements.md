@@ -6,7 +6,7 @@ This document outlines the system requirements for the Contao OpenAI Assistant B
 
 ### Minimum Requirements
 
-- **PHP**: 8.1 or higher
+- **PHP**: 8.2 or higher
 - **Contao**: 5.0 or higher (tested with Contao 5.5)
 - **Composer**: Latest stable version
 - **OpenAI API**: Valid API key with Assistants API access
@@ -162,7 +162,7 @@ This document outlines the system requirements for the Contao OpenAI Assistant B
 
 ### Common Issues
 
-1. **PHP Version**: Ensure PHP 8.1+ is installed
+1. **PHP Version**: Ensure PHP 8.2+ is installed
 2. **Extensions**: Check all required extensions are loaded
 3. **Permissions**: Verify file and directory permissions
 4. **API Access**: Confirm OpenAI API access and limits

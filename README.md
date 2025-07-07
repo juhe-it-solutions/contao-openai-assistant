@@ -194,9 +194,8 @@ After installing the extension via Contao Manager, you will see a new entry in y
 This project includes automated testing and code quality checks via GitHub Actions:
 
 ### Automated Checks
-- **PHP Compatibility**: Tests against PHP 8.1, 8.2, and 8.3
-- **Code Quality**: Static analysis with PHPStan (level 5)
-- **Code Formatting**: Automated formatting with PHP CS Fixer
+- **Code Quality**: PHP syntax, ECS code style, PHPStan static analysis
+- **Code Formatting**: Automated formatting with validation
 - **Security**: Dependency vulnerability scanning
 
 
@@ -220,10 +219,9 @@ composer audit --format=json 2>/dev/null || echo "Security check skipped (compos
 
 ### CI/CD Pipeline
 The GitHub Actions workflow runs on every push and pull request:
-1. **PHP Compatibility**: Syntax checking across PHP 8.1-8.4
-2. **Code Quality**: PHPStan static analysis
-3. **Code Formatting**: PHP CS Fixer style checking
-4. **Security**: Dependency vulnerability scanning
+1. **Code Quality**: PHP syntax, ECS code style, PHPStan static analysis
+2. **Code Formatting**: Automated formatting with validation
+3. **Security**: Dependency vulnerability scanning
 
 ## 🔄 How It Works (Real-World Process)
 

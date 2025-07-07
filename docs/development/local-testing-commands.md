@@ -5,7 +5,7 @@ This document provides all CLI commands needed to run each test manually locally
 ## Prerequisites
 
 Ensure you have the following installed:
-- PHP 8.1+ (recommended: 8.4)
+- PHP 8.2+ (recommended: 8.2)
 - Composer
 - Git
 
@@ -24,9 +24,9 @@ composer install --prefer-dist --no-progress
 php --version
 ```
 
-## Job 1: PHP Compatibility (Multi-Version Testing)
+## Job 1: Code Quality
 
-This matches the `php-compatibility` job in CI.
+This matches the `code-quality` job in CI.
 
 ```bash
 # 1. Validate composer.json
@@ -38,25 +38,14 @@ composer install --prefer-dist --no-progress
 # 3. Check PHP syntax
 find src/ -name "*.php" -exec php -l {} \;
 
-
-```
-
-## Job 2: Code Quality
-
-This matches the `code-quality` job in CI.
-
-```bash
-# 1. Install dependencies
-composer install --prefer-dist --no-progress
-
-# 2. Check code style
+# 4. Check code style
 vendor/bin/ecs check
 
-# 3. Run PHPStan analysis
+# 5. Run PHPStan analysis
 vendor/bin/phpstan analyse src/ --level=5
 ```
 
-## Job 3: Code Formatting
+## Job 2: Code Formatting
 
 This matches the `code-formatting` job in CI.
 
@@ -75,7 +64,7 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 ```
 
-## Job 4: Security Check
+## Job 3: Security Check
 
 This matches the `security` job in CI.
 
@@ -87,7 +76,7 @@ composer install --prefer-dist --no-progress
 composer audit --format=json 2>/dev/null || echo "Security check skipped (composer audit not available)"
 ```
 
-## Job 5: Release Process
+## Job 4: Release Process
 
 This matches the `release` job in CI.
 
@@ -161,15 +150,13 @@ composer audit --format=json 2>/dev/null || echo "Security check skipped (compos
 composer audit --format=json 2>/dev/null || echo "Security check skipped (composer audit not available)"
 ```
 
-
-
 ## Complete Test Suite (All Jobs in Order)
 
 ```bash
 # Run all tests in exact CI order
 echo "=== Starting Complete Test Suite (CI Order) ==="
 
-echo "=== Job 1: PHP Compatibility ==="
+echo "=== Job 1: Code Quality ==="
 echo "1. Validating composer.json..."
 composer validate
 
@@ -179,56 +166,50 @@ composer install --prefer-dist --no-progress
 echo "3. Checking PHP syntax..."
 find src/ -name "*.php" -exec php -l {} \;
 
-
-
-echo "=== Job 2: Code Quality ==="
-echo "5. Installing dependencies..."
-composer install --prefer-dist --no-progress
-
-echo "6. Checking code style..."
+echo "4. Checking code style..."
 vendor/bin/ecs check
 
-echo "7. Running static analysis..."
+echo "5. Running static analysis..."
 vendor/bin/phpstan analyse src/ --level=5
 
-echo "=== Job 3: Code Formatting ==="
-echo "8. Installing dependencies..."
+echo "=== Job 2: Code Formatting ==="
+echo "6. Installing dependencies..."
 composer install --prefer-dist --no-progress
 
-echo "9. Formatting code..."
+echo "7. Formatting code..."
 vendor/bin/ecs check --fix
 
-echo "10. Checking for formatting changes..."
+echo "8. Checking for formatting changes..."
 if [ -n "$(git status --porcelain)" ]; then
   echo "Code formatting issues found. Please run 'vendor/bin/ecs check --fix' locally."
   git diff
   exit 1
 fi
 
-echo "=== Job 4: Security Check ==="
+echo "=== Job 3: Security Check ==="
+echo "9. Installing dependencies..."
+composer install --prefer-dist --no-progress
+
+echo "10. Running security audit..."
+composer audit --format=json 2>/dev/null || echo "Security check skipped (composer audit not available)"
+
+echo "=== Job 4: Release Process ==="
 echo "11. Installing dependencies..."
 composer install --prefer-dist --no-progress
 
-echo "12. Running security audit..."
-composer audit --format=json 2>/dev/null || echo "Security check skipped (composer audit not available)"
-
-echo "=== Job 5: Release Process ==="
-echo "13. Installing dependencies..."
-composer install --prefer-dist --no-progress
-
-echo "14. Validating composer.json..."
+echo "12. Validating composer.json..."
 composer validate
 
-echo "15. Checking PHP syntax..."
+echo "13. Checking PHP syntax..."
 find src/ -name "*.php" -exec php -l {} \;
 
-echo "16. Checking code style..."
+echo "14. Checking code style..."
 vendor/bin/ecs check
 
-echo "17. Running static analysis..."
+echo "15. Running static analysis..."
 vendor/bin/phpstan analyse src/ --level=5
 
-echo "18. Running security check..."
+echo "16. Running security check..."
 composer audit --format=json 2>/dev/null || echo "Security check skipped (composer audit not available)"
 
 echo "=== All CI jobs completed successfully ==="
@@ -296,10 +277,9 @@ composer validate
 
 ## Notes
 
-- **PHP Version**: The CI uses PHP 8.1-8.4, but PHP 8.4 is recommended for local development
+- **PHP Version**: The CI uses PHP 8.2, which is the minimum requirement for Contao 5.x
 - **Memory**: Some commands may require increased memory limits (`php -d memory_limit=1G`)
 - **Cache**: Clear caches if you encounter unexpected behavior
-
 - **Dependencies**: Always run `composer install` after pulling changes
 - **Lock File**: If `composer validate` fails, run `composer update` to sync the lock file
 - **CI Order**: The complete test suite follows the exact order of GitHub Actions jobs
