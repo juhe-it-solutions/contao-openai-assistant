@@ -198,7 +198,7 @@ This project includes automated testing and code quality checks via GitHub Actio
 - **Code Quality**: Static analysis with PHPStan (level 5)
 - **Code Formatting**: Automated formatting with PHP CS Fixer
 - **Security**: Dependency vulnerability scanning
-- **Bundle Installation**: Tests Contao bundle installation and compatibility
+
 
 ### Local Development
 ```bash
@@ -220,7 +220,7 @@ composer audit --format=json 2>/dev/null || echo "Security check skipped (compos
 
 ### CI/CD Pipeline
 The GitHub Actions workflow runs on every push and pull request:
-1. **PHP Compatibility**: Syntax checking and bundle installation test
+1. **PHP Compatibility**: Syntax checking across PHP 8.1-8.4
 2. **Code Quality**: PHPStan static analysis
 3. **Code Formatting**: PHP CS Fixer style checking
 4. **Security**: Dependency vulnerability scanning

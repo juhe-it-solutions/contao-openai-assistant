@@ -98,7 +98,7 @@ test: add unit tests for encryption service
    composer install
    ```
 
-3. **Set up Contao**:
+3. **Set up Contao** (optional for testing):
    ```bash
    # Create a test Contao installation
    composer create-project contao/managed-edition test-contao
@@ -136,7 +136,7 @@ vendor/bin/phpstan analyse src/ --level=5
 composer audit --format=json 2>/dev/null || echo "Security check skipped (composer audit not available)"
 ```
 
-#### Integration Tests
+#### Integration Tests (Optional)
 
 Test with a real Contao installation:
 

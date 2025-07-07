@@ -38,15 +38,7 @@ composer install --prefer-dist --no-progress
 # 3. Check PHP syntax
 find src/ -name "*.php" -exec php -l {} \;
 
-# 4. Test bundle installation
-composer create-project contao/managed-edition:5.3 test-contao --no-interaction
-cd test-contao
-composer config repositories.local path ../../
-composer require juhe-it-solutions/contao-openai-assistant:dev-main --no-interaction || echo "Bundle installation test completed"
-php bin/console cache:clear || echo "Cache clear completed"
-cd ..
-# Clean up test installation
-rm -rf test-contao/
+
 ```
 
 ## Job 2: Code Quality
@@ -169,30 +161,7 @@ composer audit --format=json 2>/dev/null || echo "Security check skipped (compos
 composer audit --format=json 2>/dev/null || echo "Security check skipped (composer audit not available)"
 ```
 
-### 6. Bundle Installation Test
 
-```bash
-# Create a test Contao installation
-composer create-project contao/managed-edition:5.3 test-contao --no-interaction
-
-# Navigate to test installation
-cd test-contao
-
-# Add local repository
-composer config repositories.local path ../../
-
-# Install the bundle from local path
-composer require juhe-it-solutions/contao-openai-assistant:dev-main --no-interaction || echo "Bundle installation test completed"
-
-# Test cache clearing
-php bin/console cache:clear || echo "Cache clear completed"
-
-# Return to project root
-cd ..
-
-# Clean up test installation
-rm -rf test-contao/
-```
 
 ## Complete Test Suite (All Jobs in Order)
 
@@ -210,15 +179,7 @@ composer install --prefer-dist --no-progress
 echo "3. Checking PHP syntax..."
 find src/ -name "*.php" -exec php -l {} \;
 
-echo "4. Test bundle installation..."
-composer create-project contao/managed-edition:5.3 test-contao --no-interaction
-cd test-contao
-composer config repositories.local path ../../
-composer require juhe-it-solutions/contao-openai-assistant:dev-main --no-interaction || echo "Bundle installation test completed"
-php bin/console cache:clear || echo "Cache clear completed"
-cd ..
-# Clean up test installation
-rm -rf test-contao/
+
 
 echo "=== Job 2: Code Quality ==="
 echo "5. Installing dependencies..."
@@ -276,9 +237,6 @@ echo "=== All CI jobs completed successfully ==="
 ## Cleanup Commands
 
 ```bash
-# Remove test Contao installation
-rm -rf test-contao/
-
 # Clear Composer cache (if needed)
 composer clear-cache
 
@@ -325,7 +283,7 @@ composer --version
 php -v
 
 # Clear all caches
-rm -rf .ecs_cache/ .phpstan.cache/ .phpunit.result.cache .phpunit.cache test-contao/
+rm -rf .ecs_cache/ .phpstan.cache/ .phpunit.result.cache .phpunit.cache
 
 # Reinstall dependencies
 rm -rf vendor/
@@ -341,7 +299,7 @@ composer validate
 - **PHP Version**: The CI uses PHP 8.1-8.4, but PHP 8.4 is recommended for local development
 - **Memory**: Some commands may require increased memory limits (`php -d memory_limit=1G`)
 - **Cache**: Clear caches if you encounter unexpected behavior
-- **Test Environment**: The `test-contao/` directory is automatically ignored by `.gitignore`
+
 - **Dependencies**: Always run `composer install` after pulling changes
 - **Lock File**: If `composer validate` fails, run `composer update` to sync the lock file
 - **CI Order**: The complete test suite follows the exact order of GitHub Actions jobs

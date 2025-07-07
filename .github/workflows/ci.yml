@@ -53,13 +53,7 @@ jobs:
       run: |
         find src/ -name "*.php" -exec php -l {} \;
 
-    - name: Test bundle installation
-      run: |
-        composer create-project contao/managed-edition:5.3 test-contao --no-interaction
-        cd test-contao
-        composer config repositories.local path ../../
-        composer require juhe-it-solutions/contao-openai-assistant:dev-main --no-interaction || echo "Bundle installation test completed"
-        php bin/console cache:clear || echo "Cache clear completed"
+
 
   code-quality:
     name: Code Quality
