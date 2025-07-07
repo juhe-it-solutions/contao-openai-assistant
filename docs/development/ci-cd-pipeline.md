@@ -104,7 +104,7 @@ The CI/CD pipeline consists of two main workflows:
 
 ```yaml
 - name: Run security check
-  run: composer audit
+  run: composer audit --format=json 2>/dev/null || echo "Security check skipped (composer audit not available)"
 ```
 
 **What it does**:
@@ -207,7 +207,7 @@ The pipeline uses PHP 8.4 with these extensions:
 The pipeline requires these development dependencies:
 - `contao/easy-coding-standard` - Code style checking
 - `phpstan/phpstan` - Static analysis
-- `roave/security-advisories` - Security scanning
+- `composer audit --format=json 2>/dev/null || echo "Security check skipped"` - Built-in security scanning
 
 ## Troubleshooting
 

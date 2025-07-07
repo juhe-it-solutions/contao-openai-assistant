@@ -1,7 +1,6 @@
 # Composer
 /vendor/
 composer.phar
-composer.lock
 
 # IDE
 .idea/
@@ -124,4 +123,12 @@ composer.local.json
 composer.local.lock
 
 # Scripts (keep release script)
-!scripts/release.sh 
+!scripts/release.sh
+
+# Additional PHP/Composer files
+composer.lock.bak
+composer.json.bak
+
+# Local development files
+.phpunit.cache
+.php-cs-fixer.cache 

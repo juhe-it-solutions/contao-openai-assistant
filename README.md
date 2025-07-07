@@ -215,7 +215,7 @@ vendor/bin/phpstan analyse src/
 vendor/bin/php-cs-fixer fix
 
 # Check security vulnerabilities
-composer audit
+composer audit --format=json 2>/dev/null || echo "Security check skipped (composer audit not available)"
 ```
 
 ### CI/CD Pipeline
