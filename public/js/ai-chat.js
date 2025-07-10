@@ -186,7 +186,9 @@ function initAiChat(wrapper) {
   };
 
   // Initialize chat state based on configuration
-  if (config.initialState === 'expanded') {
+  // On mobile devices (width < 768px), always start collapsed for better UX
+  const isMobile = window.innerWidth < 768;
+  if (config.initialState === 'expanded' && !isMobile) {
     expand();
   } else {
     collapse();
@@ -480,6 +482,21 @@ function initAiChat(wrapper) {
   }).catch(error => {
     console.warn('Could not load chat history:', error);
     welcome();
+  });
+  
+  // Handle responsive behavior for chat state
+  let lastWindowWidth = window.innerWidth;
+  window.addEventListener('resize', () => {
+    const currentWidth = window.innerWidth;
+    const wasDesktop = lastWindowWidth >= 768;
+    const isMobile = currentWidth < 768;
+    
+    // If transitioning from desktop to mobile and chat is expanded, collapse it
+    if (wasDesktop && isMobile && !wrapper.classList.contains('ai-chat-collapsed')) {
+      collapse();
+    }
+    
+    lastWindowWidth = currentWidth;
   });
 }
 

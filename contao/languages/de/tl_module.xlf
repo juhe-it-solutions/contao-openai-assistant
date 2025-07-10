@@ -76,7 +76,7 @@
             </trans-unit>
             <trans-unit id="tl_module.initial_state.expanded">
                 <source>Expanded (show chat window)</source>
-                <target>Erweitert (Chat-Fenster anzeigen)</target>
+                <target>Erweitert (Chat-Fenster anzeigen, auf Mobilgeräten immer eingeklappt)</target>
             </trans-unit>
             <trans-unit id="tl_module.base_font_size.0">
                 <source>Base Font Size</source>

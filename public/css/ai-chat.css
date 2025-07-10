@@ -440,6 +440,7 @@
 
 /* Mobile responsive design - Full screen with small padding */
 /* Uses --vh CSS variable for accurate 100vh on mobile devices (set by JavaScript) */
+/* Note: Chat always starts collapsed on mobile devices (width < 768px) for better UX */
 @media (max-width: 767px) {
     /* Override all position-based styles for mobile */
     .mod_ai_chat[data-position="right-bottom"],
