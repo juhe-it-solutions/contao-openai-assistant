@@ -296,17 +296,27 @@ function initAiChat(wrapper) {
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/`(.*?)`/g, '<code>$1</code>')
       .replace(/\n/g, '<br>')
+      .replace(/\.\./g, '.')  // Replace double dots with single dot
       .trim();
 
-    // Make URLs clickable
+    // Simple and bulletproof fix for duplicate URLs and square brackets
+    // Step 1: Remove square brackets around links
+    result = result.replace(/\[<a[^>]*>.*?<\/a>\]/g, (match) => {
+      return match.replace(/^\[|\]$/g, ''); // Remove [ and ]
+    });
+    
+    // Step 2: Remove duplicate links with same href
+    result = result.replace(/(<a[^>]*>.*?<\/a>).*?\1/g, '$1');
+
+    // Make URLs clickable (only if they're not already in <a> tags)
     // URLs mit http/https, ohne nachfolgende Satzzeichen
     result = result.replace(
-      /(https?:\/\/[^\s\)\]\}\>,!?:;"]+)([.,!?:;)\]]?)/g,
+      /(?<!<a[^>]*>)(https?:\/\/[^\s\)\]\}\>,!?:;"]+)([.,!?:;)\]]?)(?!<\/a>)/g,
       '<a href="$1" target="_blank">$1</a>$2'
     );
     // URLs mit www., ohne nachfolgende Satzzeichen
     result = result.replace(
-      /(?<!\/)(www\.[^\s\)\]\}\>,!?:;"]+)([.,!?:;)\]]?)/g,
+      /(?<!<a[^>]*>)(?<!\/)(www\.[^\s\)\]\}\>,!?:;"]+)([.,!?:;)\]]?)(?!<\/a>)/g,
       '<a href="https://$1" target="_blank">$1</a>$2'
     );
 
@@ -326,6 +336,15 @@ function initAiChat(wrapper) {
 
     // Make email addresses clickable
     result = result.replace(/([\w.-]+@[\w.-]+\.\w+)/g, '<a href="mailto:$1">$1</a>');
+
+    // Remove trailing dots from <a> tags
+    result = result.replace(/(<a[^>]*>.*?)\.(<\/a>)/g, '$1$2');
+    
+    // Fix trailing dots in href attributes
+    result = result.replace(/(href="[^"]*)\.(")/g, '$1$2');
+    
+    // Remove exclamation mark + dot combinations
+    result = result.replace(/!\./g, '!');
 
     return result;
   };
