@@ -164,7 +164,7 @@ $GLOBALS['TL_DCA']['tl_openai_assistants'] = [
                 'minval' => 0,
                 'maxval' => 1
             ],
-            'sql' => "float NOT NULL default 1.00"
+            'sql' => "float NOT NULL default 1"
         ],
         'system_instructions' => [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_assistants']['system_instructions'],
