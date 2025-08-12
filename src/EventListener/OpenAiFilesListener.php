@@ -3,7 +3,7 @@
 /*
  * This file is part of Contao Open Source CMS.
  *  *
- *  * (c) Leo Feyer
+ *  * (c) JUHE IT-solutions
  *  *
  *  * @license LGPL-3.0-or-later
  */
@@ -64,11 +64,11 @@ class OpenAiFilesListener
         $this->csrfTokenName    = $csrfTokenName;
     }
 
-    public function uploadToOpenAI($value, DataContainer $dc)
+    public function uploadToOpenAI($value, ?DataContainer $dc)
     {
         // In mass actions Contao only passes the table name → just bail out
         if (! $dc instanceof DataContainer) {
-            return;
+            return $value;
         }
 
         if (empty($value)) {

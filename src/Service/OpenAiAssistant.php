@@ -3,7 +3,7 @@
 /*
  * This file is part of Contao Open Source CMS.
  *  *
- *  * (c) Leo Feyer
+ *  * (c) JUHE IT-solutions
  *  *
  *  * @license LGPL-3.0-or-later
  */
@@ -258,7 +258,7 @@ class OpenAiAssistant
         ];
 
         // Add temperature parameter if available (moved from config to assistant level)
-        if (isset($assistant['temperature']) && $assistant['temperature'] !== null) {
+        if (array_key_exists('temperature', $assistant) && $assistant['temperature'] !== null) {
             $runData['temperature'] = (float) $assistant['temperature'];
         }
 

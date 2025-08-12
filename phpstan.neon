@@ -8,7 +8,6 @@ parameters:
     ignoreErrors:
         - '#Access to an undefined property [a-zA-Z0-9\\_]+::\$pid#'
         - '#Access to an undefined property Contao\\DataContainer::\$activeRecord#'
-        - '#Access to an undefined property object::\$[a-zA-Z0-9_]+#'
         - '#Property [a-zA-Z0-9\\_]+::\$[a-zA-Z0-9_]+ is never read, only written#'
         - '#Method [a-zA-Z0-9\\_]+::[a-zA-Z0-9_]+\(\) is unused#'
         - '#If condition is always true#'

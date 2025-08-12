@@ -80,7 +80,7 @@ return static function (ECSConfig $ecsConfig): void {
     $ecsConfig->ruleWithConfiguration(HeaderCommentFixer::class, [
         'header' => 'This file is part of Contao Open Source CMS.
  *
- * (c) Leo Feyer
+ * (c) JUHE IT-solutions
  *
  * @license LGPL-3.0-or-later',
         'location' => 'after_open',
