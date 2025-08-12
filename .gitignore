@@ -1,6 +1,7 @@
 # Composer
 /vendor/
 composer.phar
+composer.lock
 
 # IDE
 .idea/
@@ -131,4 +132,4 @@ composer.json.bak
 
 # Local development files
 .phpunit.cache
-.php-cs-fixer.cache 
+.php-cs-fixer.cache
