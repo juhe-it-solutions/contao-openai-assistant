@@ -771,7 +771,7 @@ class OpenAiAssistantsListener
         // Remove any remaining HTML tags for safety
         $text = strip_tags($text);
         // Collapse accidental non-breaking spaces introduced by editors
-        $text = str_replace(["\u{00A0}", "&nbsp;"], ' ', $text);
+        $text = str_replace(["\u{00A0}", '&nbsp;'], ' ', $text);
         // Trim but keep internal formatting
         return trim($text);
     }
