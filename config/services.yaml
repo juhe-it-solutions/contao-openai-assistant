@@ -103,6 +103,7 @@ services:
             - { name: contao.callback, table: tl_openai_assistants, target: fields.model.options, method: getAvailableModels }
             - { name: contao.callback, table: tl_openai_assistants, target: fields.model.save, method: validateModel }
             - { name: contao.callback, table: tl_openai_assistants, target: fields.model_manual.save, method: validateManualModel }
+            - { name: contao.callback, table: tl_openai_assistants, target: fields.system_instructions.save, method: normalizeSystemInstructions }
             - { name: contao.callback, table: tl_openai_assistants, target: fields.top_p.save, method: validateTopP }
             - { name: contao.callback, table: tl_openai_assistants, target: fields.temperature.save, method: validateTemperature }
             - { name: contao.callback, table: tl_openai_assistants, target: list.header, method: addHeader }

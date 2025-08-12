@@ -263,9 +263,13 @@ class OpenAiAssistantsListener
             $this->updateStatus($dc->activeRecord->id, 'creating');
 
             // Prepare assistant data
+            $rawInstructions = (string) ($dc->activeRecord->system_instructions ?? '');
+            // Decode HTML entities so quotes/brackets are literal and normalize newlines/spaces
+            $decodedInstructions = html_entity_decode($rawInstructions, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
             $assistantData = [
                 'name'         => $dc->activeRecord->name,
-                'instructions' => $this->stripHtml($dc->activeRecord->system_instructions ?? ''),
+                'instructions' => $decodedInstructions,
                 'model'        => $modelToUse,
                 'temperature'  => (float) ($dc->activeRecord->temperature ?? 0.25),
                 'top_p'        => (float) ($dc->activeRecord->top_p ?? 1),
@@ -373,6 +377,26 @@ class OpenAiAssistantsListener
             // Re-throw the exception to cause transaction rollback
             throw $e;
         }
+    }
+
+    /**
+     * Normalize and decode system instructions on save to preserve literal characters (quotes, brackets)
+     */
+    public function normalizeSystemInstructions($value, DataContainer $dc): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        $raw = (string) $value;
+        // Decode all HTML entities (including quotes) to literal characters
+        $decoded = html_entity_decode($raw, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        // Keep newlines; normalize CRLF/CR to LF
+        $decoded = str_replace(["\r\n", "\r"], "\n", $decoded);
+        // Ensure there is no accidental HTML leftover
+        $decoded = strip_tags($decoded);
+        // Trim leading/trailing whitespace
+        return trim($decoded);
     }
 
     /**
@@ -742,7 +766,14 @@ class OpenAiAssistantsListener
      */
     private function stripHtml(string $text): string
     {
-        return strip_tags($text);
+        // Normalize line endings and trim trailing spaces while preserving user-intended newlines
+        $text = str_replace(["\r\n", "\r"], "\n", $text);
+        // Remove any remaining HTML tags for safety
+        $text = strip_tags($text);
+        // Collapse accidental non-breaking spaces introduced by editors
+        $text = str_replace(["\u{00A0}", "&nbsp;"], ' ', $text);
+        // Trim but keep internal formatting
+        return trim($text);
     }
 
     /**

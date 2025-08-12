@@ -170,11 +170,17 @@ $GLOBALS['TL_DCA']['tl_openai_assistants'] = [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_assistants']['system_instructions'],
             'exclude' => true,
             'inputType' => 'textarea',
+            'save_callback' => [
+                ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiAssistantsListener', 'normalizeSystemInstructions']
+            ],
             'eval' => [
                 'mandatory' => true,
                 'rte' => '',
                 'tl_class' => 'clr',
-                'rows' => 6
+                'rows' => 6,
+                // Preserve literal characters and decode HTML entities on save so instructions remain 1:1
+                'preserveTags' => true,
+                'decodeEntities' => true
             ],
             'search' => true,
             'sql' => "text NULL"
