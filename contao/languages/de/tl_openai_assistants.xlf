@@ -115,6 +115,14 @@
         <source>The current status of this assistant in OpenAI.</source>
         <target>Der aktuelle Status dieses Assistenten in OpenAI.</target>
       </trans-unit>
+      <trans-unit id="tl_openai_assistants.status_cause.0">
+        <source>Failure cause</source>
+        <target>Fehlerursache</target>
+      </trans-unit>
+      <trans-unit id="tl_openai_assistants.status_cause.1">
+        <source>Short reason why the last creation/update failed.</source>
+        <target>Kurzbegründung, warum die letzte Erstellung/Aktualisierung fehlgeschlagen ist.</target>
+      </trans-unit>
       <trans-unit id="tl_openai_assistants.status_options.active">
         <source>Active</source>
         <target>Aktiv</target>

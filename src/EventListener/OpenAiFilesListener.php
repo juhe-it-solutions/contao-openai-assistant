@@ -169,7 +169,7 @@ class OpenAiFilesListener
             $fileSize         = filesize($filePath);
 
             // Validate file extension
-            $allowedExtensions = ['pdf', 'txt', 'md', 'docx', 'xlsx', 'pptx', 'json', 'csv'];
+            $allowedExtensions = ['pdf', 'txt', 'md', 'docx', 'pptx', 'json'];
             if (! in_array($fileExtension, $allowedExtensions, true)) {
                 $errorMessage = 'File type not supported: ' . $originalFilename;
                 Message::addError($errorMessage);

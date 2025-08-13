@@ -48,7 +48,7 @@ This document outlines the system requirements for the Contao OpenAI Assistant B
 
 - **Rate Limits**: Varies by plan (check your OpenAI dashboard)
 - **File Size**: Maximum 512MB per file
-- **File Types**: PDF, DOCX, TXT, MD, XLSX, PPTX, JSON, CSV
+- **File Types**: PDF, DOCX, TXT, MD, PPTX, JSON
 - **Concurrent Requests**: Depends on your plan
 
 ## Database Requirements

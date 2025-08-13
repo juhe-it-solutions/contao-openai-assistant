@@ -151,7 +151,7 @@ After installing the extension via Contao Manager, you will see a new entry in y
 - Click the **3rd icon "File Upload"**
 - Click **"New file"**
 - Choose files containing website-/company information or other data on which the OpenAI assistant should rely
-- Supported formats: PDF, TXT, MD, DOCX, XLSX, PPTX, JSON, CSV
+- Supported formats: PDF, TXT, MD, DOCX, PPTX, JSON
 
 ##### 1c. Create OpenAI Assistant
 - In the overview page, click the **4th icon "Assistants"**

@@ -206,8 +206,9 @@ class OpenAiAssistantsListener
 
             if (! $apiKey) {
                 $this->logger->error('No API key found for config ID: ' . $dc->activeRecord->pid);
+                $cause = 'Missing API key';
                 Message::addError('No API key found in configuration');
-                $this->updateStatus($dc->activeRecord->id, 'failed');
+                $this->updateStatus($dc->activeRecord->id, 'failed', $cause);
 
                 return;
             }
@@ -220,8 +221,9 @@ class OpenAiAssistantsListener
 
             if (empty($modelToUse)) {
                 $this->logger->error('No model specified for assistant creation');
+                $cause = 'No model specified';
                 Message::addError('No model specified. Please select a model or enter a custom model name.');
-                $this->updateStatus($dc->activeRecord->id, 'failed');
+                $this->updateStatus($dc->activeRecord->id, 'failed', $cause);
 
                 return;
             }
@@ -253,8 +255,9 @@ class OpenAiAssistantsListener
 
             if (! $vectorStoreConfig || ! $vectorStoreConfig['vector_store_id']) {
                 $this->logger->error('No vector store ID found for config ID: ' . $dc->activeRecord->pid);
+                $cause = 'No vector store configured';
                 Message::addError('No vector store ID found in configuration');
-                $this->updateStatus($dc->activeRecord->id, 'failed');
+                $this->updateStatus($dc->activeRecord->id, 'failed', $cause);
 
                 return;
             }
@@ -271,7 +274,7 @@ class OpenAiAssistantsListener
                 'name'         => $dc->activeRecord->name,
                 'instructions' => $decodedInstructions,
                 'model'        => $modelToUse,
-                'temperature'  => (float) ($dc->activeRecord->temperature ?? 0.25),
+                'temperature'  => (float) ($dc->activeRecord->temperature ?? 0),
                 'top_p'        => (float) ($dc->activeRecord->top_p ?? 1),
                 'tools'        => [
                     [
@@ -331,7 +334,8 @@ class OpenAiAssistantsListener
                     'status'   => $response->getStatusCode(),
                     'response' => $response->getContent(false),
                 ]);
-                $this->updateStatus($dc->activeRecord->id, 'failed');
+                $short = $this->shortenApiError($response->getContent(false));
+                $this->updateStatus($dc->activeRecord->id, 'failed', $short);
                 Message::addError('Failed to create/update assistant. Please check your configuration and try again.');
 
                 return;
@@ -342,7 +346,8 @@ class OpenAiAssistantsListener
                 $this->logger->error('Invalid response from OpenAI API', [
                     'response' => $response->getContent(false),
                 ]);
-                $this->updateStatus($dc->activeRecord->id, 'failed');
+                $short = $this->shortenApiError($response->getContent(false));
+                $this->updateStatus($dc->activeRecord->id, 'failed', $short);
                 Message::addError('Invalid response from OpenAI API');
 
                 return;
@@ -371,7 +376,8 @@ class OpenAiAssistantsListener
 
             // If we have a record ID, try to update its status
             if ($dc->activeRecord && $dc->activeRecord->id) {
-                $this->updateStatus($dc->activeRecord->id, 'failed');
+                $cause = $this->shortenException($e);
+                $this->updateStatus($dc->activeRecord->id, 'failed', $cause);
             }
 
             // Re-throw the exception to cause transaction rollback
@@ -422,15 +428,21 @@ class OpenAiAssistantsListener
         $color  = $statusColors[$status] ?? 'gray';
         $icon   = $statusIcons[$status] ?? '⏳';
 
+        $cause = '';
+        if (($row['status'] ?? '') === 'failed' && !empty($row['status_cause'] ?? '')) {
+            $cause = ' - ' . htmlspecialchars((string) $row['status_cause']);
+        }
+
         $label = sprintf(
-            '<div class="tl_file_list"><span class="name">%s</span> <span class="model">[%s]</span> <span class="settings">(temp: %s, top_p: %s)</span> <span class="status" style="color: %s">%s %s</span>',
+            '<div class="tl_file_list"><span class="name">%s</span> <span class="model">[%s]</span> <span class="settings">(temp: %s, top_p: %s)</span> <span class="status" style="color: %s">%s %s%s</span>',
             $row['name'],
             $row['model'],
             $row['temperature'],
             $row['top_p'],
             $color,
             $icon,
-            $GLOBALS['TL_LANG']['tl_openai_assistants']['status_options'][$status] ?? $status
+            $GLOBALS['TL_LANG']['tl_openai_assistants']['status_options'][$status] ?? $status,
+            $cause
         );
 
         return $label;
@@ -751,6 +763,35 @@ class OpenAiAssistantsListener
         }
     }
 
+    private function shortenApiError(string $raw): string
+    {
+        // Try to parse JSON error: {"error": {"message": "..."}}
+        $message = '';
+        $data = json_decode($raw, true);
+        if (is_array($data)) {
+            $message = (string) ($data['error']['message'] ?? $data['message'] ?? '');
+        }
+        if ($message === '') {
+            $message = trim($raw);
+        }
+        // Keep it short and single-line
+        $message = preg_replace('/\s+/', ' ', $message);
+        if (mb_strlen($message) > 180) {
+            $message = mb_substr($message, 0, 177) . '...';
+        }
+        return $message;
+    }
+
+    private function shortenException(\Throwable $e): string
+    {
+        $message = $e->getMessage();
+        $message = preg_replace('/\s+/', ' ', $message);
+        if (mb_strlen($message) > 180) {
+            $message = mb_substr($message, 0, 177) . '...';
+        }
+        return $message;
+    }
+
     /**
      * Get translated string with fallback
      */
@@ -822,12 +863,12 @@ class OpenAiAssistantsListener
     /**
      * Update assistant status
      */
-    private function updateStatus(int $assistantId, string $status): void
+    private function updateStatus(int $assistantId, string $status, string $cause = ''): void
     {
         try {
             $this->connection->executeQuery(
-                'UPDATE tl_openai_assistants SET status = ? WHERE id = ?',
-                [$status, $assistantId]
+                'UPDATE tl_openai_assistants SET status = ?, status_cause = ? WHERE id = ?',
+                [$status, $cause, $assistantId]
             );
         } catch (\Exception $e) {
             $this->logger->error('Failed to update assistant status: ' . $e->getMessage());

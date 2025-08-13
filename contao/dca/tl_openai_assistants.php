@@ -64,9 +64,9 @@ $GLOBALS['TL_DCA']['tl_openai_assistants'] = [
     
 
     
-    'palettes' => [
-        'default' => '{title_legend},name;{instructions_legend},system_instructions;{model_legend},model,model_manual;{settings_legend},max_tokens,temperature,top_p;{openai_legend},openai_assistant_id,status'
-    ],
+		'palettes' => [
+			'default' => '{title_legend},name;{instructions_legend},system_instructions;{model_legend},model,model_manual;{settings_legend},max_tokens,temperature,top_p;{openai_legend},openai_assistant_id,status,status_cause'
+		],
     
     'fields' => [
         'id' => [
@@ -148,7 +148,7 @@ $GLOBALS['TL_DCA']['tl_openai_assistants'] = [
                 'minval' => 0,
                 'maxval' => 2
             ],
-            'sql' => "float NOT NULL default 0.25"
+            'sql' => "float NOT NULL default 0"
         ],
         'top_p' => [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_assistants']['top_p'],
@@ -209,5 +209,16 @@ $GLOBALS['TL_DCA']['tl_openai_assistants'] = [
             'default' => 'pending',
             'sql' => ['type' => 'string', 'length' => 32, 'default' => 'pending']
         ]
+			,
+			'status_cause' => [
+				'label' => &$GLOBALS['TL_LANG']['tl_openai_assistants']['status_cause'],
+				'exclude' => true,
+				'inputType' => 'text',
+				'eval' => [
+					'readonly' => true,
+					'tl_class' => 'w50'
+				],
+				'sql' => ['type' => 'string', 'length' => 255, 'default' => '']
+			]
     ]
 ];

@@ -7,8 +7,8 @@
                 <target>OpenAI Files</target>
             </trans-unit>
             <trans-unit id="tl_openai_files.intro">
-                <source>Here you can manage your files for OpenAI. Upload documents that will be used to train your assistants. Supported formats: PDF, TXT, MD, DOCX, XLSX, PPTX, JSON, CSV.</source>
-                <target>Here you can manage your files for OpenAI. Upload documents that will be used to train your assistants. Supported formats: PDF, TXT, MD, DOCX, XLSX, PPTX, JSON, CSV.</target>
+                <source>Here you can manage your files for OpenAI. Upload documents that will be used to train your assistants. Supported formats: PDF, TXT, MD, DOCX, PPTX, JSON.</source>
+                <target>Here you can manage your files for OpenAI. Upload documents that will be used to train your assistants. Supported formats: PDF, TXT, MD, DOCX, PPTX, JSON.</target>
             </trans-unit>
             <!-- Legend Labels -->
             <trans-unit id="tl_openai_files.file_legend">
@@ -34,8 +34,8 @@
                 <target>Select Files</target>
             </trans-unit>
             <trans-unit id="tl_openai_files.file_upload.1">
-                <source>Select one or more files to upload in the OpenAI vector store (.pdf, .txt, .md, .docx, .xlsx, .pptx, .json, .csv).</source>
-                <target>Select one or more files to upload in the OpenAI vector store (.pdf, .txt, .md, .docx, .xlsx, .pptx, .json, .csv).</target>
+                <source>Select one or more files to upload in the OpenAI vector store (.pdf, .txt, .md, .docx, .pptx, .json).</source>
+                <target>Select one or more files to upload in the OpenAI vector store (.pdf, .txt, .md, .docx, .pptx, .json).</target>
             </trans-unit>
             <trans-unit id="tl_openai_files.openai_file_id.0">
                 <source>OpenAI File ID</source>

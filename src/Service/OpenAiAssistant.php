@@ -51,7 +51,9 @@ class OpenAiAssistant
             $session->set('openai_thread_id', $threadId);
         }
 
-        return $this->processMessageInThread($apiKey, $threadId, $assistantId, $message, $assistant);
+        $vectorStoreId = $config['vector_store_id'] ?? null;
+
+        return $this->processMessageInThread($apiKey, $threadId, $assistantId, $message, $assistant, $vectorStoreId);
     }
 
     /**
@@ -204,14 +206,15 @@ class OpenAiAssistant
         string $threadId,
         string $assistantId,
         string $message,
-        array $assistant
+        array $assistant,
+        ?string $vectorStoreId = null
     ): string {
         try {
             // Add message to thread
             $this->addMessageToThread($apiKey, $threadId, $message);
 
             // Create run with assistant-specific parameters
-            $runId = $this->createRun($apiKey, $threadId, $assistantId, $assistant);
+            $runId = $this->createRun($apiKey, $threadId, $assistantId, $assistant, $vectorStoreId);
 
             // Wait for completion
             $this->waitForRunCompletion($apiKey, $threadId, $runId);
@@ -251,7 +254,7 @@ class OpenAiAssistant
     /**
      * Create a run with assistant-specific parameters
      */
-    private function createRun(string $apiKey, string $threadId, string $assistantId, array $assistant): string
+    private function createRun(string $apiKey, string $threadId, string $assistantId, array $assistant, ?string $vectorStoreId = null): string
     {
         $runData = [
             'assistant_id' => $assistantId,
@@ -260,6 +263,26 @@ class OpenAiAssistant
         // Add temperature parameter if available (moved from config to assistant level)
         if (array_key_exists('temperature', $assistant) && $assistant['temperature'] !== null) {
             $runData['temperature'] = (float) $assistant['temperature'];
+        }
+
+        // Redundantly bind vector store at run-level to ensure File Search ↔ Vector Store linkage
+        if (! empty($vectorStoreId)) {
+            $runData['tool_resources'] = [
+                'file_search' => [
+                    'vector_store_ids' => [$vectorStoreId],
+                ],
+            ];
+
+            $this->logger->info('Binding vector store to run', [
+                'assistant_id'    => $assistantId,
+                'thread_id'       => $threadId,
+                'vector_store_id' => $vectorStoreId,
+            ]);
+        } else {
+            $this->logger->warning('No vector store ID available when creating run; proceeding without run-level binding', [
+                'assistant_id' => $assistantId,
+                'thread_id'    => $threadId,
+            ]);
         }
 
         // Note: max_tokens is not directly supported in Assistants API runs
