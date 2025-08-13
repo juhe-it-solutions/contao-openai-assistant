@@ -429,7 +429,7 @@ class OpenAiAssistantsListener
         $icon   = $statusIcons[$status] ?? '⏳';
 
         $cause = '';
-        if (($row['status'] ?? '') === 'failed' && !empty($row['status_cause'] ?? '')) {
+        if (($row['status'] ?? '') === 'failed' && ! empty($row['status_cause'] ?? '')) {
             $cause = ' - ' . htmlspecialchars((string) $row['status_cause']);
         }
 
@@ -767,7 +767,7 @@ class OpenAiAssistantsListener
     {
         // Try to parse JSON error: {"error": {"message": "..."}}
         $message = '';
-        $data = json_decode($raw, true);
+        $data    = json_decode($raw, true);
         if (is_array($data)) {
             $message = (string) ($data['error']['message'] ?? $data['message'] ?? '');
         }
