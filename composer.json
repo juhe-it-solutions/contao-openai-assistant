@@ -13,8 +13,8 @@
   ],
   "require": {
     "php": "^8.2",
-    "contao/core-bundle": "^5.3",
-    "symfony/http-client": "^6.0"
+    "contao/core-bundle": "^5.3@dev",
+    "symfony/http-client": "^6.4 || ^7.0"
   },
   "autoload": {
     "psr-4": {
@@ -29,6 +29,7 @@
     "contao-manager-plugin": "JuheItSolutions\\ContaoOpenaiAssistant\\ContaoManagerPlugin"
   },
   "keywords": ["contao", "openai", "assistant", "ai", "chatbot"],
+  "prefer-stable": true,
   "config": {
     "allow-plugins": {
       "contao-components/installer": true,
