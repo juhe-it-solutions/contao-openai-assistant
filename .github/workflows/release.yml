@@ -43,7 +43,8 @@ jobs:
       run: composer audit --format=json 2>/dev/null || echo "Security check skipped (composer audit not available)"
 
     - name: Derive release display name
-      run: echo "RELEASE_NAME=Version ${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+      id: derive_release
+      run: echo "release_name=Version ${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
 
     - name: Create Release
       uses: actions/create-release@v1
@@ -51,7 +52,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref_name }}
-        release_name: ${{ env.RELEASE_NAME }}
+        release_name: ${{ steps.derive_release.outputs.release_name }}
         body: |
           ## 🎉 Release ${{ github.ref_name }}
           
