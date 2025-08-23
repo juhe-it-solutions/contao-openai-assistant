@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.6] - 2025-01-27
+
+### Added
+- Set default value for disclaimer in frontend chatbot
+- Auto-focus on chatbot input field for better user experience
+
+### Changed
+- Improved release script with better error handling and validation
+
 ## [1.0.5] - 2025-08-23
 
 ### Added
