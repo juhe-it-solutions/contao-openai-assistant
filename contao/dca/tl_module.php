@@ -285,5 +285,5 @@ $GLOBALS['TL_DCA']['tl_module']['fields']['disclaimer_text'] = [
         'rte'       => 'tinyMCE',
         'mandatory' => true,
     ],
-    'sql'       => "text NOT NULL DEFAULT 'Unser Chatbot ist ein Serviceangebot unseres Unternehmens und soll die Kommunikation sowie den Informationszugang erleichtern. Die Antworten werden automatisch generiert und dienen ausschließlich allgemeinen Informations- und Unterstützungszwecken. Trotz sorgfältiger Entwicklung können Inhalte unvollständig, missverständlich oder fehlerhaft sein. Wir übernehmen daher keine Gewähr für die inhaltliche Richtigkeit oder Vollständigkeit der Antworten. Verbindliche Auskünfte, individuelle Beratung oder rechtliche Empfehlungen werden durch den Chatbot nicht erteilt. Bitte nutze die bereitgestellten Informationen als Orientierung und wende dich für wichtige Anliegen direkt an unser Team oder an eine entsprechend qualifizierte Fachperson.'",
+    'sql'       => ['type' => 'text', 'notnull' => false],
 ];

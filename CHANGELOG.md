@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 2025-08-23
+
+### Fixed
+- **CRITICAL**: Database migration issue with disclaimer_text column causing "Data truncated" error in MySQL
+- Updated DCA configuration to use proper Doctrine schema representation for Contao 5.3+
+- Removed database default values for TEXT columns (not supported in MySQL)
+- Enhanced migration system to handle TEXT columns properly without database defaults
+
 ## [Unreleased]
 
 ## [1.0.6] - 2025-01-27

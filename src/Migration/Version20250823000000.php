@@ -37,10 +37,6 @@ class Version20250823000000 extends AbstractMigration
             return false;
         }
 
-        // Check if we need to run this migration
-        $column     = $columns['disclaimer_text'];
-        $hasDefault = $column->getDefault() !== null;
-
         // Check if there are any AI chat modules with NULL disclaimer_text
         $result = $this->connection->fetchOne(
             'SELECT COUNT(*) FROM tl_module WHERE type = ? AND (disclaimer_text IS NULL OR disclaimer_text = "")',
@@ -48,8 +44,8 @@ class Version20250823000000 extends AbstractMigration
         );
         $hasEmptyModules = (int) $result > 0;
 
-        // Run migration if either condition is true
-        return ! $hasDefault || $hasEmptyModules;
+        // Only run if there are modules that need updating
+        return $hasEmptyModules;
     }
 
     public function run(): MigrationResult
@@ -59,30 +55,30 @@ class Version20250823000000 extends AbstractMigration
 
         $actions = [];
 
-        // Step 1: Add default value to the column if it doesn't exist
-        $schemaManager = $this->connection->createSchemaManager();
-        $columns       = $schemaManager->listTableColumns('tl_module');
-        $column        = $columns['disclaimer_text'];
-
-        if ($column->getDefault() === null) {
+        try {
+            // Step 1: Ensure the column is TEXT type (this is safe to run multiple times)
             $this->connection->executeStatement('
                 ALTER TABLE tl_module 
-                ALTER COLUMN disclaimer_text SET DEFAULT ?
-            ', [$defaultDisclaimerText]);
-            $actions[] = 'Added default value to disclaimer_text column';
+                MODIFY COLUMN disclaimer_text TEXT NULL
+            ');
+            $actions[] = 'Ensured disclaimer_text column is TEXT type';
+
+            // Step 2: Update existing modules with empty disclaimer_text
+            // Note: We do NOT set database default values for TEXT columns in MySQL
+            $updatedRows = $this->connection->executeStatement(
+                'UPDATE tl_module SET disclaimer_text = ? WHERE type = ? AND (disclaimer_text IS NULL OR disclaimer_text = "")',
+                [$defaultDisclaimerText, 'ai_chat']
+            );
+
+            if ($updatedRows > 0) {
+                $actions[] = sprintf('Updated %d AI chat modules with default disclaimer text', $updatedRows);
+            }
+
+        } catch (\Exception $e) {
+            return $this->createResult(false, 'Migration failed: ' . $e->getMessage());
         }
 
-        // Step 2: Update existing modules with empty disclaimer_text
-        $updatedRows = $this->connection->executeStatement(
-            'UPDATE tl_module SET disclaimer_text = ? WHERE type = ? AND (disclaimer_text IS NULL OR disclaimer_text = "")',
-            [$defaultDisclaimerText, 'ai_chat']
-        );
-
-        if ($updatedRows > 0) {
-            $actions[] = sprintf('Updated %d AI chat modules with default disclaimer text', $updatedRows);
-        }
-
-        $message = empty($actions) ? 'No changes needed' : implode('; ', $actions);
+        $message = implode('; ', $actions);
 
         return $this->createResult(true, $message);
     }

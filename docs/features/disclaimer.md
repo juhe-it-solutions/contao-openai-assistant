@@ -127,6 +127,7 @@ The disclaimer text supports:
 2. **Styling issues**: Ensure your theme CSS doesn't conflict with the disclaimer styles
 3. **JavaScript errors**: Check browser console for any JavaScript errors that might prevent the dialog from opening
 4. **Disclaimer field empty when creating new module**: This issue has been fixed in version 2025.08.23. The system now automatically loads the default disclaimer text when creating new modules. If you have existing modules with empty disclaimer fields, run the database migration to update them.
+5. **Database migration error "Data truncated for column 'disclaimer_text'"**: This issue has been fixed in version 2025.01.27. The system now properly handles TEXT columns without database default values (which are not supported in MySQL) and uses application-level defaults instead.
 
 ### Support
 
@@ -137,6 +138,13 @@ If you encounter issues with the disclaimer feature, please:
 4. Create an issue in the project repository with details about the problem
 
 ## Recent Fixes
+
+### Version 2025.01.27
+- **Fixed**: Database migration issue causing "Data truncated for column 'disclaimer_text'" error in MySQL
+- **Updated**: DCA configuration to use proper Doctrine schema representation for Contao 5.3+
+- **Removed**: Database default values for TEXT columns (not supported in MySQL)
+- **Enhanced**: Application-level default value handling for better MySQL compatibility
+- **Improved**: Migration system to properly handle TEXT columns without database defaults
 
 ### Version 2025.08.23
 - **Fixed**: Disclaimer field now properly loads default text when creating new modules (same behavior as "Willkommensnachricht" field)
