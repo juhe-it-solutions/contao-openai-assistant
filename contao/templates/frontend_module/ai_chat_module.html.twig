@@ -25,6 +25,16 @@
             <h3 class="ai-chat-title" id="ai-chat-title-{{ module_id|replace({'ai-chat-': ''}) }}">{{ chat_title|default('Assistent - JUHE IT-solutions.') }}</h3>
             <p class="ai-chat-subheadline" id="ai-chat-subheadline-{{ module_id|replace({'ai-chat-': ''}) }}">{{ welcome_message|default('Wie kann ich dir helfen?') }}</p>
             <button type="button"
+                    class="ai-chat-disclaimer-toggle"
+                    aria-label="Disclaimer anzeigen"
+                    aria-expanded="false"
+                    aria-controls="ai-chat-disclaimer-dialog-{{ module_id|replace({'ai-chat-': ''}) }}"
+                    title="Disclaimer">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="currentColor"/>
+                </svg>
+            </button>
+            <button type="button"
                     class="ai-chat-theme-toggle"
                     aria-label="Theme wechseln"
                     title="Theme wechseln">
@@ -71,6 +81,23 @@
                     </svg>
                 </button>
             </form>
+        </div>
+    </div>
+    
+    <!-- Disclaimer Dialog -->
+    <div class="ai-chat-disclaimer-dialog" id="ai-chat-disclaimer-dialog-{{ module_id|replace({'ai-chat-': ''}) }}" role="dialog" aria-labelledby="ai-chat-disclaimer-title-{{ module_id|replace({'ai-chat-': ''}) }}" aria-describedby="ai-chat-disclaimer-description-{{ module_id|replace({'ai-chat-': ''}) }}" aria-modal="true" aria-hidden="true">
+        <div class="ai-chat-disclaimer-content">
+            <div class="ai-chat-disclaimer-header">
+                <h4 class="ai-chat-disclaimer-title" id="ai-chat-disclaimer-title-{{ module_id|replace({'ai-chat-': ''}) }}">Disclaimer</h4>
+                <button type="button" class="ai-chat-disclaimer-close" aria-label="Dialog schließen">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="ai-chat-disclaimer-body" id="ai-chat-disclaimer-description-{{ module_id|replace({'ai-chat-': ''}) }}">
+                {{ disclaimer_text|default(default_disclaimer_text)|raw }}
+            </div>
         </div>
     </div>
 </div> 

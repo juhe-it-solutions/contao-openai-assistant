@@ -44,6 +44,7 @@ While I'm super proud of what we've built here, I gotta be honest - I don't have
 - **Session Management**: Persistent conversation threads
 - **CSRF Protection**: Built-in security with CSRF token validation
 - **Accessibility**: ARIA labels and keyboard navigation support
+- **Disclaimer Feature**: Configurable disclaimer text with information icon in chat header
 
 ### Security & Performance
 - **API Key Encryption**: Secure storage of OpenAI API keys

@@ -55,6 +55,13 @@ class AiChatModuleController extends AbstractFrontendModuleController
         $template->set('welcome_message', $model->welcome_message ?? 'Wie kann ich dir helfen?');
         $template->set('initial_bot_message', $model->initial_bot_message ?? 'Hallo! Wie kann ich dir helfen?');
         $template->set('initial_state', $model->initial_state ?? 'collapsed');
+        $template->set('disclaimer_text', $model->disclaimer_text);
+
+        // Load language file and get default disclaimer text
+        $language = $GLOBALS['TL_LANGUAGE'] ?? 'en';
+        \Contao\System::loadLanguageFile('tl_module', $language);
+        $defaultDisclaimerText = $GLOBALS['TL_LANG']['tl_module']['disclaimer_text']['default'] ?? 'Unser Chatbot ist ein Serviceangebot unseres Unternehmens und soll die Kommunikation sowie den Informationszugang erleichtern. Die Antworten werden automatisch generiert und dienen ausschließlich allgemeinen Informations- und Unterstützungszwecken. Trotz sorgfältiger Entwicklung können Inhalte unvollständig, missverständlich oder fehlerhaft sein. Wir übernehmen daher keine Gewähr für die inhaltliche Richtigkeit oder Vollständigkeit der Antworten. Verbindliche Auskünfte, individuelle Beratung oder rechtliche Empfehlungen werden durch den Chatbot nicht erteilt. Bitte nutze die bereitgestellten Informationen als Orientierung und wende dich für wichtige Anliegen direkt an unser Team oder an eine entsprechend qualifizierte Fachperson.';
+        $template->set('default_disclaimer_text', $defaultDisclaimerText);
 
         // Color configuration
         $template->set('dark_toggle_icon_color', $model->dark_toggle_icon_color ?? 'ff6600');

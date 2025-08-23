@@ -19,6 +19,7 @@ Welcome to the documentation for the Contao OpenAI Assistant Bundle. This bundle
 - [Chatbot Module](frontend/chatbot-module.md) - How to add the chatbot to your website
 - [Customization](frontend/customization.md) - Styling and theming options
 - [JavaScript API](frontend/javascript-api.md) - Frontend JavaScript integration
+- [Disclaimer Feature](features/disclaimer.md) - Configurable disclaimer with information icon
 
 ### 🔒 Security & Privacy
 - [API Key Management](security/api-key-management.md) - Secure API key storage with environment variables

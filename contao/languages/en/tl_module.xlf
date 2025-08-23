@@ -190,6 +190,18 @@
                 <source>Color for toggle buttons and icons in light theme (6-digit hex code without #)</source>
                 <target>Color for toggle buttons and icons in light theme (6-digit hex code without #)</target>
             </trans-unit>
+            <trans-unit id="tl_module.disclaimer_text.0">
+                <source>Disclaimer Text</source>
+                <target>Disclaimer</target>
+            </trans-unit>
+            <trans-unit id="tl_module.disclaimer_text.1">
+                <source>Text displayed when the information icon is clicked</source>
+                <target>Text displayed when the information icon is clicked</target>
+            </trans-unit>
+            <trans-unit id="tl_module.disclaimer_text.default">
+                <source>Default disclaimer text</source>
+                <target>Our chatbot is a service provided by our company to facilitate communication and provide easier access to information. The responses are automatically generated and are intended solely for general informational and support purposes. Despite careful development, the content may be incomplete, unclear, or contain errors. We therefore cannot guarantee the accuracy or completeness of the information provided. The chatbot does not offer binding statements, individual advice, or legal recommendations. Please consider the responses as general guidance and contact our team or a qualified professional for important matters.</target>
+            </trans-unit>
         </body>
     </file>
 </xliff> 

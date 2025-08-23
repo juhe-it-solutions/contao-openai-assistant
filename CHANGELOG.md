@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] - 2025-01-27
+
+### Added
+- Enhanced frontend module with improved user experience
+- New documentation structure with feature guides
+- Migration system for database schema updates
+
+### Changed
+- Updated module templates and styling for better responsiveness
+- Improved JavaScript functionality for chat interactions
+- Enhanced language files with better translations
+- Updated PHPStan configuration for stricter type checking
+
+### Fixed
+- Various code style and formatting improvements
+- Enhanced documentation clarity and structure
+
 ## [1.0.4] - 2025-08-13
 
 ### Fixed

@@ -207,6 +207,93 @@ function initAiChat(wrapper) {
     themeToggleBtn.addEventListener('click', toggleTheme);
   }
 
+  // Disclaimer functionality
+  const disclaimerToggleBtn = wrapper.querySelector('.ai-chat-disclaimer-toggle');
+  const disclaimerDialog = wrapper.querySelector('.ai-chat-disclaimer-dialog');
+  const disclaimerCloseBtn = wrapper.querySelector('.ai-chat-disclaimer-close');
+
+  const showDisclaimer = () => {
+    if (disclaimerDialog) {
+      disclaimerDialog.classList.add('show');
+      disclaimerDialog.setAttribute('aria-hidden', 'false');
+      // Update aria-expanded state
+      if (disclaimerToggleBtn) {
+        disclaimerToggleBtn.setAttribute('aria-expanded', 'true');
+      }
+      // Focus the close button for accessibility
+      if (disclaimerCloseBtn) {
+        disclaimerCloseBtn.focus();
+      }
+      // Prevent body scroll when dialog is open
+      document.body.style.overflow = 'hidden';
+    }
+  };
+
+  const hideDisclaimer = () => {
+    if (disclaimerDialog) {
+      disclaimerDialog.classList.remove('show');
+      disclaimerDialog.setAttribute('aria-hidden', 'true');
+      // Update aria-expanded state
+      if (disclaimerToggleBtn) {
+        disclaimerToggleBtn.setAttribute('aria-expanded', 'false');
+      }
+      // Restore body scroll
+      document.body.style.overflow = '';
+      // Return focus to the disclaimer toggle button
+      if (disclaimerToggleBtn) {
+        disclaimerToggleBtn.focus();
+      }
+    }
+  };
+
+  // Event listeners for disclaimer
+  if (disclaimerToggleBtn) {
+    disclaimerToggleBtn.addEventListener('click', showDisclaimer);
+  }
+
+  if (disclaimerCloseBtn) {
+    disclaimerCloseBtn.addEventListener('click', hideDisclaimer);
+  }
+
+  // Close dialog when clicking outside
+  if (disclaimerDialog) {
+    disclaimerDialog.addEventListener('click', (e) => {
+      if (e.target === disclaimerDialog) {
+        hideDisclaimer();
+      }
+    });
+  }
+
+  // Close dialog with Escape key and handle focus trap
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && disclaimerDialog && disclaimerDialog.classList.contains('show')) {
+      hideDisclaimer();
+    }
+    
+    // Focus trap for dialog
+    if (disclaimerDialog && disclaimerDialog.classList.contains('show') && e.key === 'Tab') {
+      const focusableElements = disclaimerDialog.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      
+      if (e.shiftKey) {
+        // Shift + Tab
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+      } else {
+        // Tab
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
+    }
+  });
+
   // Initialize theme
   initializeTheme();
 

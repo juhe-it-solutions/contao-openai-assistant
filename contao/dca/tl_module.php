@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 // Add the module configuration
-$GLOBALS['TL_DCA']['tl_module']['palettes']['ai_chat'] = '{title_legend},name,type;{chat_legend},chatPosition,initial_state,chat_title,welcome_message,initial_bot_message,custom_css,theme,base_font_size;{colors_legend},dark_toggle_icon_color,dark_bg_primary,dark_bg_secondary,dark_text_primary,dark_text_secondary,color_separator,light_toggle_icon_color,light_bg_primary,light_bg_secondary,light_text_primary,light_text_secondary;{template_legend:hide},customTpl;{protected_legend:hide},protected;{expert_legend:hide},guests,cssID,space';
+$GLOBALS['TL_DCA']['tl_module']['palettes']['ai_chat'] = '{title_legend},name,type;{chat_legend},chatPosition,initial_state,chat_title,welcome_message,initial_bot_message,disclaimer_text,custom_css,theme,base_font_size;{colors_legend},dark_toggle_icon_color,dark_bg_primary,dark_bg_secondary,dark_text_primary,dark_text_secondary,color_separator,light_toggle_icon_color,light_bg_primary,light_bg_secondary,light_text_primary,light_text_secondary;{template_legend:hide},customTpl;{protected_legend:hide},protected;{expert_legend:hide},guests,cssID,space';
 
 // Add the position field
 $GLOBALS['TL_DCA']['tl_module']['fields']['chatPosition'] = [
@@ -191,4 +191,14 @@ $GLOBALS['TL_DCA']['tl_module']['fields']['light_text_secondary'] = [
     'default'   => '666',
     'eval'      => ['tl_class' => 'w50', 'maxlength' => 6, 'rgxp' => 'hex', 'colorpicker' => true],
     'sql'       => "varchar(6) NOT NULL default '666'"
-]; 
+];
+
+// Add the disclaimer text field
+$GLOBALS['TL_DCA']['tl_module']['fields']['disclaimer_text'] = [
+    'label'     => &$GLOBALS['TL_LANG']['tl_module']['disclaimer_text'],
+    'exclude'   => true,
+    'inputType' => 'textarea',
+    'default'   => 'Unser Chatbot ist ein Serviceangebot unseres Unternehmens und soll die Kommunikation sowie den Informationszugang erleichtern. Die Antworten werden automatisch generiert und dienen ausschließlich allgemeinen Informations- und Unterstützungszwecken. Trotz sorgfältiger Entwicklung können Inhalte unvollständig, missverständlich oder fehlerhaft sein. Wir übernehmen daher keine Gewähr für die inhaltliche Richtigkeit oder Vollständigkeit der Antworten. Verbindliche Auskünfte, individuelle Beratung oder rechtliche Empfehlungen werden durch den Chatbot nicht erteilt. Bitte nutze die bereitgestellten Informationen als Orientierung und wende dich für wichtige Anliegen direkt an unser Team oder an eine entsprechend qualifizierte Fachperson.',
+    'eval'      => ['tl_class' => 'clr', 'rte' => 'tinyMCE', 'mandatory' => true],
+    'sql'       => "text NULL"
+];

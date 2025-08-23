@@ -106,6 +106,18 @@
                 <source>20px - Extra Large</source>
                 <target>20px - Sehr groß</target>
             </trans-unit>
+            <trans-unit id="tl_module.disclaimer_text.0">
+                <source>Disclaimer Text</source>
+                <target>Disclaimer</target>
+            </trans-unit>
+            <trans-unit id="tl_module.disclaimer_text.1">
+                <source>Text displayed when the information icon is clicked</source>
+                <target>Text, der angezeigt wird, wenn auf das Informationssymbol geklickt wird</target>
+            </trans-unit>
+            <trans-unit id="tl_module.disclaimer_text.default">
+                <source>Default disclaimer text</source>
+                <target>Unser Chatbot ist ein Serviceangebot unseres Unternehmens und soll die Kommunikation sowie den Informationszugang erleichtern. Die Antworten werden automatisch generiert und dienen ausschließlich allgemeinen Informations- und Unterstützungszwecken. Trotz sorgfältiger Entwicklung können Inhalte unvollständig, missverständlich oder fehlerhaft sein. Wir übernehmen daher keine Gewähr für die inhaltliche Richtigkeit oder Vollständigkeit der Antworten. Verbindliche Auskünfte, individuelle Beratung oder rechtliche Empfehlungen werden durch den Chatbot nicht erteilt. Bitte nutze die bereitgestellten Informationen als Orientierung und wende dich für wichtige Anliegen direkt an unser Team oder an eine entsprechend qualifizierte Fachperson.</target>
+            </trans-unit>
             <trans-unit id="tl_module.colors_legend">
                 <source>Color Settings</source>
                 <target>Farbeinstellungen</target>
