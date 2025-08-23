@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.5] - 2025-01-27
+## [1.0.5] - 2025-08-23
 
 ### Added
 - Enhanced frontend module with improved user experience
@@ -103,4 +103,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CSRF token validation for all forms
 - Input sanitization and validation
 - Secure file upload handling
+
 - Environment variable support for API keys
