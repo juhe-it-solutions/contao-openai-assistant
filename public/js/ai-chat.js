@@ -176,8 +176,8 @@ function initAiChat(wrapper) {
     if (toggleButton) {
       toggleButton.hidden = true;
     }
-    // Only auto-focus input on desktop devices (width >= 768px)
-    if (input && window.innerWidth >= 768) {
+    // Auto-focus input when expanding the chat (both desktop and mobile)
+    if (input) {
       // Small delay to ensure DOM transition is complete
       setTimeout(() => {
         input.focus();
@@ -534,13 +534,31 @@ function initAiChat(wrapper) {
         }
       } else if (r.ok && data.reply) {
         addMsg('assistant', data.reply, data.timestamp);
+        // Auto-focus input after bot response (both desktop and mobile)
+        setTimeout(() => {
+          if (input && !input.disabled) {
+            input.focus();
+          }
+        }, 100);
       } else {
         addMsg('assistant', data.error || 'Es ist ein Fehler aufgetreten. Bitte erneut versuchen.');
+        // Auto-focus input after error response
+        setTimeout(() => {
+          if (input && !input.disabled) {
+            input.focus();
+          }
+        }, 100);
       }
     } catch (e) {
       console.error('Chat error:', e);
       tRow.remove();
       addMsg('assistant', 'Es ist ein Fehler aufgetreten. Bitte erneut versuchen.');
+      // Auto-focus input after error
+      setTimeout(() => {
+        if (input && !input.disabled) {
+          input.focus();
+        }
+      }, 100);
     } finally {
       input.disabled = false;
       if (sendBtn) sendBtn.removeAttribute('disabled');

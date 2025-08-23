@@ -51,6 +51,15 @@ The system automatically uses the appropriate language based on the current Cont
   - Press the Escape key
 - **Accessibility**: Full keyboard navigation and screen reader support
 
+### Auto-Focus Feature
+
+The chatbot input field automatically receives focus in two scenarios:
+
+1. **When Opening the Chat**: When users click the chatbot button to start a conversation, the input field automatically receives focus, allowing immediate typing
+2. **After Bot Response**: When the bot finishes its answer, the input field automatically receives focus, enabling seamless continuation of the conversation
+
+This feature works on both desktop and mobile devices, providing a smooth user experience.
+
 ## Technical Implementation
 
 ### Database Changes
@@ -74,6 +83,7 @@ The disclaimer feature includes:
 - Keyboard event handling (Escape key)
 - Focus management for accessibility
 - Body scroll prevention when dialog is open
+- Auto-focus functionality for improved user experience
 
 ## Customization
 
@@ -116,6 +126,7 @@ The disclaimer text supports:
 1. **Disclaimer not appearing**: Check that the module is properly configured and the disclaimer text is not empty
 2. **Styling issues**: Ensure your theme CSS doesn't conflict with the disclaimer styles
 3. **JavaScript errors**: Check browser console for any JavaScript errors that might prevent the dialog from opening
+4. **Disclaimer field empty when creating new module**: This issue has been fixed in version 2025.08.23. The system now automatically loads the default disclaimer text when creating new modules. If you have existing modules with empty disclaimer fields, run the database migration to update them.
 
 ### Support
 
@@ -124,3 +135,12 @@ If you encounter issues with the disclaimer feature, please:
 2. Verify the module configuration
 3. Test with the default disclaimer text
 4. Create an issue in the project repository with details about the problem
+
+## Recent Fixes
+
+### Version 2025.08.23
+- **Fixed**: Disclaimer field now properly loads default text when creating new modules (same behavior as "Willkommensnachricht" field)
+- **Added**: Comprehensive database migration to update existing modules and add default value to disclaimer_text column
+- **Improved**: Backend form now shows default disclaimer text for new modules
+- **Enhanced**: Database column now has proper default value like other fields
+- **Added**: Auto-focus functionality for input field when opening chat and after bot responses
