@@ -13,8 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed database default values for TEXT columns (not supported in MySQL)
 - Enhanced migration system to handle TEXT columns properly without database defaults
 
-## [Unreleased]
-
 ## [1.0.6] - 2025-01-27
 
 ### Added
@@ -122,3 +120,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Secure file upload handling
 
 - Environment variable support for API keys
+
