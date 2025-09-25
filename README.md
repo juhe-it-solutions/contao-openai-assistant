@@ -224,6 +224,11 @@ When you configure the extension in Contao, the following happens automatically 
 - Always make changes through the Contao backend for consistency
 
 🔒 **Security**: 
+🌐 **Web Root Detection**:
+- The bundle resolves file system paths using the configured Contao web directory parameter `%contao.web_dir%`.
+- If `%contao.web_dir%` is absolute (e.g., `/var/www/project/public`), it is used directly. If it is relative (e.g., `public`), it will be prefixed with `%kernel.project_dir%`.
+- This prevents "File not found" errors on instances with custom document roots.
+
 - API keys are securely stored and encrypted
 - All communications with OpenAI use HTTPS
 - No sensitive data is logged or exposed

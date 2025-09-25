@@ -28,6 +28,27 @@ vendor/bin/phpstan analyse src/ --level=5
 ```
 
 ## Common Issues
+### 0. File upload: "File not found"
+
+#### Problem
+- Uploading a file in the backend shows: `File not found: files/...`.
+
+#### Cause
+- The web root is not the default `public/`, and the absolute path was previously built against the wrong directory.
+
+#### Solution
+1. Ensure you are on version 1.0.8 or later (uses `%contao.web_dir%`).
+2. Clear cache after update:
+   ```bash
+   php bin/console cache:clear
+   ```
+3. Verify the configured web root:
+   ```bash
+   php bin/console debug:container --parameter=contao.web_dir
+   ```
+4. Confirm the file exists on disk at `<resolved_web_root>/files/...`.
+5. If the file reference is invalid, reselect the file in the backend.
+
 
 ### 1. Composer Validation Failures
 

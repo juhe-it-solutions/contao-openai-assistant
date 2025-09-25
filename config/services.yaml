@@ -75,6 +75,7 @@ services:
         arguments:
             $httpClient: '@http_client'
             $projectDir: '%kernel.project_dir%'
+            $webDir: '%contao.web_dir%'
             $logger: '@monolog.logger.contao'
             $configListener: '@JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener'
             $requestStack: '@request_stack'

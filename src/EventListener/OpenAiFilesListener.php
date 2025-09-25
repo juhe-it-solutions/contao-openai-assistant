@@ -32,6 +32,8 @@ class OpenAiFilesListener
 
     private string $projectDir;
 
+    private string $webDir;
+
     private LoggerInterface $logger;
 
     private OpenAiConfigListener $configListener;
@@ -47,6 +49,7 @@ class OpenAiFilesListener
     public function __construct(
         HttpClientInterface $httpClient,
         string $projectDir,
+        string $webDir,
         LoggerInterface $logger,
         OpenAiConfigListener $configListener,
         RequestStack $requestStack,
@@ -56,6 +59,7 @@ class OpenAiFilesListener
     ) {
         $this->httpClient       = $httpClient;
         $this->projectDir       = $projectDir;
+        $this->webDir           = $webDir;
         $this->logger           = $logger;
         $this->configListener   = $configListener;
         $this->requestStack     = $requestStack;
@@ -147,15 +151,37 @@ class OpenAiFilesListener
 
             // Find the file model by UUID
             $file = FilesModel::findByUuid($fileUuid);
-            if (! $file || ! file_exists($this->projectDir . '/public/' . $file->path)) {
-                $errorMessage = 'File not found: ' . ($file ? $file->path : 'Unknown file');
+            $absolutePath = null;
+            if ($file && isset($file->path)) {
+                $webRoot = $this->webDir;
+                // If webDir is not absolute, prefix with projectDir
+                if ($webRoot !== '' && ! str_starts_with($webRoot, '/')) {
+                    $webRoot = rtrim($this->projectDir, '/') . '/' . ltrim($webRoot, '/');
+                }
+                $absolutePath = rtrim($webRoot, '/') . '/' . ltrim($file->path, '/');
+            }
+            if (! $file || ! $absolutePath || ! file_exists($absolutePath)) {
+                $webRootForMessage = $this->webDir;
+                if ($webRootForMessage !== '' && ! str_starts_with($webRootForMessage, '/')) {
+                    $webRootForMessage = rtrim($this->projectDir, '/') . '/' . ltrim($webRootForMessage, '/');
+                }
+
+                if (! $file) {
+                    $errorMessage = 'File not found (invalid or missing file reference). Please reselect the file.';
+                } else {
+                    $errorMessage = 'File not found: ' . $file->path . '. Looked in: ' . ($absolutePath ?? 'unknown') . '. Web root: ' . $webRootForMessage . '.';
+                }
+
                 Message::addError($errorMessage);
                 $this->logger->error(
                     $errorMessage,
                     [
-                        'contao'    => new ContaoContext(__METHOD__, ContaoContext::ERROR),
-                        'file_uuid' => $fileUuid,
-                        'file_path' => $file ? $file->path : null,
+                        'contao'            => new ContaoContext(__METHOD__, ContaoContext::ERROR),
+                        'file_uuid'         => $fileUuid,
+                        'file_path'         => $file ? $file->path : null,
+                        'absolute_path'     => $absolutePath,
+                        'configured_webdir' => $this->webDir,
+                        'resolved_web_root' => $webRootForMessage,
                     ]
                 );
                 $errorCount++;
@@ -163,7 +189,7 @@ class OpenAiFilesListener
                 continue;
             }
 
-            $filePath         = $this->projectDir . '/public/' . $file->path;
+            $filePath         = $absolutePath;
             $originalFilename = basename($file->path);
             $fileExtension    = strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION));
             $fileSize         = filesize($filePath);

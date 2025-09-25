@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.8] - 2025-09-25
+
+### Changed
+- Use configured web directory parameter (`%contao.web_dir%`) to resolve absolute file paths instead of hardcoding `public/`.
+- Preserve absolute `%contao.web_dir%` values and only prefix with `%kernel.project_dir%` when relative.
+
+### Fixed
+- "File not found" errors on systems with non-default web roots (e.g., custom doc roots or legacy `web/`).
+- Improved user-facing error messages for missing files, including resolved web root and attempted absolute path.
+
+### Notes
+- No database migration required. Clear cache after update so the container picks up the new service argument.
+
 ## [1.0.7] - 2025-08-23
 
 ### Fixed
