@@ -150,7 +150,7 @@ class OpenAiFilesListener
             }
 
             // Find the file model by UUID
-            $file = FilesModel::findByUuid($fileUuid);
+            $file         = FilesModel::findByUuid($fileUuid);
             $absolutePath = null;
             if ($file && isset($file->path)) {
                 $webRoot = $this->webDir;
