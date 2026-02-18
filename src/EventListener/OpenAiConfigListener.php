@@ -145,80 +145,105 @@ class OpenAiConfigListener
         // Generate CSRF token server-side
         $csrfToken = $this->csrfTokenManager->getToken($this->csrfTokenName)->getValue();
 
-        $buttonId = 'apiKeyCheck_' . $dc->field;
+        $buttonId  = 'apiKeyCheck_' . $dc->field;
+        $resultId  = 'apiKeyResult_' . $dc->field;
+        $fieldName = $dc->field;
+        $postUrl   = Environment::get('base') . 'contao/api-key-validate';
 
-        return ' <button type="button" id="' . $buttonId . '" class="tl_submit">Key prüfen</button>
-        <span id="apiKeyResult" style="margin-left:10px;"></span>
-        <style>
-        .processing-spinner {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border: 2px solid #ccc;
-            border-top: 2px solid #007acc;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 5px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        button:has(.processing-spinner) {
-            display: flex;
-            flex-flow: row nowrap;
-            justify-content: space-between;
-            align-items: center;
-            column-gap: 5px;
-        }
-        </style>
+        return \sprintf(
+            ' <span class="api-key-check-wrapper">
+            <button type="button" id="%1$s" class="tl_submit"
+                data-api-key-field="%2$s"
+                data-validation-url="%3$s"
+                data-request-token="%4$s">Key prüfen</button>
+            <span id="%5$s" class="api-key-result"></span>
+        </span>
         <script>
-        document.getElementById("' . $buttonId . '").addEventListener("click", function() {
-            var apiKey = document.getElementById("ctrl_' . $dc->field . '").value;
-            var button = document.getElementById("' . $buttonId . '");
-            var resultSpan = document.getElementById("apiKeyResult");
-            
-            if (!apiKey) {
-                alert("Bitte geben Sie zuerst einen API-Schlüssel ein.");
+        (function () {
+            var button = document.getElementById(%6$s);
+            if (!button || button.dataset.apiKeyInlineBound === "1") {
                 return;
             }
-            
-            // Disable button and show processing state
-            button.disabled = true;
-            button.innerHTML = \'<span class="processing-spinner"></span> Validiere...\';
-            resultSpan.innerHTML = \'\';
-            
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", "' . Environment::get('base') . 'contao/api-key-validate", true);
-            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-            
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    // Reset button state
+
+            var fieldName = button.getAttribute("data-api-key-field") || "";
+            var input = document.getElementById("ctrl_" + fieldName)
+                || document.getElementById(fieldName)
+                || document.querySelector(\'input[name="\' + fieldName + \'"]\');
+            var resultSpan = document.getElementById(%7$s);
+            var wrapper = button.closest(".api-key-check-wrapper");
+
+            if (!input || !resultSpan || !wrapper) {
+                return;
+            }
+
+            var widget = input.closest(".widget");
+            if (widget) {
+                var help = widget.querySelector("p.tl_help");
+                if (help && help.parentNode === widget) {
+                    widget.insertBefore(wrapper, help);
+                } else if (input.parentNode) {
+                    input.parentNode.insertBefore(wrapper, input.nextSibling);
+                }
+            }
+
+            button.dataset.apiKeyInlineBound = "1";
+
+            button.addEventListener("click", function () {
+                var apiKey = input.value;
+                if (!apiKey) {
+                    alert("Bitte geben Sie zuerst einen API-Schlüssel ein.");
+                    return;
+                }
+
+                var url = button.getAttribute("data-validation-url") || "";
+                var requestToken = button.getAttribute("data-request-token") || "";
+
+                button.disabled = true;
+                button.innerHTML = \'<span class="processing-spinner"></span>Validiere...\';
+                resultSpan.innerHTML = "";
+
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", url, true);
+                xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState !== 4) {
+                        return;
+                    }
+
                     button.disabled = false;
-                    button.innerHTML = \'Key prüfen\';  // Escaped single quotes
-                    
+                    button.textContent = "Key prüfen";
+
                     try {
-                        var result = JSON.parse(xhr.responseText);
+                        var result = JSON.parse(xhr.responseText || "{}");
                         if (result.valid) {
                             resultSpan.innerHTML = \'<span style="color:green;">✓ API-Schlüssel ist gültig!</span>\';
-                            document.getElementById("ctrl_' . $dc->field . '").style.backgroundColor = "lightgreen";
-                            document.getElementById("ctrl_' . $dc->field . '").style.color = "#121212";
-                        } else {
-                            resultSpan.innerHTML = \'<span style="color:red;">✗ API-Schlüssel ist ungültig! \' + (result.message || \'\') + \'</span>\';
-                            document.getElementById("ctrl_' . $dc->field . '").style.backgroundColor = "lightcoral";
-                            document.getElementById("ctrl_' . $dc->field . '").style.color = "#121212";
+                            input.style.backgroundColor = "lightgreen";
+                            input.style.color = "#121212";
+                            return;
                         }
+
+                        resultSpan.innerHTML = \'<span style="color:red;">✗ API-Schlüssel ist ungültig! \' + (result.message || "") + \'</span>\';
+                        input.style.backgroundColor = "lightcoral";
+                        input.style.color = "#121212";
                     } catch (e) {
                         resultSpan.innerHTML = \'<span style="color:red;">✗ Fehler bei der Validierung</span>\';
                     }
-                }
-            };
-            
-            xhr.send("action=validateApiKey&key=" + encodeURIComponent(apiKey) + "&REQUEST_TOKEN=' . $csrfToken . '");
-        });
-        </script>';
+                };
+
+                xhr.send("action=validateApiKey&key=" + encodeURIComponent(apiKey) + "&REQUEST_TOKEN=" + encodeURIComponent(requestToken));
+            });
+        })();
+        </script>',
+            \htmlspecialchars($buttonId, \ENT_QUOTES),
+            \htmlspecialchars($fieldName, \ENT_QUOTES),
+            \htmlspecialchars($postUrl, \ENT_QUOTES),
+            \htmlspecialchars($csrfToken, \ENT_QUOTES),
+            \htmlspecialchars($resultId, \ENT_QUOTES),
+            \json_encode($buttonId, \JSON_HEX_TAG | \JSON_HEX_APOS | \JSON_HEX_QUOT | \JSON_HEX_AMP) ?: '""',
+            \json_encode($resultId, \JSON_HEX_TAG | \JSON_HEX_APOS | \JSON_HEX_QUOT | \JSON_HEX_AMP) ?: '""'
+        );
     }
 
     /**

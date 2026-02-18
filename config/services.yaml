@@ -64,7 +64,6 @@ services:
             - { name: contao.callback, table: tl_openai_config, target: fields.api_key.load, method: processApiKeyForDisplay }
             - { name: contao.callback, table: tl_openai_config, target: list.label, method: addIcon }
             - { name: contao.callback, table: tl_openai_config, target: list.header, method: addHeader }
-            - { name: contao.callback, table: tl_openai_config, target: fields.api_key.wizard, method: apiKeyWizard }
             - { name: contao.callback, table: tl_openai_config, target: fields.api_key.save, method: processApiKeyForStorage }
             - { name: contao.callback, table: tl_openai_config, target: config.onsubmit, method: createVectorStore }
             - { name: contao.callback, table: tl_openai_config, target: config.ondelete, method: deleteVectorStore }

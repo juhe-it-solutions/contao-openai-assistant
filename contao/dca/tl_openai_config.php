@@ -125,6 +125,9 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['api_key'],
             'exclude'   => true,
             'inputType' => 'password',
+            'xlabel'    => [
+                ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener', 'apiKeyWizard'],
+            ],
             'eval'      => [
                 'mandatory' => true,
                 'maxlength' => 255,

@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-02-18
+
+### Added
+- Backend "Key prüfen" button for OpenAI config API key field: validate key before save (works in Contao 5.3 and 5.7).
+- Dedicated backend JS asset `backend-api-key-check.js` as fallback for button binding.
+- Backend CSS for API key check wrapper (placement below input, spinner, result message).
+
+### Changed
+- OpenAI config DCA: API key field now uses `xlabel` callback instead of `wizard` for reliable rendering in Contao 5.7.
+- `OpenAiConfigListener::apiKeyWizard()`: outputs HTML + data attributes and inline script so the button works without depending on global backend JS in all Contao versions.
+- Button is placed below the API key input in both 5.3 and 5.7; input lookup supports `ctrl_<field>`, `<field>`, and `input[name="..."]` for compatibility.
+- Removed `fields.api_key.wizard` service callback tag from `config/services.yaml` (wizard registration is via DCA only).
+
+### Fixed
+- "Key prüfen" button not visible in Contao 5.7.0 (wizard callback no longer used for password widget in 5.7).
+- Button overlapping the API key input in Contao 5.7; wrapper is moved below the field and styled with clear spacing/z-index.
+- Button click having no effect when backend JS did not load; inline script in widget ensures validation runs in both 5.3 and 5.7.
+
+### Notes
+- No database migration required. Clear backend cache after update.
+
 ## [1.0.8] - 2025-09-25
 
 ### Changed

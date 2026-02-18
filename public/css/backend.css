@@ -7,3 +7,36 @@
 }
 
 /* Remove API Status Indicator Styles and related rules */ 
+
+.api-key-check-wrapper {
+    display: block;
+    margin-top: 8px;
+    margin-bottom: 4px;
+    position: relative;
+    z-index: 3;
+}
+
+.api-key-check-wrapper .api-key-result {
+    margin-left: 10px;
+}
+
+.api-key-check-wrapper .processing-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #ccc;
+    border-top: 2px solid #007acc;
+    border-radius: 50%;
+    animation: api-key-spin 1s linear infinite;
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
+@keyframes api-key-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}

@@ -17,3 +17,4 @@ $GLOBALS['BE_MOD']['ai_tools'] = [
 
 // Load backend CSS for AI Tools menu icon (Contao 5 official way)
 $GLOBALS['TL_CSS'][] = 'bundles/contaoopenaiassistant/css/backend.css|static';
+$GLOBALS['TL_JAVASCRIPT'][] = 'bundles/contaoopenaiassistant/js/backend-api-key-check.js|static';
