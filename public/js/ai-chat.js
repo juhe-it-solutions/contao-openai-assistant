@@ -465,6 +465,16 @@ function initAiChat(wrapper) {
     // Remove stray ">" immediately after </a> (e.g. from "https://example.com>" or angle-bracket notation like <https://example.com>)
     result = result.replace(/<\/a>>/g, '</a>');
 
+    // Fix LLM bug: strip trailing "br" from http(s) links only (mailto/tel unchanged). Match full <a href="http...">text</a>
+    result = result.replace(
+      /(<a\s+[^>]*href=")(https?:\/\/[^"]+)("[^>]*>)([^<]*)(<\/a>)/g,
+      (_, open1, url, open2, text, close) => {
+        if (url.endsWith('br')) url = url.slice(0, -2);
+        if (text.endsWith('br')) text = text.slice(0, -2);
+        return open1 + url + open2 + text + close;
+      }
+    );
+
     // Remove exclamation mark + dot combinations
     result = result.replace(/!\./g, '!');
 
