@@ -19,19 +19,19 @@ The disclaimer feature adds an information icon (ℹ️) to the chat header, pos
 
 ### Default Disclaimer Text
 
-The default disclaimer texts are stored in the translation files and automatically adapt to the current language:
+On the **frontend**, when the module has no custom disclaimer text, the default is taken from the chat language files and follows the **visitor’s browser language** (via the `Accept-Language` header). Supported languages are German and English.
 
-**German** (`contao/languages/de/tl_module.xlf`):
+**German** (`contao/languages/de/mod_ai_chat.php`, key `disclaimer_default`):
 ```
 Unser Chatbot ist ein Serviceangebot unseres Unternehmens und soll die Kommunikation sowie den Informationszugang erleichtern. Die Antworten werden automatisch generiert und dienen ausschließlich allgemeinen Informations- und Unterstützungszwecken. Trotz sorgfältiger Entwicklung können Inhalte unvollständig, missverständlich oder fehlerhaft sein. Wir übernehmen daher keine Gewähr für die inhaltliche Richtigkeit oder Vollständigkeit der Antworten. Verbindliche Auskünfte, individuelle Beratung oder rechtliche Empfehlungen werden durch den Chatbot nicht erteilt. Bitte nutze die bereitgestellten Informationen als Orientierung und wende dich für wichtige Anliegen direkt an unser Team oder an eine entsprechend qualifizierte Fachperson.
 ```
 
-**English** (`contao/languages/en/tl_module.xlf`):
+**English** (`contao/languages/en/mod_ai_chat.php`, key `disclaimer_default`):
 ```
 Our chatbot is a service provided by our company to facilitate communication and provide easier access to information. The responses are automatically generated and are intended solely for general informational and support purposes. Despite careful development, the content may be incomplete, unclear, or contain errors. We therefore cannot guarantee the accuracy or completeness of the information provided. The chatbot does not offer binding statements, individual advice, or legal recommendations. Please consider the responses as general guidance and contact our team or a qualified professional for important matters.
 ```
 
-The system automatically uses the appropriate language based on the current Contao language setting.
+The frontend chat (including the disclaimer and all labels) uses the visitor’s browser language preference; other locales fall back to English.
 
 ## Frontend Behavior
 
@@ -117,7 +117,7 @@ The disclaimer text supports:
 2. **Clarity**: Use clear, understandable language
 3. **Relevance**: Make the disclaimer specific to your use case
 4. **Accessibility**: The feature is designed with accessibility in mind, but review your content for clarity
-5. **Localization**: Consider providing disclaimer text in multiple languages if your site supports it
+5. **Localization**: The chat UI and default disclaimer follow the visitor’s browser language (German/English). For other languages, provide custom disclaimer text in the module or add translations in `mod_ai_chat.php`.
 
 ## Troubleshooting
 
@@ -138,6 +138,10 @@ If you encounter issues with the disclaimer feature, please:
 4. Create an issue in the project repository with details about the problem
 
 ## Recent Fixes
+
+### Version 2026-02-24 (1.1.1)
+- **Frontend language**: The entire chat UI (placeholder, buttons, labels, disclaimer, errors) now follows the visitor’s browser language (Accept-Language). Default disclaimer text on the frontend is taken from `mod_ai_chat.php` (DE/EN) when the module has no custom text.
+- **Chat links**: Links in bot messages are sanitized so that `<` and `>` never appear in `href` values or link text, fixing broken or malformed links (e.g. from angle-bracket notation or model output).
 
 ### Version 2025.01.27
 - **Fixed**: Database migration issue causing "Data truncated for column 'disclaimer_text'" error in MySQL

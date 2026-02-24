@@ -28,6 +28,18 @@ vendor/bin/phpstan analyse src/ --level=5
 ```
 
 ## Common Issues
+
+### Frontend chat: language and links
+
+#### Chat shows wrong language (e.g. German although browser is English)
+- The chat UI (placeholder, buttons, labels, disclaimer) follows the **browser’s preferred language** (Accept-Language header), not the Contao page language.
+- **Check**: Ensure the browser language order has the desired language first (e.g. English before German in settings).
+- **Cache**: Clear Contao frontend cache and browser cache; fragment output may be cached.
+- From version 1.1.1 the first language in Accept-Language is used (e.g. `en,de;q=0.9` yields English).
+
+#### Links in chat messages are broken or show extra characters
+- From version 1.1.1, links in bot replies are sanitized: `<` and `>` are stripped from `href` values and from the link text, and a stray `>` after `</a>` is removed. Update to 1.1.1 or later. If issues persist, check the browser console for errors.
+
 ### 0. File upload: "File not found"
 
 #### Problem

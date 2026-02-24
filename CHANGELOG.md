@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-02-24
+
+### Added
+- **Frontend i18n for the AI chat module:** All user-visible strings (placeholder, buttons, labels, titles, errors, disclaimer) are now translated based on the browser’s preferred language. German and English are supported via `contao/languages/de/mod_ai_chat.php` and `contao/languages/en/mod_ai_chat.php`. The controller reads `Accept-Language` from the main request, parses it in priority order, and loads the matching language file; the template and JavaScript use server-provided labels and a small JSON map for client-side strings. Unsupported locales fall back to English. Module-specific titles and messages from the backend still override the translated defaults.
+
+### Changed
+- Language detection now respects the order of the `Accept-Language` header (e.g. `en,de;q=0.9` correctly yields English when English is listed first).
+- `Accept-Language` is read from the main request via `RequestStack::getMainRequest()` so the chat language follows the visitor’s browser even when the module is rendered in a fragment sub-request.
+
+### Fixed
+- **Frontend chat links:** Trailing `<` or `>` could appear in link `href` values and link text, breaking or misdisplaying links. URLs are now sanitized when turning plain URLs into links (strip `<`/`>` from captured URL), all `href="..."` values are cleaned of `<`/`>` in a final pass, and a stray `>` immediately after `</a>` (e.g. from angle-bracket notation or model output) is removed.
+
+### Notes
+- No database migration required. Clear frontend cache after update if needed.
+
 ## [1.1.0] - 2026-02-18
 
 ### Added

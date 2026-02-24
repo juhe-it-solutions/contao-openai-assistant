@@ -15,10 +15,13 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Controller\FrontendModule;
 use Contao\CoreBundle\Controller\FrontendModule\AbstractFrontendModuleController;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\CoreBundle\DependencyInjection\Attribute\AsFrontendModule;
+use Contao\CoreBundle\Framework\ContaoFramework;
 use Contao\CoreBundle\Twig\FragmentTemplate;
 use Contao\ModuleModel;
+use Contao\System;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiAssistant;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 
 #[AsFrontendModule(
@@ -31,12 +34,21 @@ class AiChatModuleController extends AbstractFrontendModuleController
 {
     public function __construct(
         private readonly OpenAiAssistant $assistant,
-        private readonly ContaoCsrfTokenManager $csrfTokenManager
+        private readonly ContaoCsrfTokenManager $csrfTokenManager,
+        private readonly ContaoFramework $framework,
+        private readonly RequestStack $requestStack
     ) {
     }
 
     protected function getResponse(FragmentTemplate $template, ModuleModel $model, Request $request): Response
     {
+        $this->framework->initialize();
+
+        // Detect frontend language from browser (Accept-Language), fallback to page language.
+        // Use main request so we see the real browser headers (fragment may be rendered in a sub-request).
+        $language = $this->detectFrontendLanguage($request);
+        $lang = $this->loadChatTranslations($language);
+
         // Generate CSRF token for the template
         $csrfToken = $this->csrfTokenManager->getDefaultTokenValue();
 
@@ -50,18 +62,39 @@ class AiChatModuleController extends AbstractFrontendModuleController
         $template->set('theme', $model->theme ?? 'dark');
         $template->set('base_font_size', $model->base_font_size ?? '14px');
 
-        // Chat text configuration
-        $template->set('chat_title', $model->chat_title ?? 'Chat-Header-Titel');
-        $template->set('welcome_message', $model->welcome_message ?? 'Wie kann ich dir helfen?');
-        $template->set('initial_bot_message', $model->initial_bot_message ?? 'Hallo! Wie kann ich dir helfen?');
+        // Chat text: use module value or translated default
+        $template->set('chat_title', $model->chat_title ?: ($lang['chat_title'] ?? 'Assistant'));
+        $template->set('welcome_message', $model->welcome_message ?: ($lang['welcome_message'] ?? 'How can I help you?'));
+        $template->set('initial_bot_message', $model->initial_bot_message ?: ($lang['initial_bot_message'] ?? 'Hello! How can I help you?'));
         $template->set('initial_state', $model->initial_state ?? 'collapsed');
         $template->set('disclaimer_text', $model->disclaimer_text);
 
-        // Load language file and get default disclaimer text
-        $language = $GLOBALS['TL_LANGUAGE'] ?? 'en';
-        \Contao\System::loadLanguageFile('tl_module', $language);
-        $defaultDisclaimerText = $GLOBALS['TL_LANG']['tl_module']['disclaimer_text']['default'] ?? 'Unser Chatbot ist ein Serviceangebot unseres Unternehmens und soll die Kommunikation sowie den Informationszugang erleichtern. Die Antworten werden automatisch generiert und dienen ausschließlich allgemeinen Informations- und Unterstützungszwecken. Trotz sorgfältiger Entwicklung können Inhalte unvollständig, missverständlich oder fehlerhaft sein. Wir übernehmen daher keine Gewähr für die inhaltliche Richtigkeit oder Vollständigkeit der Antworten. Verbindliche Auskünfte, individuelle Beratung oder rechtliche Empfehlungen werden durch den Chatbot nicht erteilt. Bitte nutze die bereitgestellten Informationen als Orientierung und wende dich für wichtige Anliegen direkt an unser Team oder an eine entsprechend qualifizierte Fachperson.';
+        // Default disclaimer from chat language file (translated)
+        $defaultDisclaimerText = $lang['disclaimer_default'] ?? '';
         $template->set('default_disclaimer_text', $defaultDisclaimerText);
+
+        // i18n labels for template (aria-labels, titles, placeholder)
+        $template->set('aria_label_region', $lang['aria_label_region'] ?? 'AI Chat');
+        $template->set('aria_label_disclaimer_show', $lang['aria_label_disclaimer_show'] ?? 'Show disclaimer');
+        $template->set('title_disclaimer', $lang['title_disclaimer'] ?? 'Disclaimer');
+        $template->set('aria_label_theme', $lang['aria_label_theme'] ?? 'Switch theme');
+        $template->set('title_theme', $lang['title_theme'] ?? 'Switch theme');
+        $template->set('aria_label_minimize', $lang['aria_label_minimize'] ?? 'Minimize chat');
+        $template->set('placeholder_message', $lang['placeholder_message'] ?? 'Type your message here...');
+        $template->set('aria_label_message', $lang['aria_label_message'] ?? 'Enter message');
+        $template->set('title_send', $lang['title_send'] ?? 'Send message');
+        $template->set('aria_label_send', $lang['aria_label_send'] ?? 'Send message');
+        $template->set('disclaimer_title', $lang['disclaimer_title'] ?? 'Disclaimer');
+        $template->set('aria_label_close_dialog', $lang['aria_label_close_dialog'] ?? 'Close dialog');
+
+        // JSON map for JavaScript (user-facing strings only)
+        $jsI18n = [
+            'ai_chat_open'             => $lang['js_ai_chat_open'] ?? 'Open AI Chat',
+            'initial_message_fallback' => $lang['js_initial_message_fallback'] ?? 'Hello! How can I help you?',
+            'error_generic'            => $lang['js_error_generic'] ?? 'An error occurred. Please try again.',
+            'error_reload_page'        => $lang['js_error_reload_page'] ?? 'Please reload the page and try again.',
+        ];
+        $template->set('i18n_json', json_encode($jsI18n, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
 
         // Color configuration
         $template->set('dark_toggle_icon_color', $model->dark_toggle_icon_color ?? 'ff6600');
@@ -78,5 +111,53 @@ class AiChatModuleController extends AbstractFrontendModuleController
         $template->set('light_accent', $model->light_accent ?? '007bff');
 
         return $template->getResponse();
+    }
+
+    /**
+     * Detect frontend language from Accept-Language (main request), respecting order/priority.
+     * Header format is e.g. "en,de;q=0.9,nl;q=0.8" — first listed language has highest priority.
+     */
+    private function detectFrontendLanguage(Request $request): string
+    {
+        $acceptLanguage = $this->getAcceptLanguageFromMainRequest($request);
+        if ($acceptLanguage !== '') {
+            $segments = array_map('trim', explode(',', $acceptLanguage));
+            foreach ($segments as $segment) {
+                $lang = strtolower((string) preg_replace('/;.*/', '', $segment));
+                $primary = str_contains($lang, '-') ? substr($lang, 0, (int) strpos($lang, '-')) : $lang;
+                if ($primary === 'de') {
+                    return 'de';
+                }
+                if ($primary === 'en') {
+                    return 'en';
+                }
+            }
+        }
+        return $GLOBALS['TL_LANGUAGE'] ?? 'en';
+    }
+
+    /**
+     * Get Accept-Language from the main request (fragment may be rendered in a sub-request without browser headers).
+     */
+    private function getAcceptLanguageFromMainRequest(Request $currentRequest): string
+    {
+        $mainRequest = $this->requestStack->getMainRequest();
+        $requestToUse = $mainRequest ?? $currentRequest;
+
+        return $requestToUse->headers->get('Accept-Language', '');
+    }
+
+    /**
+     * Load mod_ai_chat language file and return the label array for the given language.
+     *
+     * @return array<string, string>
+     */
+    private function loadChatTranslations(string $language): array
+    {
+        $language = $language === 'de' ? 'de' : 'en';
+        System::loadLanguageFile('mod_ai_chat', $language);
+        $lang = $GLOBALS['TL_LANG']['mod_ai_chat'] ?? [];
+
+        return is_array($lang) ? $lang : [];
     }
 }

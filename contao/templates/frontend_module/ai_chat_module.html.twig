@@ -9,7 +9,7 @@
 <script src="/bundles/contaoopenaiassistant/js/ai-chat.js"></script>
 {% endadd %}
 
-<div class="{{ module_class }}{% if custom_css %} {{ custom_css }}{% endif %} theme-{{ theme }}" id="{{ module_id }}" data-position="{{ chat_position|default('bottom-right') }}" data-initial-message="{{ initial_bot_message|default('Hallo! Wie kann ich dir helfen?')|escape('html_attr') }}" data-initial-state="{{ initial_state|default('collapsed') }}" role="region" aria-label="AI Chat Module" style="--ai-chat-font-size-base: {{ base_font_size|default('14px') }};
+<div class="{{ module_class }}{% if custom_css %} {{ custom_css }}{% endif %} theme-{{ theme }}" id="{{ module_id }}" data-position="{{ chat_position|default('bottom-right') }}" data-initial-message="{{ initial_bot_message|escape('html_attr') }}" data-initial-state="{{ initial_state|default('collapsed') }}" data-i18n="{{ i18n_json|escape('html_attr') }}" role="region" aria-label="{{ aria_label_region }}" style="--ai-chat-font-size-base: {{ base_font_size|default('14px') }};
             --ai-chat-light-bg-primary: #{{ light_bg_primary|default('f8f9fa') }};
             --ai-chat-light-bg-secondary: #{{ light_bg_secondary|default('e1e5e9') }};
             --ai-chat-light-text-primary: #{{ light_text_primary|default('333') }};
@@ -22,29 +22,29 @@
             --ai-chat-dark-toggle-icon-color: #{{ dark_toggle_icon_color|default('ff6600') }};">
     <div class="ai-chat-container">
         <div class="ai-chat-header">
-            <h3 class="ai-chat-title" id="ai-chat-title-{{ module_id|replace({'ai-chat-': ''}) }}">{{ chat_title|default('Assistent - JUHE IT-solutions.') }}</h3>
-            <p class="ai-chat-subheadline" id="ai-chat-subheadline-{{ module_id|replace({'ai-chat-': ''}) }}">{{ welcome_message|default('Wie kann ich dir helfen?') }}</p>
+            <h3 class="ai-chat-title" id="ai-chat-title-{{ module_id|replace({'ai-chat-': ''}) }}">{{ chat_title }}</h3>
+            <p class="ai-chat-subheadline" id="ai-chat-subheadline-{{ module_id|replace({'ai-chat-': ''}) }}">{{ welcome_message }}</p>
             <button type="button"
                     class="ai-chat-disclaimer-toggle"
-                    aria-label="Disclaimer anzeigen"
+                    aria-label="{{ aria_label_disclaimer_show }}"
                     aria-expanded="false"
                     aria-controls="ai-chat-disclaimer-dialog-{{ module_id|replace({'ai-chat-': ''}) }}"
-                    title="Disclaimer">
+                    title="{{ title_disclaimer }}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="currentColor"/>
                 </svg>
             </button>
             <button type="button"
                     class="ai-chat-theme-toggle"
-                    aria-label="Theme wechseln"
-                    title="Theme wechseln">
+                    aria-label="{{ aria_label_theme }}"
+                    title="{{ title_theme }}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor"/>
                 </svg>
             </button>
             <button type="button"
                     class="ai-chat-minimize"
-                    aria-label="Chat minimieren"
+                    aria-label="{{ aria_label_minimize }}"
                     aria-expanded="true"
                     aria-controls="ai-chat-log-{{ module_id|replace({'ai-chat-': ''}) }}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -65,17 +65,17 @@
                 
                 <textarea class="ai-chat-input"
                           name="message"
-                          placeholder="Frage hier eingeben..."
+                          placeholder="{{ placeholder_message }}"
                           rows="1"
                           autocomplete="off"
                           required
-                          aria-label="Frage eingeben"></textarea>
+                          aria-label="{{ aria_label_message }}"></textarea>
                 <button type="submit"
                         class="ai-chat-send"
-                        title="Frage abschicken"
+                        title="{{ title_send }}"
                         data-endpoint="{{ chat_endpoint }}"
                         data-token-endpoint="{{ token_endpoint }}"
-                        aria-label="Frage abschicken">
+                        aria-label="{{ aria_label_send }}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -88,8 +88,8 @@
     <div class="ai-chat-disclaimer-dialog" id="ai-chat-disclaimer-dialog-{{ module_id|replace({'ai-chat-': ''}) }}" role="dialog" aria-labelledby="ai-chat-disclaimer-title-{{ module_id|replace({'ai-chat-': ''}) }}" aria-describedby="ai-chat-disclaimer-description-{{ module_id|replace({'ai-chat-': ''}) }}" aria-modal="true" aria-hidden="true">
         <div class="ai-chat-disclaimer-content">
             <div class="ai-chat-disclaimer-header">
-                <h4 class="ai-chat-disclaimer-title" id="ai-chat-disclaimer-title-{{ module_id|replace({'ai-chat-': ''}) }}">Disclaimer</h4>
-                <button type="button" class="ai-chat-disclaimer-close" aria-label="Dialog schließen">
+                <h4 class="ai-chat-disclaimer-title" id="ai-chat-disclaimer-title-{{ module_id|replace({'ai-chat-': ''}) }}">{{ disclaimer_title }}</h4>
+                <button type="button" class="ai-chat-disclaimer-close" aria-label="{{ aria_label_close_dialog }}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor"/>
                     </svg>

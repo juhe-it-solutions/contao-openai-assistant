@@ -37,6 +37,25 @@ function initAiChat(wrapper) {
     theme: wrapper.classList.contains('theme-light') ? 'light' : 'dark'
   };
 
+  // i18n: read from data-i18n (JSON from server), fallback to German for missing keys
+  const i18n = (() => {
+    try {
+      const raw = wrapper.dataset.i18n;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch (e) {
+      console.warn('AI Chat: Could not parse i18n data', e);
+    }
+    return {
+      ai_chat_open: 'AI Chat öffnen',
+      initial_message_fallback: 'Hallo! Wie kann ich dir helfen?',
+      error_generic: 'Es ist ein Fehler aufgetreten. Bitte erneut versuchen.',
+      error_reload_page: 'Bitte lade die Seite neu und versuche es erneut.'
+    };
+  })();
+
   // Language detection
   const getUserLanguage = () => {
     const lang = navigator.language || navigator.userLanguage;
@@ -64,7 +83,7 @@ function initAiChat(wrapper) {
     toggleButton = document.createElement('button');
     toggleButton.type = 'button';
     toggleButton.className = 'ai-chat-toggle';
-    toggleButton.setAttribute('aria-label', 'AI Chat öffnen');
+    toggleButton.setAttribute('aria-label', i18n.ai_chat_open || 'AI Chat öffnen');
     toggleButton.setAttribute('data-position', config.position);
     
     // Set initial colors
@@ -349,7 +368,7 @@ function initAiChat(wrapper) {
   };
 
   const welcome = () => {
-    const initialMessage = wrapper.dataset.initialMessage || 'Hallo! Wie kann ich dir helfen?';
+    const initialMessage = wrapper.dataset.initialMessage || i18n.initial_message_fallback || 'Hello! How can I help you?';
     addMsg('assistant', initialMessage);
   };
 
@@ -397,16 +416,24 @@ function initAiChat(wrapper) {
     // Step 2: Remove duplicate links with same href
     result = result.replace(/(<a[^>]*>.*?<\/a>).*?\1/g, '$1');
 
-    // Make URLs clickable (only if they're not already in <a> tags)
+    // Make URLs clickable (only if they're not already in <a> tags).
+    // Sanitize URL: never include < or > in href or link text (can break links).
+    const sanitizeUrl = (url) => (url || '').replace(/[<>]/g, '');
     // URLs mit http/https, ohne nachfolgende Satzzeichen
     result = result.replace(
       /(?<!<a[^>]*>)(https?:\/\/[^\s\)\]\}\>,!?:;"]+)([.,!?:;)\]]?)(?!<\/a>)/g,
-      '<a href="$1" target="_blank">$1</a>$2'
+      (_, url, trailing) => {
+        const clean = sanitizeUrl(url);
+        return clean ? `<a href="${clean}" target="_blank">${clean}</a>${trailing || ''}` : _;
+      }
     );
     // URLs mit www., ohne nachfolgende Satzzeichen
     result = result.replace(
       /(?<!<a[^>]*>)(?<!\/)(www\.[^\s\)\]\}\>,!?:;"]+)([.,!?:;)\]]?)(?!<\/a>)/g,
-      '<a href="https://$1" target="_blank">$1</a>$2'
+      (_, url, trailing) => {
+        const clean = sanitizeUrl(url);
+        return clean ? `<a href="https://${clean}" target="_blank">${clean}</a>${trailing || ''}` : _;
+      }
     );
 
     // Make phone numbers clickable, keeping optional "+" at the start
@@ -431,7 +458,13 @@ function initAiChat(wrapper) {
     
     // Fix trailing dots in href attributes
     result = result.replace(/(href="[^"]*)\.(")/g, '$1$2');
-    
+
+    // Ensure < and > are never inside href (sanitize all links, including from model or edge cases)
+    result = result.replace(/href="([^"]*)"/g, (_, val) => 'href="' + (val || '').replace(/[<>]/g, '') + '"');
+
+    // Remove stray ">" immediately after </a> (e.g. from "https://example.com>" or angle-bracket notation like <https://example.com>)
+    result = result.replace(/<\/a>>/g, '</a>');
+
     // Remove exclamation mark + dot combinations
     result = result.replace(/!\./g, '!');
 
@@ -527,10 +560,10 @@ function initAiChat(wrapper) {
           if (retryResponse.ok && retryData.reply) {
             addMsg('assistant', retryData.reply, retryData.timestamp);
           } else {
-            addMsg('assistant', retryData.error || 'Es ist ein Fehler aufgetreten. Bitte erneut versuchen.');
+            addMsg('assistant', retryData.error || i18n.error_generic);
           }
         } else {
-          addMsg('assistant', 'Bitte lade die Seite neu und versuche es erneut.');
+          addMsg('assistant', i18n.error_reload_page);
         }
       } else if (r.ok && data.reply) {
         addMsg('assistant', data.reply, data.timestamp);
@@ -541,7 +574,7 @@ function initAiChat(wrapper) {
           }
         }, 100);
       } else {
-        addMsg('assistant', data.error || 'Es ist ein Fehler aufgetreten. Bitte erneut versuchen.');
+        addMsg('assistant', data.error || i18n.error_generic);
         // Auto-focus input after error response
         setTimeout(() => {
           if (input && !input.disabled) {
@@ -552,7 +585,7 @@ function initAiChat(wrapper) {
     } catch (e) {
       console.error('Chat error:', e);
       tRow.remove();
-      addMsg('assistant', 'Es ist ein Fehler aufgetreten. Bitte erneut versuchen.');
+      addMsg('assistant', i18n.error_generic);
       // Auto-focus input after error
       setTimeout(() => {
         if (input && !input.disabled) {
