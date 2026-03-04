@@ -453,14 +453,12 @@ function initAiChat(wrapper) {
     // Make email addresses clickable
     result = result.replace(/([\w.-]+@[\w.-]+\.\w+)/g, '<a href="mailto:$1">$1</a>');
 
-    // Remove trailing dots from <a> tags
+    // Remove trailing dots from link text (dot before </a>)
     result = result.replace(/(<a[^>]*>.*?)\.(<\/a>)/g, '$1$2');
-    
-    // Fix trailing dots in href attributes
-    result = result.replace(/(href="[^"]*)\.(")/g, '$1$2');
 
-    // Ensure < and > are never inside href (sanitize all links, including from model or edge cases)
-    result = result.replace(/href="([^"]*)"/g, (_, val) => 'href="' + (val || '').replace(/[<>]/g, '') + '"');
+    // Sanitize href: strip < and > and trailing dots (all links, including from model)
+    // Trailing-dot strip ensures href never ends with a dot (e.g. https://abc.tld/page.html.)
+    result = result.replace(/href="([^"]*)"/g, (_, val) => 'href="' + (val || '').replace(/[<>]/g, '').replace(/\.+$/, '') + '"');
 
     // Remove stray ">" immediately after </a> (e.g. from "https://example.com>" or angle-bracket notation like <https://example.com>)
     result = result.replace(/<\/a>>/g, '</a>');

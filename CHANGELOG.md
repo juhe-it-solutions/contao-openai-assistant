@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2026-03-04
+
+### Fixed
+- **Frontend chat links:** Chatbot output could contain links whose `href` ended with a trailing dot (e.g. `https://example.com/page.html.`), breaking or misdirecting clicks. All `href` values are now sanitized so that trailing dots are stripped before display.
+- **Chat history order:** Thread messages are now requested from the OpenAI API with `order=asc`, so conversation history displays in chronological order after page navigation or reload.
+
 ## [1.1.2] - 2026-02-24
 
 ### Fixed

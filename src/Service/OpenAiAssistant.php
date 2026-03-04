@@ -138,6 +138,9 @@ class OpenAiAssistant
                 'GET',
                 "https://api.openai.com/v1/threads/{$threadId}/messages",
                 [
+                    'query' => [
+                        'order' => 'asc', // chronological order so history displays correctly after page navigation
+                    ],
                     'headers' => [
                         'Authorization' => 'Bearer ' . $apiKey,
                         'OpenAI-Beta'   => 'assistants=v2',
