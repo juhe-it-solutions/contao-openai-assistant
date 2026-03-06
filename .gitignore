@@ -133,3 +133,7 @@ composer.json.bak
 # Local development files
 .phpunit.cache
 .php-cs-fixer.cache
+
+# Internal planning/design documents
+20260220_I18N-HANDLE_CURRENTLY_HARDCODED_THINGS.md
+20260306_AUTOMATIC-VECTORSTORE-UPDATES.md
