@@ -15,7 +15,8 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Controller;
 use Contao\CoreBundle\Controller\AbstractController;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\CoreBundle\Framework\ContaoFramework;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiAssistant;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiResponder;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,7 +25,8 @@ use Symfony\Component\Security\Csrf\CsrfToken;
 class AiChatController extends AbstractController
 {
     public function __construct(
-        private readonly OpenAiAssistant $assistant,
+        private readonly OpenAiResponder $responder,
+        private readonly EncryptionService $encryption,
         private readonly ContaoFramework $framework,
         private readonly ContaoCsrfTokenManager $csrfTokenManager,
         private readonly string $csrfTokenName,
@@ -85,8 +87,8 @@ class AiChatController extends AbstractController
 
         try {
             // Send the message as-is without automatic language instructions
-            // The assistant should be configured with appropriate system instructions
-            $reply = $this->assistant->processMessage($message, $session);
+            // The prompt should be configured with appropriate system instructions
+            $reply = $this->responder->processMessage($message, $session);
 
             return new JsonResponse([
                 'reply'     => $reply,
@@ -95,8 +97,8 @@ class AiChatController extends AbstractController
         } catch (\Exception $e) {
             $this->logger->error('Error processing chat message: ' . $e->getMessage(), [
                 'exception' => $e,
-                'message'   => $message,
-                'trace'     => $e->getTraceAsString(),
+                // Do not log message content to avoid persisting potentially sensitive user input.
+                'message_length' => mb_strlen($message),
             ]);
 
             return new JsonResponse([
@@ -143,24 +145,32 @@ class AiChatController extends AbstractController
             ], 400);
         }
 
-        $session  = $request->getSession();
-        $threadId = $session->get('openai_thread_id');
+        $session = $request->getSession();
 
-        if (! $threadId) {
+        // Silently drop any legacy openai_thread_id left over from a 1.x session.
+        if ($session->has('openai_thread_id')) {
+            $session->remove('openai_thread_id');
+        }
+
+        $conversationId = $session->get('openai_conversation_id');
+
+        if (! $conversationId) {
             return new JsonResponse([
                 'history' => [],
             ]);
         }
 
         try {
-            $config = $this->assistant->getActiveConfig();
+            $config = $this->responder->getActiveConfig();
             if (! $config) {
                 return new JsonResponse([
                     'history' => [],
                 ]);
             }
 
-            $apiKey = $this->processApiKey($config['api_key']);
+            $apiKey = $this->encryption->getApiKeyForConfig((int) $config['id'])
+                ?? $this->encryption->processApiKey((string) ($config['api_key'] ?? ''));
+
             if (! $apiKey) {
                 $this->logger->error('No valid API key found for chat history', [
                     'config_id' => $config['id'] ?? null,
@@ -171,16 +181,15 @@ class AiChatController extends AbstractController
                 ]);
             }
 
-            $history = $this->assistant->getThreadHistory($threadId, $apiKey);
+            $history = $this->responder->getConversationHistory((string) $conversationId, $apiKey);
 
             return new JsonResponse([
                 'history' => $history,
             ]);
         } catch (\Exception $e) {
             $this->logger->error('Failed to get chat history: ' . $e->getMessage(), [
-                'exception' => $e,
-                'thread_id' => $threadId,
-                'trace'     => $e->getTraceAsString(),
+                'exception'       => $e,
+                'conversation_id' => $conversationId,
             ]);
 
             return new JsonResponse([
@@ -232,87 +241,5 @@ class AiChatController extends AbstractController
         ];
 
         return $messages[$language][$key] ?? $messages['en'][$key] ?? $key;
-    }
-
-    /**
-     * Process API key - decrypt if encrypted, decode if base64
-     */
-    private function processApiKey(string $storedApiKey): ?string
-    {
-        if (empty($storedApiKey)) {
-            return null;
-        }
-
-        // Check if this is an encrypted key (longer than 100 chars) or legacy base64
-        if (strlen($storedApiKey) > 100) {
-            // This is an encrypted key
-            $apiKey = $this->decryptApiKey($storedApiKey);
-        } else {
-            // This is a legacy base64 encoded key
-            $apiKey = base64_decode($storedApiKey, true);
-        }
-
-        if (! $apiKey || ! $this->isValidApiKeyFormat($apiKey)) {
-            $this->logger->error('Invalid API key format detected', [
-                'api_key_length' => strlen($storedApiKey),
-                'api_key_prefix' => substr($storedApiKey, 0, 10),
-            ]);
-
-            return null;
-        }
-
-        return $apiKey;
-    }
-
-    /**
-     * Decrypt API key using the same method as OpenAiConfigListener
-     */
-    private function decryptApiKey(string $encryptedData): ?string
-    {
-        try {
-            // Generate the same encryption key as in OpenAiConfigListener
-            $serverName    = $_SERVER['SERVER_NAME'] ?? 'localhost';
-            $documentRoot  = $_SERVER['DOCUMENT_ROOT'] ?? '/';
-            $encryptionKey = hash('sha256', $serverName . $documentRoot, true);
-
-            // Extract IV and encrypted data
-            $data = base64_decode($encryptedData, true);
-            if (strlen($data) < 16) {
-                return null;
-            }
-
-            $iv        = substr($data, 0, 16);
-            $encrypted = substr($data, 16);
-
-            // Decrypt
-            $decrypted = openssl_decrypt($encrypted, 'AES-256-CBC', $encryptionKey, 0, $iv);
-
-            return $decrypted !== false ? $decrypted : null;
-        } catch (\Exception $e) {
-            $this->logger->error('Failed to decrypt API key: ' . $e->getMessage());
-
-            return null;
-        }
-    }
-
-    /**
-     * Validate API key format - supports all OpenAI key formats
-     */
-    private function isValidApiKeyFormat(string $apiKey): bool
-    {
-        if (empty($apiKey)) {
-            return false;
-        }
-
-        // Support all current OpenAI API key formats
-        $validPrefixes = ['sk-', 'sk-proj-', 'sk-None-', 'sk-svcacct-'];
-
-        foreach ($validPrefixes as $prefix) {
-            if (str_starts_with($apiKey, $prefix)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

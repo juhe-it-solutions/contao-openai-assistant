@@ -13,9 +13,9 @@ $GLOBALS['TL_LANG']['MOD']['ai_tools'] = 'KI-Tools';
 
 // Module
 $GLOBALS['TL_LANG']['MOD']['ai_chat']            = 'KI-Chatbot';
-$GLOBALS['TL_LANG']['MOD']['openai_dashboard']   = ['OpenAI Dashboard', 'Verwalten Sie OpenAI-Konfigurationen, Dateien und Assistenten'];
+$GLOBALS['TL_LANG']['MOD']['openai_dashboard']   = ['OpenAI Dashboard', 'Verwalten Sie OpenAI-Konfigurationen, Dateien und Prompts'];
 $GLOBALS['TL_LANG']['MOD']['openai_dashboard.0'] = 'OpenAI Dashboard';
-$GLOBALS['TL_LANG']['MOD']['openai_dashboard.1'] = 'Verwalten Sie OpenAI-Konfigurationen, Dateien und Assistenten';
+$GLOBALS['TL_LANG']['MOD']['openai_dashboard.1'] = 'Verwalten Sie OpenAI-Konfigurationen, Dateien und Prompts';
 
 // Module group (used in module creation)
 $GLOBALS['TL_LANG']['FMD']['ai_tools'] = 'KI-Tools';

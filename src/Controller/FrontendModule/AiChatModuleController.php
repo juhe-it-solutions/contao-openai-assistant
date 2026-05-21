@@ -19,7 +19,6 @@ use Contao\CoreBundle\Framework\ContaoFramework;
 use Contao\CoreBundle\Twig\FragmentTemplate;
 use Contao\ModuleModel;
 use Contao\System;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiAssistant;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
@@ -33,7 +32,6 @@ use Symfony\Component\HttpFoundation\Response;
 class AiChatModuleController extends AbstractFrontendModuleController
 {
     public function __construct(
-        private readonly OpenAiAssistant $assistant,
         private readonly ContaoCsrfTokenManager $csrfTokenManager,
         private readonly ContaoFramework $framework,
         private readonly RequestStack $requestStack
@@ -47,7 +45,7 @@ class AiChatModuleController extends AbstractFrontendModuleController
         // Detect frontend language from browser (Accept-Language), fallback to page language.
         // Use main request so we see the real browser headers (fragment may be rendered in a sub-request).
         $language = $this->detectFrontendLanguage($request);
-        $lang = $this->loadChatTranslations($language);
+        $lang     = $this->loadChatTranslations($language);
 
         // Generate CSRF token for the template
         $csrfToken = $this->csrfTokenManager->getDefaultTokenValue();
@@ -123,7 +121,7 @@ class AiChatModuleController extends AbstractFrontendModuleController
         if ($acceptLanguage !== '') {
             $segments = array_map('trim', explode(',', $acceptLanguage));
             foreach ($segments as $segment) {
-                $lang = strtolower((string) preg_replace('/;.*/', '', $segment));
+                $lang    = strtolower((string) preg_replace('/;.*/', '', $segment));
                 $primary = str_contains($lang, '-') ? substr($lang, 0, (int) strpos($lang, '-')) : $lang;
                 if ($primary === 'de') {
                     return 'de';
@@ -141,7 +139,7 @@ class AiChatModuleController extends AbstractFrontendModuleController
      */
     private function getAcceptLanguageFromMainRequest(Request $currentRequest): string
     {
-        $mainRequest = $this->requestStack->getMainRequest();
+        $mainRequest  = $this->requestStack->getMainRequest();
         $requestToUse = $mainRequest ?? $currentRequest;
 
         return $requestToUse->headers->get('Accept-Language', '');

@@ -35,18 +35,30 @@ services:
     JuheItSolutions\ContaoOpenaiAssistant\Controller\FrontendModule\AiChatModuleController:
         public: true
 
-    # OpenAI Assistant Service
-    JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiAssistant:
+    # OpenAI Responder Service (Responses API + Conversations API)
+    JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiResponder:
         arguments:
             $http: '@http_client'
             $logger: '@monolog.logger.contao'
             $connection: '@doctrine.dbal.default_connection'
         public: true
 
+    # Deprecated BC shim: keeps any 1.x customisations referring to OpenAiAssistant working until 2.1
+    JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiAssistant:
+        class: JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiAssistant
+        public: true
+        deprecated:
+            package: juhe-it-solutions/contao-openai-assistant
+            version: '2.0'
+            message: 'The "%service_id%" service is deprecated, use OpenAiResponder instead.'
+
     # Encryption Service
     JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService:
         arguments:
             $logger: '@monolog.logger.contao'
+            $connection: '@doctrine.dbal.default_connection'
+            $projectDir: '%kernel.project_dir%'
+            $webDir: '%contao.web_dir%'
         public: true
 
     # OpenAiConfigListener
@@ -58,6 +70,7 @@ services:
             $csrfTokenName: '%contao.csrf_token_name%'
             $requestStack: '@request_stack'
             $connection: '@doctrine.dbal.default_connection'
+            $encryption: '@JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService'
         public: true
         tags:
             - { name: contao.callback, table: tl_openai_config, target: config.onload, method: onLoadCallback }
@@ -81,6 +94,7 @@ services:
             $connection: '@doctrine.dbal.default_connection'
             $csrfTokenManager: '@contao.csrf.token_manager'
             $csrfTokenName: '%contao.csrf_token_name%'
+            $encryption: '@JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService'
         public: true
         tags:
             - { name: contao.callback, table: tl_openai_files, target: fields.file_upload.save, method: uploadToOpenAI }
@@ -88,8 +102,8 @@ services:
             - { name: contao.callback, table: tl_openai_files, target: config.ondelete, method: deleteFromOpenAI }
             - { name: contao.callback, table: tl_openai_files, target: list.header, method: addHeader }
 
-    # OpenAiAssistantsListener
-    JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiAssistantsListener:
+    # OpenAiPromptsListener
+    JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiPromptsListener:
         arguments:
             $httpClient: '@http_client'
             $logger: '@monolog.logger.contao'
@@ -97,23 +111,21 @@ services:
             $csrfTokenManager: '@contao.csrf.token_manager'
             $csrfTokenName: '%contao.csrf_token_name%'
             $requestStack: '@request_stack'
+            $encryption: '@JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService'
         public: true
         tags:
-            - { name: contao.callback, table: tl_openai_assistants, target: config.onload, method: onLoadCallback }
-            - { name: contao.callback, table: tl_openai_assistants, target: fields.model.options, method: getAvailableModels }
-            - { name: contao.callback, table: tl_openai_assistants, target: fields.model.save, method: validateModel }
-            - { name: contao.callback, table: tl_openai_assistants, target: fields.model_manual.save, method: validateManualModel }
-            - { name: contao.callback, table: tl_openai_assistants, target: fields.system_instructions.save, method: normalizeSystemInstructions }
-            - { name: contao.callback, table: tl_openai_assistants, target: fields.top_p.save, method: validateTopP }
-            - { name: contao.callback, table: tl_openai_assistants, target: fields.temperature.save, method: validateTemperature }
-            - { name: contao.callback, table: tl_openai_assistants, target: list.header, method: addHeader }
-            - { name: contao.callback, table: tl_openai_assistants, target: list.label, method: listAssistants }
-            - { name: contao.callback, table: tl_openai_assistants, target: list.child_record, method: listAssistants }
-            - { name: contao.callback, table: tl_openai_assistants, target: config.ondelete, method: deleteAssistant }
-            - { name: contao.callback, table: tl_openai_assistants, target: config.onsubmit, method: createOrUpdateAssistant }
+            - { name: contao.callback, table: tl_openai_prompts, target: config.onload, method: onLoadCallback }
+            - { name: contao.callback, table: tl_openai_prompts, target: fields.model.options, method: getAvailableModels }
+            - { name: contao.callback, table: tl_openai_prompts, target: fields.model.save, method: validateModel }
+            - { name: contao.callback, table: tl_openai_prompts, target: fields.model_manual.save, method: validateManualModel }
+            - { name: contao.callback, table: tl_openai_prompts, target: fields.system_instructions.save, method: normalizeSystemInstructions }
+            - { name: contao.callback, table: tl_openai_prompts, target: fields.top_p.save, method: validateTopP }
+            - { name: contao.callback, table: tl_openai_prompts, target: fields.temperature.save, method: validateTemperature }
+            - { name: contao.callback, table: tl_openai_prompts, target: list.header, method: addHeader }
+            - { name: contao.callback, table: tl_openai_prompts, target: list.label, method: listPrompts }
+            - { name: contao.callback, table: tl_openai_prompts, target: list.child_record, method: listPrompts }
 
     # Security Voter
     JuheItSolutions\ContaoOpenaiAssistant\Security\Voter\AiChatVoter:
         tags:
             - { name: security.voter }
-

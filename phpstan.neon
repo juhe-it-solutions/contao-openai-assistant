@@ -14,4 +14,4 @@ parameters:
         - '#Right side of \|\| is always false#'
         - '#Left side of && is always true#'
         - '#Attribute class Contao\\CoreBundle\\DependencyInjection\\Attribute\\AsBackendModule does not exist#'
-        - '#Access to an undefined property Contao\\ModuleModel::\$disclaimer_text#' 
+        - '#Access to an undefined property Contao\\ModuleModel::\$[a-zA-Z0-9_]+#'

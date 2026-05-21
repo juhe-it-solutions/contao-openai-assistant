@@ -7,8 +7,8 @@
                 <target>OpenAI-Dateien</target>
             </trans-unit>
             <trans-unit id="tl_openai_files.intro">
-                <source>Here you can manage your files for OpenAI. Upload documents that will be used to train your assistants. Supported formats: PDF, TXT, MD, DOCX, PPTX, JSON.</source>
-                <target>Hier können Sie Ihre Dateien für OpenAI verwalten. Laden Sie Dokumente hoch, die zur Schulung Ihrer Assistenten verwendet werden. Unterstützte Formate: PDF, TXT, MD, DOCX, PPTX, JSON.</target>
+                <source>Here you can manage your files for OpenAI. Upload documents that will be used to ground your prompts via the File Search tool. Supported formats: PDF, TXT, MD, DOCX, PPTX, JSON.</source>
+                <target>Hier können Sie Ihre Dateien für OpenAI verwalten. Laden Sie Dokumente hoch, die Ihre Prompts über das File-Search-Tool mit Wissen anreichern. Unterstützte Formate: PDF, TXT, MD, DOCX, PPTX, JSON.</target>
             </trans-unit>
             <!-- Legend Labels -->
             <trans-unit id="tl_openai_files.file_legend">
@@ -19,7 +19,7 @@
                 <source>OpenAI Information</source>
                 <target>OpenAI-Infos</target>
             </trans-unit>
-            
+
             <!-- Field Labels -->
             <trans-unit id="tl_openai_files.filename.0">
                 <source>Filename</source>
@@ -61,7 +61,7 @@
                 <source>Size of the uploaded file in bytes.</source>
                 <target>Größe der hochgeladenen Datei in Bytes.</target>
             </trans-unit>
-            
+
             <!-- Status Options -->
             <trans-unit id="tl_openai_files.status_options.pending">
                 <source>Pending</source>
@@ -87,7 +87,7 @@
                 <source>Error</source>
                 <target>Fehler</target>
             </trans-unit>
-            
+
             <!-- Global Operations -->
             <trans-unit id="tl_openai_files.upload">
                 <source>Upload File(s)</source>
@@ -101,7 +101,7 @@
                 <source>Upload a new file to the OpenAI vector store</source>
                 <target>Eine neue Datei in den OpenAI-Vector Store hochladen</target>
             </trans-unit>
-            
+
             <!-- Welcome Message -->
             <trans-unit id="tl_openai_files.welcome_heading">
                 <source>File upload</source>
@@ -113,7 +113,7 @@
             </trans-unit>
             <trans-unit id="tl_openai_files.welcome_message2">
                 <source>Here you can upload files to your OpenAI vector store.</source>
-                <target>Hier können Sie Dateien hochladen, um eine Wissensbasis für Ihren OpenAI-Assistenten zu erstellen.</target>
+                <target>Hier können Sie Dateien hochladen, um eine Wissensbasis für Ihre OpenAI-Prompts zu erstellen.</target>
             </trans-unit>
         </body>
     </file>

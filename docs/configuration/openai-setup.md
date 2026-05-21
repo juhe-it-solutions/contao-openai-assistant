@@ -26,9 +26,10 @@ This guide will help you set up your OpenAI integration for the Contao OpenAI As
 ### 3. Check API Access
 
 Ensure your account has access to:
-- **GPT-4o** or **GPT-4o-mini** models
-- **Assistants API** (included with most plans)
-- **File uploads** (for vector search functionality)
+- **GPT-4o**, **GPT-4o-mini**, **GPT-4.1**, or comparable chat-capable models
+- **Responses API** (`POST /v1/responses`) — the runtime used by this extension
+- **Conversations API** (`POST /v1/conversations`) — for server-side chat state
+- **Files API** and **Vector Stores** (for File Search / knowledge base)
 
 ## Setting Up in Contao Backend
 
@@ -116,8 +117,35 @@ $GLOBALS['TL_CONFIG']['debugMode'] = true;
 After setting up your OpenAI configuration:
 
 1. **[Upload Files](files.md)** - Add documents for vector search
-2. **[Create Assistant](assistants.md)** - Configure your AI assistant
+2. **Create a Prompt** - Configure a prompt (name, model, instructions, parameters) in the Contao backend under **OpenAI Dashboard → Prompts**. You can optionally reference a dashboard-managed Prompt via `prompt_id` / `prompt_version`
 3. **[Set Up Frontend](../frontend/chatbot-module.md)** - Add chatbot to your website
+
+## Prompt usage modes (important)
+
+In v2.x, you can use prompts in two ways:
+
+1. **Contao-local prompt mode (default)**
+   - Create/edit the prompt in Contao backend (`OpenAI Dashboard -> Prompts`).
+   - This local prompt setup is used for every frontend chat request.
+
+2. **OpenAI dashboard prompt mode**
+   - Create a prompt in OpenAI dashboard under **Create -> Chat**.
+   - Copy its `pmpt_...` ID to Contao field `prompt_id` (and optionally set `prompt_version`).
+   - When `prompt_id` is set, local `system_instructions` are ignored at runtime. Other request settings from Contao (e.g. model, max output tokens, temperature, top_p) are still applied.
+
+## How to verify runtime in OpenAI dashboard
+
+After sending a test chat message:
+
+- Check **Logs -> Responses** and **Logs -> Conversations** in OpenAI dashboard.
+- Open one response log entry and inspect properties/configuration:
+  - model
+  - max output tokens
+  - temperature
+  - top_p
+  - system instructions or prompt reference
+
+For upgraded installations: legacy assistant cleanup is executed via migration against OpenAI (`DELETE /v1/assistants/{id}`); you can verify remaining/removed legacy assistants under [Assistants](https://platform.openai.com/assistants). If the migration runs without a resolvable valid API key (CLI context), remote deletion is skipped and you must delete any remaining legacy `asst_...` entries manually in the OpenAI dashboard.
 
 ## Support
 
@@ -125,4 +153,4 @@ If you encounter issues:
 
 1. Check the [Troubleshooting Guide](../development/troubleshooting.md)
 2. Review [OpenAI Documentation](https://platform.openai.com/docs)
-3. Contact support with detailed error messages 
+3. Contact support with detailed error messages

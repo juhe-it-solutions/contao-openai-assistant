@@ -43,10 +43,11 @@ php bin/console contao:migrate
    - Upload documents for vector search
    - Files will be processed and added to OpenAI's vector store
 
-3. **Create Assistant**
-   - Configure your AI assistant
+3. **Create Prompt**
+   - Configure your AI prompt
    - Set system instructions
    - Choose AI model
+   - (Optional) Set `prompt_id` / `prompt_version` to use a dashboard-managed OpenAI Prompt
 
 ### 5. Add Chatbot to Frontend
 
@@ -71,6 +72,6 @@ After installation, you should see:
 
 ## Next Steps
 
-- [Quick Start Guide](quick-start.md) - Get your first assistant running
+- [Quick Start Guide](quick-start.md) - Get your first prompt running
 - [Configuration Guide](configuration/openai-setup.md) - Detailed setup instructions
-- [Troubleshooting](development/troubleshooting.md) - If something goes wrong 
+- [Troubleshooting](development/troubleshooting.md) - If something goes wrong

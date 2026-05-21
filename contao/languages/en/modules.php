@@ -12,9 +12,9 @@
 $GLOBALS['TL_LANG']['MOD']['ai_tools'] = 'AI Tools';
 
 // Module
-$GLOBALS['TL_LANG']['MOD']['openai_dashboard']   = ['OpenAI Dashboard', 'Manage OpenAI configurations, files, and assistants'];
+$GLOBALS['TL_LANG']['MOD']['openai_dashboard']   = ['OpenAI Dashboard', 'Manage OpenAI configurations, files, and prompts'];
 $GLOBALS['TL_LANG']['MOD']['openai_dashboard.0'] = 'OpenAI Dashboard';
-$GLOBALS['TL_LANG']['MOD']['openai_dashboard.1'] = 'Manage OpenAI configurations, files, and assistants';
+$GLOBALS['TL_LANG']['MOD']['openai_dashboard.1'] = 'Manage OpenAI configurations, files, and prompts';
 $GLOBALS['TL_LANG']['MOD']['ai_chat']            = 'AI-Chatbot';
 
 // Module group (used in module creation)

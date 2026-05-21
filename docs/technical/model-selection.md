@@ -4,15 +4,15 @@ This document describes the model selection functionality in the Contao OpenAI A
 
 ## Overview
 
-The bundle provides intelligent model selection that automatically fetches all available models from your OpenAI account and validates their compatibility with the Assistants API during the save process.
+The bundle provides intelligent model selection that automatically fetches all available models from your OpenAI account and validates their compatibility with the **Responses API** during the save process.
 
 ## Dynamic Model Retrieval
 
 ### How It Works
 
-1. **API Fetch**: When creating/editing an assistant, the system fetches all models from OpenAI's `/v1/models` endpoint
+1. **API Fetch**: When creating/editing a prompt, the system fetches all models from OpenAI's `/v1/models` endpoint
 2. **Fast Loading**: All models are displayed immediately without validation to ensure fast UI response
-3. **Save Validation**: Model compatibility is checked only when the user saves the assistant
+3. **Save Validation**: Model compatibility is checked only when the user saves the prompt
 4. **Fallback System**: If API is unavailable, falls back to known compatible models
 5. **User Selection**: Users can choose from all available models or enter custom model names
 
@@ -22,12 +22,12 @@ The bundle provides intelligent model selection that automatically fetches all a
 public function getAvailableModels(DataContainer $dc = null): array
 {
     $models = [];
-    
+
     // Try to get models from API if we have a DataContainer context
     if ($dc && $dc->activeRecord && $dc->activeRecord->pid) {
         try {
             $apiKey = $this->getApiKeyFromEnvironment($dc->activeRecord->pid);
-            
+
             if ($apiKey) {
                 $models = $this->fetchAllModelsFromApi($apiKey);
             }
@@ -35,15 +35,15 @@ public function getAvailableModels(DataContainer $dc = null): array
             $this->logger->warning('Failed to fetch models from API, using fallback');
         }
     }
-    
+
     // If no models from API, use fallback
     if (empty($models)) {
         $models = $this->getFallbackModels();
     }
-    
+
     // Add manual override option
     $models['manual'] = '-- Enter Custom Model --';
-    
+
     return $models;
 }
 ```
@@ -52,90 +52,42 @@ public function getAvailableModels(DataContainer $dc = null): array
 
 ### Save-Time Validation
 
-The system validates model compatibility only when the user saves the assistant:
+The system validates model compatibility only when the user saves the prompt. Validation is performed by sending a minimal "ping" request to `POST /v1/responses` with the candidate model. If the API rejects the model, the error message surfaces in the backend:
 
 ```php
-// Validate that the selected model is compatible with Assistants API
-$selectedModel = $dc->activeRecord->model;
-if (!empty($selectedModel)) {
-    if ($selectedModel === 'manual') {
-        // For manual models, get the manual model value
-        $manualModel = $dc->activeRecord->model_manual ?? '';
-        if (empty($manualModel)) {
-            $errorMessage = 'Please enter a custom model name when selecting manual override.';
-            throw new \InvalidArgumentException($errorMessage);
-        }
-        $selectedModel = $manualModel;
-    }
-    
-    // Validate the model against Assistants API
-    if (!$this->validateModelForAssistants($selectedModel, $apiKey)) {
-        $errorMessage = sprintf('The selected model "%s" is not compatible with the Assistants API. Please choose a different model.', $selectedModel);
-        throw new \InvalidArgumentException($errorMessage);
-    }
+// Pseudocode from OpenAiPromptsListener::validateModelViaApi()
+$response = $this->httpClient->request('POST', 'https://api.openai.com/v1/responses', [
+    'headers' => [
+        'Authorization' => 'Bearer ' . $apiKey,
+        'Content-Type'  => 'application/json',
+    ],
+    'json' => [
+        'model'             => $selectedModel,
+        'input'             => 'ping',
+        'max_output_tokens' => 16,
+        'store'             => false,
+    ],
+    'timeout' => 30,
+]);
+
+$statusCode = $response->getStatusCode();
+if ($statusCode >= 200 && $statusCode < 300) {
+    return true; // model accepted
 }
+
+return false; // surface the error message to the backend user
 ```
 
-### Compatibility Testing
-
-The system tests each model by attempting to create a temporary assistant:
-
-```php
-private function validateModelForAssistants(string $modelId, string $apiKey): bool
-{
-    try {
-        // Try to create a minimal assistant with the model
-        $testData = [
-            'name' => 'test_assistant_' . time(),
-            'instructions' => 'Test assistant for model validation',
-            'model' => $modelId,
-            'temperature' => 0.25
-        ];
-        
-        $response = $this->httpClient->request('POST', 'https://api.openai.com/v1/assistants', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $apiKey,
-                'Content-Type' => 'application/json',
-                'OpenAI-Beta' => 'assistants=v2'
-            ],
-            'json' => $testData,
-            'timeout' => 30
-        ]);
-        
-        $result = $response->toArray();
-        
-        // If successful, immediately delete the test assistant
-        if (isset($result['id'])) {
-            $this->httpClient->request('DELETE', 'https://api.openai.com/v1/assistants/' . $result['id'], [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $apiKey,
-                    'OpenAI-Beta' => 'assistants=v2'
-                ],
-                'timeout' => 10
-            ]);
-            return true;
-        }
-        
-        return false;
-        
-    } catch (\Exception $e) {
-        return false;
-    }
-}
-```
+This replaces the legacy approach of creating a temporary Assistant (`POST /v1/assistants`) that was used in v1.x. The new validation is cheaper (1 request instead of 2), does not require the `OpenAI-Beta: assistants=v2` header, and works for any model that is accepted by the Responses API.
 
 ### Known Incompatible Models
 
-The system blocks models known to be incompatible:
+The system blocks models known to be incompatible with chat-style Responses (embedding, audio, image generation models):
 
 ```php
-private function isAssistantCompatibleModel(string $modelId): bool
+private function isResponsesCompatibleModel(string $modelId): bool
 {
-    // List of models known to be incompatible with Assistants API
     $incompatibleModels = [
-        'chatgpt-4o-latest',  // Chat completion model, not assistants
-        'chatgpt-4o-mini-latest',
-        'chatgpt-3.5-turbo-latest',
         'dall-e-2',
         'dall-e-3',
         'whisper-1',
@@ -143,15 +95,13 @@ private function isAssistantCompatibleModel(string $modelId): bool
         'tts-1-hd',
         'text-embedding-ada-002',
         'text-embedding-3-small',
-        'text-embedding-3-large'
+        'text-embedding-3-large',
     ];
-    
-    // If it's in the incompatible list, reject it
-    if (in_array($modelId, $incompatibleModels)) {
+
+    if (in_array($modelId, $incompatibleModels, true)) {
         return false;
     }
-    
-    // For other models, be permissive and let the API handle validation
+
     return true;
 }
 ```
@@ -203,20 +153,20 @@ When "Enter Custom Model" is selected:
 
 - Model compatibility is checked only when saving
 - Clear error messages for incompatible models
-- Prevents creation of assistants with invalid models
+- Prevents creation of prompts with invalid models
 
 ## Performance Benefits
 
 ### Before (Slow)
-- 30+ second loading time for assistant creation screen
+- 30+ second loading time for prompt creation screen
 - Individual API calls to validate each model
 - Only compatible models shown in dropdown
 
 ### After (Fast)
-- < 5 second loading time for assistant creation screen
+- < 5 second loading time for prompt creation screen
 - Single API call to fetch all models
 - All models shown in dropdown
-- Validation only when needed (during save)
+- Validation only when needed (during save) via a single `/v1/responses` ping
 
 ## Error Handling
 
@@ -224,7 +174,7 @@ When "Enter Custom Model" is selected:
 
 If a user selects an incompatible model:
 1. Clear error message is displayed
-2. Assistant creation is prevented
+2. Prompt creation is prevented
 3. User can select a different model
 4. Manual model entry is validated the same way
 
@@ -256,7 +206,7 @@ If the OpenAI API is unavailable:
 ### Common Issues
 
 1. **No Models Showing**: Check API key validity and network connectivity
-2. **Model Validation Fails**: Verify model compatibility with Assistants API
+2. **Model Validation Fails**: Verify model compatibility with the Responses API (`POST /v1/responses`)
 3. **Slow Loading**: API calls may take time; consider caching
 
 ### Debugging
@@ -288,4 +238,4 @@ $this->logger->debug('Model validation', [
 3. **API Rate Limiting**: Implement rate limiting for API calls
 4. **Offline Mode**: Enhanced offline functionality
 
-This model selection system ensures users always have access to the latest compatible models while providing a robust fallback system for reliability. 
+This model selection system ensures users always have access to the latest compatible models while providing a robust fallback system for reliability.

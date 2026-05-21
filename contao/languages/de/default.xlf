@@ -14,10 +14,10 @@
                 <source>Vector store created successfully</source>
                 <target>OpenAI-Vector Store erfolgreich erstellt</target>
             </trans-unit>
-            <trans-unit id="MSC.assistant_created">
-                <source>Assistant created successfully</source>
-                <target>OpenAI-Assistent erfolgreich erstellt</target>
+            <trans-unit id="MSC.prompt_created">
+                <source>Prompt created successfully</source>
+                <target>OpenAI-Prompt erfolgreich erstellt</target>
             </trans-unit>
         </body>
     </file>
-</xliff> 
+</xliff>

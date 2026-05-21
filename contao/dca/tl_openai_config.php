@@ -16,7 +16,7 @@ use Contao\Message;
 $GLOBALS['TL_DCA']['tl_openai_config'] = [
     'config' => [
         'dataContainer'    => DC_Table::class,
-        'ctable'           => ['tl_openai_files', 'tl_openai_assistants'],
+        'ctable'           => ['tl_openai_files', 'tl_openai_prompts'],
         'enableVersioning' => true,
         'onload_callback'  => [
             function ($dc) {
@@ -80,10 +80,10 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
                 'icon'  => 'modules.svg',
                 'label' => &$GLOBALS['TL_LANG']['tl_openai_config']['files'],
             ],
-            'assistants' => [
-                'href'  => 'table=tl_openai_assistants',
+            'prompts' => [
+                'href'  => 'table=tl_openai_prompts',
                 'icon'  => 'member.svg',
-                'label' => &$GLOBALS['TL_LANG']['tl_openai_config']['assistants'],
+                'label' => &$GLOBALS['TL_LANG']['tl_openai_config']['prompts'],
             ],
         ],
     ],

@@ -20,52 +20,30 @@ use Contao\FilesModel;
 use Contao\Message;
 use Contao\StringUtil;
 use Doctrine\DBAL\Connection;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class OpenAiFilesListener
 {
-    private static $processedRecords = [];
-
-    private HttpClientInterface $httpClient;
-
-    private string $projectDir;
-
-    private string $webDir;
-
-    private LoggerInterface $logger;
-
-    private OpenAiConfigListener $configListener;
-
-    private $requestStack;
-
-    private Connection $connection;
-
-    private ContaoCsrfTokenManager $csrfTokenManager;
-
-    private string $csrfTokenName;
+    /**
+     * @var array<string, bool>
+     */
+    private static array $processedRecords = [];
 
     public function __construct(
-        HttpClientInterface $httpClient,
-        string $projectDir,
-        string $webDir,
-        LoggerInterface $logger,
-        OpenAiConfigListener $configListener,
-        RequestStack $requestStack,
-        Connection $connection,
-        ContaoCsrfTokenManager $csrfTokenManager,
-        string $csrfTokenName
+        private readonly HttpClientInterface $httpClient,
+        private readonly string $projectDir,
+        private readonly string $webDir,
+        private readonly LoggerInterface $logger,
+        private readonly OpenAiConfigListener $configListener,
+        private readonly RequestStack $requestStack,
+        private readonly Connection $connection,
+        private readonly ContaoCsrfTokenManager $csrfTokenManager,
+        private readonly string $csrfTokenName,
+        private readonly EncryptionService $encryption
     ) {
-        $this->httpClient       = $httpClient;
-        $this->projectDir       = $projectDir;
-        $this->webDir           = $webDir;
-        $this->logger           = $logger;
-        $this->configListener   = $configListener;
-        $this->requestStack     = $requestStack;
-        $this->connection       = $connection;
-        $this->csrfTokenManager = $csrfTokenManager;
-        $this->csrfTokenName    = $csrfTokenName;
     }
 
     public function uploadToOpenAI($value, ?DataContainer $dc)
@@ -85,30 +63,15 @@ class OpenAiFilesListener
         }
         self::$processedRecords[$operationId] = true;
 
-        // Get API key from parent config and validate it
-        $config = $this->connection->fetchAssociative(
-            'SELECT api_key FROM tl_openai_config WHERE id = ?',
-            [$dc->activeRecord->pid]
-        );
+        // Resolve API key with env override support (OPENAI_API_KEY_{configId}).
+        $configId = (int) $dc->activeRecord->pid;
+        $apiKey   = $this->encryption->getApiKeyForConfig($configId);
 
-        if (! $config || ! $config['api_key']) {
+        if (! $apiKey) {
             $msg = 'No API key found in parent configuration';
             $this->logger->error($msg, [
                 'contao'    => new ContaoContext(__METHOD__, ContaoContext::ERROR),
-                'parent_id' => $dc->activeRecord->pid ?? null,
-            ]);
-            Message::addError($msg);
-
-            return $value;
-        }
-
-        // Get the API key directly from the config
-        $apiKey = $this->processApiKey($config['api_key']);
-        if (! $apiKey || ! str_starts_with($apiKey, 'sk-')) {
-            $msg = 'Invalid or missing API key in configuration';
-            $this->logger->error($msg, [
-                'contao'    => new ContaoContext(__METHOD__, ContaoContext::ERROR),
-                'parent_id' => $dc->activeRecord->pid ?? null,
+                'parent_id' => $configId ?: null,
             ]);
             Message::addError($msg);
 
@@ -466,13 +429,9 @@ class OpenAiFilesListener
         }
 
         try {
-            // Get the API key from the parent config
-            $config = $this->connection->fetchAssociative(
-                'SELECT api_key FROM tl_openai_config WHERE id = ?',
-                [$dc->activeRecord->pid]
-            );
-
-            if (! $config || ! $config['api_key']) {
+            $configId = (int) $dc->activeRecord->pid;
+            $apiKey   = $this->encryption->getApiKeyForConfig($configId);
+            if (! $apiKey) {
                 $this->logger->warning(
                     'No API key found for parent configuration',
                     [
@@ -482,20 +441,7 @@ class OpenAiFilesListener
 
                 return;
             }
-
             try {
-                $apiKey = $this->processApiKey($config['api_key']);
-                if (! $apiKey) {
-                    $this->logger->warning(
-                        'No valid API key found for parent configuration',
-                        [
-                            'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                        ]
-                    );
-
-                    return;
-                }
-
                 $response = $this->httpClient->request('DELETE', "https://api.openai.com/v1/files/{$fileId}", [
                     'headers' => [
                         'Authorization' => 'Bearer ' . $apiKey,
@@ -605,15 +551,15 @@ class OpenAiFilesListener
                     var header = document.querySelector(".tl_header");
                     var title = document.querySelector(".tl_title");
                     var container = document.querySelector(".tl_content");
-                    
+
                     var targetElement = header || title || container;
-                    
+
                     if (targetElement) {
                         // Create a wrapper div for the status indicator
                         var statusWrapper = document.createElement("div");
                         statusWrapper.style.cssText = "margin: 10px 0; padding: 10px; border-radius: 4px;";
                         statusWrapper.innerHTML = \'' . addslashes($neutralIndicator) . '\';
-                        
+
                         // Insert at the beginning of the target element
                         targetElement.insertBefore(statusWrapper, targetElement.firstChild);
                     }
@@ -634,79 +580,6 @@ class OpenAiFilesListener
         return '<div class="tl_header">' . $GLOBALS['TL_LANG']['tl_openai_files']['header'] . '</div>';
     }
 
-    /**
-     * Process API key
-     */
-    private function processApiKey(string $storedApiKey): ?string
-    {
-        if (empty($storedApiKey)) {
-            return null;
-        }
-
-        // Check if this is an encrypted key (longer than 100 chars) or legacy base64
-        if (strlen($storedApiKey) > 100) {
-            // This is an encrypted key
-            $apiKey = $this->decryptApiKey($storedApiKey);
-        } else {
-            // This is a legacy base64 encoded key
-            $apiKey = base64_decode($storedApiKey, true);
-        }
-
-        if (! $apiKey || ! $this->isValidApiKeyFormat($apiKey)) {
-            $this->logger->error('Invalid API key format detected', [
-                'contao'         => new ContaoContext(__METHOD__, ContaoContext::ERROR),
-                'api_key_length' => strlen($storedApiKey),
-                'api_key_prefix' => substr($storedApiKey, 0, 10),
-            ]);
-
-            return null;
-        }
-
-        return $apiKey;
-    }
-
-    /**
-     * Check if API key format is valid
-     */
-    private function isValidApiKeyFormat(string $apiKey): bool
-    {
-        return str_starts_with($apiKey, 'sk-');
-    }
-
-    /**
-     * Generate encryption key (same as other services)
-     */
-    private function getEncryptionKey(): string
-    {
-        // Generate the same encryption key as in other services
-        $serverName   = $_SERVER['SERVER_NAME'] ?? 'localhost';
-        $documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? '/';
-
-        return hash('sha256', $serverName . $documentRoot, true);
-    }
-
-    /**
-     * Decrypt API key from storage
-     */
-    private function decryptApiKey(string $encryptedData): ?string
-    {
-        try {
-            $key    = $this->getEncryptionKey();
-            $method = 'aes-256-cbc';
-
-            $data      = base64_decode($encryptedData, true);
-            $ivLength  = openssl_cipher_iv_length($method);
-            $iv        = substr($data, 0, $ivLength);
-            $encrypted = substr($data, $ivLength);
-
-            $decrypted = openssl_decrypt($encrypted, $method, $key, 0, $iv);
-
-            return $decrypted !== false ? $decrypted : null;
-        } catch (\Exception $e) {
-            return null;
-        }
-    }
-
     private function ensureVectorStore(string $apiKey, int $configId): string
     {
         $config = $this->connection->fetchAssociative(
@@ -720,6 +593,9 @@ class OpenAiFilesListener
 
         // Create new vector store
         try {
+            // TODO: Drop the "OpenAI-Beta: assistants=v2" header once /v1/vector_stores
+            // leaves beta. As of April 2026 it is still required for vector store
+            // creation even though Assistants API itself is deprecated.
             $response = $this->httpClient->request('POST', 'https://api.openai.com/v1/vector_stores', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $apiKey,
@@ -781,6 +657,8 @@ class OpenAiFilesListener
         );
 
         try {
+            // TODO: Drop the "OpenAI-Beta: assistants=v2" header once
+            // /v1/vector_stores/{id}/files leaves beta.
             $response = $this->httpClient->request('POST', "https://api.openai.com/v1/vector_stores/{$vectorStoreId}/files", [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $apiKey,

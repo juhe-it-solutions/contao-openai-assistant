@@ -1,6 +1,6 @@
 # Contao OpenAI Assistant Bundle - Documentation
 
-Welcome to the documentation for the Contao OpenAI Assistant Bundle. This bundle provides seamless integration between Contao 5 and OpenAI's Assistants API.
+Welcome to the documentation for the Contao OpenAI Assistant Bundle. This bundle provides seamless integration between Contao 5 and OpenAI's **Responses API** and **Conversations API** (replacing the legacy Assistants API which is sunset on August 26, 2026).
 
 ## 📚 Documentation Index
 
@@ -11,7 +11,7 @@ Welcome to the documentation for the Contao OpenAI Assistant Bundle. This bundle
 
 ### 🔧 Configuration
 - [OpenAI Configuration](configuration/openai-setup.md) - Setting up OpenAI API keys and models
-- [Assistant Configuration](configuration/assistants.md) - Creating and managing AI assistants
+- [Prompt Configuration](configuration/prompts.md) - Creating and managing prompts (replaces the legacy "Assistant Configuration")
 - [File Management](configuration/files.md) - Uploading and managing files for vector search
 - [Module Configuration](configuration/modules.md) - Frontend chatbot module setup
 
@@ -53,4 +53,4 @@ This project is licensed under the LGPL-3.0-or-later License - see the [LICENSE]
 
 - [FAQ](support/faq.md) - Frequently asked questions
 - [Known Issues](support/known-issues.md) - Known limitations and issues
-- [Getting Help](support/getting-help.md) - How to get support and report issues 
+- [Getting Help](support/getting-help.md) - How to get support and report issues

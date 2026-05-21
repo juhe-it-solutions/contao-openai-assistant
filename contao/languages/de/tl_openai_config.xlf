@@ -23,7 +23,7 @@
                 <source>Model settings</source>
                 <target>Modelleinstellungen</target>
             </trans-unit>
-            
+
             <!-- Field Labels -->
             <trans-unit id="tl_openai_config.title.0">
                 <source>Configuration Name</source>
@@ -65,15 +65,15 @@
                 <source>Controls randomness in responses (0.0 = deterministic, 2.0 = very random).</source>
                 <target>Steuert die Zufälligkeit in Antworten (0.0 = deterministisch, 2.0 = sehr zufällig).</target>
             </trans-unit>
-            
+
             <!-- Operation Labels -->
             <trans-unit id="tl_openai_config.files">
                 <source>File upload for OpenAI vectore store</source>
                 <target>Datei-Upload für OpenAI Vector Store</target>
             </trans-unit>
-            <trans-unit id="tl_openai_config.assistants">
-                <source>Assistants</source>
-                <target>OpenAI-Assistent erstellen</target>
+            <trans-unit id="tl_openai_config.prompts">
+                <source>Prompts</source>
+                <target>OpenAI-Prompt erstellen</target>
             </trans-unit>
 
             <!-- API-key validation -->
@@ -118,10 +118,10 @@
                 <target>Hier können Sie Ihre OpenAI-Konfiguration anlegen und Ihren API-Schlüssel/Secret Key eingeben.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.navigation_message">
-                <source>Use the 2 icons on the right to access file upload and OpenAI assistant setup.</source>
-                <target>Über die 2 Symbole rechts gelangen Sie zum Dateiupload und zur Einrichtung des OpenAI-Assistenten.</target>
+                <source>Use the 2 icons on the right to access file upload and OpenAI prompt setup.</source>
+                <target>Über die 2 Symbole rechts gelangen Sie zum Dateiupload und zur Einrichtung des OpenAI-Prompts.</target>
             </trans-unit>
-            
+
             <!-- Single Config Limitation Notice -->
             <trans-unit id="tl_openai_config.single_config_heading">
                 <source>Single Configuration</source>

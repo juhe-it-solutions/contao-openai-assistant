@@ -27,6 +27,72 @@ vendor/bin/ecs check
 vendor/bin/phpstan analyse src/ --level=5
 ```
 
+## Upgrading from 1.x
+
+Version 2.0 replaces the OpenAI Assistants API (which OpenAI is sunsetting on **August 26, 2026**) with the OpenAI **Responses API** and **Conversations API**. Upgrading is mostly automatic, but there are a few things to know.
+
+### What changes under the hood
+
+- Chat is now routed through `POST /v1/responses` (instead of the old `POST /v1/threads/*/runs`).
+- Conversation state is now stored server-side via `POST /v1/conversations` (instead of `POST /v1/threads`). A conversation id is kept in the PHP session.
+- **"Assistants" no longer exist as remote objects**. What used to be an OpenAI Assistant is now a **local Prompt** stored in `tl_openai_prompts` (configured in Contao backend). Optionally, you can reference a dashboard-managed Prompt by pasting its `prompt_id` (+ optional `prompt_version`) into the backend form.
+- The database table was renamed:
+
+  | v1.x                 | v2.0                |
+  | -------------------- | ------------------- |
+  | `tl_openai_assistants` | `tl_openai_prompts` |
+
+  Two new columns were added: `prompt_id` (VARCHAR 128) and `prompt_version` (VARCHAR 32).
+
+### What the upgrade does automatically
+
+When you run `php bin/console contao:migrate` after upgrading to 2.0, two migrations run in order:
+
+1. **`Version20260416000000RenamePromptsTable`** — renames `tl_openai_assistants` → `tl_openai_prompts` and adds the `prompt_id` / `prompt_version` columns. Idempotent; safe to re-run.
+2. **`Version20260416000001CleanupOrphanAssistants`** — for every row that still has an `openai_assistant_id`, the migration calls `DELETE /v1/assistants/{id}` on the OpenAI platform (this is the **last allowed usage** of the legacy Assistants API before OpenAI shuts it down) and clears the `openai_assistant_id` column locally. The migration **never throws on HTTP errors** — 2xx / 404 / 410 / 401 are all treated as "assistant is gone, move on". A summary of deleted / skipped / failed ids is written to the migration result. If the migration cannot resolve a valid API key in CLI context, remote deletion is skipped and only the local reference is cleared.
+
+After the migration:
+
+- All files in your vector store are preserved.
+- All prompts keep their local `name`, `instructions`, `model`, `temperature`, `top_p`, `max_output_tokens` — you do not need to re-enter anything.
+- Existing conversations from v1.x are not migrated to the new Conversations API (the old thread ids were session-scoped anyway). Users will start a fresh conversation on their next visit.
+- If a legacy `asst_...` record still existed on OpenAI, cleanup tries to delete it remotely; you can verify this in the OpenAI dashboard under [Assistants](https://platform.openai.com/assistants).
+- If cleanup reports missing/invalid key in migration logs, delete any remaining legacy Assistants manually in the OpenAI dashboard (`Assistants` page).
+
+### Configuration changes you may want to make
+
+- **Environment variables for API keys** (recommended): you can bypass database storage by setting `OPENAI_API_KEY_{configId}` in `.env.local`, where `{configId}` is the primary key in `tl_openai_config`. This is resolved by `EncryptionService::getApiKeyForConfig()` and takes precedence over the encrypted DB value.
+- **Dashboard Prompts (optional)**: if your team prefers editing prompts in the OpenAI dashboard (e.g. for A/B testing or non-developer editing), create a Prompt in platform.openai.com and paste its `prompt_id` into the backend. When set, the dashboard prompt overrides the local `Instructions` field.
+
+Prompt usage modes in v2.0:
+
+1. **Local prompt mode (default)**: create/edit the prompt in Contao backend (`tl_openai_prompts`); it is used for every chat turn.
+2. **Dashboard prompt mode**: create prompt in OpenAI dashboard (**Create -> Chat**) and set `prompt_id` (+ optional `prompt_version`) in Contao; local `system_instructions` are ignored at runtime, while model/sampling/token settings from Contao are still sent.
+
+### Verifying the upgrade
+
+```bash
+# 1. Run the migrations
+php bin/console contao:migrate
+
+# 2. Clear cache
+php bin/console cache:clear
+
+# 3. Smoke-test by sending a message through the frontend chat widget.
+#    Check storage.log for any errors.
+tail -f var/logs/*.log
+```
+
+Additionally verify directly on OpenAI dashboard:
+
+- **Logs -> Responses** contains new response entries.
+- **Logs -> Conversations** contains matching conversation entries.
+- Open one response entry to inspect effective runtime configuration (model, max output tokens, temperature, top_p, and instructions/prompt reference).
+
+### Rolling back
+
+Rolling back to 1.x is **not supported**: the Assistants you were previously using on the OpenAI platform have been deleted by the cleanup migration, so re-installing 1.x would leave you with orphaned `openai_assistant_id` references that point to nothing. If you need to roll back, restore a database backup taken before the upgrade.
+
 ## Common Issues
 
 ### Frontend chat: language and links
@@ -155,7 +221,7 @@ use Symfony\Component\Routing\Annotation\Route;
 ```bash
 vendor/bin/phpstan analyse src/ --level=5
 # 10/10 [▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓] 100%
-# 
+#
 #  ------ -------------------------------------------------------------------------
 #  Line   src/Controller/ApiController.php
 #  ------ -------------------------------------------------------------------------
@@ -417,4 +483,4 @@ When creating a GitHub issue, include:
 
 ---
 
-*Version: 1.0* 
+*Version: 1.0*

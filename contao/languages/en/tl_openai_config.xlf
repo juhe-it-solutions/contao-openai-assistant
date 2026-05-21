@@ -23,7 +23,7 @@
                 <source>Model settings</source>
                 <target>Model settings</target>
             </trans-unit>
-            
+
             <!-- Field Labels -->
             <trans-unit id="tl_openai_config.title.0">
                 <source>Configuration Name</source>
@@ -65,15 +65,15 @@
                 <source>Controls randomness in responses (0.0 = deterministic, 2.0 = very random).</source>
                 <target>Controls randomness in responses (0.0 = deterministic, 2.0 = very random).</target>
             </trans-unit>
-            
+
             <!-- Operation Labels -->
             <trans-unit id="tl_openai_config.files">
                 <source>File upload for OpenAI vectore store</source>
                 <target>File upload for OpenAI vectore store</target>
             </trans-unit>
-            <trans-unit id="tl_openai_config.assistants">
-                <source>Assistants</source>
-                <target>Assistants</target>
+            <trans-unit id="tl_openai_config.prompts">
+                <source>Prompts</source>
+                <target>Prompts</target>
             </trans-unit>
 
             <!-- API-key validation -->
@@ -118,10 +118,10 @@
                 <target>Here you can create your OpenAI configuration and enter your API key/Secret Key.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.navigation_message">
-                <source>Use the 2 icons on the right to access file upload and OpenAI assistant setup.</source>
-                <target>Use the 2 icons on the right to access file upload and OpenAI assistant setup.</target>
+                <source>Use the 2 icons on the right to access file upload and OpenAI prompt setup.</source>
+                <target>Use the 2 icons on the right to access file upload and OpenAI prompt setup.</target>
             </trans-unit>
-            
+
             <!-- Single Config Limitation Notice -->
             <trans-unit id="tl_openai_config.single_config_heading">
                 <source>Single Configuration</source>

@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 http://docs.oasis-open.org/xliff/v1.2/os/xliff-core-1.2-strict.xsd">
+    <file source-language="en" target-language="en" datatype="plaintext" original="tl_openai_prompts.xlf">
+        <body>
+            <trans-unit id="tl_openai_prompts.header">
+                <source>OpenAI Prompts</source>
+                <target>OpenAI Prompts</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.intro">
+                <source>Here you can manage the prompt that drives your AI chat: model, instructions, and optional reference to an OpenAI Prompt created in the OpenAI dashboard.</source>
+                <target>Here you can manage the prompt that drives your AI chat: model, instructions, and optional reference to an OpenAI Prompt created in the OpenAI dashboard.</target>
+            </trans-unit>
+            <!-- Field Labels -->
+            <trans-unit id="tl_openai_prompts.name.0">
+                <source>Name</source>
+                <target>Name</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.name.1">
+                <source>Enter an internal name for this prompt.</source>
+                <target>Enter an internal name for this prompt.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.model.0">
+                <source>Model</source>
+                <target>Model</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.model.1">
+                <source>Select the OpenAI model to use. All available models are shown. Model compatibility is validated (via the Responses API) when you save.</source>
+                <target>Select the OpenAI model to use. All available models are shown. Model compatibility is validated (via the Responses API) when you save.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.model_manual.0">
+                <source>Custom Model</source>
+                <target>Custom Model</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.model_manual.1">
+                <source>Enter a custom OpenAI model name (e.g., gpt-4o-mini, gpt-4-turbo-preview). Only use this if you select "Enter Custom Model" above.</source>
+                <target>Enter a custom OpenAI model name (e.g., gpt-4o-mini, gpt-4-turbo-preview). Only use this if you select "Enter Custom Model" above.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.max_tokens.0">
+                <source>Max Output Tokens</source>
+                <target>Max Output Tokens</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.max_tokens.1">
+                <source>Maximum number of output tokens per response (mapped to max_output_tokens on the Responses API).</source>
+                <target>Maximum number of output tokens per response (mapped to max_output_tokens on the Responses API).</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.temperature.0">
+                <source>Temperature</source>
+                <target>Temperature</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.temperature.1">
+                <source>Controls randomness in responses (0.0 = deterministic, 2.0 = very random).</source>
+                <target>Controls randomness in responses (0.0 = deterministic, 2.0 = very random).</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.top_p.0">
+                <source>Top P</source>
+                <target>Top P</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.top_p.1">
+                <source>Controls diversity via nucleus sampling (0.0 = focused, 1.0 = diverse).</source>
+                <target>Controls diversity via nucleus sampling (0.0 = focused, 1.0 = diverse).</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.system_instructions.0">
+                <source>System Instructions</source>
+                <target>System Instructions</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.system_instructions.1">
+                <source>Enter system instructions. Ignored when an OpenAI Prompt ID is set below.</source>
+                <target>Enter system instructions. Ignored when an OpenAI Prompt ID is set below.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.prompt_id.0">
+                <source>OpenAI Prompt ID</source>
+                <target>OpenAI Prompt ID</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.prompt_id.1">
+                <source>Optional. Reference a Prompt created in the OpenAI dashboard (e.g. pmpt_abc123). When set, local System Instructions are ignored and the dashboard prompt text is used. Model and sampling/token settings from this record are still sent.</source>
+                <target>Optional. Reference a Prompt created in the OpenAI dashboard (e.g. pmpt_abc123). When set, local System Instructions are ignored and the dashboard prompt text is used. Model and sampling/token settings from this record are still sent.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.prompt_id_placeholder">
+                <source>pmpt_... (leave empty to use the local instructions above)</source>
+                <target>pmpt_... (leave empty to use the local instructions above)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.prompt_version.0">
+                <source>Prompt Version</source>
+                <target>Prompt Version</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.prompt_version.1">
+                <source>Optional. Pin to a specific version of the dashboard prompt. Leave empty to always use the latest published version.</source>
+                <target>Optional. Pin to a specific version of the dashboard prompt. Leave empty to always use the latest published version.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.prompt_version_placeholder">
+                <source>e.g. 3 (leave empty for latest)</source>
+                <target>e.g. 3 (leave empty for latest)</target>
+            </trans-unit>
+
+            <!-- Legend Labels -->
+            <trans-unit id="tl_openai_prompts.title_legend">
+                <source>Title</source>
+                <target>Title</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.model_legend">
+                <source>Model Settings</source>
+                <target>Model Settings</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.settings_legend">
+                <source>Advanced Settings</source>
+                <target>Advanced Settings</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.instructions_legend">
+                <source>System Instructions</source>
+                <target>System Instructions</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.prompt_legend">
+                <source>OpenAI Dashboard Prompt (optional)</source>
+                <target>OpenAI Dashboard Prompt (optional)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.status_legend">
+                <source>Status</source>
+                <target>Status</target>
+            </trans-unit>
+
+            <!-- Status fields -->
+            <trans-unit id="tl_openai_prompts.status.0">
+                <source>Status</source>
+                <target>Status</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.status.1">
+                <source>Whether this prompt is enabled for the chat module.</source>
+                <target>Whether this prompt is enabled for the chat module.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.status_cause.0">
+                <source>Failure cause</source>
+                <target>Failure cause</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.status_cause.1">
+                <source>Short reason why the last validation failed (if any).</source>
+                <target>Short reason why the last validation failed (if any).</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.status_options.active">
+                <source>Active</source>
+                <target>Active</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.status_options.creating">
+                <source>Creating</source>
+                <target>Creating</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.status_options.failed">
+                <source>Failed</source>
+                <target>Failed</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.status_options.pending">
+                <source>Pending</source>
+                <target>Pending</target>
+            </trans-unit>
+
+            <!-- Operations -->
+            <trans-unit id="tl_openai_prompts.new.0">
+                <source>Create Prompt</source>
+                <target>Create Prompt</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.new.1">
+                <source>Create a new prompt</source>
+                <target>Create a new prompt</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.edit">
+                <source>Edit Prompt</source>
+                <target>Edit Prompt</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.delete">
+                <source>Delete Prompt</source>
+                <target>Delete Prompt</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.show">
+                <source>Show Prompt</source>
+                <target>Show Prompt</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.deleteConfirm">
+                <source>Are you sure you want to delete this prompt? This only affects the local record; nothing is removed from OpenAI.</source>
+                <target>Are you sure you want to delete this prompt? This only affects the local record; nothing is removed from OpenAI.</target>
+            </trans-unit>
+
+            <!-- Welcome Message -->
+            <trans-unit id="tl_openai_prompts.welcome_heading">
+                <source>OpenAI Prompt</source>
+                <target>OpenAI Prompt</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.welcome_message1">
+                <source>Welcome to the OpenAI Prompt screen.</source>
+                <target>Welcome to the OpenAI Prompt screen.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.welcome_message2">
+                <source>Here you can create and manage the prompt that drives your AI chat module.</source>
+                <target>Here you can create and manage the prompt that drives your AI chat module.</target>
+            </trans-unit>
+
+            <!-- Model Selection Info -->
+            <trans-unit id="tl_openai_prompts.model_info_heading">
+                <source>Model Selection Tips</source>
+                <target>Model Selection Tips</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.model_info_dynamic">
+                <source>All Models: All available models from your OpenAI account are shown</source>
+                <target>All Models: All available models from your OpenAI account are shown</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.model_info_custom">
+                <source>Custom Models: Select "Enter Custom Model" to use any OpenAI model</source>
+                <target>Custom Models: Select "Enter Custom Model" to use any OpenAI model</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.model_info_compatibility">
+                <source>Model Validation: Compatibility is checked against the Responses API when you save the prompt.</source>
+                <target>Model Validation: Compatibility is checked against the Responses API when you save the prompt.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.model_info_help">
+                <source>Need Help?</source>
+                <target>Need Help?</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.model_info_link">
+                <source>View all available models on OpenAI Platform</source>
+                <target>View all available models on OpenAI Platform</target>
+            </trans-unit>
+
+            <!-- Form Labels and Placeholders -->
+            <trans-unit id="tl_openai_prompts.model_select_placeholder">
+                <source>-- Select Model --</source>
+                <target>-- Select Model --</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.model_manual_placeholder">
+                <source>e.g., gpt-4o-mini, gpt-4-turbo-preview</source>
+                <target>e.g., gpt-4o-mini, gpt-4-turbo-preview</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.model_manual_option">
+                <source>-- Enter Custom Model --</source>
+                <target>-- Enter Custom Model --</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.model_validation_error">
+                <source>Please enter a custom model name when selecting manual override.</source>
+                <target>Please enter a custom model name when selecting manual override.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.model_required">
+                <source>Please select a model or enter a custom model name.</source>
+                <target>Please select a model or enter a custom model name.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.model_incompatible_error">
+                <source>The model "%s" is not compatible with the Responses API. Please select a different model.</source>
+                <target>The model "%s" is not compatible with the Responses API. Please select a different model.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.no_api_key_error">
+                <source>No API key found in configuration. Please check your OpenAI configuration.</source>
+                <target>No API key found in configuration. Please check your OpenAI configuration.</target>
+            </trans-unit>
+
+            <!-- Single Prompt Limitation Notice -->
+            <trans-unit id="tl_openai_prompts.single_prompt_heading">
+                <source>Single Prompt</source>
+                <target>Single Prompt</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.single_prompt_message">
+                <source>Only one prompt is allowed per configuration. If a prompt already exists for this configuration, you will be redirected to edit it.</source>
+                <target>Only one prompt is allowed per configuration. If a prompt already exists for this configuration, you will be redirected to edit it.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.single_prompt_redirect">
+                <source>Only one prompt is allowed per configuration. You are being redirected to the existing prompt.</source>
+                <target>Only one prompt is allowed per configuration. You are being redirected to the existing prompt.</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

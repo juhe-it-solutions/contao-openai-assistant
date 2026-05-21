@@ -5,6 +5,7 @@ composer.lock
 
 # IDE
 .idea/
+.cursor/
 .vscode/
 *.swp
 *.swo
@@ -134,6 +135,5 @@ composer.json.bak
 .phpunit.cache
 .php-cs-fixer.cache
 
-# Internal planning/design documents
-20260220_I18N-HANDLE_CURRENTLY_HARDCODED_THINGS.md
-20260306_AUTOMATIC-VECTORSTORE-UPDATES.md
+# Internal documentation (not versioned)
+XXX_DOCS_INTERN/

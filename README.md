@@ -8,19 +8,21 @@
 
 ## About
 
-**juhe-it-solutions/contao-openai-assistant** is a comprehensive OpenAI Assistant integration for Contao 5.3+ providing backend management and a modern frontend chatbot. Developed and maintained by [JUHE IT-solutions](https://github.com/juhe-it-solutions), Austria.
+**juhe-it-solutions/contao-openai-assistant** is a comprehensive OpenAI integration for Contao 5.3+ providing backend management and a modern frontend chatbot. Developed and maintained by [JUHE IT-solutions](https://github.com/juhe-it-solutions), Austria.
 
-This extension allows you to create, configure, and deploy AI assistants directly within your Contao CMS, with secure API key management, file uploads, and a customizable frontend chat widget.
+This extension allows you to create, configure, and deploy AI chat experiences directly within your Contao CMS, with secure API key management, file uploads, and a customizable frontend chat widget. It is built on top of the official **OpenAI Responses API** and the **Conversations API** for state management, replacing the legacy Assistants API (which is being sunset by OpenAI in August 2026).
+
+> **⚠️ Upgrading from 1.x?** Version 2.0 is a breaking change: the extension no longer calls the OpenAI Assistants API (`/v1/assistants`, `/v1/threads`). Any OpenAI Assistants that were created by older versions of this extension are automatically cleaned up from the OpenAI platform by a one-shot migration on upgrade. See the [CHANGELOG](CHANGELOG.md) and [Upgrading from 1.x](docs/development/troubleshooting.md#upgrading-from-1x) section.
 
 ## 🎉 A Quick Note from the Developer
 
-Hey folks! 👋 This whole project is my **first attempt** at completely vibing with Contao extension development (crafted in countless nights fueled by coffee ☕ and determination 💪). 
+Hey folks! 👋 This whole project is my **first attempt** at completely vibing with Contao extension development (crafted in countless nights fueled by coffee ☕ and determination 💪).
 
 While I'm super proud of what we've built here, I gotta be honest - I don't have the bandwidth to actively maintain this project.
 
 **Feel free to:**
 - 🐛 Create issues (bugs, feature requests, whatever!)
-- 🔧 Submit pull requests 
+- 🔧 Submit pull requests
 - 💡 Suggest improvements
 - ⭐ Give it a star if you find it useful
 - ☕ [Buy me a coffee](https://buymeacoffee.com/juliuscaesar1) if this extension helps you out!
@@ -31,32 +33,32 @@ While I'm super proud of what we've built here, I gotta be honest - I don't have
 
 ### Backend Management
 - **OpenAI Configuration Management**: Secure API key storage and validation
-- **Assistant Creation & Management**: Create and configure AI assistants with custom instructions
-- **File Upload & Management**: Upload and manage files for assistant knowledge base
+- **Prompt Creation & Management**: Create and configure prompts (name, model, instructions, parameters) used with the Responses API. Optionally reference a dashboard-managed Prompt (`prompt_id` / `prompt_version`) to override local instructions
+- **File Upload & Management**: Upload and manage files for the prompt's knowledge base (File Search tool)
 - **Vector Store Integration**: Automatic creation and management of OpenAI vector stores
-- **Model Selection**: Fast loading of all available OpenAI models with save-time validation
-- **Parameter Configuration**: Fine-tune temperature, top_p, and other assistant parameters
+- **Model Selection**: Fast loading of all available OpenAI models with save-time validation via the Responses API
+- **Parameter Configuration**: Fine-tune temperature, top_p, and `max_output_tokens`
 
 ### Frontend Chatbot
 - **Responsive Chat Interface**: Modern, accessible chat widget
 - **Theme Support**: Light and dark theme with customizable colors
 - **Positioning Options**: Multiple chat widget positions (bottom-right, bottom-left, etc.)
-- **Session Management**: Persistent conversation threads
+- **Session Management**: Persistent conversations via the OpenAI Conversations API
 - **CSRF Protection**: Built-in security with CSRF token validation
 - **Accessibility**: ARIA labels and keyboard navigation support
 - **Disclaimer Feature**: Configurable disclaimer text with information icon in chat header
 
 ### Security & Performance
-- **API Key Encryption**: Secure storage of OpenAI API keys
+- **API Key Encryption**: Secure storage of OpenAI API keys (AES-256-CBC) with optional environment-variable override
 - **Rate Limiting**: Built-in protection against abuse
 - **Error Handling**: Comprehensive error logging and user feedback
-- **Session Management**: Thread-based conversation persistence
+- **Session Management**: Conversation-based persistence (server-side state on OpenAI)
 
 ## 📋 Requirements
 
 - **Contao**: 5.3 or higher (tested with Contao 5.5)
 - **PHP**: 8.2 or higher
-- **OpenAI API Key**: Valid OpenAI API key with Assistants API access
+- **OpenAI API Key**: Valid OpenAI API key with access to the Responses API, Conversations API, Files API, and Vector Stores
 - **Composer**: For installation and dependency management
 
 ## 🚀 Quick Start
@@ -64,7 +66,7 @@ While I'm super proud of what we've built here, I gotta be honest - I don't have
 ### 🛠️ Installation using Contao Manager
 
 The extension can easily be installed using the Contao Manager.
-Just search for the extension with keywords 'openai', 'openai-assistant', 'chatbot',... 
+Just search for the extension with keywords 'openai', 'openai-assistant', 'chatbot',...
 
 ### 🛠️ Installation using composer
 
@@ -85,7 +87,7 @@ php bin/console cache:clear
    - Go to **AI-TOOLS → OpenAI Dashboard**
    - Create OpenAI configuration with your API key
    - Upload knowledge base files
-   - Create your first assistant
+   - Create your first prompt
 
 4. **Add to frontend**:
    - Create AI-Chatbot module in **Layout → Modules**
@@ -132,9 +134,9 @@ Before setting up the extension, you need:
 
 1. **OpenAI Account**: Create an account at [platform.openai.com](https://platform.openai.com)
 2. **Create Project**: e.g. Chatbot for website xyz
-2. **API Key**: Generate a secret key in your OpenAI project
-3. **Assistants API Access**: Ensure your account has access to the Assistants API
-4. **Contao 5.3+**: Ensure you're running Contao 5.3 or higher (recommended: Contao 5.5)
+3. **API Key**: Generate a secret key in your OpenAI project
+4. **Responses API Access**: Ensure your account has access to the Responses API (the default for modern OpenAI accounts)
+5. **Contao 5.3+**: Ensure you're running Contao 5.3 or higher (recommended: Contao 5.5)
 
 ### Step-by-Step Setup Guide
 
@@ -151,17 +153,18 @@ After installing the extension via Contao Manager, you will see a new entry in y
 ##### 1b. Upload Knowledge Base Files
 - Click the **3rd icon "File Upload"**
 - Click **"New file"**
-- Choose files containing website-/company information or other data on which the OpenAI assistant should rely
+- Choose files containing website-/company information or other data the chatbot should rely on
 - Supported formats: PDF, TXT, MD, DOCX, PPTX, JSON
 
-##### 1c. Create OpenAI Assistant
-- In the overview page, click the **4th icon "Assistants"**
-- Click **"Create OpenAI Assistant"**
-- Configure your assistant:
-  - **Name and Description**: Give your assistant a meaningful name
-  - **System Instructions**: Define how the assistant should behave and respond
-  - **Model Selection**: Choose from all available OpenAI models (fast loading, validation on save)
-  - **Parameters**: Adjust temperature, top_p, and other settings as needed
+##### 1c. Create OpenAI Prompt
+- In the overview page, click the **4th icon "Prompts"**
+- Click **"Create OpenAI Prompt"**
+- Configure your prompt:
+  - **Name and Description**: Give your prompt a meaningful name
+  - **System Instructions**: Define how the chatbot should behave and respond
+  - **Model Selection**: Choose from all available OpenAI models (fast loading, validation on save via the Responses API)
+  - **Parameters**: Adjust temperature, top_p, and `max_output_tokens` as needed
+  - **Optional Prompt ID**: If you maintain a Prompt in the OpenAI dashboard (under "Prompts"), you can paste its `prompt_id` (and optionally a `prompt_version`) here. When set, the dashboard-managed prompt takes precedence over the local `System Instructions`
 
 #### 2. Frontend Module Configuration
 
@@ -194,36 +197,47 @@ After installing the extension via Contao Manager, you will see a new entry in y
 
 ### Behind the Scenes
 
-When you configure the extension in Contao, the following happens automatically on the OpenAI platform:
+When you configure the extension in Contao, the following happens:
 
 #### 1. OpenAI Project Setup
 - **Vector Store Creation**: A vector store is automatically created in your OpenAI project under "Storage"
 - **File Processing**: Uploaded files are processed and stored in the vector store
-- **Assistant Creation**: An OpenAI assistant is created in the "Assistants" section with your specified configuration
+- **Prompt Configuration**: Prompts are stored **locally** in the Contao database (`tl_openai_prompts`). There is no remote "Assistant" object anymore — configuration (model, instructions, parameters) is sent to OpenAI on every `POST /v1/responses` call
 
-#### 2. Synchronization Process
-- **One-Way Sync**: All creations, edits, and deletions flow **from Contao backend to OpenAI platform**
-- **Real-Time Updates**: Changes made in Contao are immediately reflected on platform.openai.com
-- **Automatic Management**: The extension handles all API calls and platform interactions
+#### 2. Conversation & State Management
+- **Conversations API**: For every new chat session, a conversation is created via `POST /v1/conversations`. Its id is stored in the user's PHP session
+- **Responses API**: Each user message is delivered to `POST /v1/responses`, attaching the conversation id, the prompt configuration, and the File Search tool (if a vector store is configured)
+- **Server-Side History**: OpenAI keeps the conversation items; the extension retrieves them via `GET /v1/conversations/{id}/items` to rehydrate the chat on page reload
 
 #### 3. File Management
 - **Upload Processing**: Files uploaded in Contao are automatically sent to OpenAI
-- **Vector Store Integration**: Files are indexed and made available to your assistant
-- **Knowledge Base**: The assistant can reference uploaded files when responding to users
+- **Vector Store Integration**: Files are indexed and made available to the File Search tool
+- **Knowledge Base**: The model can reference uploaded files when responding to users
 
-#### 4. Assistant Configuration
-- **System Instructions**: Your defined instructions are applied to the OpenAI assistant
-- **Model Selection**: The chosen model is validated and configured on the platform
-- **Parameters**: Temperature, top_p, and other settings are applied
+#### 4. Prompt Configuration
+- **System Instructions**: Your defined instructions are passed as the `instructions` parameter on each Responses API call
+- **Dashboard Prompt (optional)**: If a `prompt_id` is set, the extension sends a `prompt` reference instead of local instructions
+- **Model Selection**: The chosen model is validated via a minimal `POST /v1/responses` ping on save
+- **Parameters**: `temperature`, `top_p`, and `max_output_tokens` are applied per request
+
+### Prompt Modes (Important)
+
+- **Mode A (default, local):** Create/edit the prompt in Contao backend; it is used for every chat turn.
+- **Mode B (dashboard template):** Create prompt in OpenAI dashboard (**Create -> Chat**) and paste `prompt_id` (+ optional version) in Contao. When `prompt_id` is set, local `System Instructions` are ignored; model and sampling/token settings from Contao are still applied.
 
 ### Important Notes
 
-⚠️ **One-Way Synchronization**: 
-- Changes made in Contao backend → Automatically sync to OpenAI platform
-- Changes made directly on platform.openai.com → **NOT** synced back to Contao
-- Always make changes through the Contao backend for consistency
+⚠️ **Hybrid Ownership**:
+- Prompts, files, and configurations live in the Contao database — they are the source of truth for the extension
+- Vector stores and uploaded files live on the OpenAI platform and are created/deleted on demand
+- Dashboard-managed "Prompts" (optional, via `prompt_id`) live in your OpenAI project and can be edited independently
 
-🔒 **Security**: 
+🔎 **How to verify on OpenAI dashboard**:
+- Go to **Logs -> Responses** and **Logs -> Conversations** and send a test chat message.
+- Open a response entry to inspect effective config (model, max output tokens, temperature, top_p, instructions/prompt reference).
+- For upgraded installations, legacy assistant cleanup can be checked in [Assistants](https://platform.openai.com/assistants).
+
+🔒 **Security**:
 🌐 **Web Root Detection**:
 - The bundle resolves file system paths using the configured Contao web directory parameter `%contao.web_dir%`.
 - If `%contao.web_dir%` is absolute (e.g., `/var/www/project/public`), it is used directly. If it is relative (e.g., `public`), it will be prefixed with `%kernel.project_dir%`.
@@ -263,8 +277,8 @@ The frontend chat widget provides:
 - **Responsive Design**: Works on all device sizes
 - **Theme Toggle**: Switch between light and dark themes
 - **Minimize/Maximize**: Collapsible chat interface
-- **Real-time Responses**: Live AI assistant responses
-- **Message History**: Persistent conversation threads
+- **Real-time Responses**: Live responses streamed from the OpenAI Responses API
+- **Message History**: Persistent conversations via the OpenAI Conversations API
 - **Loading States**: Visual feedback during processing
 
 ### Accessibility
@@ -278,8 +292,8 @@ The frontend chat widget provides:
 
 The extension provides several API endpoints:
 
-- `POST /ai-chat/send` - Send a message to the assistant
-- `GET /ai-chat/history` - Retrieve conversation history
+- `POST /ai-chat/send` - Send a message to the configured prompt (proxied through `POST /v1/responses`)
+- `GET /ai-chat/history` - Retrieve conversation history (proxied through `GET /v1/conversations/{id}/items`)
 - `GET /ai-chat/token` - Get CSRF token for requests
 - `POST /contao/api-key-validate` - Validate OpenAI API key
 
@@ -309,7 +323,7 @@ The extension supports multiple levels of API key security:
 The extension creates three main database tables:
 
 - **`tl_openai_config`**: Stores OpenAI API configurations
-- **`tl_openai_assistants`**: Stores assistant configurations
+- **`tl_openai_prompts`**: Stores prompt configurations (name, instructions, model, parameters, optional dashboard `prompt_id`/`prompt_version`). **Renamed from `tl_openai_assistants` in v2.0** — the migration runs automatically on upgrade.
 - **`tl_openai_files`**: Stores uploaded file metadata
 
 ## 📚 Documentation
@@ -379,9 +393,9 @@ If you discover a security vulnerability, please report it privately via email t
 ## 🙏 Acknowledgments
 
 - **Contao Team**: For the excellent CMS framework
-- **OpenAI**: For the powerful Assistants API
+- **OpenAI**: For the powerful Responses API
 - **Community**: For feedback and contributions
 
 ---
 
-**Note**: This extension requires a valid OpenAI API key with Assistants API access. Please ensure you comply with OpenAI's terms of service and usage policies.
+**Note**: This extension requires a valid OpenAI API key with access to the Responses API and related endpoints (Conversations, Files, Vector Stores). Please ensure you comply with OpenAI's terms of service and usage policies.

@@ -10,7 +10,7 @@
 
 $GLOBALS['BE_MOD']['ai_tools'] = [
     'openai_dashboard' => [
-        'tables' => ['tl_openai_config', 'tl_openai_files', 'tl_openai_assistants'],
+        'tables' => ['tl_openai_config', 'tl_openai_files', 'tl_openai_prompts'],
         'icon'   => 'bundles/contaocore/icons/modules.svg',
     ],
 ];

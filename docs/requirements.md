@@ -9,7 +9,7 @@ This document outlines the system requirements for the Contao OpenAI Assistant B
 - **PHP**: 8.2 or higher
 - **Contao**: 5.0 or higher (tested with Contao 5.5)
 - **Composer**: Latest stable version
-- **OpenAI API**: Valid API key with Assistants API access
+- **OpenAI API**: Valid API key with access to the Responses API, Conversations API, Files API, and Vector Stores
 
 ### Recommended Requirements
 
@@ -41,8 +41,8 @@ This document outlines the system requirements for the Contao OpenAI Assistant B
 
 1. **OpenAI Account**: Valid account at [platform.openai.com](https://platform.openai.com)
 2. **API Access**: Access to OpenAI API
-3. **Assistants API**: Beta access to Assistants API
-4. **File Upload**: Access to file upload functionality
+3. **Responses API & Conversations API**: Default access on modern OpenAI accounts — used at runtime by this extension
+4. **File Upload & Vector Stores**: For the File Search tool / knowledge base
 
 ### API Limits
 
@@ -194,4 +194,4 @@ If you encounter issues with requirements:
 1. Check this documentation
 2. Review [Troubleshooting Guide](development/troubleshooting.md)
 3. Contact support with system information
-4. Check Contao and OpenAI documentation 
+4. Check Contao and OpenAI documentation

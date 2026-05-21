@@ -28,22 +28,23 @@ php bin/console cache:clear
 4. Enter your API key and test connection
 5. Save the configuration
 
-### Step 4: Create Your First Assistant
+### Step 4: Create Your First Prompt
 
-1. In the OpenAI Dashboard, click **Assistants**
-2. Click **New** to create assistant
+1. In the OpenAI Dashboard, click **Prompts**
+2. Click **New** to create a prompt
 3. Fill in:
-   - **Name**: "My First Assistant"
+   - **Name**: "My First Prompt"
    - **Instructions**: "You are a helpful assistant for my website."
-   - **Model**: Choose GPT-4o or GPT-4o-mini
-4. Save the assistant
+   - **Model**: Choose GPT-4o, GPT-4o-mini, or GPT-4.1
+4. *(Optional)* Paste a `prompt_id` from the OpenAI dashboard if you'd rather manage instructions centrally
+5. Save the prompt
 
 ### Step 5: Add Chatbot to Your Website
 
 1. Go to **Layout → Modules**
 2. Click **New** and select **KI-Chatbot**
 3. Configure:
-   - **Assistant**: Select your created assistant
+   - **Prompt**: Select your created prompt
    - **Position**: Bottom-right
    - **Theme**: Light or dark
 4. Save the module
@@ -62,7 +63,7 @@ Your chatbot should now appear on your website! Users can:
 
 1. In OpenAI Dashboard, go to **Files**
 2. Upload PDF, DOCX, or TXT files
-3. The assistant will use these for more accurate responses
+3. The prompt will use these via the File Search tool for more accurate responses
 
 ### Customize Appearance
 
@@ -88,8 +89,8 @@ Your chatbot should now appear on your website! Users can:
 - Check for extra spaces
 - Verify key is valid in OpenAI platform
 
-### Assistant Not Responding
-- Check assistant is set to "active"
+### Prompt Not Responding
+- Check the prompt is set to "active"
 - Verify API key has sufficient credits
 - Test connection in backend
 
@@ -98,8 +99,8 @@ Your chatbot should now appear on your website! Users can:
 - **[Full Installation Guide](installation.md)** - Detailed setup instructions
 - **[OpenAI Setup](configuration/openai-setup.md)** - Complete API configuration
 - **[Troubleshooting](development/troubleshooting.md)** - Common issues and solutions
-- **[Configuration Guide](configuration/assistants.md)** - Advanced assistant setup
+- **[Configuration Guide](configuration/prompts.md)** - Advanced prompt setup
 
 ## 🎉 Congratulations!
 
-You've successfully set up an AI-powered chatbot for your Contao website! The bundle provides a solid foundation that you can build upon with customizations and additional features. 
+You've successfully set up an AI-powered chatbot for your Contao website! The bundle provides a solid foundation that you can build upon with customizations and additional features.

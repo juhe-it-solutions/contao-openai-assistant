@@ -12,15 +12,59 @@ declare(strict_types=1);
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Service;
 
+use Doctrine\DBAL\Connection;
 use Psr\Log\LoggerInterface;
 
 class EncryptionService
 {
-    private LoggerInterface $logger;
+    public function __construct(
+        private readonly LoggerInterface $logger,
+        private readonly ?Connection $connection = null,
+        private readonly ?string $projectDir = null,
+        private readonly ?string $webDir = null
+    ) {
+    }
 
-    public function __construct(LoggerInterface $logger)
+    /**
+     * Resolve the API key for a given config ID.
+     *
+     * Precedence:
+     *   1. Environment variable OPENAI_API_KEY_{configId}
+     *   2. Database (tl_openai_config.api_key), encrypted or legacy base64
+     *
+     * Returns null when no usable key is available or the stored key fails validation.
+     */
+    public function getApiKeyForConfig(int $configId, bool $logInvalidFormat = true): ?string
     {
-        $this->logger = $logger;
+        $envKey = sprintf('OPENAI_API_KEY_%d', $configId);
+        if (isset($_ENV[$envKey]) && $_ENV[$envKey] !== '') {
+            $candidate = (string) $_ENV[$envKey];
+            if ($this->isValidApiKeyFormat($candidate)) {
+                return $candidate;
+            }
+        }
+
+        if (isset($_ENV['OPENAI_API_KEY']) && $_ENV['OPENAI_API_KEY'] !== '') {
+            $candidate = (string) $_ENV['OPENAI_API_KEY'];
+            if ($this->isValidApiKeyFormat($candidate)) {
+                return $candidate;
+            }
+        }
+
+        if ($this->connection === null) {
+            return null;
+        }
+
+        $row = $this->connection->fetchAssociative(
+            'SELECT api_key FROM tl_openai_config WHERE id = ?',
+            [$configId]
+        );
+
+        if (! $row || empty($row['api_key'])) {
+            return null;
+        }
+
+        return $this->processApiKey((string) $row['api_key'], $logInvalidFormat);
     }
 
     /**
@@ -56,17 +100,25 @@ class EncryptionService
     public function decryptApiKey(string $encryptedData): ?string
     {
         try {
-            $key    = $this->getEncryptionKey();
             $method = 'aes-256-cbc';
 
             $data      = base64_decode($encryptedData, true);
+            if ($data === false) {
+                return null;
+            }
+
             $ivLength  = openssl_cipher_iv_length($method);
             $iv        = substr($data, 0, $ivLength);
             $encrypted = substr($data, $ivLength);
 
-            $decrypted = openssl_decrypt($encrypted, $method, $key, 0, $iv);
+            foreach ($this->getEncryptionKeyCandidates() as $key) {
+                $decrypted = openssl_decrypt($encrypted, $method, $key, 0, $iv);
+                if ($decrypted !== false && $this->isValidApiKeyFormat($decrypted)) {
+                    return $decrypted;
+                }
+            }
 
-            return $decrypted !== false ? $decrypted : null;
+            return null;
         } catch (\Exception $e) {
             $this->logger->error('Failed to decrypt API key: ' . $e->getMessage());
 
@@ -77,7 +129,7 @@ class EncryptionService
     /**
      * Process API key - decrypt if encrypted, decode if base64
      */
-    public function processApiKey(string $storedApiKey): ?string
+    public function processApiKey(string $storedApiKey, bool $logInvalidFormat = true): ?string
     {
         if (empty($storedApiKey)) {
             return null;
@@ -93,10 +145,11 @@ class EncryptionService
         }
 
         if (! $apiKey || ! $this->isValidApiKeyFormat($apiKey)) {
-            $this->logger->error('Invalid API key format detected', [
-                'api_key_length' => strlen($storedApiKey),
-                'api_key_prefix' => substr($storedApiKey, 0, 10),
-            ]);
+            if ($logInvalidFormat) {
+                $this->logger->error('Invalid API key format detected', [
+                    'api_key_length' => strlen($storedApiKey),
+                ]);
+            }
 
             return null;
         }
@@ -123,5 +176,154 @@ class EncryptionService
         }
 
         return false;
+    }
+
+    /**
+     * Build candidate encryption keys so CLI migrations can still decrypt keys
+     * that were encrypted in web context (different SERVER_NAME/DOCUMENT_ROOT).
+     *
+     * @return array<int, string>
+     */
+    private function getEncryptionKeyCandidates(): array
+    {
+        $keys = [
+            $this->getEncryptionKey(),
+        ];
+
+        $hosts = $this->getHostCandidates();
+        $roots = $this->getDocumentRootCandidates();
+
+        foreach ($hosts as $host) {
+            foreach ($roots as $root) {
+                $keys[] = hash('sha256', $host . $root, true);
+            }
+        }
+
+        return array_values(array_unique($keys));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function getHostCandidates(): array
+    {
+        $hosts = [
+            (string) ($_SERVER['SERVER_NAME'] ?? ''),
+            (string) ($_SERVER['HTTP_HOST'] ?? ''),
+        ];
+
+        $appUrl = (string) ($_ENV['APP_URL'] ?? '');
+        if ($appUrl !== '') {
+            $host = (string) (parse_url($appUrl, PHP_URL_HOST) ?: '');
+            if ($host !== '') {
+                $hosts[] = $host;
+            }
+        }
+
+        if ($this->connection !== null) {
+            try {
+                $rows = $this->connection->fetchFirstColumn('SELECT dns FROM tl_page WHERE dns IS NOT NULL AND dns <> ""');
+                foreach ($rows as $dns) {
+                    $host = trim((string) $dns);
+                    if ($host !== '') {
+                        $hosts[] = $host;
+                    }
+                }
+            } catch (\Throwable) {
+                // tl_page may not exist during early install/migration phases.
+            }
+        }
+
+        $hosts = array_values(array_filter(array_unique($hosts), static fn (string $v): bool => $v !== ''));
+        if ($hosts === []) {
+            $hosts[] = 'localhost';
+        }
+
+        return $hosts;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function getDocumentRootCandidates(): array
+    {
+        $roots = [
+            (string) ($_SERVER['DOCUMENT_ROOT'] ?? ''),
+            '/',
+        ];
+
+        if ($this->projectDir !== null && $this->projectDir !== '') {
+            $roots[] = rtrim($this->projectDir, '/');
+        }
+
+        if ($this->projectDir !== null && $this->projectDir !== '' && $this->webDir !== null && $this->webDir !== '') {
+            $resolvedWebDir = str_starts_with($this->webDir, '/')
+                ? $this->webDir
+                : rtrim($this->projectDir, '/') . '/' . ltrim($this->webDir, '/');
+            $roots[] = rtrim($resolvedWebDir, '/');
+        }
+
+        // Older installs sometimes rotate release folders (e.g. contao56 -> contao57).
+        // Include neighboring numeric path variants to preserve decryption compatibility.
+        $expandedRoots = [];
+        foreach ($roots as $root) {
+            $root = rtrim($root, '/');
+            if ($root === '') {
+                continue;
+            }
+
+            $expandedRoots[] = $root;
+
+            $resolved = realpath($root);
+            if ($resolved !== false) {
+                $expandedRoots[] = rtrim($resolved, '/');
+            }
+
+            foreach ($this->getLegacyPathVariants($root) as $variant) {
+                $expandedRoots[] = $variant;
+            }
+        }
+
+        return array_values(array_filter(array_unique($expandedRoots), static fn (string $v): bool => $v !== ''));
+    }
+
+    /**
+     * Create path variants by decrementing numeric suffixes in path segments.
+     * Example: /var/www/contao57/web -> /var/www/contao56/web
+     *
+     * @return array<int, string>
+     */
+    private function getLegacyPathVariants(string $path): array
+    {
+        $trimmed = rtrim($path, '/');
+        if ($trimmed === '') {
+            return [];
+        }
+
+        $leadingSlash = str_starts_with($trimmed, '/');
+        $segments     = array_values(array_filter(explode('/', ltrim($trimmed, '/')), static fn (string $v): bool => $v !== ''));
+        $variants     = [];
+
+        foreach ($segments as $index => $segment) {
+            if (! preg_match('/^(.*?)(\d+)$/', $segment, $matches)) {
+                continue;
+            }
+
+            $number = (int) $matches[2];
+            if ($number <= 0) {
+                continue;
+            }
+
+            $altSegments         = $segments;
+            $altSegments[$index] = $matches[1] . (string) ($number - 1);
+            $variant             = implode('/', $altSegments);
+            if ($leadingSlash) {
+                $variant = '/' . $variant;
+            }
+
+            $variants[] = $variant;
+        }
+
+        return array_values(array_unique($variants));
     }
 }

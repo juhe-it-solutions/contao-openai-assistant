@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-04-16
+
+> ⚠️ **Breaking change release.** This version replaces the OpenAI Assistants API (which OpenAI is sunsetting on **August 26, 2026**) with the **Responses API** and **Conversations API**. The upgrade is automated via two migrations (table rename + orphan cleanup), but there is no downgrade path back to 1.x because remote OpenAI Assistants are deleted during the upgrade. See the [Upgrading from 1.x](docs/development/troubleshooting.md#upgrading-from-1x) section for details.
+
+### Added
+- New `tl_openai_prompts.prompt_id` (VARCHAR 128) and `tl_openai_prompts.prompt_version` (VARCHAR 32) columns: you can optionally reference a prompt managed in the OpenAI dashboard. When set, the dashboard-managed prompt overrides the local `Instructions` field.
+- New `src/Service/OpenAiResponder.php` service that encapsulates the Responses API runtime: creating conversations, sending messages, retrieving conversation items, and clearing sessions.
+- New `src/Service/EncryptionService.php` centralises API key encrypt/decrypt/validate logic. Supports `OPENAI_API_KEY_{configId}` environment variable override via `getApiKeyForConfig()`.
+- Conversation history retrieval for the frontend chatbot: chat state is rehydrated from `GET /v1/conversations/{id}/items` on page reload instead of relying on `/v1/threads/{id}/messages`.
+- Full German + English localisation for the new "Prompts" terminology and the new `prompt_id` / `prompt_version` fields.
+
+### Changed
+- Runtime migrated from `POST /v1/threads/{id}/runs` to `POST /v1/responses`. Each request carries the conversation id, the prompt configuration (model, instructions or `prompt` reference, `temperature`, `top_p`, `max_output_tokens`), and the File Search tool when a vector store is attached.
+- Session storage key renamed from `openai_thread_id` to `openai_conversation_id`. Legacy `openai_thread_id` keys are silently unset on first request after upgrade.
+- `OpenAiPromptsListener::validateModelViaApi()` now validates model compatibility by sending a minimal `POST /v1/responses` ping (`input: "ping"`, `max_output_tokens: 16`, `store: false`) instead of creating and deleting a temporary Assistant.
+- Database table `tl_openai_assistants` renamed to `tl_openai_prompts` (migration `Version20260416000000RenamePromptsTable`).
+- Backend DCA, language files, and navigation labels now say "Prompts" instead of "Assistants".
+- `OpenAiConfigListener::deleteVectorStore()` no longer deletes remote Assistants when a config is removed; prompts are purely local now. Vector-store-and-files cascade cleanup is unchanged.
+- Listener service renamed: `OpenAiAssistantsListener` → `OpenAiPromptsListener`. DCA callback tags updated to target `tl_openai_prompts`.
+- `OpenAiFilesListener` no longer sends the `OpenAI-Beta: assistants=v2` header on `DELETE /v1/files/{id}` calls (it's only kept on vector store endpoints that still require it).
+
+### Removed
+- All runtime calls to the OpenAI Assistants API:
+  - `POST /v1/assistants`
+  - `POST /v1/assistants/{id}`
+  - `DELETE /v1/assistants/{id}` *(still used once by the cleanup migration — last allowed usage)*
+  - `POST /v1/threads`, `POST /v1/threads/{id}/messages`, `POST /v1/threads/{id}/runs`, `GET /v1/threads/{id}/messages`
+- `src/Service/OpenAiAssistant.php` is no longer the runtime implementation; a deprecated BC shim now forwards to `OpenAiResponder` to keep 1.x custom integrations working until 2.1.
+- The "Sync with OpenAI" button and related `createOrUpdateAssistant` / `deleteAssistant` DCA actions — prompts are local and do not need remote synchronisation.
+- `config.onsubmit` / `config.ondelete` DCA callbacks that previously created / deleted remote Assistants.
+
+### Migrated
+- **Orphan Assistant cleanup** (`Version20260416000001CleanupOrphanAssistants`): on upgrade, every `tl_openai_prompts` row with a non-empty `openai_assistant_id` triggers a `DELETE /v1/assistants/{id}` on the OpenAI platform (still authorised for cleanup during the sunset window). The local `openai_assistant_id` column is then cleared. HTTP 2xx / 404 / 410 / 401 are all treated as "gone". The migration never throws on HTTP errors and writes a summary (`deleted` / `skipped` / `failed` counts) into the migration result.
+- Database table rename + new columns (`Version20260416000000RenamePromptsTable`): idempotent, re-runnable safely.
+
+### Notes
+- Users with active chat sessions at upgrade time will see a fresh, empty conversation on their next message — the legacy thread ids were session-scoped in v1.x anyway.
+- Runtime API key resolution prefers `OPENAI_API_KEY_{configId}` over DB-encrypted keys. (The one-time orphan cleanup migration reads the DB-stored key for 1.x compatibility.)
+- **Important for upgrades from 1.x:** The orphan-assistant cleanup runs in CLI context. If no valid API key can be resolved there (e.g. encrypted key cannot be decrypted in that environment), the migration still clears local legacy references but cannot remove the remote Assistant. In that case, any already existing "OpenAI assistant" must be deleted manually in the OpenAI platform dashboard.
+- No changes to files, vector stores, or uploaded documents — these continue to live on OpenAI's platform and keep working with the File Search tool.
+
 ## [1.1.3] - 2026-03-04
 
 ### Fixed
@@ -180,4 +221,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Secure file upload handling
 
 - Environment variable support for API keys
-

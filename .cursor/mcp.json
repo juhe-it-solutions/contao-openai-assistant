@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "contao-knowledgebase": {
-      "command": "node",
-      "args": ["/home/julle/projects/contao/contao-knowledgebase/mcp-server/index.js"],
-      "cwd": "/home/julle/projects/contao/contao-knowledgebase"
-    }
-  }
-}

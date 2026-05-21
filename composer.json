@@ -1,6 +1,6 @@
 {
   "name": "juhe-it-solutions/contao-openai-assistant",
-  "description": "OpenAI Assistant integration for Contao CMS",
+  "description": "OpenAI Responses API integration for Contao CMS",
   "type": "contao-bundle",
   "homepage": "https://www.juhe-it-solutions.at",
   "license": "LGPL-3.0-or-later",
@@ -8,6 +8,7 @@
     {
       "name": "JUHE IT-solutions",
       "email": "office@juhe-it-solutions.at",
+      "homepage": "https://www.juhe-it-solutions.at",
       "role": "Developer"
     }
   ],
