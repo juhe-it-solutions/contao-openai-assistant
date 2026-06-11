@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-06-11
+
+### Fixed
+- **Frontend chat links:** Improved chatbot message link rendering for Markdown links, angle-bracket URLs, `www.` links, `mailto:` and `tel:` links, and URLs containing query strings, fragments, or balanced parentheses. Autolinking now avoids modifying already-rendered anchors and keeps trailing sentence punctuation outside clickable links.
+
 ## [2.0.0] - 2026-04-16
 
 > ⚠️ **Breaking change release.** This version replaces the OpenAI Assistants API (which OpenAI is sunsetting on **August 26, 2026**) with the **Responses API** and **Conversations API**. The upgrade is automated via two migrations (table rename + orphan cleanup), but there is no downgrade path back to 1.x because remote OpenAI Assistants are deleted during the upgrade. See the [Upgrading from 1.x](docs/development/troubleshooting.md#upgrading-from-1x) section for details.

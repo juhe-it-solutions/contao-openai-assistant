@@ -404,8 +404,66 @@ function initAiChat(wrapper) {
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/`(.*?)`/g, '<code>$1</code>')
       .replace(/\n/g, '<br>')
-      .replace(/\.\./g, '.')  // Replace double dots with single dot
       .trim();
+
+    const replaceOutsideAnchors = (html, replacer) => html
+      .split(/(<a\b[^>]*>.*?<\/a>)/gi)
+      .map(part => /^<a\b/i.test(part) ? part : replacer(part))
+      .join('');
+    const sanitizeUrl = (url) => (url || '').replace(/[<>]/g, '');
+    const countChar = (value, char) => value.split(char).length - 1;
+    const splitTrailingUrlPunctuation = (url) => {
+      let clean = url;
+      let trailing = '';
+      while (/[.,!?;:]+$/.test(clean)) {
+        trailing = clean.slice(-1) + trailing;
+        clean = clean.slice(0, -1);
+      }
+
+      const pairs = {')': '(', ']': '[', '}': '{'};
+      while (/[)\]}]$/.test(clean)) {
+        const close = clean.slice(-1);
+        if (countChar(clean, close) <= countChar(clean, pairs[close])) break;
+        trailing = close + trailing;
+        clean = clean.slice(0, -1);
+      }
+
+      return {clean, trailing};
+    };
+    const buildExternalLink = (url, hrefPrefix = '') => {
+      const {clean, trailing} = splitTrailingUrlPunctuation(sanitizeUrl(url));
+      return clean ? `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener">${clean}</a>${trailing}` : url;
+    };
+    const buildMarkdownLink = (text, url) => {
+      const clean = sanitizeUrl(url);
+      if (!clean) return `[${text}](${url})`;
+
+      const hrefPrefix = clean.toLowerCase().startsWith('www.') ? 'https://' : '';
+      return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener">${text}</a>`;
+    };
+
+    // Render explicit Markdown links before bare URL autolinking.
+    // Supports [text](url), [text](<url>), optional titles, and balanced parentheses in URLs.
+    result = replaceOutsideAnchors(result, text => text.replace(
+      /(^|[^!])\[([^\]]+)\]\(\s*(?:<((?:https?:\/\/|www\.|mailto:|tel:)[^<>\s]+)>|((?:https?:\/\/|www\.|mailto:|tel:)(?:[^\s()<>"']|\([^\s()]*\))+))\s*(?:"[^"]*"|'[^']*'|\([^)]*\))?\s*\)/gi,
+      (_, prefix, linkText, angledUrl, plainUrl) => prefix + buildMarkdownLink(linkText, angledUrl || plainUrl)
+    ));
+
+    // URLs wrapped in angle brackets, e.g. <https://example.com>.
+    result = replaceOutsideAnchors(result, text => text.replace(
+      /<((?:https?:\/\/|www\.)[^<>\s]+)>/gi,
+      (_, url) => buildExternalLink(url, url.toLowerCase().startsWith('www.') ? 'https://' : '')
+    ));
+
+    // Explicit mailto/tel links before generic email/phone autolinking.
+    result = replaceOutsideAnchors(result, text => text.replace(
+      /(^|[^\w"=])(mailto:[^\s<>"']+@[^\s<>"']+)/gi,
+      (_, prefix, href) => `${prefix}<a href="${sanitizeUrl(href)}">${sanitizeUrl(href.replace(/^mailto:/i, ''))}</a>`
+    ));
+    result = replaceOutsideAnchors(result, text => text.replace(
+      /(^|[^\w"=])(tel:\+?[\d\s().-]{7,})/gi,
+      (_, prefix, href) => `${prefix}<a href="${sanitizeUrl(href.replace(/\s/g, ''))}">${sanitizeUrl(href.replace(/^tel:/i, ''))}</a>`
+    ));
 
     // Simple and bulletproof fix for duplicate URLs and square brackets
     // Step 1: Remove square brackets around links
@@ -417,27 +475,20 @@ function initAiChat(wrapper) {
     result = result.replace(/(<a[^>]*>.*?<\/a>).*?\1/g, '$1');
 
     // Make URLs clickable (only if they're not already in <a> tags).
-    // Sanitize URL: never include < or > in href or link text (can break links).
-    const sanitizeUrl = (url) => (url || '').replace(/[<>]/g, '');
-    // URLs mit http/https, ohne nachfolgende Satzzeichen
-    result = result.replace(
-      /(?<!<a[^>]*>)(https?:\/\/[^\s\)\]\}\>,!?:;"]+)([.,!?:;)\]]?)(?!<\/a>)/g,
-      (_, url, trailing) => {
-        const clean = sanitizeUrl(url);
-        return clean ? `<a href="${clean}" target="_blank">${clean}</a>${trailing || ''}` : _;
-      }
-    );
-    // URLs mit www., ohne nachfolgende Satzzeichen
-    result = result.replace(
-      /(?<!<a[^>]*>)(?<!\/)(www\.[^\s\)\]\}\>,!?:;"]+)([.,!?:;)\]]?)(?!<\/a>)/g,
-      (_, url, trailing) => {
-        const clean = sanitizeUrl(url);
-        return clean ? `<a href="https://${clean}" target="_blank">${clean}</a>${trailing || ''}` : _;
-      }
-    );
+    // Keep query strings/fragments intact, then peel off sentence punctuation.
+    // URLs mit http/https
+    result = replaceOutsideAnchors(result, text => text.replace(
+      /https?:\/\/[^\s<>"']+/g,
+      url => buildExternalLink(url)
+    ));
+    // URLs mit www.
+    result = replaceOutsideAnchors(result, text => text.replace(
+      /(^|[^\w/])((?:www\.)[^\s<>"']+)/g,
+      (_, prefix, url) => prefix + buildExternalLink(url, 'https://')
+    ));
 
     // Make phone numbers clickable, keeping optional "+" at the start
-    result = result.replace(/(\+?[\d\s\(\)\-]{7,})/g, match => {
+    result = replaceOutsideAnchors(result, text => text.replace(/(\+?[\d\s\(\)\-]{7,})/g, match => {
       // Prüfe, ob die Nummer mit "+" beginnt
       const hasPlus = match.trim().startsWith('+');
       // Extrahiere nur Ziffern (und ggf. das Plus)
@@ -448,30 +499,16 @@ function initAiChat(wrapper) {
       // Nur als Link, wenn mindestens 7 Ziffern vorhanden sind
       if (telLink.replace(/\D/g, '').length < 7) return match;
       return `<a href="tel:${telLink}">${match}</a>`;
-    });
+    }));
 
     // Make email addresses clickable
-    result = result.replace(/([\w.-]+@[\w.-]+\.\w+)/g, '<a href="mailto:$1">$1</a>');
+    result = replaceOutsideAnchors(result, text => text.replace(/([\w.-]+@[\w.-]+\.\w+)/g, '<a href="mailto:$1">$1</a>'));
 
-    // Remove trailing dots from link text (dot before </a>)
-    result = result.replace(/(<a[^>]*>.*?)\.(<\/a>)/g, '$1$2');
-
-    // Sanitize href: strip < and > and trailing dots (all links, including from model)
-    // Trailing-dot strip ensures href never ends with a dot (e.g. https://abc.tld/page.html.)
-    result = result.replace(/href="([^"]*)"/g, (_, val) => 'href="' + (val || '').replace(/[<>]/g, '').replace(/\.+$/, '') + '"');
+    // Sanitize href: strip < and > (all links, including from model)
+    result = result.replace(/href="([^"]*)"/g, (_, val) => 'href="' + (val || '').replace(/[<>]/g, '') + '"');
 
     // Remove stray ">" immediately after </a> (e.g. from "https://example.com>" or angle-bracket notation like <https://example.com>)
     result = result.replace(/<\/a>>/g, '</a>');
-
-    // Fix LLM bug: strip trailing "br" from http(s) links only (mailto/tel unchanged). Match full <a href="http...">text</a>
-    result = result.replace(
-      /(<a\s+[^>]*href=")(https?:\/\/[^"]+)("[^>]*>)([^<]*)(<\/a>)/g,
-      (_, open1, url, open2, text, close) => {
-        if (url.endsWith('br')) url = url.slice(0, -2);
-        if (text.endsWith('br')) text = text.slice(0, -2);
-        return open1 + url + open2 + text + close;
-      }
-    );
 
     // Remove exclamation mark + dot combinations
     result = result.replace(/!\./g, '!');
