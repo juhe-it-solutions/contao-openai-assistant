@@ -1,4 +1,12 @@
 # config/routes.yaml
+vector_store_auto_update:
+    path: '%contao.backend.route_prefix%/vector-store-auto-update'
+    controller: JuheItSolutions\ContaoOpenaiAssistant\Controller\BackendModule\VectorStoreAutoUpdateController
+    methods: [GET, POST]
+    defaults:
+        _scope: backend
+        _token_check: true
+
 contao_api_key_validate:
     path: /contao/api-key-validate
     controller: JuheItSolutions\ContaoOpenaiAssistant\Controller\ApiValidationController::validateApiKey

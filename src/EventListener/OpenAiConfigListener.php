@@ -20,12 +20,18 @@ use Contao\Environment;
 use Contao\System;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class OpenAiConfigListener
 {
+    /**
+     * Rendered in place of a stored license key; posted back verbatim when the admin leaves it untouched.
+     */
+    private const LICENSE_KEY_MASK = '••••••••••••••••';
+
     public function __construct(
         private readonly HttpClientInterface $httpClient,
         private readonly LoggerInterface $logger,
@@ -33,8 +39,120 @@ class OpenAiConfigListener
         private readonly string $csrfTokenName,
         private readonly RequestStack $requestStack,
         private readonly Connection $connection,
-        private readonly EncryptionService $encryption
+        private readonly EncryptionService $encryption,
+        private readonly LicenseValidationService $licenseValidation
     ) {
+    }
+
+    /**
+     * load_callback: never expose the stored ciphertext (or the plaintext). Show a
+     * fixed mask when a key exists, empty when it does not.
+     */
+    public function processLicenseKeyForDisplay($value, $dc = null): string
+    {
+        return $value ? self::LICENSE_KEY_MASK : '';
+    }
+
+    /**
+     * save_callback: encrypt a newly entered key; keep the existing one when the
+     * mask is posted back unchanged; clear when the field is emptied.
+     *
+     * Returns the value to STORE (ciphertext), so the DB only ever holds encrypted keys.
+     */
+    public function processLicenseKeyForStorage($value, $dc): string
+    {
+        $posted   = trim((string) $value);
+        $existing = (string) ($dc->activeRecord->premium_license_key ?? ''); // already encrypted
+
+        // Unchanged — admin left the mask in place.
+        if ($posted === self::LICENSE_KEY_MASK) {
+            return $existing;
+        }
+
+        // Cleared.
+        if ($posted === '') {
+            return '';
+        }
+
+        // New key entered — validate format before encrypting.
+        if (! $this->encryption->isValidLicenseKeyFormat($posted)) {
+            \Contao\Message::addError('Invalid license key format. Expected "JH-AI-…". The previous key was kept.');
+
+            return $existing; // do not overwrite a good key with a malformed one
+        }
+
+        return $this->encryption->encryptLicenseKey($posted);
+    }
+
+    /**
+     * config.onsubmit: after the row is saved, validate the key against the licence
+     * server so the status badge is correct on redirect. Reads the PLAINTEXT from
+     * $_POST (the save callback has already stored the encrypted form).
+     */
+    public function validatePremiumLicenseOnSave(DataContainer $dc): void
+    {
+        if (! $dc->id) {
+            return;
+        }
+
+        $posted = trim((string) ($_POST['premium_license_key'] ?? ''));
+
+        // Unchanged — keep cached status, no network call.
+        if ($posted === self::LICENSE_KEY_MASK) {
+            return;
+        }
+
+        // Cleared — reset cached status, but only when there was prior license state.
+        // This keeps the non-premium save path completely free of extra DB writes.
+        if ($posted === '') {
+            $record   = $dc->activeRecord;
+            $hadState = $record && (
+                ($record->premium_license_key ?? '') !== ''
+                || ($record->premium_license_status ?? '') !== ''
+                || (int) ($record->premium_license_checked_at ?? 0) > 0
+            );
+
+            if ($hadState) {
+                $this->connection->executeStatement(
+                    'UPDATE tl_openai_config SET premium_license_status = ?, premium_license_valid_until = 0, premium_license_checked_at = 0 WHERE id = ?',
+                    ['', (int) $dc->id]
+                );
+            }
+
+            return;
+        }
+
+        // Malformed keys never reach the endpoint (already rejected in the save callback).
+        if (! $this->encryption->isValidLicenseKeyFormat($posted)) {
+            return;
+        }
+
+        $active = $this->licenseValidation->revalidate((int) $dc->id, $posted);
+
+        if ($active) {
+            \Contao\Message::addConfirmation('Premium license validated successfully.');
+        } else {
+            \Contao\Message::addError('Premium license key is invalid or inactive. Auto-update sync will not run until a valid key is entered.');
+        }
+    }
+
+    /**
+     * options_callback for auto_update_site_root (blank option = auto-detect single root).
+     *
+     * @return array<int, string>
+     */
+    public function getSiteRootOptions($dc = null): array
+    {
+        $roots = $this->connection->fetchAllAssociative(
+            "SELECT id, title, dns FROM tl_page WHERE type = 'root' AND dns != '' ORDER BY title"
+        );
+
+        $options = [];
+        foreach ($roots as $root) {
+            $options[(int) $root['id']] = $root['title'] . ' (' . $root['dns'] . ')';
+        }
+
+        return $options;
     }
 
     public function processApiKeyForStorage($value, $dc): string

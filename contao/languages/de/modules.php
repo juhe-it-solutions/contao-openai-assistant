@@ -16,6 +16,9 @@ $GLOBALS['TL_LANG']['MOD']['ai_chat']            = 'KI-Chatbot';
 $GLOBALS['TL_LANG']['MOD']['openai_dashboard']   = ['OpenAI Dashboard', 'Verwalten Sie OpenAI-Konfigurationen, Dateien und Prompts'];
 $GLOBALS['TL_LANG']['MOD']['openai_dashboard.0'] = 'OpenAI Dashboard';
 $GLOBALS['TL_LANG']['MOD']['openai_dashboard.1'] = 'Verwalten Sie OpenAI-Konfigurationen, Dateien und Prompts';
+$GLOBALS['TL_LANG']['MOD']['vector_store_auto_update']   = ['Vector-Store-Auto-Update', 'Status, Protokoll und manueller Auslöser für die automatische Synchronisierung'];
+$GLOBALS['TL_LANG']['MOD']['vector_store_auto_update.0'] = 'Vector-Store-Auto-Update';
+$GLOBALS['TL_LANG']['MOD']['vector_store_auto_update.1'] = 'Status, Protokoll und manueller Auslöser für die automatische Synchronisierung';
 
 // Module group (used in module creation)
 $GLOBALS['TL_LANG']['FMD']['ai_tools'] = 'KI-Tools';

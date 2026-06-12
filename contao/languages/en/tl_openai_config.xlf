@@ -135,6 +135,74 @@
                 <source>Only one OpenAI configuration is allowed. You are being redirected to the existing configuration.</source>
                 <target>Only one OpenAI configuration is allowed. You are being redirected to the existing configuration.</target>
             </trans-unit>
+
+            <!-- Premium license -->
+            <trans-unit id="tl_openai_config.premium_legend">
+                <source>Premium License</source>
+                <target>Premium License</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_key.0">
+                <source>License key</source>
+                <target>License key</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_key.1">
+                <source>Enter the license key you received after purchase at licenses.juhe-it-solutions.at. Stored encrypted. Leave the masked value unchanged to keep the current key; clear the field to remove it.</source>
+                <target>Enter the license key you received after purchase at licenses.juhe-it-solutions.at. Stored encrypted. Leave the masked value unchanged to keep the current key; clear the field to remove it.</target>
+            </trans-unit>
+
+            <!-- Automatic vector store sync -->
+            <trans-unit id="tl_openai_config.auto_update_legend">
+                <source>Automatic vector store sync</source>
+                <target>Automatic vector store sync</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_enabled.0">
+                <source>Enable automatic sync</source>
+                <target>Enable automatic sync</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_enabled.1">
+                <source>Periodically crawl the website and update the vector store document. Requires an active premium license.</source>
+                <target>Periodically crawl the website and update the vector store document. Requires an active premium license.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule.0">
+                <source>Schedule (cron expression)</source>
+                <target>Schedule (cron expression)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule.1">
+                <source>When to run, e.g. "0 2 * * *" (daily at 02:00). Requires a real server cron running "contao:cron" every minute.</source>
+                <target>When to run, e.g. "0 2 * * *" (daily at 02:00). Requires a real server cron running "contao:cron" every minute.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model.0">
+                <source>Generation model</source>
+                <target>Generation model</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model.1">
+                <source>OpenAI Chat Completions model used to generate the knowledge document.</source>
+                <target>OpenAI Chat Completions model used to generate the knowledge document.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_max_content.0">
+                <source>Max page content (chars)</source>
+                <target>Max page content (chars)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_max_content.1">
+                <source>Maximum characters of crawled text sent to the LLM. Reduce for large sites to control cost.</source>
+                <target>Maximum characters of crawled text sent to the LLM. Reduce for large sites to control cost.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_site_root.0">
+                <source>Site root</source>
+                <target>Site root</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_site_root.1">
+                <source>Which website to crawl. Leave empty when the installation has only one site root (auto-detected). Required for multi-site installations.</source>
+                <target>Which website to crawl. Leave empty when the installation has only one site root (auto-detected). Required for multi-site installations.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_prompt_template.0">
+                <source>Custom prompt (optional)</source>
+                <target>Custom prompt (optional)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_prompt_template.1">
+                <source>Leave empty to use the built-in default. The prompt receives all crawled page content as the user message.</source>
+                <target>Leave empty to use the built-in default. The prompt receives all crawled page content as the user message.</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

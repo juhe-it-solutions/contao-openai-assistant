@@ -127,6 +127,92 @@ class EncryptionService
     }
 
     /**
+     * Encrypt an arbitrary string value (AES-256-CBC + random IV, base64-encoded).
+     *
+     * Same on-disk format as encryptApiKey() but makes no assumptions about the
+     * plaintext, so it can be reused for non-OpenAI secrets (e.g. the premium
+     * license key, which does not start with "sk-").
+     */
+    public function encryptValue(string $plaintext): string
+    {
+        $key    = $this->getEncryptionKey();
+        $method = 'aes-256-cbc';
+        $iv     = openssl_random_pseudo_bytes(openssl_cipher_iv_length($method));
+
+        $encrypted = openssl_encrypt($plaintext, $method, $key, 0, $iv);
+
+        return base64_encode($iv . $encrypted);
+    }
+
+    /**
+     * Decrypt a value produced by encryptValue().
+     *
+     * Tries every encryption-key candidate (web/CLI host + document-root variants)
+     * so a value encrypted in web context can be decrypted from the CLI cron. The
+     * $validator predicate confirms the correct candidate was used (decrypting with
+     * the wrong key can return garbage rather than false).
+     *
+     * @param callable(string):bool $validator returns true when the decrypted value is well-formed
+     */
+    public function decryptValue(string $encryptedData, callable $validator): ?string
+    {
+        try {
+            $method = 'aes-256-cbc';
+
+            $data = base64_decode($encryptedData, true);
+            if ($data === false) {
+                return null;
+            }
+
+            $ivLength  = openssl_cipher_iv_length($method);
+            $iv        = substr($data, 0, $ivLength);
+            $encrypted = substr($data, $ivLength);
+
+            foreach ($this->getEncryptionKeyCandidates() as $key) {
+                $decrypted = openssl_decrypt($encrypted, $method, $key, 0, $iv);
+                if ($decrypted !== false && $validator($decrypted)) {
+                    return $decrypted;
+                }
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to decrypt value: ' . $e->getMessage());
+
+            return null;
+        }
+    }
+
+    /**
+     * Validate the premium license key format ("JH-AI-" + uppercase hex/alphanumerics).
+     */
+    public function isValidLicenseKeyFormat(string $key): bool
+    {
+        return (bool) preg_match('/^JH-AI-[A-Z0-9]{8,}$/', trim($key));
+    }
+
+    /**
+     * Encrypt a premium license key for storage.
+     */
+    public function encryptLicenseKey(string $key): string
+    {
+        return $this->encryptValue(trim($key));
+    }
+
+    /**
+     * Decrypt a stored premium license key. Returns null when the value is empty,
+     * cannot be decrypted, or does not match the expected license key format.
+     */
+    public function decryptLicenseKey(string $encrypted): ?string
+    {
+        if ($encrypted === '') {
+            return null;
+        }
+
+        return $this->decryptValue($encrypted, fn (string $v): bool => $this->isValidLicenseKeyFormat($v));
+    }
+
+    /**
      * Process API key - decrypt if encrypted, decode if base64
      */
     public function processApiKey(string $storedApiKey, bool $logInvalidFormat = true): ?string

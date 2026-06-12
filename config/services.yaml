@@ -71,6 +71,7 @@ services:
             $requestStack: '@request_stack'
             $connection: '@doctrine.dbal.default_connection'
             $encryption: '@JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService'
+            $licenseValidation: '@JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService'
         public: true
         tags:
             - { name: contao.callback, table: tl_openai_config, target: config.onload, method: onLoadCallback }
@@ -81,6 +82,11 @@ services:
             - { name: contao.callback, table: tl_openai_config, target: config.onsubmit, method: createVectorStore }
             - { name: contao.callback, table: tl_openai_config, target: config.ondelete, method: deleteVectorStore }
             - { name: contao.callback, table: tl_openai_config, target: config.oncopy, method: copyVectorStore }
+            # Premium license + auto-update site root (registered ONLY here — not in the DCA arrays — to run once via DI)
+            - { name: contao.callback, table: tl_openai_config, target: config.onsubmit, method: validatePremiumLicenseOnSave }
+            - { name: contao.callback, table: tl_openai_config, target: fields.premium_license_key.load, method: processLicenseKeyForDisplay }
+            - { name: contao.callback, table: tl_openai_config, target: fields.premium_license_key.save, method: processLicenseKeyForStorage }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_site_root.options, method: getSiteRootOptions }
 
     # OpenAiFilesListener
     JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiFilesListener:
@@ -129,3 +135,37 @@ services:
     JuheItSolutions\ContaoOpenaiAssistant\Security\Voter\AiChatVoter:
         tags:
             - { name: security.voter }
+
+    # --- Automatic vector store updates ---
+
+    # LicenseValidationService — $http needs explicit wiring; $encryption decrypts the
+    # stored key before remote validation
+    JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService:
+        arguments:
+            $connection: '@doctrine.dbal.default_connection'
+            $http: '@http_client'
+            $encryption: '@JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService'
+
+    # VectorStoreAutoUpdateService — orchestration; ProcessUtil + EncryptionService +
+    # LicenseValidationService autowire by type
+    JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService:
+        arguments:
+            $connection: '@doctrine.dbal.default_connection'
+            $http: '@http_client'
+            $logger: '@monolog.logger.contao'
+
+    # VectorStoreAutoUpdateCron — #[AsCronJob] handles registration; only $connection overridden
+    JuheItSolutions\ContaoOpenaiAssistant\Cron\VectorStoreAutoUpdateCron:
+        arguments:
+            $connection: '@doctrine.dbal.default_connection'
+
+    # VectorStoreAutoUpdateController — public for routing; $connection + CSRF wired explicitly
+    JuheItSolutions\ContaoOpenaiAssistant\Controller\BackendModule\VectorStoreAutoUpdateController:
+        arguments:
+            $connection: '@doctrine.dbal.default_connection'
+            $csrfTokenManager: '@contao.csrf.token_manager'
+            $csrfTokenName: '%contao.csrf_token_name%'
+        public: true
+
+    # VectorStoreAutoUpdateCommand — autowired via #[AsCommand]; no explicit args needed.
+    # BackendMenuListener — autoconfigured via #[AsEventListener]; Router + Security autowire.
