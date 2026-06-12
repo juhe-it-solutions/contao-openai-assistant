@@ -37,8 +37,8 @@ class OpenAiConfigListener
      */
     public const LICENSE_KEY_MASK = '••••••••••••••••';
 
-    private const AUTO_UPDATE_FIELDS = [
-        'auto_update_enabled',
+    /** @var list<string> Premium-gated auto-update fields (excludes the enable toggle). */
+    private const AUTO_UPDATE_LICENSE_FIELDS = [
         'auto_update_schedule_hour',
         'auto_update_schedule_minute',
         'auto_update_schedule_weekday',
@@ -601,22 +601,32 @@ class OpenAiConfigListener
         return '';
     }
 
-    public function premiumLicenseInfoWizard(DataContainer $dc): string
+    public function premiumLicenseIntroField(DataContainer $dc, string $xlabel = ''): string
     {
         $lang = $this->loadConfigLang();
         $licenseUrl = 'https://licenses.juhe-it-solutions.at';
 
-        return \sprintf(
-            '<div class="premium-license-info-block" style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 12px 14px; margin: 0 0 14px 0; line-height: 1.45;">'
-            .'<strong style="display:block;font-size:16px;margin-bottom:6px;">%s</strong>'
-            .'<span>%s</span><br>'
-            .'<span>%s <a href="%s" target="_blank" rel="noopener noreferrer">%s</a></span>'
+        $content = \sprintf(
+            '<strong style="display: block; font-size: 22px; position: relative; top: -5px;">%s</strong>'
+            .'%s<br>'
+            .'<span style="color: #f59e0b; line-height: 2">%s <a href="%s" target="_blank" rel="noopener noreferrer">%s</a></span>'
+            .'<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin-top: 8px;">'
+            .'<strong>ℹ️ %s:</strong> %s'
             .'</div>',
-            htmlspecialchars((string) ($lang['premium_license_info_heading'] ?? 'Premium: automatic vector store sync'), ENT_QUOTES),
-            htmlspecialchars((string) ($lang['premium_license_info_text'] ?? ''), ENT_QUOTES),
-            htmlspecialchars((string) ($lang['premium_license_info_purchase'] ?? 'Get a license at'), ENT_QUOTES),
+            (string) ($lang['premium_license_info_heading'] ?? 'Premium: automatic vector store sync'),
+            (string) ($lang['premium_license_info_text'] ?? ''),
+            (string) ($lang['premium_license_info_purchase'] ?? 'Get a license at'),
             htmlspecialchars($licenseUrl, ENT_QUOTES),
             htmlspecialchars($licenseUrl, ENT_QUOTES),
+            (string) ($lang['premium_license_info_hint_heading'] ?? 'Note'),
+            (string) ($lang['premium_license_info_hint'] ?? 'Enter your license key below and validate it with "Check key" before saving.'),
+        );
+
+        return \sprintf(
+            '<div class="widget clr premium-license-intro">'
+            .'<div class="tl_message"><p class="tl_info">%s</p></div>'
+            .'</div>',
+            $content,
         );
     }
 
@@ -631,6 +641,10 @@ class OpenAiConfigListener
         $configId = (int) ($dc->id ?? 0);
         $checkLabel = (string) ($lang['check_license_key'] ?? 'Check key');
         $validatingLabel = (string) ($lang['license_key_validating'] ?? 'Validating...');
+        $noKeyLabel = (string) ($lang['no_license_key'] ?? 'Please enter a license key first.');
+        $validLabel = (string) ($lang['license_key_valid'] ?? 'License key is valid!');
+        $invalidLabel = (string) ($lang['license_key_invalid'] ?? 'License key is invalid!');
+        $errorLabel = (string) ($lang['license_key_error'] ?? 'Validation failed.');
 
         return \sprintf(
             ' <span class="license-key-check-wrapper api-key-check-wrapper">
@@ -640,8 +654,12 @@ class OpenAiConfigListener
                 data-request-token="%4$s"
                 data-config-id="%5$s"
                 data-check-label="%6$s"
-                data-validating-label="%7$s">%6$s</button>
-            <span id="%8$s" class="license-key-result api-key-result"></span>
+                data-validating-label="%7$s"
+                data-no-key-label="%8$s"
+                data-valid-label="%9$s"
+                data-invalid-label="%10$s"
+                data-error-label="%11$s">%6$s</button>
+            <span id="%12$s" class="license-key-result api-key-result"></span>
         </span>',
             htmlspecialchars($buttonId, ENT_QUOTES),
             htmlspecialchars($fieldName, ENT_QUOTES),
@@ -650,6 +668,10 @@ class OpenAiConfigListener
             $configId,
             htmlspecialchars($checkLabel, ENT_QUOTES),
             htmlspecialchars($validatingLabel, ENT_QUOTES),
+            htmlspecialchars($noKeyLabel, ENT_QUOTES),
+            htmlspecialchars($validLabel, ENT_QUOTES),
+            htmlspecialchars($invalidLabel, ENT_QUOTES),
+            htmlspecialchars($errorLabel, ENT_QUOTES),
             htmlspecialchars($resultId, ENT_QUOTES),
         );
     }
@@ -848,13 +870,15 @@ class OpenAiConfigListener
     {
         $licenseActive = $this->licenseValidation->isLicenseActive($configId);
 
-        foreach (self::AUTO_UPDATE_FIELDS as $field) {
+        foreach (self::AUTO_UPDATE_LICENSE_FIELDS as $field) {
             if (!isset($GLOBALS['TL_DCA']['tl_openai_config']['fields'][$field])) {
                 continue;
             }
 
             if (!$licenseActive) {
                 $GLOBALS['TL_DCA']['tl_openai_config']['fields'][$field]['eval']['disabled'] = true;
+            } else {
+                unset($GLOBALS['TL_DCA']['tl_openai_config']['fields'][$field]['eval']['disabled']);
             }
         }
     }

@@ -153,6 +153,14 @@
                 <source>Get a license at</source>
                 <target>Get a license at</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_hint_heading">
+                <source>Note</source>
+                <target>Note</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_hint">
+                <source>Enter your license key below and validate it with "Check key" before saving.</source>
+                <target>Enter your license key below and validate it with "Check key" before saving.</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_key.0">
                 <source>License key</source>
                 <target>License key</target>
@@ -272,12 +280,12 @@
                 <target>Pick the page whose subtree should be crawled (subscription limits apply to pages below this start page). Leave empty on single-site installations for auto-detection.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.0">
-                <source>Custom prompt (optional)</source>
-                <target>Custom prompt (optional)</target>
+                <source>Instructions for the knowledge document (optional)</source>
+                <target>Instructions for the knowledge document (optional)</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.1">
-                <source>Prefilled with the built-in default prompt. Edit only if you need different instructions. Crawled page content is sent as the user message.</source>
-                <target>Prefilled with the built-in default prompt. Edit only if you need different instructions. Crawled page content is sent as the user message.</target>
+                <source>Defines how your website texts are turned into the chatbot knowledge file during automatic sync. The default works for most sites — change it only if you want a different focus, style, or structure.</source>
+                <target>Defines how your website texts are turned into the chatbot knowledge file during automatic sync. The default works for most sites — change it only if you want a different focus, style, or structure.</target>
             </trans-unit>
         </body>
     </file>

@@ -191,17 +191,8 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         'premium_license_intro' => [
             'label'     => [''],
             'exclude'   => true,
-            'inputType' => 'text',
-            'eval'      => [
-                'maxlength' => 1,
-                'tl_class'  => 'hidden',
-                'style'     => 'display:none',
-            ],
-            'xlabel'    => [
-                ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener', 'premiumLicenseInfoWizard'],
-            ],
-            'save_callback' => [
-                ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener', 'discardNonPersistedField'],
+            'input_field_callback' => [
+                ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener', 'premiumLicenseIntroField'],
             ],
         ],
         'premium_license_key' => [
@@ -229,7 +220,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_enabled'],
             'exclude'   => true,
             'inputType' => 'checkbox',
-            'eval'      => ['tl_class' => 'w50 m12 auto-update-field'],
+            'eval'      => ['tl_class' => 'clr m12 auto-update-field auto-update-toggle'],
             'sql'       => ['type' => 'boolean', 'default' => false],
         ],
         'auto_update_schedule_hour' => [
@@ -237,7 +228,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'exclude'   => true,
             'inputType' => 'select',
             'options'   => $autoUpdateScheduleHours,
-            'eval'      => ['tl_class' => 'w50 auto-update-field', 'chosen' => true],
+            'eval'      => ['tl_class' => 'w50 auto-update-field auto-update-license-field', 'chosen' => true],
             'sql'       => ['type' => 'integer', 'unsigned' => true, 'default' => 2],
         ],
         'auto_update_schedule_minute' => [
@@ -245,7 +236,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'exclude'   => true,
             'inputType' => 'select',
             'options'   => $autoUpdateScheduleMinutes,
-            'eval'      => ['tl_class' => 'w50 auto-update-field', 'chosen' => true],
+            'eval'      => ['tl_class' => 'w50 auto-update-field auto-update-license-field', 'chosen' => true],
             'sql'       => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
         'auto_update_schedule_weekday' => [
@@ -253,7 +244,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'exclude'   => true,
             'inputType' => 'select',
             'options'   => $autoUpdateScheduleWeekdays,
-            'eval'      => ['tl_class' => 'w50 auto-update-field', 'chosen' => true],
+            'eval'      => ['tl_class' => 'w50 auto-update-field auto-update-license-field', 'chosen' => true],
             'sql'       => ['type' => 'string', 'length' => 2, 'default' => '*'],
         ],
         'auto_update_schedule_day' => [
@@ -261,7 +252,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'exclude'   => true,
             'inputType' => 'select',
             'options'   => $autoUpdateScheduleDays,
-            'eval'      => ['tl_class' => 'w50 auto-update-field', 'chosen' => true],
+            'eval'      => ['tl_class' => 'w50 auto-update-field auto-update-license-field', 'chosen' => true],
             'sql'       => ['type' => 'string', 'length' => 2, 'default' => '*'],
         ],
         'auto_update_schedule' => [
@@ -271,14 +262,14 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_model'],
             'exclude'   => true,
             'inputType' => 'select',
-            'eval'      => ['tl_class' => 'w50 auto-update-field', 'chosen' => true, 'includeBlankOption' => true],
+            'eval'      => ['tl_class' => 'w50 auto-update-field auto-update-license-field', 'chosen' => true, 'includeBlankOption' => true],
             'sql'       => ['type' => 'string', 'length' => 100, 'default' => 'gpt-4o-mini'],
         ],
         'auto_update_max_content' => [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_max_content'],
             'exclude'   => true,
             'inputType' => 'text',
-            'eval'      => ['rgxp' => 'digit', 'tl_class' => 'w50 auto-update-field'],
+            'eval'      => ['rgxp' => 'digit', 'tl_class' => 'w50 auto-update-field auto-update-license-field'],
             'sql'       => ['type' => 'integer', 'unsigned' => true, 'default' => 100000],
         ],
         'auto_update_site_root' => [
@@ -288,7 +279,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'foreignKey' => 'tl_page.title',
             'eval'      => [
                 'fieldType' => 'radio',
-                'tl_class'  => 'clr auto-update-field',
+                'tl_class'  => 'clr auto-update-field auto-update-license-field',
             ],
             'sql'       => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
             'relation'  => ['type' => 'hasOne', 'load' => 'lazy'],
@@ -297,7 +288,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_prompt_template'],
             'exclude'   => true,
             'inputType' => 'textarea',
-            'eval'      => ['rte' => false, 'rows' => 8, 'tl_class' => 'clr auto-update-field'],
+            'eval'      => ['rte' => false, 'rows' => 8, 'tl_class' => 'clr auto-update-field auto-update-license-field'],
             'sql'       => ['type' => 'text', 'notnull' => false],
         ],
 

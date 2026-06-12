@@ -200,24 +200,24 @@
                 <target>Keine aktive Premium-Lizenz für diese Konfiguration.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_schedule_daily">
-                <source>Daily at %hour%:%minute%</source>
-                <target>Täglich um %hour%:%minute% Uhr</target>
+                <source>Daily at %1$s:%2$s</source>
+                <target>Täglich um %1$s:%2$s Uhr</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_schedule_weekday">
-                <source>On %day% at %hour%:%minute%</source>
-                <target>%day% um %hour%:%minute% Uhr</target>
+                <source>On %1$s at %2$s:%3$s</source>
+                <target>%1$s um %2$s:%3$s Uhr</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_schedule_every_minutes">
-                <source>Every %n% minutes</source>
-                <target>Alle %n% Minuten</target>
+                <source>Every %s minutes</source>
+                <target>Alle %s Minuten</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_schedule_hourly">
-                <source>Hourly (minute %minute%)</source>
-                <target>Stündlich (Minute %minute%)</target>
+                <source>Hourly (minute %s)</source>
+                <target>Stündlich (Minute %s)</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_schedule_monthly">
-                <source>On day %day% of month at %hour%:%minute%</source>
-                <target>Am %day%. des Monats um %hour%:%minute% Uhr</target>
+                <source>On day %1$s of month at %2$s:%3$s</source>
+                <target>Am %1$s. des Monats um %2$s:%3$s Uhr</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_weekday_0">
                 <source>Sunday</source>

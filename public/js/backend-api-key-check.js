@@ -35,26 +35,22 @@
     }
 
     function setAutoUpdateFieldsEnabled(enabled) {
-        var selectors = [
-            '[name^="auto_update_"]',
-            '.widget.page_tree input',
-            '.widget.page_tree button',
-            '.widget.page_tree a'
-        ];
+        document.querySelectorAll(".widget.auto-update-license-field").forEach(function (widget) {
+            widget.classList.toggle("openai-auto-update-disabled", !enabled);
 
-        selectors.forEach(function (selector) {
-            document.querySelectorAll(selector).forEach(function (element) {
-                if (element.closest(".auto-update-field") || (element.name && element.name.indexOf("auto_update_") === 0)) {
-                    if ("disabled" in element) {
-                        element.disabled = !enabled;
-                    }
-                    element.classList.toggle("is-disabled-by-license", !enabled);
+            widget.querySelectorAll("input, select, textarea, button, a.tl_submit").forEach(function (element) {
+                if ("disabled" in element) {
+                    element.disabled = !enabled;
+                }
+
+                if (!enabled) {
+                    element.setAttribute("aria-disabled", "true");
+                    element.setAttribute("tabindex", "-1");
+                } else {
+                    element.removeAttribute("aria-disabled");
+                    element.removeAttribute("tabindex");
                 }
             });
-        });
-
-        document.querySelectorAll(".widget.auto-update-field, .widget .auto-update-field").forEach(function (widget) {
-            widget.classList.toggle("openai-auto-update-disabled", !enabled);
         });
     }
 
@@ -135,7 +131,15 @@
         var resultId = "licenseKeyResult_" + fieldName;
         var resultSpan = document.getElementById(resultId);
         var wrapper = button.closest(".license-key-check-wrapper");
-        var labels = (window.contaoOpenAiAutoUpdate && window.contaoOpenAiAutoUpdate.labels) || {};
+        var globalLabels = (window.contaoOpenAiAutoUpdate && window.contaoOpenAiAutoUpdate.labels) || {};
+        var labels = {
+            noKey: button.dataset.noKeyLabel || globalLabels.noKey,
+            valid: button.dataset.validLabel || globalLabels.valid,
+            invalid: button.dataset.invalidLabel || globalLabels.invalid,
+            error: button.dataset.errorLabel || globalLabels.error,
+            check: button.dataset.checkLabel || globalLabels.check,
+            validating: button.dataset.validatingLabel || globalLabels.validating
+        };
         var configId = button.dataset.configId || (window.contaoOpenAiAutoUpdate && window.contaoOpenAiAutoUpdate.configId) || "";
 
         if (!input || !resultSpan || !wrapper) {

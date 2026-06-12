@@ -153,6 +153,14 @@
                 <source>Get a license at</source>
                 <target>Lizenz erhalten unter</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_hint_heading">
+                <source>Note</source>
+                <target>Hinweis</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_hint">
+                <source>Enter your license key below and validate it with "Check key" before saving.</source>
+                <target>Geben Sie unten Ihren Lizenzschlüssel ein und validieren Sie ihn mit „Schlüssel prüfen“, bevor Sie speichern.</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_key.0">
                 <source>License key</source>
                 <target>Lizenzschlüssel</target>
@@ -272,12 +280,12 @@
                 <target>Wählen Sie die Seite, deren Unterbaum gecrawlt werden soll (Abo-Limits gelten für Seiten unterhalb dieser Startseite). Bei Einzel-Website-Installationen leer lassen (Auto-Erkennung).</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.0">
-                <source>Custom prompt (optional)</source>
-                <target>Eigener Prompt (optional)</target>
+                <source>Instructions for the knowledge document (optional)</source>
+                <target>Anweisungen für die Wissensdatei (optional)</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.1">
-                <source>Prefilled with the built-in default prompt. Edit only if you need different instructions. Crawled page content is sent as the user message.</source>
-                <target>Mit dem eingebauten Standard-Prompt vorausgefüllt. Nur bearbeiten, wenn Sie abweichende Anweisungen benötigen. Gecrawlte Seiteninhalte werden als Benutzernachricht übergeben.</target>
+                <source>Defines how your website texts are turned into the chatbot knowledge file during automatic sync. The default works for most sites — change it only if you want a different focus, style, or structure.</source>
+                <target>Legt fest, wie aus den Texten Ihrer Website die Wissensdatei für den Chatbot erstellt wird. Die Voreinstellung passt in der Regel — ändern Sie sie nur, wenn Sie z. B. einen anderen Schwerpunkt, Stil oder Aufbau wünschen.</target>
             </trans-unit>
         </body>
     </file>

@@ -8,12 +8,30 @@
 
 .widget.openai-auto-update-disabled,
 .widget.openai-auto-update-disabled .selector,
+.widget.openai-auto-update-disabled .selector_container,
 .widget.openai-auto-update-disabled input,
 .widget.openai-auto-update-disabled select,
 .widget.openai-auto-update-disabled textarea,
-.widget.openai-auto-update-disabled button {
+.widget.openai-auto-update-disabled button,
+.widget.openai-auto-update-disabled a.tl_submit {
     opacity: 0.55;
     pointer-events: none;
+}
+
+.widget.auto-update-toggle {
+    margin-bottom: 4px;
+}
+
+.widget.auto-update-license-field + .widget.auto-update-license-field.w50 {
+    clear: none;
+}
+
+@media (max-width: 767px) {
+    .widget.auto-update-license-field.w50 {
+        width: 100%;
+        float: none;
+        clear: both;
+    }
 }
 
 .premium-license-info-block a {
@@ -28,7 +46,8 @@
     margin-top: 8px;
     margin-bottom: 4px;
     position: relative;
-    z-index: 3;
+    /* Stay below Contao sticky .jump-targets (z-index: 3) */
+    z-index: 1;
 }
 
 .api-key-check-wrapper .api-key-result {

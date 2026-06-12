@@ -156,25 +156,25 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         $t = 'contao_default';
 
         if ('*' === $dom && '*' === $month && '*' === $dow && ctype_digit($minute) && ctype_digit($hour)) {
-            return $this->translator->trans('MSC.vsau_schedule_daily', ['%hour%' => $h, '%minute%' => $m], $t);
+            return $this->translator->trans('MSC.vsau_schedule_daily', [$h, $m], $t);
         }
 
         if ('*' === $dom && '*' === $month && ctype_digit($dow) && ctype_digit($minute) && ctype_digit($hour)) {
             $day = $this->translator->trans('MSC.vsau_weekday_'.(int) $dow, [], $t);
 
-            return $this->translator->trans('MSC.vsau_schedule_weekday', ['%day%' => $day, '%hour%' => $h, '%minute%' => $m], $t);
+            return $this->translator->trans('MSC.vsau_schedule_weekday', [$day, $h, $m], $t);
         }
 
         if (1 === preg_match('/^\*\/(\d+)$/', $minute, $mt) && '*' === $hour && '*' === $dom && '*' === $month && '*' === $dow) {
-            return $this->translator->trans('MSC.vsau_schedule_every_minutes', ['%n%' => (int) $mt[1]], $t);
+            return $this->translator->trans('MSC.vsau_schedule_every_minutes', [(int) $mt[1]], $t);
         }
 
         if ('*' === $hour && '*' === $dom && '*' === $month && '*' === $dow && ctype_digit($minute)) {
-            return $this->translator->trans('MSC.vsau_schedule_hourly', ['%minute%' => $m], $t);
+            return $this->translator->trans('MSC.vsau_schedule_hourly', [$m], $t);
         }
 
         if ('*' === $month && '*' === $dow && ctype_digit($dom) && ctype_digit($minute) && ctype_digit($hour)) {
-            return $this->translator->trans('MSC.vsau_schedule_monthly', ['%day%' => (int) $dom, '%hour%' => $h, '%minute%' => $m], $t);
+            return $this->translator->trans('MSC.vsau_schedule_monthly', [(int) $dom, $h, $m], $t);
         }
 
         return $schedule;
