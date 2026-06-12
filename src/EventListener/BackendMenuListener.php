@@ -1,13 +1,5 @@
 <?php
 
-/*
- * This file is part of Contao Open Source CMS.
- *  *
- *  * (c) JUHE IT-solutions
- *  *
- *  * @license LGPL-3.0-or-later
- */
-
 declare(strict_types=1);
 
 /*
@@ -29,7 +21,8 @@ use Symfony\Component\Routing\RouterInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Adds the "OpenAI vector store auto-update" navigation entry under the AI Tools category.
+ * Adds the "OpenAI vector store auto-update" navigation entry under the AI
+ * Tools category.
  *
  * The BE_MOD array alone cannot link to a custom route; navigation must come from
  * the MenuEvent. The entry is hidden for users without module access (the entry

@@ -54,9 +54,26 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         if ($request->isMethod('POST')) {
             $configId = (int) $request->request->get('config_id');
 
+            $config = $this->connection->fetchAssociative(
+                "SELECT id FROM tl_openai_config WHERE id = ? AND auto_update_enabled = '1'",
+                [$configId],
+            );
+
+            if (!$config) {
+                Message::addError($this->translator->trans('MSC.vsau_err_invalid_config', [], 'contao_default'));
+
+                return $this->redirectToRoute('vector_store_auto_update');
+            }
+
+            if (!$this->licenseValidation->isLicenseActive($configId)) {
+                Message::addError($this->translator->trans('MSC.vsau_err_no_license', [], 'contao_default'));
+
+                return $this->redirectToRoute('vector_store_auto_update');
+            }
+
             try {
                 $this->service->dispatchRun($configId);
-                Message::addConfirmation('Sync queued. Refresh this page in a few minutes to see the result.');
+                Message::addConfirmation($this->translator->trans('MSC.vsau_queued_confirm', [], 'contao_default'));
             } catch (\Throwable $e) {
                 Message::addError($e->getMessage());
             }
@@ -73,6 +90,8 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             $config['cron_status'] = $this->cronStatus((int) $config['auto_update_last_run']);
             $config['next_run'] = $this->nextRun($config);
             $config['warnings'] = $this->prerequisiteWarnings($config);
+            $schedule = (string) ($config['auto_update_schedule'] ?? '') ?: '0 2 * * *';
+            $config['schedule_label'] = $this->humanReadableSchedule($schedule);
         }
         unset($config);
 
@@ -123,8 +142,47 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         }
     }
 
+    private function humanReadableSchedule(string $schedule): string
+    {
+        $parts = preg_split('/\s+/', trim($schedule));
+        if (5 !== \count($parts)) {
+            return $schedule;
+        }
+
+        [$minute, $hour, $dom, $month, $dow] = $parts;
+
+        $h = \sprintf('%02d', (int) $hour);
+        $m = \sprintf('%02d', (int) $minute);
+        $t = 'contao_default';
+
+        if ('*' === $dom && '*' === $month && '*' === $dow && ctype_digit($minute) && ctype_digit($hour)) {
+            return $this->translator->trans('MSC.vsau_schedule_daily', ['%hour%' => $h, '%minute%' => $m], $t);
+        }
+
+        if ('*' === $dom && '*' === $month && ctype_digit($dow) && ctype_digit($minute) && ctype_digit($hour)) {
+            $day = $this->translator->trans('MSC.vsau_weekday_'.(int) $dow, [], $t);
+
+            return $this->translator->trans('MSC.vsau_schedule_weekday', ['%day%' => $day, '%hour%' => $h, '%minute%' => $m], $t);
+        }
+
+        if (1 === preg_match('/^\*\/(\d+)$/', $minute, $mt) && '*' === $hour && '*' === $dom && '*' === $month && '*' === $dow) {
+            return $this->translator->trans('MSC.vsau_schedule_every_minutes', ['%n%' => (int) $mt[1]], $t);
+        }
+
+        if ('*' === $hour && '*' === $dom && '*' === $month && '*' === $dow && ctype_digit($minute)) {
+            return $this->translator->trans('MSC.vsau_schedule_hourly', ['%minute%' => $m], $t);
+        }
+
+        if ('*' === $month && '*' === $dow && ctype_digit($dom) && ctype_digit($minute) && ctype_digit($hour)) {
+            return $this->translator->trans('MSC.vsau_schedule_monthly', ['%day%' => (int) $dom, '%hour%' => $h, '%minute%' => $m], $t);
+        }
+
+        return $schedule;
+    }
+
     /**
-     * Non-blocking prerequisite warnings (§10.5). Returned as a list of strings.
+     * Non-blocking prerequisite warnings (§10.5). Returned as a list of
+     * translated strings.
      *
      * @param array<string, mixed> $config
      *
@@ -135,23 +193,20 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         $warnings = [];
 
         if ('' === (string) ($config['vector_store_id'] ?? '')) {
-            $warnings[] = 'No vector store configured. Add a vector store ID to this configuration record first.';
+            $warnings[] = $this->translator->trans('MSC.vsau_warn_no_vector_store', [], 'contao_default');
         }
 
+        $hasStartPage = (int) ($config['auto_update_site_root'] ?? 0) > 0;
         $hasDomain = (int) $this->connection->fetchOne(
             "SELECT COUNT(*) FROM tl_page WHERE type = 'root' AND dns != ''",
         );
-        if (0 === $hasDomain) {
-            $warnings[] = 'No domain configured on the site root page. The crawler needs a domain to work.';
+        if (!$hasStartPage && 1 !== $hasDomain) {
+            $warnings[] = $this->translator->trans('MSC.vsau_warn_no_crawl_page', [], 'contao_default');
         }
 
         $indexed = (int) $this->connection->fetchOne('SELECT COUNT(*) FROM tl_search');
         if (0 === $indexed) {
-            $warnings[] = 'No pages indexed. Run a search re-index (System → Maintenance) before the first sync.';
-        }
-
-        if (!($config['license_active'] ?? false)) {
-            $warnings[] = 'No active premium license. Enter a valid license key in the OpenAI Configuration record to enable sync.';
+            $warnings[] = $this->translator->trans('MSC.vsau_warn_no_indexed_pages', [], 'contao_default');
         }
 
         return $warnings;

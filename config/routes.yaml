@@ -15,6 +15,14 @@ contao_api_key_validate:
         _scope: backend
         _token_check: true
 
+contao_license_key_validate:
+    path: /contao/license-key-validate
+    controller: JuheItSolutions\ContaoOpenaiAssistant\Controller\LicenseValidationController::validateLicenseKey
+    methods: [POST]
+    defaults:
+        _scope: backend
+        _token_check: true
+
 ai_chat_send:
     path: /ai-chat/send
     controller: JuheItSolutions\ContaoOpenaiAssistant\Controller\AiChatController::send

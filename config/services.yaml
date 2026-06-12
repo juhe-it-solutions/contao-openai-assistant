@@ -27,6 +27,12 @@ services:
             $csrfTokenName: '%contao.csrf_token_name%'
         public: true
 
+    JuheItSolutions\ContaoOpenaiAssistant\Controller\LicenseValidationController:
+        arguments:
+            $csrfTokenManager: '@contao.csrf.token_manager'
+            $csrfTokenName: '%contao.csrf_token_name%'
+        public: true
+
     # BackendModule Controller
     JuheItSolutions\ContaoOpenaiAssistant\Controller\BackendModule\OpenAiDashboardController:
         public: true
@@ -61,6 +67,11 @@ services:
             $webDir: '%contao.web_dir%'
         public: true
 
+    JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiModelCatalogService:
+        arguments:
+            $httpClient: '@http_client'
+            $logger: '@monolog.logger.contao'
+
     # OpenAiConfigListener
     JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener:
         arguments:
@@ -82,11 +93,22 @@ services:
             - { name: contao.callback, table: tl_openai_config, target: config.onsubmit, method: createVectorStore }
             - { name: contao.callback, table: tl_openai_config, target: config.ondelete, method: deleteVectorStore }
             - { name: contao.callback, table: tl_openai_config, target: config.oncopy, method: copyVectorStore }
-            # Premium license + auto-update site root (registered ONLY here — not in the DCA arrays — to run once via DI)
+            # Premium license + auto-update (registered ONLY here — not in the DCA arrays — to run once via DI)
             - { name: contao.callback, table: tl_openai_config, target: config.onsubmit, method: validatePremiumLicenseOnSave }
+            - { name: contao.callback, table: tl_openai_config, target: config.onsubmit, method: compileAutoUpdateSchedule }
             - { name: contao.callback, table: tl_openai_config, target: fields.premium_license_key.load, method: processLicenseKeyForDisplay }
             - { name: contao.callback, table: tl_openai_config, target: fields.premium_license_key.save, method: processLicenseKeyForStorage }
-            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_site_root.options, method: getSiteRootOptions }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_enabled.save, method: saveAutoUpdateEnabled }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_schedule_hour.save, method: guardAutoUpdateFieldWithoutLicense }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_schedule_minute.save, method: guardAutoUpdateFieldWithoutLicense }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_schedule_weekday.save, method: guardAutoUpdateFieldWithoutLicense }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_schedule_day.save, method: guardAutoUpdateFieldWithoutLicense }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_max_content.save, method: saveAutoUpdateMaxContent }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_site_root.save, method: guardAutoUpdateFieldWithoutLicense }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_model.options, method: getAutoUpdateModelOptions }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_model.save, method: validateAutoUpdateModel }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_prompt_template.load, method: loadAutoUpdatePromptTemplate }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_prompt_template.save, method: saveAutoUpdatePromptTemplate }
 
     # OpenAiFilesListener
     JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiFilesListener:

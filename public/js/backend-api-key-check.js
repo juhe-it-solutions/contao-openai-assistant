@@ -4,7 +4,7 @@
     function findInput(fieldName) {
         return document.getElementById("ctrl_" + fieldName)
             || document.getElementById(fieldName)
-            || document.querySelector('input[name="' + fieldName + '"]');
+            || document.querySelector('[name="' + fieldName + '"]');
     }
 
     function placeWrapperBelowInput(wrapper, input) {
@@ -34,7 +34,31 @@
         }
     }
 
-    function bindButton(button) {
+    function setAutoUpdateFieldsEnabled(enabled) {
+        var selectors = [
+            '[name^="auto_update_"]',
+            '.widget.page_tree input',
+            '.widget.page_tree button',
+            '.widget.page_tree a'
+        ];
+
+        selectors.forEach(function (selector) {
+            document.querySelectorAll(selector).forEach(function (element) {
+                if (element.closest(".auto-update-field") || (element.name && element.name.indexOf("auto_update_") === 0)) {
+                    if ("disabled" in element) {
+                        element.disabled = !enabled;
+                    }
+                    element.classList.toggle("is-disabled-by-license", !enabled);
+                }
+            });
+        });
+
+        document.querySelectorAll(".widget.auto-update-field, .widget .auto-update-field").forEach(function (widget) {
+            widget.classList.toggle("openai-auto-update-disabled", !enabled);
+        });
+    }
+
+    function bindApiKeyButton(button) {
         if (!button || button.dataset.apiKeyCheckBound === "1") {
             return;
         }
@@ -83,17 +107,17 @@
                     var result = JSON.parse(xhr.responseText || "{}");
 
                     if (result.valid) {
-                        resultSpan.innerHTML = '<span style="color:green;">API-Schluessel ist gueltig.</span>';
+                        resultSpan.innerHTML = '<span style="color:green;">✓ API-Schluessel ist gueltig!</span>';
                         input.style.backgroundColor = "lightgreen";
                         input.style.color = "#121212";
                         return;
                     }
 
-                    resultSpan.innerHTML = '<span style="color:red;">API-Schluessel ist ungueltig. ' + (result.message || "") + '</span>';
+                    resultSpan.innerHTML = '<span style="color:red;">✗ API-Schluessel ist ungueltig. ' + (result.message || "") + '</span>';
                     input.style.backgroundColor = "lightcoral";
                     input.style.color = "#121212";
                 } catch (e) {
-                    resultSpan.innerHTML = '<span style="color:red;">Fehler bei der Validierung</span>';
+                    resultSpan.innerHTML = '<span style="color:red;">✗ Fehler bei der Validierung</span>';
                 }
             };
 
@@ -101,10 +125,92 @@
         });
     }
 
+    function bindLicenseKeyButton(button) {
+        if (!button || button.dataset.licenseKeyCheckBound === "1") {
+            return;
+        }
+
+        var fieldName = button.dataset.licenseKeyField || "premium_license_key";
+        var input = findInput(fieldName);
+        var resultId = "licenseKeyResult_" + fieldName;
+        var resultSpan = document.getElementById(resultId);
+        var wrapper = button.closest(".license-key-check-wrapper");
+        var labels = (window.contaoOpenAiAutoUpdate && window.contaoOpenAiAutoUpdate.labels) || {};
+        var configId = button.dataset.configId || (window.contaoOpenAiAutoUpdate && window.contaoOpenAiAutoUpdate.configId) || "";
+
+        if (!input || !resultSpan || !wrapper) {
+            return;
+        }
+
+        placeWrapperBelowInput(wrapper, input);
+        button.dataset.licenseKeyCheckBound = "1";
+
+        button.addEventListener("click", function () {
+            var licenseKey = input.value;
+            if (!licenseKey) {
+                alert(labels.noKey || "Please enter a license key first.");
+                return;
+            }
+
+            var url = button.dataset.validationUrl || (window.location.origin + "/contao/license-key-validate");
+            var requestToken = button.dataset.requestToken || "";
+
+            button.disabled = true;
+            button.innerHTML = '<span class="processing-spinner"></span>' + (labels.validating || "Validating...");
+            resultSpan.innerHTML = "";
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", url, true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState !== 4) {
+                    return;
+                }
+
+                button.disabled = false;
+                button.textContent = labels.check || button.dataset.checkLabel || "Check key";
+
+                try {
+                    var result = JSON.parse(xhr.responseText || "{}");
+
+                    if (result.valid) {
+                        resultSpan.innerHTML = '<span style="color:green;">✓ ' + (labels.valid || "License key is valid!") + '</span>';
+                        input.style.backgroundColor = "lightgreen";
+                        input.style.color = "#121212";
+                        // UX only — fields unlock after a successful check. Server-side
+                        // enforcement still requires saving the key and an active license in DB.
+                        setAutoUpdateFieldsEnabled(true);
+                        if (window.contaoOpenAiAutoUpdate) {
+                            window.contaoOpenAiAutoUpdate.licenseActive = true;
+                        }
+                        return;
+                    }
+
+                    resultSpan.innerHTML = '<span style="color:red;">✗ ' + (labels.invalid || "License key is invalid!") + " " + (result.message || "") + '</span>';
+                    input.style.backgroundColor = "lightcoral";
+                    input.style.color = "#121212";
+                    setAutoUpdateFieldsEnabled(false);
+                } catch (e) {
+                    resultSpan.innerHTML = '<span style="color:red;">✗ ' + (labels.error || "Validation failed.") + '</span>';
+                }
+            };
+
+            xhr.send(
+                "key=" + encodeURIComponent(licenseKey)
+                + "&config_id=" + encodeURIComponent(configId)
+                + "&REQUEST_TOKEN=" + encodeURIComponent(requestToken)
+            );
+        });
+    }
+
     function init() {
-        var buttons = document.querySelectorAll('button[id^="apiKeyCheck_"]');
-        for (var i = 0; i < buttons.length; i++) {
-            bindButton(buttons[i]);
+        document.querySelectorAll('button[id^="apiKeyCheck_"]').forEach(bindApiKeyButton);
+        document.querySelectorAll(".license-key-check-button").forEach(bindLicenseKeyButton);
+
+        if (window.contaoOpenAiAutoUpdate) {
+            setAutoUpdateFieldsEnabled(!!window.contaoOpenAiAutoUpdate.licenseActive);
         }
     }
 

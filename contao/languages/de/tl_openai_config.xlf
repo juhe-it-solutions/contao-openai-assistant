@@ -141,13 +141,49 @@
                 <source>Premium License</source>
                 <target>Premium-Lizenz</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_heading">
+                <source>Premium: automatic vector store sync</source>
+                <target>Premium: automatische Vector-Store-Synchronisierung</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_text">
+                <source>Automatically crawls your website, generates a knowledge document with OpenAI, and replaces the previous file in your vector store — so the chatbot stays up to date without manual uploads.</source>
+                <target>Crawlt Ihre Website automatisch, erzeugt mit OpenAI ein Wissensdokument und ersetzt die vorherige Datei im Vector Store — der Chatbot bleibt ohne manuelle Uploads aktuell.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_purchase">
+                <source>Get a license at</source>
+                <target>Lizenz erhalten unter</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_key.0">
                 <source>License key</source>
                 <target>Lizenzschlüssel</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_key.1">
-                <source>Enter the license key you received after purchase at licenses.juhe-it-solutions.at.</source>
-                <target>Geben Sie den Lizenzschlüssel ein, den Sie nach dem Kauf unter licenses.juhe-it-solutions.at erhalten haben. Wird verschlüsselt gespeichert. Lassen Sie den maskierten Wert unverändert, um den aktuellen Schlüssel zu behalten; leeren Sie das Feld, um ihn zu entfernen.</target>
+                <source><![CDATA[Enter the license key you received after purchase at <a href="https://licenses.juhe-it-solutions.at" target="_blank" rel="noopener noreferrer">https://licenses.juhe-it-solutions.at</a>. Leave the masked value unchanged to keep the current key; clear the field to remove it.]]></source>
+                <target><![CDATA[Geben Sie den Lizenzschlüssel ein, den Sie nach dem Kauf auf <a href="https://licenses.juhe-it-solutions.at" target="_blank" rel="noopener noreferrer">https://licenses.juhe-it-solutions.at</a> erhalten haben. Lassen Sie den maskierten Wert unverändert, um den aktuellen Schlüssel zu behalten; leeren Sie das Feld, um ihn zu entfernen.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.check_license_key">
+                <source>Check key</source>
+                <target>Schlüssel prüfen</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.license_key_validating">
+                <source>Validating...</source>
+                <target>Validiere...</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.no_license_key">
+                <source>Please enter a license key first.</source>
+                <target>Bitte geben Sie zuerst einen Lizenzschlüssel ein.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.license_key_valid">
+                <source>License key is valid!</source>
+                <target>Lizenzschlüssel ist gültig!</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.license_key_invalid">
+                <source>License key is invalid!</source>
+                <target>Lizenzschlüssel ist ungültig!</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.license_key_error">
+                <source>Validation failed.</source>
+                <target>Validierung fehlgeschlagen.</target>
             </trans-unit>
 
             <!-- Automatic vector store sync -->
@@ -160,48 +196,88 @@
                 <target>Automatische Synchronisierung aktivieren</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_enabled.1">
-                <source>Periodically crawl the website and update the vector store document.</source>
-                <target>Die Website regelmäßig crawlen und das Vector-Store-Dokument aktualisieren. Erfordert eine aktive Premium-Lizenz.</target>
+                <source>Periodically crawl the website and update the vector store document. Requires a valid premium license (use “Check key” above).</source>
+                <target>Die Website regelmäßig crawlen und das Vector-Store-Dokument aktualisieren. Erfordert eine gültige Premium-Lizenz (zuerst „Schlüssel prüfen“ oben).</target>
             </trans-unit>
-            <trans-unit id="tl_openai_config.auto_update_schedule.0">
-                <source>Schedule (cron expression)</source>
-                <target>Zeitplan (Cron-Ausdruck)</target>
+            <trans-unit id="tl_openai_config.auto_update_requires_license">
+                <source>Automatic sync requires a valid premium license. Use “Check key” in the Premium License section.</source>
+                <target>Automatische Synchronisierung erfordert eine gültige Premium-Lizenz. Nutzen Sie „Schlüssel prüfen“ im Bereich Premium-Lizenz.</target>
             </trans-unit>
-            <trans-unit id="tl_openai_config.auto_update_schedule.1">
-                <source>When to run, e.g. "0 2 * * *" (daily at 02:00).</source>
-                <target>Wann ausgeführt werden soll, z. B. "0 2 * * *" (täglich um 02:00 Uhr). Erfordert einen echten Server-Cron, der "contao:cron" jede Minute ausführt.</target>
+            <trans-unit id="tl_openai_config.auto_update_schedule_hour.0">
+                <source>Hour</source>
+                <target>Stunde</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_hour.1">
+                <source>Hour of day when the sync should start (server time).</source>
+                <target>Stunde des Tages, zu der die Synchronisierung starten soll (Serverzeit).</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_minute.0">
+                <source>Minute</source>
+                <target>Minute</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_minute.1">
+                <source>Minute of the selected hour.</source>
+                <target>Minute der gewählten Stunde.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_weekday.0">
+                <source>Weekday</source>
+                <target>Wochentag</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_weekday.1">
+                <source>Run on a specific weekday only, or every day.</source>
+                <target>Nur an einem bestimmten Wochentag oder täglich ausführen.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_day.0">
+                <source>Day of month</source>
+                <target>Tag im Monat</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_day.1">
+                <source>Run on a specific calendar day, or every day. Requires a server cron running <code>contao:cron</code> every minute.</source>
+                <target>An einem bestimmten Kalendertag oder täglich ausführen. Erfordert einen Server-Cron, der <code>contao:cron</code> jede Minute ausführt.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_model.0">
                 <source>Generation model</source>
                 <target>Generierungsmodell</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_model.1">
-                <source>OpenAI Chat Completions model used to generate the knowledge document.</source>
-                <target>OpenAI-Chat-Completions-Modell zur Erstellung des Wissensdokuments.</target>
+                <source>OpenAI model loaded live from your account. Compatibility is checked against the Responses API when you save.</source>
+                <target>OpenAI-Modell, live aus Ihrem Konto geladen. Die Kompatibilität wird beim Speichern über die Responses API geprüft.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model_placeholder">
+                <source>-- Select model --</source>
+                <target>-- Modell wählen --</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model_no_api_key">
+                <source>Please configure a valid OpenAI API key first.</source>
+                <target>Bitte konfigurieren Sie zuerst einen gültigen OpenAI-API-Schlüssel.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model_invalid">
+                <source>The model "%s" is not compatible with the OpenAI Responses API.</source>
+                <target>Das Modell „%s“ ist nicht mit der OpenAI Responses API kompatibel.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_max_content.0">
                 <source>Max page content (chars)</source>
                 <target>Max. Seiteninhalt (Zeichen)</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_max_content.1">
-                <source>Maximum characters of crawled text sent to the LLM.</source>
+                <source>Maximum characters of crawled text sent to the LLM. Reduce for large sites to control cost.</source>
                 <target>Maximale Anzahl an Zeichen des gecrawlten Texts, die an das LLM gesendet werden. Bei großen Websites reduzieren, um Kosten zu steuern.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_site_root.0">
-                <source>Site root</source>
-                <target>Website-Startpunkt</target>
+                <source>Crawl start page</source>
+                <target>Crawl-Startseite</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_site_root.1">
-                <source>Which website to crawl. Leave empty for single-site installations.</source>
-                <target>Welche Website gecrawlt werden soll. Bei nur einem Website-Startpunkt leer lassen (automatische Erkennung). Bei Mehrfach-Websites erforderlich.</target>
+                <source>Pick the page whose subtree should be crawled (subscription limits apply to pages below this start page). Leave empty on single-site installations for auto-detection.</source>
+                <target>Wählen Sie die Seite, deren Unterbaum gecrawlt werden soll (Abo-Limits gelten für Seiten unterhalb dieser Startseite). Bei Einzel-Website-Installationen leer lassen (Auto-Erkennung).</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.0">
                 <source>Custom prompt (optional)</source>
                 <target>Eigener Prompt (optional)</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.1">
-                <source>Leave empty to use the built-in default.</source>
-                <target>Leer lassen, um den eingebauten Standard zu verwenden. Der Prompt erhält alle gecrawlten Seiteninhalte als Benutzernachricht.</target>
+                <source>Prefilled with the built-in default prompt. Edit only if you need different instructions. Crawled page content is sent as the user message.</source>
+                <target>Mit dem eingebauten Standard-Prompt vorausgefüllt. Nur bearbeiten, wenn Sie abweichende Anweisungen benötigen. Gecrawlte Seiteninhalte werden als Benutzernachricht übergeben.</target>
             </trans-unit>
         </body>
     </file>

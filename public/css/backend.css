@@ -6,7 +6,22 @@
     background-position: left;
 }
 
-/* Remove API Status Indicator Styles and related rules */ 
+.widget.openai-auto-update-disabled,
+.widget.openai-auto-update-disabled .selector,
+.widget.openai-auto-update-disabled input,
+.widget.openai-auto-update-disabled select,
+.widget.openai-auto-update-disabled textarea,
+.widget.openai-auto-update-disabled button {
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.premium-license-info-block a {
+    color: #2196f3;
+    text-decoration: underline;
+}
+
+/* Remove API Status Indicator Styles and related rules */
 
 .api-key-check-wrapper {
     display: block;

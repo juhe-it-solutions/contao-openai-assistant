@@ -136,6 +136,30 @@ class LicenseValidationService
         return $active || ('error' === $status && $this->wasRecentlyActive($previous));
     }
 
+    /**
+     * Remote validation without persisting status (used by the backend "check key"
+     * button before the config record is saved).
+     */
+    public function validatePlainKey(string $key): bool
+    {
+        try {
+            $response = $this->http->request(
+                'GET',
+                self::VALIDATION_URL,
+                [
+                    'query' => ['key' => $key],
+                    'timeout' => 10,
+                ],
+            );
+
+            $data = $response->toArray(false);
+
+            return ($data['valid'] ?? false) === true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     private function isCacheFresh(string $status, int $checkedAt): bool
     {
         $ttl = 'error' === $status ? self::CACHE_TTL_ERROR : self::CACHE_TTL_ACTIVE;

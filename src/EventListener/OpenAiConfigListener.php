@@ -23,6 +23,8 @@ use Contao\System;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiModelCatalogService;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreDocumentPrompt;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -33,7 +35,19 @@ class OpenAiConfigListener
      * Rendered in place of a stored license key; posted back verbatim when the admin
      * leaves it untouched.
      */
-    private const LICENSE_KEY_MASK = '••••••••••••••••';
+    public const LICENSE_KEY_MASK = '••••••••••••••••';
+
+    private const AUTO_UPDATE_FIELDS = [
+        'auto_update_enabled',
+        'auto_update_schedule_hour',
+        'auto_update_schedule_minute',
+        'auto_update_schedule_weekday',
+        'auto_update_schedule_day',
+        'auto_update_model',
+        'auto_update_max_content',
+        'auto_update_site_root',
+        'auto_update_prompt_template',
+    ];
 
     public function __construct(
         private readonly HttpClientInterface $httpClient,
@@ -44,6 +58,7 @@ class OpenAiConfigListener
         private readonly Connection $connection,
         private readonly EncryptionService $encryption,
         private readonly LicenseValidationService $licenseValidation,
+        private readonly OpenAiModelCatalogService $modelCatalog,
     ) {
     }
 
@@ -64,7 +79,8 @@ class OpenAiConfigListener
      */
     public function processLicenseKeyForStorage($value, $dc): string
     {
-        $posted = trim((string) $value);
+        // Read from POST first (same pattern as processApiKeyForStorage).
+        $posted = trim((string) ($_POST['premium_license_key'] ?? $value));
         $existing = (string) ($dc->activeRecord->premium_license_key ?? ''); // already encrypted
 
         // Unchanged — admin left the mask in place.
@@ -137,26 +153,6 @@ class OpenAiConfigListener
         } else {
             Message::addError('Premium license key is invalid or inactive. Auto-update sync will not run until a valid key is entered.');
         }
-    }
-
-    /**
-     * options_callback for auto_update_site_root (blank option = auto-detect single root).
-     *
-     * @return array<int, string>
-     */
-    public function getSiteRootOptions($dc = null): array
-    {
-        $roots = $this->connection->fetchAllAssociative(
-            "SELECT id, title, dns FROM tl_page WHERE type = 'root' AND dns != '' ORDER BY title",
-        );
-
-        $options = [];
-
-        foreach ($roots as $root) {
-            $options[(int) $root['id']] = $root['title'].' ('.$root['dns'].')';
-        }
-
-        return $options;
     }
 
     public function processApiKeyForStorage($value, $dc): string
@@ -592,6 +588,216 @@ class OpenAiConfigListener
         if ($request && ('create' === $request->get('act') || '' === $request->get('act'))) {
             $this->checkSingleRecordLimitation($dc);
         }
+
+        if ($dc && $dc->id && 'edit' === ($request?->get('act') ?? '')) {
+            $this->migrateScheduleFieldsOnLoad($dc);
+            $this->configureAutoUpdateFieldAccess((int) $dc->id);
+            $this->injectAutoUpdateBackendScript((int) $dc->id, $this->licenseValidation->isLicenseActive((int) $dc->id));
+        }
+    }
+
+    public function discardNonPersistedField($value, DataContainer $dc): string
+    {
+        return '';
+    }
+
+    public function premiumLicenseInfoWizard(DataContainer $dc): string
+    {
+        $lang = $this->loadConfigLang();
+        $licenseUrl = 'https://licenses.juhe-it-solutions.at';
+
+        return \sprintf(
+            '<div class="premium-license-info-block" style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 12px 14px; margin: 0 0 14px 0; line-height: 1.45;">'
+            .'<strong style="display:block;font-size:16px;margin-bottom:6px;">%s</strong>'
+            .'<span>%s</span><br>'
+            .'<span>%s <a href="%s" target="_blank" rel="noopener noreferrer">%s</a></span>'
+            .'</div>',
+            htmlspecialchars((string) ($lang['premium_license_info_heading'] ?? 'Premium: automatic vector store sync'), ENT_QUOTES),
+            htmlspecialchars((string) ($lang['premium_license_info_text'] ?? ''), ENT_QUOTES),
+            htmlspecialchars((string) ($lang['premium_license_info_purchase'] ?? 'Get a license at'), ENT_QUOTES),
+            htmlspecialchars($licenseUrl, ENT_QUOTES),
+            htmlspecialchars($licenseUrl, ENT_QUOTES),
+        );
+    }
+
+    public function licenseKeyWizard(DataContainer $dc): string
+    {
+        $lang = $this->loadConfigLang();
+        $csrfToken = $this->csrfTokenManager->getToken($this->csrfTokenName)->getValue();
+        $buttonId = 'licenseKeyCheck_'.$dc->field;
+        $resultId = 'licenseKeyResult_'.$dc->field;
+        $fieldName = $dc->field;
+        $postUrl = Environment::get('base').'contao/license-key-validate';
+        $configId = (int) ($dc->id ?? 0);
+        $checkLabel = (string) ($lang['check_license_key'] ?? 'Check key');
+        $validatingLabel = (string) ($lang['license_key_validating'] ?? 'Validating...');
+
+        return \sprintf(
+            ' <span class="license-key-check-wrapper api-key-check-wrapper">
+            <button type="button" id="%1$s" class="tl_submit license-key-check-button"
+                data-license-key-field="%2$s"
+                data-validation-url="%3$s"
+                data-request-token="%4$s"
+                data-config-id="%5$s"
+                data-check-label="%6$s"
+                data-validating-label="%7$s">%6$s</button>
+            <span id="%8$s" class="license-key-result api-key-result"></span>
+        </span>',
+            htmlspecialchars($buttonId, ENT_QUOTES),
+            htmlspecialchars($fieldName, ENT_QUOTES),
+            htmlspecialchars($postUrl, ENT_QUOTES),
+            htmlspecialchars($csrfToken, ENT_QUOTES),
+            $configId,
+            htmlspecialchars($checkLabel, ENT_QUOTES),
+            htmlspecialchars($validatingLabel, ENT_QUOTES),
+            htmlspecialchars($resultId, ENT_QUOTES),
+        );
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getAutoUpdateModelOptions(DataContainer|null $dc = null): array
+    {
+        $options = [
+            '' => $this->getConfigLangString('auto_update_model_placeholder', '-- Select model --'),
+        ];
+
+        if (!$dc || !$dc->id) {
+            return $options;
+        }
+
+        $apiKey = $this->encryption->getApiKeyForConfig((int) $dc->id);
+        if (!$apiKey) {
+            return $options;
+        }
+
+        foreach ($this->modelCatalog->fetchModelOptions($apiKey) as $modelId => $label) {
+            $options[$modelId] = $label;
+        }
+
+        return $options;
+    }
+
+    public function validateAutoUpdateModel($value, DataContainer $dc): string
+    {
+        $model = trim((string) $value);
+        if ('' === $model) {
+            return 'gpt-4o-mini';
+        }
+
+        if (!$dc->id) {
+            return $model;
+        }
+
+        if (!$this->licenseValidation->isLicenseActive((int) $dc->id)) {
+            return 'gpt-4o-mini';
+        }
+
+        $apiKey = $this->encryption->getApiKeyForConfig((int) $dc->id);
+        if (!$apiKey) {
+            throw new \InvalidArgumentException($this->getConfigLangString('auto_update_model_no_api_key', 'Please configure a valid OpenAI API key first.'));
+        }
+
+        if (!$this->modelCatalog->isModelCompatibleWithResponsesApi($model, $apiKey)) {
+            throw new \InvalidArgumentException(\sprintf($this->getConfigLangString('auto_update_model_invalid', 'The model "%s" is not compatible with the OpenAI Responses API.'), $model));
+        }
+
+        return $model;
+    }
+
+    public function loadAutoUpdatePromptTemplate($value, DataContainer|null $dc = null): string
+    {
+        $value = trim((string) $value);
+
+        return '' !== $value ? $value : VectorStoreDocumentPrompt::DEFAULT_TEMPLATE;
+    }
+
+    public function saveAutoUpdatePromptTemplate($value, DataContainer $dc): string|null
+    {
+        if ($dc->id && !$this->licenseValidation->isLicenseActive((int) $dc->id)) {
+            $existing = $dc->activeRecord->auto_update_prompt_template ?? null;
+
+            return null === $existing || '' === $existing ? null : (string) $existing;
+        }
+
+        $value = trim((string) $value);
+        if (mb_strlen($value) > 32000) {
+            throw new \InvalidArgumentException($this->getConfigLangString('auto_update_prompt_too_long', 'The custom prompt must not exceed 32,000 characters.'));
+        }
+
+        if ($value === trim(VectorStoreDocumentPrompt::DEFAULT_TEMPLATE)) {
+            return null;
+        }
+
+        return '' === $value ? null : $value;
+    }
+
+    public function saveAutoUpdateMaxContent($value, DataContainer $dc): int
+    {
+        if ($dc->id && !$this->licenseValidation->isLicenseActive((int) $dc->id)) {
+            return (int) ($dc->activeRecord->auto_update_max_content ?? 100000);
+        }
+
+        return max(1000, min(500000, (int) $value));
+    }
+
+    public function guardAutoUpdateFieldWithoutLicense($value, DataContainer $dc)
+    {
+        if (!$dc->id || !$dc->field || $this->licenseValidation->isLicenseActive((int) $dc->id)) {
+            return $value;
+        }
+
+        return $dc->activeRecord->{$dc->field} ?? $value;
+    }
+
+    public function saveAutoUpdateEnabled($value, DataContainer $dc): string
+    {
+        if (!$value || !$dc->id) {
+            return (string) $value;
+        }
+
+        if (!$this->licenseValidation->isLicenseActive((int) $dc->id)) {
+            Message::addError($this->getConfigLangString(
+                'auto_update_requires_license',
+                'Automatic sync requires a valid premium license. Use “Check key” in the Premium License section.',
+            ));
+
+            return '';
+        }
+
+        return (string) $value;
+    }
+
+    public function compileAutoUpdateSchedule(DataContainer $dc): void
+    {
+        if (!$dc->id) {
+            return;
+        }
+
+        if (!$this->licenseValidation->isLicenseActive((int) $dc->id)) {
+            return;
+        }
+
+        $minute = max(0, min(59, (int) ($_POST['auto_update_schedule_minute'] ?? 0)));
+        $hour = max(0, min(23, (int) ($_POST['auto_update_schedule_hour'] ?? 2)));
+        $day = (string) ($_POST['auto_update_schedule_day'] ?? '*');
+        $weekday = (string) ($_POST['auto_update_schedule_weekday'] ?? '*');
+
+        if (!preg_match('/^(\*|[1-9]|[12][0-9]|3[01])$/', $day)) {
+            $day = '*';
+        }
+
+        if (!preg_match('/^(\*|[0-6])$/', $weekday)) {
+            $weekday = '*';
+        }
+
+        $cron = \sprintf('%d %d %s * %s', $minute, $hour, $day, $weekday);
+
+        $this->connection->executeStatement(
+            'UPDATE tl_openai_config SET auto_update_schedule = ? WHERE id = ?',
+            [$cron, (int) $dc->id],
+        );
     }
 
     /**
@@ -600,6 +806,95 @@ class OpenAiConfigListener
     public function decryptApiKey(string $encryptedData): string|null
     {
         return $this->encryption->decryptApiKey($encryptedData);
+    }
+
+    private function migrateScheduleFieldsOnLoad(DataContainer $dc): void
+    {
+        if (!$dc->activeRecord) {
+            return;
+        }
+
+        $schedule = trim((string) ($dc->activeRecord->auto_update_schedule ?? ''));
+        if ('' === $schedule) {
+            return;
+        }
+
+        $parts = preg_split('/\s+/', $schedule) ?: [];
+        if (5 !== \count($parts)) {
+            return;
+        }
+
+        $minute = (int) $parts[0];
+        $hour = (int) $parts[1];
+        $day = (string) $parts[2];
+        $weekday = (string) $parts[4];
+
+        $storedMinute = (int) ($dc->activeRecord->auto_update_schedule_minute ?? 0);
+        $storedHour = (int) ($dc->activeRecord->auto_update_schedule_hour ?? 2);
+        $storedDay = (string) ($dc->activeRecord->auto_update_schedule_day ?? '*');
+        $storedWeekday = (string) ($dc->activeRecord->auto_update_schedule_weekday ?? '*');
+
+        if ($storedMinute === $minute && $storedHour === $hour && $storedDay === $day && $storedWeekday === $weekday) {
+            return;
+        }
+
+        $this->connection->executeStatement(
+            'UPDATE tl_openai_config SET auto_update_schedule_minute = ?, auto_update_schedule_hour = ?, auto_update_schedule_day = ?, auto_update_schedule_weekday = ? WHERE id = ?',
+            [$minute, $hour, $day, $weekday, (int) $dc->id],
+        );
+    }
+
+    private function configureAutoUpdateFieldAccess(int $configId): void
+    {
+        $licenseActive = $this->licenseValidation->isLicenseActive($configId);
+
+        foreach (self::AUTO_UPDATE_FIELDS as $field) {
+            if (!isset($GLOBALS['TL_DCA']['tl_openai_config']['fields'][$field])) {
+                continue;
+            }
+
+            if (!$licenseActive) {
+                $GLOBALS['TL_DCA']['tl_openai_config']['fields'][$field]['eval']['disabled'] = true;
+            }
+        }
+    }
+
+    private function injectAutoUpdateBackendScript(int $configId, bool $licenseActive): void
+    {
+        $lang = $this->loadConfigLang();
+        $labels = json_encode(
+            [
+                'noKey' => $lang['no_license_key'] ?? 'Please enter a license key first.',
+                'valid' => $lang['license_key_valid'] ?? 'License key is valid!',
+                'invalid' => $lang['license_key_invalid'] ?? 'License key is invalid!',
+                'error' => $lang['license_key_error'] ?? 'Validation failed.',
+                'check' => $lang['check_license_key'] ?? 'Check key',
+                'validating' => $lang['license_key_validating'] ?? 'Validating...',
+            ],
+            JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP,
+        );
+
+        $GLOBALS['TL_BODY'][] = \sprintf(
+            '<script>window.contaoOpenAiAutoUpdate = { configId: %d, licenseActive: %s, labels: %s };</script>',
+            $configId,
+            $licenseActive ? 'true' : 'false',
+            $labels,
+        );
+    }
+
+    private function loadConfigLang(): array
+    {
+        $language = $GLOBALS['TL_LANGUAGE'] ?? 'en';
+        System::loadLanguageFile('tl_openai_config', $language);
+
+        return $GLOBALS['TL_LANG']['tl_openai_config'] ?? [];
+    }
+
+    private function getConfigLangString(string $key, string $fallback): string
+    {
+        $lang = $this->loadConfigLang();
+
+        return $lang[$key] ?? $fallback;
     }
 
     /**

@@ -18,6 +18,235 @@
                 <source>Prompt created successfully</source>
                 <target>OpenAI-Prompt erfolgreich erstellt</target>
             </trans-unit>
+            <!-- Vector Store Auto-Update Dashboard -->
+            <trans-unit id="MSC.vsau_config_label">
+                <source>Configuration</source>
+                <target>Konfiguration</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_no_config">
+                <source>No configuration has automatic sync enabled yet.</source>
+                <target>Noch keine Konfiguration mit automatischer Synchronisierung aktiviert.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_no_config_hint">
+                <source>Enable it in AI Tools → OpenAI Configuration → Automatic vector store sync.</source>
+                <target>Aktivieren Sie diese unter KI-Tools → OpenAI-Konfiguration → Automatische Vector-Store-Synchronisierung.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_premium_license">
+                <source>Premium license</source>
+                <target>Premium-Lizenz</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_active">
+                <source>active</source>
+                <target>aktiv</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_expires">
+                <source>expires</source>
+                <target>läuft ab am</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_error_grace">
+                <source>error</source>
+                <target>Fehler</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_grace_hint">
+                <source>Could not reach license server — sync allowed under grace period.</source>
+                <target>Lizenzserver nicht erreichbar — Synchronisierung unter Kulanzfrist erlaubt.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_inactive">
+                <source>inactive</source>
+                <target>inaktiv</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_buy_license">
+                <source>Buy premium license</source>
+                <target>Premium-Lizenz erwerben</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_required_hint">
+                <source>Enter a valid license key in the OpenAI Configuration to unlock details and automatic sync.</source>
+                <target>Geben Sie einen gültigen Lizenzschlüssel in der OpenAI-Konfiguration ein, um Details freizuschalten und die automatische Synchronisierung zu nutzen.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_status">
+                <source>Cron status</source>
+                <target>Cron-Status</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_never">
+                <source>no runs recorded</source>
+                <target>Kein Lauf aufgezeichnet</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_healthy">
+                <source>healthy</source>
+                <target>Aktiv</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_healthy_seen">
+                <source>last seen</source>
+                <target>Zuletzt gesehen:</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_stale">
+                <source>stale</source>
+                <target>Veraltet</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_stale_hint">
+                <source>Your server cron may have stopped.</source>
+                <target>Ihr Server-Cron könnte gestoppt sein.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_never_warning">
+                <source>No runs recorded — your server cron has not triggered yet. Add</source>
+                <target>Kein Lauf aufgezeichnet — Ihr Server-Cron wurde noch nicht ausgeführt. Fügen Sie</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_never_warning_suffix">
+                <source>to your server cron.</source>
+                <target>zu Ihrem Server-Cron hinzu.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_last_sync">
+                <source>Last sync</source>
+                <target>Letzte Synchronisierung</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_sync_success">
+                <source>success</source>
+                <target>Erfolgreich</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_sync_error">
+                <source>error</source>
+                <target>Fehler</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_sync_running">
+                <source>running</source>
+                <target>Läuft</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_sync_queued">
+                <source>queued</source>
+                <target>In Warteschlange</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_sync_queued_hint">
+                <source>refresh in a few minutes</source>
+                <target>in einigen Minuten aktualisieren</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_sync_never">
+                <source>never run</source>
+                <target>Noch nie ausgeführt</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule">
+                <source>Schedule</source>
+                <target>Zeitplan</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_next_run">
+                <source>next:</source>
+                <target>nächster:</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_run_now">
+                <source>Run sync now</source>
+                <target>Jetzt synchronisieren</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_recent_runs">
+                <source>Recent runs</source>
+                <target>Letzte Ausführungen</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_no_runs">
+                <source>No runs recorded yet.</source>
+                <target>Noch keine Ausführungen aufgezeichnet.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_date">
+                <source>Date</source>
+                <target>Datum</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_status">
+                <source>Status</source>
+                <target>Status</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_pages">
+                <source>Pages</source>
+                <target>Seiten</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_tokens_in">
+                <source>Tokens in</source>
+                <target>Token (Eingabe)</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_tokens_out">
+                <source>Tokens out</source>
+                <target>Token (Ausgabe)</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_duration">
+                <source>Duration</source>
+                <target>Dauer</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_file_id">
+                <source>File ID</source>
+                <target>Datei-ID</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_message">
+                <source>Message</source>
+                <target>Meldung</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_queued_confirm">
+                <source>Sync queued. Refresh this page in a few minutes to see the result.</source>
+                <target>Synchronisierung eingeplant. Aktualisieren Sie diese Seite in einigen Minuten, um das Ergebnis zu sehen.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_warn_no_vector_store">
+                <source>No vector store configured. Add a vector store ID to this configuration record first.</source>
+                <target>Kein Vector Store konfiguriert. Fügen Sie zunächst eine Vector-Store-ID in diesem Konfigurationsdatensatz hinzu.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_warn_no_crawl_page">
+                <source>No crawl start page selected. Pick a start page in OpenAI Configuration → Automatic vector store sync, or ensure a single site root exists.</source>
+                <target>Keine Crawl-Startseite ausgewählt. Wählen Sie eine Startseite unter OpenAI-Konfiguration → Automatische Vector-Store-Synchronisierung, oder stellen Sie sicher, dass eine einzelne Website-Startseite vorhanden ist.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_warn_no_indexed_pages">
+                <source>No pages indexed. Run a search re-index (System → Maintenance) before the first sync.</source>
+                <target>Keine Seiten indiziert. Führen Sie eine Suche-Neuindizierung durch (System → Wartung), bevor Sie die erste Synchronisierung starten.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_invalid_config">
+                <source>Invalid or disabled configuration.</source>
+                <target>Ungültige oder deaktivierte Konfiguration.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_no_license">
+                <source>No active premium license for this configuration.</source>
+                <target>Keine aktive Premium-Lizenz für diese Konfiguration.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_daily">
+                <source>Daily at %hour%:%minute%</source>
+                <target>Täglich um %hour%:%minute% Uhr</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_weekday">
+                <source>On %day% at %hour%:%minute%</source>
+                <target>%day% um %hour%:%minute% Uhr</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_every_minutes">
+                <source>Every %n% minutes</source>
+                <target>Alle %n% Minuten</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_hourly">
+                <source>Hourly (minute %minute%)</source>
+                <target>Stündlich (Minute %minute%)</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_monthly">
+                <source>On day %day% of month at %hour%:%minute%</source>
+                <target>Am %day%. des Monats um %hour%:%minute% Uhr</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_weekday_0">
+                <source>Sunday</source>
+                <target>Sonntag</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_weekday_1">
+                <source>Monday</source>
+                <target>Montag</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_weekday_2">
+                <source>Tuesday</source>
+                <target>Dienstag</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_weekday_3">
+                <source>Wednesday</source>
+                <target>Mittwoch</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_weekday_4">
+                <source>Thursday</source>
+                <target>Donnerstag</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_weekday_5">
+                <source>Friday</source>
+                <target>Freitag</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_weekday_6">
+                <source>Saturday</source>
+                <target>Samstag</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

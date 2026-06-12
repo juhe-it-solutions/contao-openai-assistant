@@ -14,6 +14,7 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Service;
 
 use Contao\CoreBundle\Util\ProcessUtil;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ArrayParameterType;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -28,6 +29,9 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 class VectorStoreAutoUpdateService
 {
     private const OPENAI_BASE = 'https://api.openai.com/v1';
+
+    /** Hard cap on pages crawled per sync to limit DB load and LLM cost abuse. */
+    private const MAX_CRAWL_PAGES = 2000;
 
     public function __construct(
         private readonly Connection $connection,
@@ -44,8 +48,26 @@ class VectorStoreAutoUpdateService
      */
     public function dispatchRun(int $configId): void
     {
+        if ($configId <= 0) {
+            throw new \InvalidArgumentException('Invalid configuration ID.');
+        }
+
+        $config = $this->connection->fetchAssociative(
+            "SELECT auto_update_last_status FROM tl_openai_config WHERE id = ? AND auto_update_enabled = '1'",
+            [$configId],
+        );
+
+        if (!$config) {
+            throw new \RuntimeException('Automatic sync is not enabled for this configuration.');
+        }
+
         if (!$this->licenseValidation->isLicenseActive($configId)) {
             throw new \RuntimeException('No active premium license.');
+        }
+
+        $status = (string) ($config['auto_update_last_status'] ?? '');
+        if (\in_array($status, ['running', 'queued'], true)) {
+            throw new \RuntimeException('A sync is already queued or running for this configuration.');
         }
 
         $this->connection->executeStatement(
@@ -95,7 +117,7 @@ class VectorStoreAutoUpdateService
 
             $oldFileId = (string) ($config['auto_update_file_id'] ?? '');
             $model = (string) ($config['auto_update_model'] ?? '') ?: 'gpt-4o-mini';
-            $maxContent = (int) ($config['auto_update_max_content'] ?? 100000);
+            $maxContent = max(1000, min(500000, (int) ($config['auto_update_max_content'] ?? 100000)));
             $promptTpl = $config['auto_update_prompt_template'] ?? null ?: null;
 
             $this->markRunning($configId);
@@ -172,41 +194,78 @@ class VectorStoreAutoUpdateService
      */
     private function readSearchIndex(int $configId): array
     {
-        $config = $this->connection->fetchAssociative('SELECT auto_update_site_root FROM tl_openai_config WHERE id = ?', [$configId]);
-        $rootId = (int) ($config['auto_update_site_root'] ?? 0);
-
-        $roots = $this->connection->fetchAllAssociative(
-            "SELECT id FROM tl_page WHERE type = 'root' AND dns != ''",
+        $config = $this->connection->fetchAssociative(
+            'SELECT auto_update_site_root FROM tl_openai_config WHERE id = ?',
+            [$configId],
         );
+        $startPageId = (int) ($config['auto_update_site_root'] ?? 0);
 
-        if ($rootId <= 0) {
+        if ($startPageId <= 0) {
+            $roots = $this->connection->fetchAllAssociative(
+                "SELECT id FROM tl_page WHERE type = 'root' AND dns != ''",
+            );
+
             if (1 === \count($roots)) {
-                $rootId = (int) $roots[0]['id'];
+                $startPageId = (int) $roots[0]['id'];
             } elseif (\count($roots) > 1) {
-                throw new \RuntimeException('Multiple site roots detected. Select a site root in OpenAI Configuration → Automatic vector store sync → Site root.');
+                throw new \RuntimeException('Multiple site roots detected. Select a crawl start page in OpenAI Configuration → Automatic vector store sync.');
             } else {
                 return [];
             }
         }
 
-        $root = $this->connection->fetchAssociative(
-            "SELECT id FROM tl_page WHERE id = ? AND type = 'root'",
-            [$rootId],
+        $page = $this->connection->fetchAssociative(
+            'SELECT id, type FROM tl_page WHERE id = ?',
+            [$startPageId],
         );
 
-        if (!$root) {
-            throw new \RuntimeException('Invalid site root selected for auto-update.');
+        if (!$page) {
+            throw new \RuntimeException('Invalid crawl start page selected for auto-update.');
         }
 
-        // tl_search.pid = page id; tl_page.rootId scopes pages to a site tree (Contao 5.x).
+        $pageIds = $this->collectPageSubtreeIds($startPageId);
+
+        if ([] === $pageIds) {
+            return [];
+        }
+
         return $this->connection->fetchAllAssociative(
             'SELECT s.url, s.title, s.text, s.language
              FROM tl_search s
-             INNER JOIN tl_page p ON p.id = s.pid
-             WHERE p.rootId = ?
+             WHERE s.pid IN (?)
              ORDER BY s.pid, s.url',
-            [$rootId],
+            [$pageIds],
+            [\Doctrine\DBAL\ArrayParameterType::INTEGER],
         );
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function collectPageSubtreeIds(int $rootPageId): array
+    {
+        $ids = [$rootPageId];
+        $queue = [$rootPageId];
+
+        while ([] !== $queue) {
+            if (\count($ids) >= self::MAX_CRAWL_PAGES) {
+                break;
+            }
+
+            $parentId = array_pop($queue);
+            $children = $this->connection->fetchFirstColumn(
+                'SELECT id FROM tl_page WHERE pid = ?',
+                [$parentId],
+            );
+
+            foreach ($children as $childId) {
+                $childId = (int) $childId;
+                $ids[] = $childId;
+                $queue[] = $childId;
+            }
+        }
+
+        return $ids;
     }
 
     /**
@@ -237,12 +296,7 @@ class VectorStoreAutoUpdateService
      */
     private function generateDocument(string $apiKey, string $model, string $pageContent, string|null $promptTemplate): array
     {
-        $systemPrompt = $promptTemplate ?? <<<'PROMPT'
-            You are a company knowledge base writer. Based on the website content below, write a comprehensive,
-            well-structured Markdown document that covers: company overview, products/services, contact information,
-            key differentiators, and any other relevant information. Write in the same language as the source content.
-            Be factual and concise. Do not invent information not present in the source.
-            PROMPT;
+        $systemPrompt = $promptTemplate ?? VectorStoreDocumentPrompt::DEFAULT_TEMPLATE;
 
         $response = $this->http->request(
             'POST',
