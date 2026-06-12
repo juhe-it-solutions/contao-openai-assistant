@@ -10,6 +10,10 @@
                 <source>OpenAI Dashboard</source>
                 <target>OpenAI Dashboard</target>
             </trans-unit>
+            <trans-unit id="be_mod.vector_store_auto_update">
+                <source>OpenAI vector store auto-update</source>
+                <target>OpenAI Vector-Store-Auto-Update</target>
+            </trans-unit>
         </body>
     </file>
 </xliff> 

@@ -22,6 +22,7 @@ use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Backend status dashboard for the automatic vector store sync.
@@ -38,6 +39,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         private readonly LicenseValidationService $licenseValidation,
         private readonly ContaoCsrfTokenManager $csrfTokenManager,
         private readonly string $csrfTokenName,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -78,8 +80,8 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             'SELECT * FROM tl_openai_sync_log ORDER BY run_at DESC LIMIT 20',
         );
 
-        return $this->render('@ContaoOpenaiAssistant/backend/vector_store_auto_update.html.twig', [
-            'headline' => 'Vector Store Auto-Update',
+        return $this->render('@Contao/backend/vector_store_auto_update.html.twig', [
+            'headline' => $this->translator->trans('MOD.vector_store_auto_update.0', [], 'contao_modules'),
             'configs' => $configs,
             'log' => $log,
             'purchase_url' => 'https://licenses.juhe-it-solutions.at/ai-assistant',

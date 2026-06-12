@@ -26,9 +26,10 @@ use Contao\CoreBundle\Security\ContaoCorePermissions;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Adds the "Vector Store Auto-Update" navigation entry under the AI Tools category.
+ * Adds the "OpenAI vector store auto-update" navigation entry under the AI Tools category.
  *
  * The BE_MOD array alone cannot link to a custom route; navigation must come from
  * the MenuEvent. The entry is hidden for users without module access (the entry
@@ -40,6 +41,7 @@ class BackendMenuListener
     public function __construct(
         private readonly RouterInterface $router,
         private readonly Security $security,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -64,11 +66,11 @@ class BackendMenuListener
 
         $categoryNode->addChild(
             $factory->createItem('vector_store_auto_update')
-                ->setLabel('Vector Store Auto-Update')
+                ->setLabel('MOD.vector_store_auto_update.0')
+                ->setExtra('translation_domain', 'contao_modules')
                 ->setUri($this->router->generate('vector_store_auto_update'))
-                ->setLinkAttribute('title', 'Status and log for automatic vector store sync')
-                ->setLinkAttribute('class', 'navigation')
-                ->setAttribute('class', 'group-ai_tools'),
+                ->setLinkAttribute('title', $this->translator->trans('MOD.vector_store_auto_update.1', [], 'contao_modules'))
+                ->setLinkAttribute('class', 'navigation vector_store_auto_update'),
         );
     }
 }

@@ -15,8 +15,8 @@ $GLOBALS['TL_LANG']['MOD']['ai_tools'] = 'AI Tools';
 $GLOBALS['TL_LANG']['MOD']['openai_dashboard']   = ['OpenAI Dashboard', 'Manage OpenAI configurations, files, and prompts'];
 $GLOBALS['TL_LANG']['MOD']['openai_dashboard.0'] = 'OpenAI Dashboard';
 $GLOBALS['TL_LANG']['MOD']['openai_dashboard.1'] = 'Manage OpenAI configurations, files, and prompts';
-$GLOBALS['TL_LANG']['MOD']['vector_store_auto_update']   = ['Vector Store Auto-Update', 'Status, log and manual trigger for the automatic sync'];
-$GLOBALS['TL_LANG']['MOD']['vector_store_auto_update.0'] = 'Vector Store Auto-Update';
+$GLOBALS['TL_LANG']['MOD']['vector_store_auto_update']   = ['OpenAI vector store auto-update', 'Status, log and manual trigger for the automatic sync'];
+$GLOBALS['TL_LANG']['MOD']['vector_store_auto_update.0'] = 'OpenAI vector store auto-update';
 $GLOBALS['TL_LANG']['MOD']['vector_store_auto_update.1'] = 'Status, log and manual trigger for the automatic sync';
 $GLOBALS['TL_LANG']['MOD']['ai_chat']            = 'AI-Chatbot';
 
