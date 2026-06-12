@@ -56,7 +56,7 @@ While I'm super proud of what we've built here, I gotta be honest - I don't have
 
 ## 📋 Requirements
 
-- **Contao**: 5.3 or higher (tested with Contao 5.5)
+- **Contao**: 5.3 or higher (tested with Contao 5.3 LTS and 5.7 LTS)
 - **PHP**: 8.2 or higher
 - **OpenAI API Key**: Valid OpenAI API key with access to the Responses API, Conversations API, Files API, and Vector Stores
 - **Composer**: For installation and dependency management
@@ -136,7 +136,7 @@ Before setting up the extension, you need:
 2. **Create Project**: e.g. Chatbot for website xyz
 3. **API Key**: Generate a secret key in your OpenAI project
 4. **Responses API Access**: Ensure your account has access to the Responses API (the default for modern OpenAI accounts)
-5. **Contao 5.3+**: Ensure you're running Contao 5.3 or higher (recommended: Contao 5.5)
+5. **Contao 5.3+**: Ensure you're running Contao 5.3 LTS or 5.7 LTS
 
 ### Step-by-Step Setup Guide
 

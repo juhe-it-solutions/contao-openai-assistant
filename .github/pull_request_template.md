@@ -15,9 +15,8 @@ Please delete options that are not relevant.
 ## How Has This Been Tested?
 Please describe the tests that you ran to verify your changes. Provide instructions so we can reproduce. Please also list any relevant details for your test configuration.
 
-- [ ] Tested on Contao 5.3
-- [ ] Tested on Contao 5.4
-- [ ] Tested on Contao 5.5
+- [ ] Tested on Contao 5.3 (LTS)
+- [ ] Tested on Contao 5.7 (LTS)
 - [ ] Tested with PHP 8.2
 
 ## Checklist:
