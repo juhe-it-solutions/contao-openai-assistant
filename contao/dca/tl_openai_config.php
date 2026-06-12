@@ -192,7 +192,8 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'label'     => [''],
             'exclude'   => true,
             'input_field_callback' => [
-                ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener', 'premiumLicenseIntroField'],
+                'JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener',
+                'premiumLicenseIntroField',
             ],
         ],
         'premium_license_key' => [
