@@ -16,6 +16,7 @@ use Contao\CoreBundle\Controller\AbstractBackendController;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\CoreBundle\Security\ContaoCorePermissions;
 use Contao\Message;
+use Cron\CronExpression;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
@@ -62,31 +63,28 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         }
 
         $configs = $this->connection->fetchAllAssociative(
-            "SELECT * FROM tl_openai_config WHERE auto_update_enabled = '1' ORDER BY id"
+            "SELECT * FROM tl_openai_config WHERE auto_update_enabled = '1' ORDER BY id",
         );
 
         foreach ($configs as &$config) {
             $config['license_active'] = $this->licenseValidation->isLicenseActive((int) $config['id']);
-            $config['cron_status']    = $this->cronStatus((int) $config['auto_update_last_run']);
-            $config['next_run']       = $this->nextRun($config);
-            $config['warnings']       = $this->prerequisiteWarnings($config);
+            $config['cron_status'] = $this->cronStatus((int) $config['auto_update_last_run']);
+            $config['next_run'] = $this->nextRun($config);
+            $config['warnings'] = $this->prerequisiteWarnings($config);
         }
         unset($config);
 
         $log = $this->connection->fetchAllAssociative(
-            'SELECT * FROM tl_openai_sync_log ORDER BY run_at DESC LIMIT 20'
+            'SELECT * FROM tl_openai_sync_log ORDER BY run_at DESC LIMIT 20',
         );
 
-        return $this->render(
-            '@ContaoOpenaiAssistant/backend/vector_store_auto_update.html.twig',
-            [
-                'headline'      => 'Vector Store Auto-Update',
-                'configs'       => $configs,
-                'log'           => $log,
-                'purchase_url'  => 'https://licenses.juhe-it-solutions.at/ai-assistant',
-                'request_token' => $this->csrfTokenManager->getToken($this->csrfTokenName)->getValue(),
-            ]
-        );
+        return $this->render('@ContaoOpenaiAssistant/backend/vector_store_auto_update.html.twig', [
+            'headline' => 'Vector Store Auto-Update',
+            'configs' => $configs,
+            'log' => $log,
+            'purchase_url' => 'https://licenses.juhe-it-solutions.at/ai-assistant',
+            'request_token' => $this->csrfTokenManager->getToken($this->csrfTokenName)->getValue(),
+        ]);
     }
 
     /**
@@ -95,7 +93,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
      */
     private function cronStatus(int $lastRun): string
     {
-        if ($lastRun === 0) {
+        if (0 === $lastRun) {
             return 'never';
         }
 
@@ -105,19 +103,19 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
     /**
      * @param array<string, mixed> $config
      */
-    private function nextRun(array $config): ?int
+    private function nextRun(array $config): int|null
     {
         $lastRun = (int) ($config['auto_update_last_run'] ?? 0);
-        if ($lastRun === 0) {
+        if (0 === $lastRun) {
             return null;
         }
 
         $schedule = (string) ($config['auto_update_schedule'] ?? '') ?: '0 2 * * *';
 
         try {
-            $expression = new \Cron\CronExpression($schedule);
+            $expression = new CronExpression($schedule);
 
-            return $expression->getNextRunDate(new \DateTimeImmutable('@' . $lastRun))->getTimestamp();
+            return $expression->getNextRunDate(new \DateTimeImmutable('@'.$lastRun))->getTimestamp();
         } catch (\Throwable) {
             return null;
         }
@@ -134,23 +132,23 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
     {
         $warnings = [];
 
-        if ((string) ($config['vector_store_id'] ?? '') === '') {
+        if ('' === (string) ($config['vector_store_id'] ?? '')) {
             $warnings[] = 'No vector store configured. Add a vector store ID to this configuration record first.';
         }
 
         $hasDomain = (int) $this->connection->fetchOne(
-            "SELECT COUNT(*) FROM tl_page WHERE type = 'root' AND dns != ''"
+            "SELECT COUNT(*) FROM tl_page WHERE type = 'root' AND dns != ''",
         );
-        if ($hasDomain === 0) {
+        if (0 === $hasDomain) {
             $warnings[] = 'No domain configured on the site root page. The crawler needs a domain to work.';
         }
 
         $indexed = (int) $this->connection->fetchOne('SELECT COUNT(*) FROM tl_search');
-        if ($indexed === 0) {
+        if (0 === $indexed) {
             $warnings[] = 'No pages indexed. Run a search re-index (System → Maintenance) before the first sync.';
         }
 
-        if (! ($config['license_active'] ?? false)) {
+        if (!($config['license_active'] ?? false)) {
             $warnings[] = 'No active premium license. Enter a valid license key in the OpenAI Configuration record to enable sync.';
         }
 

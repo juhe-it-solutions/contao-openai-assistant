@@ -10,6 +10,14 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of Contao Open Source CMS.
+ *
+ * (c) JUHE IT-solutions
+ *
+ * @license LGPL-3.0-or-later
+ */
+
 namespace JuheItSolutions\ContaoOpenaiAssistant\Security\Voter;
 
 use Symfony\Component\HttpFoundation\Request;
@@ -29,7 +37,7 @@ class AiChatVoter extends Voter
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
     {
-        if (! $subject instanceof Request) {
+        if (!$subject instanceof Request) {
             return false;
         }
 

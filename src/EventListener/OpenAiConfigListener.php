@@ -12,11 +12,13 @@ declare(strict_types=1);
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\EventListener;
 
+use Contao\Controller;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\CoreBundle\DependencyInjection\Attribute\AsCallback;
 use Contao\CoreBundle\Monolog\ContaoContext;
 use Contao\DataContainer;
 use Contao\Environment;
+use Contao\Message;
 use Contao\System;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
@@ -28,7 +30,8 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 class OpenAiConfigListener
 {
     /**
-     * Rendered in place of a stored license key; posted back verbatim when the admin leaves it untouched.
+     * Rendered in place of a stored license key; posted back verbatim when the admin
+     * leaves it untouched.
      */
     private const LICENSE_KEY_MASK = '••••••••••••••••';
 
@@ -40,7 +43,7 @@ class OpenAiConfigListener
         private readonly RequestStack $requestStack,
         private readonly Connection $connection,
         private readonly EncryptionService $encryption,
-        private readonly LicenseValidationService $licenseValidation
+        private readonly LicenseValidationService $licenseValidation,
     ) {
     }
 
@@ -54,29 +57,29 @@ class OpenAiConfigListener
     }
 
     /**
-     * save_callback: encrypt a newly entered key; keep the existing one when the
-     * mask is posted back unchanged; clear when the field is emptied.
+     * save_callback: encrypt a newly entered key; keep the existing one when the mask
+     * is posted back unchanged; clear when the field is emptied.
      *
      * Returns the value to STORE (ciphertext), so the DB only ever holds encrypted keys.
      */
     public function processLicenseKeyForStorage($value, $dc): string
     {
-        $posted   = trim((string) $value);
+        $posted = trim((string) $value);
         $existing = (string) ($dc->activeRecord->premium_license_key ?? ''); // already encrypted
 
         // Unchanged — admin left the mask in place.
-        if ($posted === self::LICENSE_KEY_MASK) {
+        if (self::LICENSE_KEY_MASK === $posted) {
             return $existing;
         }
 
         // Cleared.
-        if ($posted === '') {
+        if ('' === $posted) {
             return '';
         }
 
         // New key entered — validate format before encrypting.
-        if (! $this->encryption->isValidLicenseKeyFormat($posted)) {
-            \Contao\Message::addError('Invalid license key format. Expected "JH-AI-…". The previous key was kept.');
+        if (!$this->encryption->isValidLicenseKeyFormat($posted)) {
+            Message::addError('Invalid license key format. Expected "JH-AI-…". The previous key was kept.');
 
             return $existing; // do not overwrite a good key with a malformed one
         }
@@ -91,21 +94,21 @@ class OpenAiConfigListener
      */
     public function validatePremiumLicenseOnSave(DataContainer $dc): void
     {
-        if (! $dc->id) {
+        if (!$dc->id) {
             return;
         }
 
         $posted = trim((string) ($_POST['premium_license_key'] ?? ''));
 
         // Unchanged — keep cached status, no network call.
-        if ($posted === self::LICENSE_KEY_MASK) {
+        if (self::LICENSE_KEY_MASK === $posted) {
             return;
         }
 
         // Cleared — reset cached status, but only when there was prior license state.
         // This keeps the non-premium save path completely free of extra DB writes.
-        if ($posted === '') {
-            $record   = $dc->activeRecord;
+        if ('' === $posted) {
+            $record = $dc->activeRecord;
             $hadState = $record && (
                 ($record->premium_license_key ?? '') !== ''
                 || ($record->premium_license_status ?? '') !== ''
@@ -115,7 +118,7 @@ class OpenAiConfigListener
             if ($hadState) {
                 $this->connection->executeStatement(
                     'UPDATE tl_openai_config SET premium_license_status = ?, premium_license_valid_until = 0, premium_license_checked_at = 0 WHERE id = ?',
-                    ['', (int) $dc->id]
+                    ['', (int) $dc->id],
                 );
             }
 
@@ -123,16 +126,16 @@ class OpenAiConfigListener
         }
 
         // Malformed keys never reach the endpoint (already rejected in the save callback).
-        if (! $this->encryption->isValidLicenseKeyFormat($posted)) {
+        if (!$this->encryption->isValidLicenseKeyFormat($posted)) {
             return;
         }
 
         $active = $this->licenseValidation->revalidate((int) $dc->id, $posted);
 
         if ($active) {
-            \Contao\Message::addConfirmation('Premium license validated successfully.');
+            Message::addConfirmation('Premium license validated successfully.');
         } else {
-            \Contao\Message::addError('Premium license key is invalid or inactive. Auto-update sync will not run until a valid key is entered.');
+            Message::addError('Premium license key is invalid or inactive. Auto-update sync will not run until a valid key is entered.');
         }
     }
 
@@ -144,12 +147,13 @@ class OpenAiConfigListener
     public function getSiteRootOptions($dc = null): array
     {
         $roots = $this->connection->fetchAllAssociative(
-            "SELECT id, title, dns FROM tl_page WHERE type = 'root' AND dns != '' ORDER BY title"
+            "SELECT id, title, dns FROM tl_page WHERE type = 'root' AND dns != '' ORDER BY title",
         );
 
         $options = [];
+
         foreach ($roots as $root) {
-            $options[(int) $root['id']] = $root['title'] . ' (' . $root['dns'] . ')';
+            $options[(int) $root['id']] = $root['title'].' ('.$root['dns'].')';
         }
 
         return $options;
@@ -166,28 +170,32 @@ class OpenAiConfigListener
         }
 
         if (empty($apiKey)) {
-            \Contao\Message::addError('API key is required and cannot be empty.');
+            Message::addError('API key is required and cannot be empty.');
 
             return '';
         }
 
-        if (! $this->encryption->isValidApiKeyFormat((string) $apiKey)) {
-            \Contao\Message::addError('Invalid API key format. OpenAI API keys must start with "sk-".');
+        if (!$this->encryption->isValidApiKeyFormat((string) $apiKey)) {
+            Message::addError('Invalid API key format. OpenAI API keys must start with "sk-".');
 
             return '';
         }
 
         try {
-            $response = $this->httpClient->request('GET', 'https://api.openai.com/v1/models', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $apiKey,
-                    'Content-Type'  => 'application/json',
+            $response = $this->httpClient->request(
+                'GET',
+                'https://api.openai.com/v1/models',
+                [
+                    'headers' => [
+                        'Authorization' => 'Bearer '.$apiKey,
+                        'Content-Type' => 'application/json',
+                    ],
+                    'timeout' => 15,
                 ],
-                'timeout' => 15,
-            ]);
+            );
 
-            if ($response->getStatusCode() !== 200) {
-                \Contao\Message::addError('API key validation failed. Please check your API key.');
+            if (200 !== $response->getStatusCode()) {
+                Message::addError('API key validation failed. Please check your API key.');
 
                 return '';
             }
@@ -196,19 +204,19 @@ class OpenAiConfigListener
                 'API key validation successful for config save',
                 [
                     'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                ]
+                ],
             );
 
             return $this->encryption->encryptApiKey(trim((string) $apiKey));
         } catch (\Exception $e) {
             $this->logger->error(
-                'API key validation failed during save: ' . $e->getMessage(),
+                'API key validation failed during save: '.$e->getMessage(),
                 [
                     'contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR),
-                ]
+                ],
             );
 
-            \Contao\Message::addError('Invalid API key. Please verify your OpenAI API key is correct and has proper permissions.');
+            Message::addError('Invalid API key. Please verify your OpenAI API key is correct and has proper permissions.');
 
             return '';
         }
@@ -220,8 +228,8 @@ class OpenAiConfigListener
             return '';
         }
 
-        if ($dc && $dc->field === 'api_key') {
-            return str_repeat('*', strlen((string) $value));
+        if ($dc && 'api_key' === $dc->field) {
+            return str_repeat('*', \strlen((string) $value));
         }
 
         return trim((string) $value);
@@ -233,16 +241,16 @@ class OpenAiConfigListener
     }
 
     /**
-     * Add a "Key prüfen" button next to the API key field
+     * Add a "Key prüfen" button next to the API key field.
      */
     public function apiKeyWizard(DataContainer $dc): string
     {
         $csrfToken = $this->csrfTokenManager->getToken($this->csrfTokenName)->getValue();
 
-        $buttonId  = 'apiKeyCheck_' . $dc->field;
-        $resultId  = 'apiKeyResult_' . $dc->field;
+        $buttonId = 'apiKeyCheck_'.$dc->field;
+        $resultId = 'apiKeyResult_'.$dc->field;
         $fieldName = $dc->field;
-        $postUrl   = Environment::get('base') . 'contao/api-key-validate';
+        $postUrl = Environment::get('base').'contao/api-key-validate';
 
         return \sprintf(
             ' <span class="api-key-check-wrapper">
@@ -330,59 +338,60 @@ class OpenAiConfigListener
             });
         })();
         </script>',
-            \htmlspecialchars($buttonId, \ENT_QUOTES),
-            \htmlspecialchars($fieldName, \ENT_QUOTES),
-            \htmlspecialchars($postUrl, \ENT_QUOTES),
-            \htmlspecialchars($csrfToken, \ENT_QUOTES),
-            \htmlspecialchars($resultId, \ENT_QUOTES),
-            \json_encode($buttonId, \JSON_HEX_TAG | \JSON_HEX_APOS | \JSON_HEX_QUOT | \JSON_HEX_AMP) ?: '""',
-            \json_encode($resultId, \JSON_HEX_TAG | \JSON_HEX_APOS | \JSON_HEX_QUOT | \JSON_HEX_AMP) ?: '""'
+            htmlspecialchars($buttonId, ENT_QUOTES),
+            htmlspecialchars($fieldName, ENT_QUOTES),
+            htmlspecialchars($postUrl, ENT_QUOTES),
+            htmlspecialchars($csrfToken, ENT_QUOTES),
+            htmlspecialchars($resultId, ENT_QUOTES),
+            json_encode($buttonId, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?: '""',
+            json_encode($resultId, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?: '""',
         );
     }
 
     /**
-     * Create vector store when submitting the form
+     * Create vector store when submitting the form.
      */
     public function createVectorStore($dc): void
     {
         $this->logger->info(
-            'Vector store created for config ID ' . $dc->id,
+            'Vector store created for config ID '.$dc->id,
             [
                 'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-            ]
+            ],
         );
     }
 
     /**
-     * Cascade-delete the vector store (plus associated files) when the config
-     * record is deleted.
+     * Cascade-delete the vector store (plus associated files) when the config record
+     * is deleted.
      *
      * Note: child prompt rows (tl_openai_prompts) are purely local
-     * configuration and do not require any remote OpenAI call here. The
-     * former logic that issued DELETE /v1/assistants/{id} for each prompt is
-     * intentionally removed: the Assistants API is sunset on 2026-08-26 and
-     * any orphaned assistants are cleaned up once by Version20260416000001CleanupOrphanAssistants.
+     * configuration and do not require any remote OpenAI call here. The former
+     * logic that issued DELETE /v1/assistants/{id} for each prompt is
+     * intentionally removed: the Assistants API is sunset on 2026-08-26 and any
+     * orphaned assistants are cleaned up once by
+     * Version20260416000001CleanupOrphanAssistants.
      */
     public function deleteVectorStore($dc): void
     {
-        if (! $dc->activeRecord) {
+        if (!$dc->activeRecord) {
             return;
         }
 
         $vectorStoreId = $dc->activeRecord->vector_store_id;
-        if (! $vectorStoreId) {
+        if (!$vectorStoreId) {
             return;
         }
 
         try {
             $apiKey = $this->encryption->getApiKeyForConfig((int) $dc->id);
-            if (! $apiKey) {
+            if (!$apiKey) {
                 $this->logger->warning(
                     'No valid API key found for config',
                     [
-                        'contao'    => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                        'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
                         'config_id' => $dc->id,
-                    ]
+                    ],
                 );
 
                 return;
@@ -391,160 +400,196 @@ class OpenAiConfigListener
             // Delete all associated files from the OpenAI platform
             $files = $this->connection->fetchAllAssociative(
                 'SELECT id, openai_file_id FROM tl_openai_files WHERE pid = ?',
-                [$dc->id]
+                [$dc->id],
             );
 
             foreach ($files as $file) {
-                if (! $file['openai_file_id']) {
+                if (!$file['openai_file_id']) {
                     continue;
                 }
 
                 try {
-                    $response = $this->httpClient->request('DELETE', "https://api.openai.com/v1/files/{$file['openai_file_id']}", [
-                        'headers' => [
-                            'Authorization' => 'Bearer ' . $apiKey,
-                            'Content-Type'  => 'application/json',
+                    $response = $this->httpClient->request(
+                        'DELETE',
+                        "https://api.openai.com/v1/files/{$file['openai_file_id']}",
+                        [
+                            'headers' => [
+                                'Authorization' => 'Bearer '.$apiKey,
+                                'Content-Type' => 'application/json',
+                            ],
                         ],
-                    ]);
+                    );
 
                     $status = $response->getStatusCode();
 
-                    if ($status === 404) {
-                        $this->logger->info('File already deleted from OpenAI platform', [
-                            'contao'  => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                            'file_id' => $file['openai_file_id'],
-                        ]);
+                    if (404 === $status) {
+                        $this->logger->info(
+                            'File already deleted from OpenAI platform',
+                            [
+                                'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                                'file_id' => $file['openai_file_id'],
+                            ],
+                        );
 
                         continue;
                     }
 
                     if ($status < 200 || $status >= 300) {
-                        $this->logger->warning('Failed to delete file from OpenAI platform', [
-                            'contao'  => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                            'file_id' => $file['openai_file_id'],
-                            'status'  => $status,
-                        ]);
+                        $this->logger->warning(
+                            'Failed to delete file from OpenAI platform',
+                            [
+                                'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                                'file_id' => $file['openai_file_id'],
+                                'status' => $status,
+                            ],
+                        );
 
                         continue;
                     }
 
-                    $this->logger->info('File deleted from OpenAI platform', [
-                        'contao'  => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                        'file_id' => $file['openai_file_id'],
-                    ]);
+                    $this->logger->info(
+                        'File deleted from OpenAI platform',
+                        [
+                            'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                            'file_id' => $file['openai_file_id'],
+                        ],
+                    );
                 } catch (\Exception $e) {
-                    $this->logger->error('Error deleting file from OpenAI platform: ' . $e->getMessage(), [
-                        'contao'  => new ContaoContext(__METHOD__, ContaoContext::ERROR),
-                        'file_id' => $file['openai_file_id'],
-                    ]);
+                    $this->logger->error(
+                        'Error deleting file from OpenAI platform: '.$e->getMessage(),
+                        [
+                            'contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR),
+                            'file_id' => $file['openai_file_id'],
+                        ],
+                    );
                 }
             }
 
-            // Finally, delete the vector store itself.
-            // Vector stores still require the "assistants=v2" header; a future
-            // OpenAI GA of vector stores will let us drop this header entirely.
+            // Finally, delete the vector store itself. Vector stores still require the
+            // "assistants=v2" header; a future OpenAI GA of vector stores will let us drop
+            // this header entirely.
             try {
-                $response = $this->httpClient->request('DELETE', "https://api.openai.com/v1/vector_stores/{$vectorStoreId}", [
-                    'headers' => [
-                        'Authorization' => 'Bearer ' . $apiKey,
-                        'Content-Type'  => 'application/json',
-                        'OpenAI-Beta'   => 'assistants=v2',
+                $response = $this->httpClient->request(
+                    'DELETE',
+                    "https://api.openai.com/v1/vector_stores/{$vectorStoreId}",
+                    [
+                        'headers' => [
+                            'Authorization' => 'Bearer '.$apiKey,
+                            'Content-Type' => 'application/json',
+                            'OpenAI-Beta' => 'assistants=v2',
+                        ],
                     ],
-                ]);
+                );
 
                 $status = $response->getStatusCode();
-                if ($status === 404) {
-                    $this->logger->info('Vector store already deleted from OpenAI platform', [
-                        'contao'          => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                        'vector_store_id' => $vectorStoreId,
-                    ]);
+                if (404 === $status) {
+                    $this->logger->info(
+                        'Vector store already deleted from OpenAI platform',
+                        [
+                            'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                            'vector_store_id' => $vectorStoreId,
+                        ],
+                    );
 
                     return;
                 }
 
                 if ($status < 200 || $status >= 300) {
-                    $this->logger->warning('Failed to delete vector store from OpenAI platform', [
-                        'contao'          => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                        'vector_store_id' => $vectorStoreId,
-                        'status'          => $status,
-                    ]);
+                    $this->logger->warning(
+                        'Failed to delete vector store from OpenAI platform',
+                        [
+                            'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                            'vector_store_id' => $vectorStoreId,
+                            'status' => $status,
+                        ],
+                    );
 
                     return;
                 }
 
-                $this->logger->info('Vector store deleted from OpenAI platform', [
-                    'contao'          => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                    'vector_store_id' => $vectorStoreId,
-                ]);
+                $this->logger->info(
+                    'Vector store deleted from OpenAI platform',
+                    [
+                        'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                        'vector_store_id' => $vectorStoreId,
+                    ],
+                );
             } catch (\Exception $e) {
-                $this->logger->error('Error deleting vector store from OpenAI platform: ' . $e->getMessage(), [
-                    'contao'          => new ContaoContext(__METHOD__, ContaoContext::ERROR),
-                    'vector_store_id' => $vectorStoreId,
-                ]);
+                $this->logger->error(
+                    'Error deleting vector store from OpenAI platform: '.$e->getMessage(),
+                    [
+                        'contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR),
+                        'vector_store_id' => $vectorStoreId,
+                    ],
+                );
             }
         } catch (\Exception $e) {
             $this->logger->error(
-                'Error in deleteVectorStore: ' . $e->getMessage(),
+                'Error in deleteVectorStore: '.$e->getMessage(),
                 [
                     'contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR),
-                ]
+                ],
             );
         }
     }
 
     /**
-     * Copy vector store when copying the config
+     * Copy vector store when copying the config.
      */
     public function copyVectorStore($insertId, $dc): void
     {
         $this->logger->info(
-            'Vector store copied for config ID ' . $insertId,
+            'Vector store copied for config ID '.$insertId,
             [
                 'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-            ]
+            ],
         );
     }
 
     /**
-     * Validate API key
+     * Validate API key.
      */
     public function validateApiKey($value, DataContainer $dc)
     {
-        if (! $value) {
+        if (!$value) {
             return $value;
         }
 
         try {
-            $response = $this->httpClient->request('GET', 'https://api.openai.com/v1/models', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $value,
-                    'Content-Type'  => 'application/json',
+            $response = $this->httpClient->request(
+                'GET',
+                'https://api.openai.com/v1/models',
+                [
+                    'headers' => [
+                        'Authorization' => 'Bearer '.$value,
+                        'Content-Type' => 'application/json',
+                    ],
                 ],
-            ]);
+            );
 
-            if ($response->getStatusCode() !== 200) {
+            if (200 !== $response->getStatusCode()) {
                 throw new \Exception('Invalid API key');
             }
 
             return $value;
         } catch (\Exception $e) {
-            throw new \Exception('Invalid API key: ' . $e->getMessage());
+            throw new \Exception('Invalid API key: '.$e->getMessage());
         }
     }
 
     /**
-     * Adds the header to the list view
+     * Adds the header to the list view.
      */
     #[AsCallback(table: 'tl_openai_config', target: 'list.header')]
     public function addHeader(): string
     {
-        return '<div class="tl_header">' . $GLOBALS['TL_LANG']['tl_openai_config']['header'] . '</div>';
+        return '<div class="tl_header">'.$GLOBALS['TL_LANG']['tl_openai_config']['header'].'</div>';
     }
 
     public function onLoadCallback($dc): void
     {
         $request = $this->requestStack->getCurrentRequest();
-        if ($request && ($request->get('act') === 'create' || $request->get('act') === '')) {
+        if ($request && ('create' === $request->get('act') || '' === $request->get('act'))) {
             $this->checkSingleRecordLimitation($dc);
         }
     }
@@ -552,29 +597,29 @@ class OpenAiConfigListener
     /**
      * @deprecated Since 2.0, use EncryptionService::decryptApiKey()
      */
-    public function decryptApiKey(string $encryptedData): ?string
+    public function decryptApiKey(string $encryptedData): string|null
     {
         return $this->encryption->decryptApiKey($encryptedData);
     }
 
     /**
-     * Checks if there's already a config record and prevents creation of additional ones
+     * Checks if there's already a config record and prevents creation of additional ones.
      */
     private function checkSingleRecordLimitation($dc): void
     {
         $existingConfig = $this->connection->fetchAssociative(
-            'SELECT id, title FROM tl_openai_config LIMIT 1'
+            'SELECT id, title FROM tl_openai_config LIMIT 1',
         );
 
         if ($existingConfig) {
-            \Contao\Message::addInfo($this->getTranslatedString('single_config_redirect', 'Only one OpenAI configuration is allowed. You are being redirected to the existing configuration.'));
-            $url = \Contao\Controller::addToUrl('act=edit&id=' . $existingConfig['id']);
-            \Contao\Controller::redirect($url);
+            Message::addInfo($this->getTranslatedString('single_config_redirect', 'Only one OpenAI configuration is allowed. You are being redirected to the existing configuration.'));
+            $url = Controller::addToUrl('act=edit&id='.$existingConfig['id']);
+            Controller::redirect($url);
         }
     }
 
     /**
-     * Get translated string with fallback
+     * Get translated string with fallback.
      */
     private function getTranslatedString(string $key, string $fallback): string
     {

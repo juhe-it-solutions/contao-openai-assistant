@@ -10,6 +10,14 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of Contao Open Source CMS.
+ *
+ * (c) JUHE IT-solutions
+ *
+ * @license LGPL-3.0-or-later
+ */
+
 namespace JuheItSolutions\ContaoOpenaiAssistant\Controller\BackendModule;
 
 use Contao\CoreBundle\Controller\AbstractController;
@@ -21,7 +29,7 @@ use Symfony\Component\Routing\Annotation\Route;
     category: 'ai_tools',
     name: 'openai_dashboard',
     title: 'OpenAI Dashboard',
-    description: 'Manage OpenAI configurations, files, and assistants'
+    description: 'Manage OpenAI configurations, files, and assistants',
 )]
 class OpenAiDashboardController extends AbstractController
 {
@@ -29,9 +37,9 @@ class OpenAiDashboardController extends AbstractController
     public function index(): Response
     {
         return $this->render('@Contao/be_main.html.twig', [
-            'title'    => 'OpenAI Dashboard',
+            'title' => 'OpenAI Dashboard',
             'headline' => 'OpenAI Assistant Management',
-            'content'  => 'Manage your OpenAI configurations, files, and assistants from this dashboard.',
+            'content' => 'Manage your OpenAI configurations, files, and assistants from this dashboard.',
         ]);
     }
 }

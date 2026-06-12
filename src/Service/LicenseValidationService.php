@@ -30,13 +30,13 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  */
 class LicenseValidationService
 {
-    private const VALIDATION_URL   = 'https://licenses.juhe-it-solutions.at/api/ai-assistant/validate';
+    private const VALIDATION_URL = 'https://licenses.juhe-it-solutions.at/api/ai-assistant/validate';
 
     private const CACHE_TTL_ACTIVE = 604800; // 7 days after a successful "active" validation
 
-    private const CACHE_TTL_ERROR  = 3600;   // 1 hour after network/endpoint errors — retry sooner
+    private const CACHE_TTL_ERROR = 3600; // 1 hour after network/endpoint errors — retry sooner
 
-    private const GRACE_PERIOD     = 604800; // 7 days: allow sync if last known good validation was recent
+    private const GRACE_PERIOD = 604800; // 7 days: allow sync if last known good validation was recent
 
     public function __construct(
         private readonly Connection $connection,
@@ -46,34 +46,34 @@ class LicenseValidationService
     }
 
     /**
-     * Returns true if the license for the given config is currently active.
-     * Uses cached status when within TTL; otherwise calls revalidate().
+     * Returns true if the license for the given config is currently active. Uses
+     * cached status when within TTL; otherwise calls revalidate().
      */
     public function isLicenseActive(int $configId): bool
     {
         $config = $this->connection->fetchAssociative(
             'SELECT premium_license_key, premium_license_status, premium_license_valid_until, premium_license_checked_at FROM tl_openai_config WHERE id = ?',
-            [$configId]
+            [$configId],
         );
 
-        if (! $config || empty($config['premium_license_key'])) {
+        if (!$config || empty($config['premium_license_key'])) {
             return false;
         }
 
         $checkedAt = (int) ($config['premium_license_checked_at'] ?? 0);
-        $status    = (string) ($config['premium_license_status'] ?? '');
+        $status = (string) ($config['premium_license_status'] ?? '');
 
-        // Fresh cache hit: decide from the cached status alone — no decryption,
-        // no network call. This is the common path on every cron tick.
+        // Fresh cache hit: decide from the cached status alone — no decryption, no
+        // network call. This is the common path on every cron tick.
         if ($checkedAt > 0 && $this->isCacheFresh($status, $checkedAt)) {
             return $this->isActiveStatus($status, $config);
         }
 
         // Stale cache: we must call the endpoint, which needs the PLAINTEXT key.
         $plainKey = $this->encryption->decryptLicenseKey((string) $config['premium_license_key']);
-        if ($plainKey === null) {
-            // Stored value could not be decrypted (corrupt, or wrong server key) —
-            // treat as inactive rather than sending garbage to the endpoint.
+        if (null === $plainKey) {
+            // Stored value could not be decrypted (corrupt, or wrong server key) — treat
+            // as inactive rather than sending garbage to the endpoint.
             return false;
         }
 
@@ -81,30 +81,34 @@ class LicenseValidationService
     }
 
     /**
-     * Force remote validation. Called on config save (license key changed) and when cache is stale.
-     * Public so OpenAiConfigListener can invoke it from config.onsubmit.
+     * Force remote validation. Called on config save (license key changed) and when cache
+     * is stale. Public so OpenAiConfigListener can invoke it from config.onsubmit.
      *
      * @param string $key the PLAINTEXT license key (callers decrypt or read it from $_POST).
-     *                     This method writes only status/valid_until/checked_at — never the key itself.
+     *                    This method writes only status/valid_until/checked_at — never the key itself.
      */
     public function revalidate(int $configId, string $key): bool
     {
         $previous = $this->connection->fetchAssociative(
             'SELECT premium_license_status, premium_license_valid_until, premium_license_checked_at FROM tl_openai_config WHERE id = ?',
-            [$configId]
+            [$configId],
         );
 
         try {
-            $response = $this->http->request('GET', self::VALIDATION_URL, [
-                'query'   => [
-                    'key' => $key,
+            $response = $this->http->request(
+                'GET',
+                self::VALIDATION_URL,
+                [
+                    'query' => [
+                        'key' => $key,
+                    ],
+                    'timeout' => 10,
                 ],
-                'timeout' => 10,
-            ]);
+            );
 
-            $data       = $response->toArray(false);
-            $active     = ($data['valid'] ?? false) === true;
-            $status     = $active ? 'active' : (string) ($data['status'] ?? 'inactive');
+            $data = $response->toArray(false);
+            $active = ($data['valid'] ?? false) === true;
+            $status = $active ? 'active' : (string) ($data['status'] ?? 'inactive');
             $validUntil = isset($data['expires_at'])
                 ? (new \DateTimeImmutable((string) $data['expires_at']))->getTimestamp()
                 : 0;
@@ -113,28 +117,28 @@ class LicenseValidationService
             if ($this->wasRecentlyActive($previous)) {
                 $this->connection->executeStatement(
                     'UPDATE tl_openai_config SET premium_license_status = ?, premium_license_checked_at = ? WHERE id = ?',
-                    ['error', time(), $configId]
+                    ['error', time(), $configId],
                 );
 
                 return true; // grace: allow sync despite unreachable endpoint
             }
 
-            $active     = false;
-            $status     = 'error';
+            $active = false;
+            $status = 'error';
             $validUntil = (int) ($previous['premium_license_valid_until'] ?? 0);
         }
 
         $this->connection->executeStatement(
             'UPDATE tl_openai_config SET premium_license_status = ?, premium_license_valid_until = ?, premium_license_checked_at = ? WHERE id = ?',
-            [$active ? 'active' : $status, $validUntil, time(), $configId]
+            [$active ? 'active' : $status, $validUntil, time(), $configId],
         );
 
-        return $active || ($status === 'error' && $this->wasRecentlyActive($previous));
+        return $active || ('error' === $status && $this->wasRecentlyActive($previous));
     }
 
     private function isCacheFresh(string $status, int $checkedAt): bool
     {
-        $ttl = $status === 'error' ? self::CACHE_TTL_ERROR : self::CACHE_TTL_ACTIVE;
+        $ttl = 'error' === $status ? self::CACHE_TTL_ERROR : self::CACHE_TTL_ACTIVE;
 
         return time() - $checkedAt < $ttl;
     }
@@ -144,24 +148,24 @@ class LicenseValidationService
      */
     private function isActiveStatus(string $status, array $config): bool
     {
-        if ($status === 'active') {
+        if ('active' === $status) {
             return true;
         }
 
         // Cached error within grace period after a previously active license
-        return $status === 'error' && $this->wasRecentlyActive($config);
+        return 'error' === $status && $this->wasRecentlyActive($config);
     }
 
     /**
      * @param array<string, mixed>|null $config
      */
-    private function wasRecentlyActive(?array $config): bool
+    private function wasRecentlyActive(array|null $config): bool
     {
-        if (! $config) {
+        if (!$config) {
             return false;
         }
 
-        $checkedAt  = (int) ($config['premium_license_checked_at'] ?? 0);
+        $checkedAt = (int) ($config['premium_license_checked_at'] ?? 0);
         $validUntil = (int) ($config['premium_license_valid_until'] ?? 0);
 
         return 'active' === ($config['premium_license_status'] ?? '')

@@ -28,9 +28,9 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * Backend DCA listener for tl_openai_prompts.
  *
  * Prompts are purely local configuration records: this listener does not create,
- * update, or delete OpenAI Assistant resources (that API is sunset on 2026-08-26).
- * Model compatibility is now
- * validated against the Responses API (/v1/responses) with a minimal ping call.
+ * update, or delete OpenAI Assistant resources (that API is sunset on
+ * 2026-08-26). Model compatibility is now validated against the Responses API
+ * (/v1/responses) with a minimal ping call.
  */
 class OpenAiPromptsListener
 {
@@ -41,14 +41,14 @@ class OpenAiPromptsListener
         private readonly ContaoCsrfTokenManager $csrfTokenManager,
         private readonly string $csrfTokenName,
         private readonly RequestStack $requestStack,
-        private readonly EncryptionService $encryption
+        private readonly EncryptionService $encryption,
     ) {
     }
 
     /**
      * Gets available OpenAI models for prompts.
      */
-    public function getAvailableModels(?DataContainer $dc = null): array
+    public function getAvailableModels(DataContainer|null $dc = null): array
     {
         $models = [];
 
@@ -60,16 +60,19 @@ class OpenAiPromptsListener
                     $models = $this->fetchModelsFromApi($apiKey);
                 }
             } catch (\Exception $e) {
-                $this->logger->warning('Failed to fetch models from API', [
-                    'error'  => $e->getMessage(),
-                    'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                ]);
+                $this->logger->warning(
+                    'Failed to fetch models from API',
+                    [
+                        'error' => $e->getMessage(),
+                        'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                    ],
+                );
             }
         }
 
         $orderedModels = [];
 
-        if (! empty($models)) {
+        if (!empty($models)) {
             $orderedModels[''] = $this->getTranslatedString('model_select_placeholder', '-- Select Model --');
         }
 
@@ -87,26 +90,27 @@ class OpenAiPromptsListener
      */
     public function validateModel($value, DataContainer $dc): string
     {
-        $this->logger->info('validateModel called', [
-            'contao'       => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-            'value'        => $value,
-            'model_manual' => $dc->activeRecord->model_manual ?? 'not set',
-        ]);
+        $this->logger->info(
+            'validateModel called',
+            [
+                'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                'value' => $value,
+                'model_manual' => $dc->activeRecord->model_manual ?? 'not set',
+            ],
+        );
 
-        if ($value === 'manual') {
+        if ('manual' === $value) {
             return 'manual';
         }
 
         if (empty($value)) {
             $manualModel = $dc->activeRecord->model_manual ?? '';
             if (empty($manualModel)) {
-                throw new \InvalidArgumentException(
-                    $this->getTranslatedString('model_required', 'Please select a model or enter a custom model name.')
-                );
+                throw new \InvalidArgumentException($this->getTranslatedString('model_required', 'Please select a model or enter a custom model name.'));
             }
         }
 
-        if (! empty($value)) {
+        if (!empty($value)) {
             $this->validateModelCompatibility((string) $value, $dc);
         }
 
@@ -118,17 +122,18 @@ class OpenAiPromptsListener
      */
     public function validateManualModel($value, DataContainer $dc): string
     {
-        $this->logger->info('validateManualModel called', [
-            'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-            'value'  => $value,
-            'model'  => $dc->activeRecord->model ?? 'not set',
-        ]);
+        $this->logger->info(
+            'validateManualModel called',
+            [
+                'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                'value' => $value,
+                'model' => $dc->activeRecord->model ?? 'not set',
+            ],
+        );
 
-        if ($dc->activeRecord && $dc->activeRecord->model === 'manual') {
+        if ($dc->activeRecord && 'manual' === $dc->activeRecord->model) {
             if (empty($value)) {
-                throw new \InvalidArgumentException(
-                    $this->getTranslatedString('model_validation_error', 'Please enter a custom model name when selecting manual override.')
-                );
+                throw new \InvalidArgumentException($this->getTranslatedString('model_validation_error', 'Please enter a custom model name when selecting manual override.'));
             }
 
             $this->validateModelCompatibility((string) $value, $dc);
@@ -142,11 +147,11 @@ class OpenAiPromptsListener
      */
     public function normalizeSystemInstructions($value, DataContainer $dc): string
     {
-        if ($value === null) {
+        if (null === $value) {
             return '';
         }
 
-        $raw     = (string) $value;
+        $raw = (string) $value;
         $decoded = html_entity_decode($raw, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $decoded = str_replace(["\r\n", "\r"], "\n", $decoded);
         $decoded = strip_tags($decoded);
@@ -160,38 +165,38 @@ class OpenAiPromptsListener
     public function listPrompts($row): string
     {
         $statusColors = [
-            'active'   => 'green',
+            'active' => 'green',
             'creating' => 'orange',
-            'failed'   => 'red',
-            'pending'  => 'gray',
+            'failed' => 'red',
+            'pending' => 'gray',
         ];
 
         $statusIcons = [
-            'active'   => '✓',
+            'active' => '✓',
             'creating' => '⟳',
-            'failed'   => '✗',
-            'pending'  => '⏳',
+            'failed' => '✗',
+            'pending' => '⏳',
         ];
 
         $status = $row['status'] ?? 'pending';
-        $color  = $statusColors[$status] ?? 'gray';
-        $icon   = $statusIcons[$status] ?? '⏳';
+        $color = $statusColors[$status] ?? 'gray';
+        $icon = $statusIcons[$status] ?? '⏳';
 
         $cause = '';
-        if (($row['status'] ?? '') === 'failed' && ! empty($row['status_cause'] ?? '')) {
-            $cause = ' - ' . htmlspecialchars((string) $row['status_cause']);
+        if (($row['status'] ?? '') === 'failed' && !empty($row['status_cause'] ?? '')) {
+            $cause = ' - '.htmlspecialchars((string) $row['status_cause']);
         }
 
         $promptRef = '';
-        if (! empty($row['prompt_id'])) {
-            $promptRef = sprintf(
+        if (!empty($row['prompt_id'])) {
+            $promptRef = \sprintf(
                 ' <span class="prompt-ref" style="color:#888">[prompt: %s%s]</span>',
                 htmlspecialchars((string) $row['prompt_id']),
-                ! empty($row['prompt_version']) ? ('@' . htmlspecialchars((string) $row['prompt_version'])) : ''
+                !empty($row['prompt_version']) ? '@'.htmlspecialchars((string) $row['prompt_version']) : '',
             );
         }
 
-        return sprintf(
+        return \sprintf(
             '<div class="tl_file_list"><span class="name">%s</span> <span class="model">[%s]</span> <span class="settings">(temp: %s, top_p: %s)</span>%s <span class="status" style="color: %s">%s %s%s</span>',
             htmlspecialchars((string) ($row['name'] ?? '')),
             htmlspecialchars((string) ($row['model'] ?? '')),
@@ -201,7 +206,7 @@ class OpenAiPromptsListener
             $color,
             $icon,
             $GLOBALS['TL_LANG']['tl_openai_prompts']['status_options'][$status] ?? $status,
-            $cause
+            $cause,
         );
     }
 
@@ -238,13 +243,13 @@ class OpenAiPromptsListener
      */
     public function addHeader(): string
     {
-        return '<div class="tl_header">' . ($GLOBALS['TL_LANG']['tl_openai_prompts']['header'] ?? '') . '</div>';
+        return '<div class="tl_header">'.($GLOBALS['TL_LANG']['tl_openai_prompts']['header'] ?? '').'</div>';
     }
 
     public function onLoadCallback($dc): void
     {
         $request = $this->requestStack->getCurrentRequest();
-        if ($request && ($request->get('act') === 'create' || $request->get('act') === '')) {
+        if ($request && ('create' === $request->get('act') || '' === $request->get('act'))) {
             $this->checkSingleRecordLimitation($dc);
         }
 
@@ -253,19 +258,19 @@ class OpenAiPromptsListener
 
         $lang = $GLOBALS['TL_LANG']['tl_openai_prompts'] ?? [];
 
-        $combinedMessage = '<strong style="display: block; font-size: 22px; position: relative; top: -5px;">' .
-                          ($lang['welcome_heading'] ?? 'OpenAI Prompt') .
-                          '</strong>' .
-                          ($lang['welcome_message1'] ?? 'Welcome to the OpenAI Prompt screen.') .
-                          '<br>' .
+        $combinedMessage = '<strong style="display: block; font-size: 22px; position: relative; top: -5px;">'.
+                          ($lang['welcome_heading'] ?? 'OpenAI Prompt').
+                          '</strong>'.
+                          ($lang['welcome_message1'] ?? 'Welcome to the OpenAI Prompt screen.').
+                          '<br>'.
                           ($lang['welcome_message2'] ?? 'Here you can configure the prompt that drives your chat.');
 
         $combinedMessage .= '<div style="margin: 15px 0 0 0; padding: 15px 13px; background: var(--info-bg); border-left: 4px solid #007cba; line-height: 1.3;">';
-        $combinedMessage .= '<strong>💡 ' . ($lang['model_info_heading'] ?? 'Model Selection Tips') . ':</strong><br>';
-        $combinedMessage .= '<span style="padding-left: 5px;">• <strong>' . ($lang['model_info_dynamic'] ?? 'All Models: All available models from your OpenAI account are shown') . '</strong><br></span>';
-        $combinedMessage .= '<span style="padding-left: 5px;">• <strong>' . ($lang['model_info_custom'] ?? 'Custom Models: Select "Enter Custom Model" to use any OpenAI model') . '</strong><br></span>';
-        $combinedMessage .= '<span style="padding-left: 5px;">• <strong>' . ($lang['model_info_compatibility'] ?? 'Model Validation: Model compatibility is checked when you save the prompt') . '</strong><br></span>';
-        $combinedMessage .= '<span style="padding-left: 5px;">• <strong>' . ($lang['model_info_help'] ?? 'Need Help?') . '</strong> <a href="https://platform.openai.com/docs/models" target="_blank" style="color: #007cba;">' . ($lang['model_info_link'] ?? 'View all available models on OpenAI Platform') . '</a></span>';
+        $combinedMessage .= '<strong>💡 '.($lang['model_info_heading'] ?? 'Model Selection Tips').':</strong><br>';
+        $combinedMessage .= '<span style="padding-left: 5px;">• <strong>'.($lang['model_info_dynamic'] ?? 'All Models: All available models from your OpenAI account are shown').'</strong><br></span>';
+        $combinedMessage .= '<span style="padding-left: 5px;">• <strong>'.($lang['model_info_custom'] ?? 'Custom Models: Select "Enter Custom Model" to use any OpenAI model').'</strong><br></span>';
+        $combinedMessage .= '<span style="padding-left: 5px;">• <strong>'.($lang['model_info_compatibility'] ?? 'Model Validation: Model compatibility is checked when you save the prompt').'</strong><br></span>';
+        $combinedMessage .= '<span style="padding-left: 5px;">• <strong>'.($lang['model_info_help'] ?? 'Need Help?').'</strong> <a href="https://platform.openai.com/docs/models" target="_blank" style="color: #007cba;">'.($lang['model_info_link'] ?? 'View all available models on OpenAI Platform').'</a></span>';
         $combinedMessage .= '</div>';
 
         Message::addInfo($combinedMessage);
@@ -309,18 +314,22 @@ class OpenAiPromptsListener
     private function fetchModelsFromApi(string $apiKey): array
     {
         try {
-            $response = $this->httpClient->request('GET', 'https://api.openai.com/v1/models', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $apiKey,
-                    'Content-Type'  => 'application/json',
+            $response = $this->httpClient->request(
+                'GET',
+                'https://api.openai.com/v1/models',
+                [
+                    'headers' => [
+                        'Authorization' => 'Bearer '.$apiKey,
+                        'Content-Type' => 'application/json',
+                    ],
+                    'timeout' => 30,
                 ],
-                'timeout' => 30,
-            ]);
+            );
 
-            $data   = $response->toArray();
+            $data = $response->toArray();
             $models = [];
 
-            if (isset($data['data']) && is_array($data['data'])) {
+            if (isset($data['data']) && \is_array($data['data'])) {
                 foreach ($data['data'] as $model) {
                     if (isset($model['id'])) {
                         $models[$model['id']] = $model['id'];
@@ -332,7 +341,7 @@ class OpenAiPromptsListener
 
             return $models;
         } catch (\Exception $e) {
-            $this->logger->error('Failed to fetch OpenAI models: ' . $e->getMessage());
+            $this->logger->error('Failed to fetch OpenAI models: '.$e->getMessage());
 
             return [];
         }
@@ -342,46 +351,56 @@ class OpenAiPromptsListener
      * Validates the given model against the Responses API via a cheap ping call.
      *
      * POST /v1/responses with {"input":"ping","max_output_tokens":16,"store":false}.
-     * We consider a 2xx status as "model usable". This replaces the legacy
-     * behaviour that created a throwaway Assistant on /v1/assistants.
+     * We consider a 2xx status as "model usable". This replaces the legacy behaviour
+     * that created a throwaway Assistant on /v1/assistants.
      */
     private function validateModelViaApi(string $modelId, string $apiKey): bool
     {
-        $this->logger->info('validateModelViaApi called', [
-            'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-            'model'  => $modelId,
-        ]);
+        $this->logger->info(
+            'validateModelViaApi called',
+            [
+                'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                'model' => $modelId,
+            ],
+        );
 
         try {
-            $response = $this->httpClient->request('POST', 'https://api.openai.com/v1/responses', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $apiKey,
-                    'Content-Type'  => 'application/json',
+            $response = $this->httpClient->request(
+                'POST',
+                'https://api.openai.com/v1/responses',
+                [
+                    'headers' => [
+                        'Authorization' => 'Bearer '.$apiKey,
+                        'Content-Type' => 'application/json',
+                    ],
+                    'json' => [
+                        'model' => $modelId,
+                        'input' => 'ping',
+                        'max_output_tokens' => 16,
+                        'store' => false,
+                    ],
+                    'timeout' => 30,
                 ],
-                'json' => [
-                    'model'             => $modelId,
-                    'input'             => 'ping',
-                    'max_output_tokens' => 16,
-                    'store'             => false,
-                ],
-                'timeout' => 30,
-            ]);
+            );
 
             $status = $response->getStatusCode();
             if ($status >= 200 && $status < 300) {
                 return true;
             }
 
-            $this->logger->warning('Model ping returned non-2xx', [
-                'contao'   => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                'model'    => $modelId,
-                'status'   => $status,
-                'response' => $this->shortenApiError($response->getContent(false)),
-            ]);
+            $this->logger->warning(
+                'Model ping returned non-2xx',
+                [
+                    'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                    'model' => $modelId,
+                    'status' => $status,
+                    'response' => $this->shortenApiError($response->getContent(false)),
+                ],
+            );
 
             return false;
         } catch (\Exception $e) {
-            $this->logger->error('Model validation failed for ' . $modelId . ': ' . $e->getMessage());
+            $this->logger->error('Model validation failed for '.$modelId.': '.$e->getMessage());
 
             return false;
         }
@@ -390,17 +409,18 @@ class OpenAiPromptsListener
     private function shortenApiError(string $raw): string
     {
         $message = '';
-        $data    = json_decode($raw, true);
-        if (is_array($data)) {
+        $data = json_decode($raw, true);
+        if (\is_array($data)) {
             $message = (string) ($data['error']['message'] ?? $data['message'] ?? '');
         }
-        if ($message === '') {
+        if ('' === $message) {
             $message = trim($raw);
         }
         $message = preg_replace('/\s+/', ' ', $message) ?? $message;
         if (mb_strlen($message) > 180) {
-            $message = mb_substr($message, 0, 177) . '...';
+            $message = mb_substr($message, 0, 177).'...';
         }
+
         return $message;
     }
 
@@ -419,40 +439,39 @@ class OpenAiPromptsListener
      */
     private function validateModelCompatibility(string $modelId, DataContainer $dc): void
     {
-        $this->logger->info('validateModelCompatibility called', [
-            'contao'    => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-            'model'     => $modelId,
-            'config_id' => $dc->activeRecord->pid ?? 0,
-        ]);
+        $this->logger->info(
+            'validateModelCompatibility called',
+            [
+                'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                'model' => $modelId,
+                'config_id' => $dc->activeRecord->pid ?? 0,
+            ],
+        );
 
         $configId = (int) ($dc->activeRecord->pid ?? 0);
-        $apiKey   = $this->encryption->getApiKeyForConfig($configId);
+        $apiKey = $this->encryption->getApiKeyForConfig($configId);
 
-        if (! $apiKey) {
-            throw new \InvalidArgumentException(
-                $this->getTranslatedString('no_api_key_error', 'No API key found in configuration. Please check your OpenAI configuration.')
-            );
+        if (!$apiKey) {
+            throw new \InvalidArgumentException($this->getTranslatedString('no_api_key_error', 'No API key found in configuration. Please check your OpenAI configuration.'));
         }
 
-        if (! $this->validateModelViaApi($modelId, $apiKey)) {
-            throw new \InvalidArgumentException(
-                sprintf(
-                    $this->getTranslatedString('model_incompatible_error', 'The model "%s" is not compatible with the Responses API. Please select a different model.'),
-                    $modelId
-                )
-            );
+        if (!$this->validateModelViaApi($modelId, $apiKey)) {
+            throw new \InvalidArgumentException(\sprintf($this->getTranslatedString('model_incompatible_error', 'The model "%s" is not compatible with the Responses API. Please select a different model.'), $modelId));
         }
 
-        $this->logger->info('Model validation successful', [
-            'contao'    => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-            'model'     => $modelId,
-            'config_id' => $configId,
-        ]);
+        $this->logger->info(
+            'Model validation successful',
+            [
+                'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                'model' => $modelId,
+                'config_id' => $configId,
+            ],
+        );
     }
 
     /**
-     * Checks if there's already a prompt record for this config and prevents
-     * creation of additional ones.
+     * Checks if there's already a prompt record for this config and prevents creation
+     * of additional ones.
      */
     private function checkSingleRecordLimitation($dc): void
     {
@@ -467,18 +486,18 @@ class OpenAiPromptsListener
             }
         }
 
-        if (! $configId) {
+        if (!$configId) {
             return;
         }
 
         $existing = $this->connection->fetchAssociative(
             'SELECT id, name FROM tl_openai_prompts WHERE pid = ? LIMIT 1',
-            [$configId]
+            [$configId],
         );
 
         if ($existing) {
             Message::addInfo($this->getTranslatedString('single_prompt_redirect', 'Only one prompt is allowed per configuration. You are being redirected to the existing prompt.'));
-            $url = Controller::addToUrl('act=edit&id=' . $existing['id']);
+            $url = Controller::addToUrl('act=edit&id='.$existing['id']);
             Controller::redirect($url);
         }
     }

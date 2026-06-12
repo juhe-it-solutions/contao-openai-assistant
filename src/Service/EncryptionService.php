@@ -19,9 +19,9 @@ class EncryptionService
 {
     public function __construct(
         private readonly LoggerInterface $logger,
-        private readonly ?Connection $connection = null,
-        private readonly ?string $projectDir = null,
-        private readonly ?string $webDir = null
+        private readonly Connection|null $connection = null,
+        private readonly string|null $projectDir = null,
+        private readonly string|null $webDir = null,
     ) {
     }
 
@@ -34,33 +34,33 @@ class EncryptionService
      *
      * Returns null when no usable key is available or the stored key fails validation.
      */
-    public function getApiKeyForConfig(int $configId, bool $logInvalidFormat = true): ?string
+    public function getApiKeyForConfig(int $configId, bool $logInvalidFormat = true): string|null
     {
-        $envKey = sprintf('OPENAI_API_KEY_%d', $configId);
-        if (isset($_ENV[$envKey]) && $_ENV[$envKey] !== '') {
+        $envKey = \sprintf('OPENAI_API_KEY_%d', $configId);
+        if (isset($_ENV[$envKey]) && '' !== $_ENV[$envKey]) {
             $candidate = (string) $_ENV[$envKey];
             if ($this->isValidApiKeyFormat($candidate)) {
                 return $candidate;
             }
         }
 
-        if (isset($_ENV['OPENAI_API_KEY']) && $_ENV['OPENAI_API_KEY'] !== '') {
+        if (isset($_ENV['OPENAI_API_KEY']) && '' !== $_ENV['OPENAI_API_KEY']) {
             $candidate = (string) $_ENV['OPENAI_API_KEY'];
             if ($this->isValidApiKeyFormat($candidate)) {
                 return $candidate;
             }
         }
 
-        if ($this->connection === null) {
+        if (null === $this->connection) {
             return null;
         }
 
         $row = $this->connection->fetchAssociative(
             'SELECT api_key FROM tl_openai_config WHERE id = ?',
-            [$configId]
+            [$configId],
         );
 
-        if (! $row || empty($row['api_key'])) {
+        if (!$row || empty($row['api_key'])) {
             return null;
         }
 
@@ -68,59 +68,59 @@ class EncryptionService
     }
 
     /**
-     * Generate encryption key (consistent across all services)
+     * Generate encryption key (consistent across all services).
      */
     public function getEncryptionKey(): string
     {
         // Generate the same encryption key as in other services
-        $serverName   = $_SERVER['SERVER_NAME'] ?? 'localhost';
+        $serverName = $_SERVER['SERVER_NAME'] ?? 'localhost';
         $documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? '/';
 
-        return hash('sha256', $serverName . $documentRoot, true);
+        return hash('sha256', $serverName.$documentRoot, true);
     }
 
     /**
-     * Encrypt API key for storage
+     * Encrypt API key for storage.
      */
     public function encryptApiKey(string $apiKey): string
     {
-        $key    = $this->getEncryptionKey();
+        $key = $this->getEncryptionKey();
         $method = 'aes-256-cbc';
-        $iv     = openssl_random_pseudo_bytes(openssl_cipher_iv_length($method));
+        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length($method));
 
         $encrypted = openssl_encrypt($apiKey, $method, $key, 0, $iv);
 
         // Combine IV and encrypted data
-        return base64_encode($iv . $encrypted);
+        return base64_encode($iv.$encrypted);
     }
 
     /**
-     * Decrypt API key from storage
+     * Decrypt API key from storage.
      */
-    public function decryptApiKey(string $encryptedData): ?string
+    public function decryptApiKey(string $encryptedData): string|null
     {
         try {
             $method = 'aes-256-cbc';
 
-            $data      = base64_decode($encryptedData, true);
-            if ($data === false) {
+            $data = base64_decode($encryptedData, true);
+            if (false === $data) {
                 return null;
             }
 
-            $ivLength  = openssl_cipher_iv_length($method);
-            $iv        = substr($data, 0, $ivLength);
+            $ivLength = openssl_cipher_iv_length($method);
+            $iv = substr($data, 0, $ivLength);
             $encrypted = substr($data, $ivLength);
 
             foreach ($this->getEncryptionKeyCandidates() as $key) {
                 $decrypted = openssl_decrypt($encrypted, $method, $key, 0, $iv);
-                if ($decrypted !== false && $this->isValidApiKeyFormat($decrypted)) {
+                if (false !== $decrypted && $this->isValidApiKeyFormat($decrypted)) {
                     return $decrypted;
                 }
             }
 
             return null;
         } catch (\Exception $e) {
-            $this->logger->error('Failed to decrypt API key: ' . $e->getMessage());
+            $this->logger->error('Failed to decrypt API key: '.$e->getMessage());
 
             return null;
         }
@@ -130,54 +130,54 @@ class EncryptionService
      * Encrypt an arbitrary string value (AES-256-CBC + random IV, base64-encoded).
      *
      * Same on-disk format as encryptApiKey() but makes no assumptions about the
-     * plaintext, so it can be reused for non-OpenAI secrets (e.g. the premium
-     * license key, which does not start with "sk-").
+     * plaintext, so it can be reused for non-OpenAI secrets (e.g. the premium license
+     * key, which does not start with "sk-").
      */
     public function encryptValue(string $plaintext): string
     {
-        $key    = $this->getEncryptionKey();
+        $key = $this->getEncryptionKey();
         $method = 'aes-256-cbc';
-        $iv     = openssl_random_pseudo_bytes(openssl_cipher_iv_length($method));
+        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length($method));
 
         $encrypted = openssl_encrypt($plaintext, $method, $key, 0, $iv);
 
-        return base64_encode($iv . $encrypted);
+        return base64_encode($iv.$encrypted);
     }
 
     /**
      * Decrypt a value produced by encryptValue().
      *
-     * Tries every encryption-key candidate (web/CLI host + document-root variants)
-     * so a value encrypted in web context can be decrypted from the CLI cron. The
+     * Tries every encryption-key candidate (web/CLI host + document-root variants) so
+     * a value encrypted in web context can be decrypted from the CLI cron. The
      * $validator predicate confirms the correct candidate was used (decrypting with
      * the wrong key can return garbage rather than false).
      *
      * @param callable(string):bool $validator returns true when the decrypted value is well-formed
      */
-    public function decryptValue(string $encryptedData, callable $validator): ?string
+    public function decryptValue(string $encryptedData, callable $validator): string|null
     {
         try {
             $method = 'aes-256-cbc';
 
             $data = base64_decode($encryptedData, true);
-            if ($data === false) {
+            if (false === $data) {
                 return null;
             }
 
-            $ivLength  = openssl_cipher_iv_length($method);
-            $iv        = substr($data, 0, $ivLength);
+            $ivLength = openssl_cipher_iv_length($method);
+            $iv = substr($data, 0, $ivLength);
             $encrypted = substr($data, $ivLength);
 
             foreach ($this->getEncryptionKeyCandidates() as $key) {
                 $decrypted = openssl_decrypt($encrypted, $method, $key, 0, $iv);
-                if ($decrypted !== false && $validator($decrypted)) {
+                if (false !== $decrypted && $validator($decrypted)) {
                     return $decrypted;
                 }
             }
 
             return null;
         } catch (\Exception $e) {
-            $this->logger->error('Failed to decrypt value: ' . $e->getMessage());
+            $this->logger->error('Failed to decrypt value: '.$e->getMessage());
 
             return null;
         }
@@ -203,9 +203,9 @@ class EncryptionService
      * Decrypt a stored premium license key. Returns null when the value is empty,
      * cannot be decrypted, or does not match the expected license key format.
      */
-    public function decryptLicenseKey(string $encrypted): ?string
+    public function decryptLicenseKey(string $encrypted): string|null
     {
-        if ($encrypted === '') {
+        if ('' === $encrypted) {
             return null;
         }
 
@@ -213,16 +213,16 @@ class EncryptionService
     }
 
     /**
-     * Process API key - decrypt if encrypted, decode if base64
+     * Process API key - decrypt if encrypted, decode if base64.
      */
-    public function processApiKey(string $storedApiKey, bool $logInvalidFormat = true): ?string
+    public function processApiKey(string $storedApiKey, bool $logInvalidFormat = true): string|null
     {
         if (empty($storedApiKey)) {
             return null;
         }
 
         // Check if this is an encrypted key (longer than 100 chars) or legacy base64
-        if (strlen($storedApiKey) > 100) {
+        if (\strlen($storedApiKey) > 100) {
             // This is an encrypted key
             $apiKey = $this->decryptApiKey($storedApiKey);
         } else {
@@ -230,11 +230,14 @@ class EncryptionService
             $apiKey = base64_decode($storedApiKey, true);
         }
 
-        if (! $apiKey || ! $this->isValidApiKeyFormat($apiKey)) {
+        if (!$apiKey || !$this->isValidApiKeyFormat($apiKey)) {
             if ($logInvalidFormat) {
-                $this->logger->error('Invalid API key format detected', [
-                    'api_key_length' => strlen($storedApiKey),
-                ]);
+                $this->logger->error(
+                    'Invalid API key format detected',
+                    [
+                        'api_key_length' => \strlen($storedApiKey),
+                    ],
+                );
             }
 
             return null;
@@ -244,7 +247,7 @@ class EncryptionService
     }
 
     /**
-     * Validate API key format - supports all OpenAI key formats
+     * Validate API key format - supports all OpenAI key formats.
      */
     public function isValidApiKeyFormat(string $apiKey): bool
     {
@@ -265,8 +268,8 @@ class EncryptionService
     }
 
     /**
-     * Build candidate encryption keys so CLI migrations can still decrypt keys
-     * that were encrypted in web context (different SERVER_NAME/DOCUMENT_ROOT).
+     * Build candidate encryption keys so CLI migrations can still decrypt keys that
+     * were encrypted in web context (different SERVER_NAME/DOCUMENT_ROOT).
      *
      * @return array<int, string>
      */
@@ -281,7 +284,7 @@ class EncryptionService
 
         foreach ($hosts as $host) {
             foreach ($roots as $root) {
-                $keys[] = hash('sha256', $host . $root, true);
+                $keys[] = hash('sha256', $host.$root, true);
             }
         }
 
@@ -299,19 +302,20 @@ class EncryptionService
         ];
 
         $appUrl = (string) ($_ENV['APP_URL'] ?? '');
-        if ($appUrl !== '') {
+        if ('' !== $appUrl) {
             $host = (string) (parse_url($appUrl, PHP_URL_HOST) ?: '');
-            if ($host !== '') {
+            if ('' !== $host) {
                 $hosts[] = $host;
             }
         }
 
-        if ($this->connection !== null) {
+        if (null !== $this->connection) {
             try {
                 $rows = $this->connection->fetchFirstColumn('SELECT dns FROM tl_page WHERE dns IS NOT NULL AND dns <> ""');
+
                 foreach ($rows as $dns) {
                     $host = trim((string) $dns);
-                    if ($host !== '') {
+                    if ('' !== $host) {
                         $hosts[] = $host;
                     }
                 }
@@ -320,8 +324,8 @@ class EncryptionService
             }
         }
 
-        $hosts = array_values(array_filter(array_unique($hosts), static fn (string $v): bool => $v !== ''));
-        if ($hosts === []) {
+        $hosts = array_values(array_filter(array_unique($hosts), static fn (string $v): bool => '' !== $v));
+        if ([] === $hosts) {
             $hosts[] = 'localhost';
         }
 
@@ -338,30 +342,31 @@ class EncryptionService
             '/',
         ];
 
-        if ($this->projectDir !== null && $this->projectDir !== '') {
+        if (null !== $this->projectDir && '' !== $this->projectDir) {
             $roots[] = rtrim($this->projectDir, '/');
         }
 
-        if ($this->projectDir !== null && $this->projectDir !== '' && $this->webDir !== null && $this->webDir !== '') {
+        if (null !== $this->projectDir && '' !== $this->projectDir && null !== $this->webDir && '' !== $this->webDir) {
             $resolvedWebDir = str_starts_with($this->webDir, '/')
                 ? $this->webDir
-                : rtrim($this->projectDir, '/') . '/' . ltrim($this->webDir, '/');
+                : rtrim($this->projectDir, '/').'/'.ltrim($this->webDir, '/');
             $roots[] = rtrim($resolvedWebDir, '/');
         }
 
-        // Older installs sometimes rotate release folders (e.g. contao56 -> contao57).
-        // Include neighboring numeric path variants to preserve decryption compatibility.
+        // Older installs sometimes rotate release folders (e.g. contao56 -> contao57). Include
+        // neighboring numeric path variants to preserve decryption compatibility.
         $expandedRoots = [];
+
         foreach ($roots as $root) {
             $root = rtrim($root, '/');
-            if ($root === '') {
+            if ('' === $root) {
                 continue;
             }
 
             $expandedRoots[] = $root;
 
             $resolved = realpath($root);
-            if ($resolved !== false) {
+            if (false !== $resolved) {
                 $expandedRoots[] = rtrim($resolved, '/');
             }
 
@@ -370,28 +375,28 @@ class EncryptionService
             }
         }
 
-        return array_values(array_filter(array_unique($expandedRoots), static fn (string $v): bool => $v !== ''));
+        return array_values(array_filter(array_unique($expandedRoots), static fn (string $v): bool => '' !== $v));
     }
 
     /**
      * Create path variants by decrementing numeric suffixes in path segments.
-     * Example: /var/www/contao57/web -> /var/www/contao56/web
+     * Example: /var/www/contao57/web -> /var/www/contao56/web.
      *
      * @return array<int, string>
      */
     private function getLegacyPathVariants(string $path): array
     {
         $trimmed = rtrim($path, '/');
-        if ($trimmed === '') {
+        if ('' === $trimmed) {
             return [];
         }
 
         $leadingSlash = str_starts_with($trimmed, '/');
-        $segments     = array_values(array_filter(explode('/', ltrim($trimmed, '/')), static fn (string $v): bool => $v !== ''));
-        $variants     = [];
+        $segments = array_values(array_filter(explode('/', ltrim($trimmed, '/')), static fn (string $v): bool => '' !== $v));
+        $variants = [];
 
         foreach ($segments as $index => $segment) {
-            if (! preg_match('/^(.*?)(\d+)$/', $segment, $matches)) {
+            if (!preg_match('/^(.*?)(\d+)$/', $segment, $matches)) {
                 continue;
             }
 
@@ -400,11 +405,11 @@ class EncryptionService
                 continue;
             }
 
-            $altSegments         = $segments;
-            $altSegments[$index] = $matches[1] . (string) ($number - 1);
-            $variant             = implode('/', $altSegments);
+            $altSegments = $segments;
+            $altSegments[$index] = $matches[1].(string) ($number - 1);
+            $variant = implode('/', $altSegments);
             if ($leadingSlash) {
-                $variant = '/' . $variant;
+                $variant = '/'.$variant;
             }
 
             $variants[] = $variant;

@@ -10,6 +10,14 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of Contao Open Source CMS.
+ *
+ * (c) JUHE IT-solutions
+ *
+ * @license LGPL-3.0-or-later
+ */
+
 namespace JuheItSolutions\ContaoOpenaiAssistant\Cron;
 
 use Contao\CoreBundle\Cron\Cron;
@@ -39,16 +47,16 @@ class VectorStoreAutoUpdateCron
 
     public function __invoke(string $scope): void
     {
-        if ($scope === Cron::SCOPE_WEB) {
+        if (Cron::SCOPE_WEB === $scope) {
             throw new CronExecutionSkippedException();
         }
 
         $configs = $this->connection->fetchAllAssociative(
-            "SELECT * FROM tl_openai_config WHERE auto_update_enabled = '1'"
+            "SELECT * FROM tl_openai_config WHERE auto_update_enabled = '1'",
         );
 
         foreach ($configs as $config) {
-            if (! $this->isDue($config)) {
+            if (!$this->isDue($config)) {
                 continue;
             }
 
@@ -61,24 +69,24 @@ class VectorStoreAutoUpdateCron
      */
     private function isDue(array $config): bool
     {
-        $lastRun  = (int) ($config['auto_update_last_run'] ?? 0);
+        $lastRun = (int) ($config['auto_update_last_run'] ?? 0);
         $schedule = (string) ($config['auto_update_schedule'] ?? '') ?: '0 2 * * *';
-        $status   = (string) ($config['auto_update_last_status'] ?? '');
+        $status = (string) ($config['auto_update_last_status'] ?? '');
 
-        // Stale-run guard: skip while a run is still in progress (<30 min). A
-        // "queued" status does NOT block — only "running" does.
-        if ($status === 'running' && time() - $lastRun < 1800) {
+        // Stale-run guard: skip while a run is still in progress (<30 min). A "queued"
+        // status does NOT block — only "running" does.
+        if ('running' === $status && time() - $lastRun < 1800) {
             return false;
         }
 
         // Never ran yet → run immediately.
-        if ($lastRun === 0) {
+        if (0 === $lastRun) {
             return true;
         }
 
-        $expression  = new CronExpression($schedule);
-        $lastRunDate = new \DateTimeImmutable('@' . $lastRun);
-        $nextRun     = $expression->getNextRunDate($lastRunDate);
+        $expression = new CronExpression($schedule);
+        $lastRunDate = new \DateTimeImmutable('@'.$lastRun);
+        $nextRun = $expression->getNextRunDate($lastRunDate);
 
         return new \DateTimeImmutable() >= \DateTimeImmutable::createFromInterface($nextRun);
     }

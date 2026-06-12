@@ -10,6 +10,14 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of Contao Open Source CMS.
+ *
+ * (c) JUHE IT-solutions
+ *
+ * @license LGPL-3.0-or-later
+ */
+
 namespace JuheItSolutions\ContaoOpenaiAssistant\Command;
 
 use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
@@ -22,9 +30,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 /**
  * CLI entry point for a single configuration sync.
  *
- * Used by the backend manual trigger (dispatched non-blocking via ProcessUtil) and
- * for operator smoke tests. Keeps the long-running crawl + LLM call out of HTTP
- * requests (constraint C4).
+ * Used by the backend manual trigger (dispatched non-blocking via ProcessUtil)
+ * and for operator smoke tests. Keeps the long-running crawl + LLM call out of
+ * HTTP requests (constraint C4).
  */
 #[AsCommand(
     name: 'contao:openai-vector-sync',
@@ -32,9 +40,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 class VectorStoreAutoUpdateCommand extends Command
 {
-    public function __construct(
-        private readonly VectorStoreAutoUpdateService $service,
-    ) {
+    public function __construct(private readonly VectorStoreAutoUpdateService $service)
+    {
         parent::__construct();
     }
 
@@ -54,7 +61,7 @@ class VectorStoreAutoUpdateCommand extends Command
         }
 
         $this->service->run($configId);
-        $output->writeln('<info>Vector store auto-update finished for config ' . $configId . '.</info>');
+        $output->writeln('<info>Vector store auto-update finished for config '.$configId.'.</info>');
 
         return Command::SUCCESS;
     }
