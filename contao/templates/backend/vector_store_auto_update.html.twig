@@ -53,9 +53,14 @@
     </style>
 
     {% if configs is empty %}
-        <div class="tl_info">
-            {{ 'MSC.vsau_no_config'|trans({}, 'contao_default') }}
-            <em>{{ 'MSC.vsau_no_config_hint'|trans({}, 'contao_default') }}</em>
+        <div class="tl_message">
+            <p class="tl_info">
+                <strong style="display: block; font-size: 22px; position: relative; top: -5px;">{{ 'MSC.vsau_premium_heading'|trans({}, 'contao_default') }}</strong>
+                {{ 'MSC.vsau_premium_intro'|trans({}, 'contao_default') }}<br>
+                <span style="color: #f59e0b; line-height: 2">{{ 'MSC.vsau_premium_purchase'|trans({}, 'contao_default') }} <a href="{{ purchase_url }}" target="_blank" rel="noopener noreferrer">{{ purchase_url }}</a></span><br>
+                {{ 'MSC.vsau_no_config'|trans({}, 'contao_default') }}
+                <em style="display: block;">{{ 'MSC.vsau_no_config_hint'|trans({}, 'contao_default') }}</em>
+            </p>
         </div>
     {% endif %}
 
@@ -194,7 +199,8 @@
         </div>
     {% endfor %}
 
-    {# Run history #}
+    {# Run history — only when at least one config has an active license #}
+    {% if has_active_config %}
     <div class="tl_box">
         <h2 style="padding: 10px 16px 8px; margin: 0; border-bottom: 1px solid var(--border, #3a3f50);">
             {{ 'MSC.vsau_recent_runs'|trans({}, 'contao_default') }}
@@ -240,4 +246,5 @@
             {% endif %}
         </div>
     </div>
+    {% endif %}
 {% endblock %}

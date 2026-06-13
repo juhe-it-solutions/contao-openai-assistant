@@ -23,6 +23,18 @@
                 <source>Configuration</source>
                 <target>Configuration</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_premium_heading">
+                <source>Premium add-on: Auto-Update</source>
+                <target>Premium add-on: Auto-Update</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_premium_intro">
+                <source>With our premium add-on, your integrated chatbot stays up to date. Updated website content is automatically incorporated into the chatbot's knowledge base. 14-day free trial, then billed monthly.</source>
+                <target>With our premium add-on, your integrated chatbot stays up to date. Updated website content is automatically incorporated into the chatbot's knowledge base. 14-day free trial, then billed monthly.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_premium_purchase">
+                <source>Get a license at</source>
+                <target>Get a license at</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_no_config">
                 <source>No configuration has automatic sync enabled yet.</source>
                 <target>No configuration has automatic sync enabled yet.</target>

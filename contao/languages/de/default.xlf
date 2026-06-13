@@ -23,6 +23,18 @@
                 <source>Configuration</source>
                 <target>Konfiguration</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_premium_heading">
+                <source>Premium add-on: Auto-Update</source>
+                <target>Premium-Addon: Auto-Update</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_premium_intro">
+                <source>With our premium add-on, your integrated chatbot stays up to date. Updated website content is automatically incorporated into the chatbot's knowledge base. 14-day free trial, then billed monthly.</source>
+                <target>Mit unserem Premium-Addon halten Sie Ihren integrierten Chatbot stets aktuell. Aktualisierte Webseiten-Inhalte werden automatisch in die Wissensdatenbank des Chatbots übernommen. 14 Tage kostenlos testen, dann monatliche Abrechnung.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_premium_purchase">
+                <source>Get a license at</source>
+                <target>Lizenz erhalten unter</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_no_config">
                 <source>No configuration has automatic sync enabled yet.</source>
                 <target>Noch keine Konfiguration mit automatischer Synchronisierung aktiviert.</target>

@@ -85,6 +85,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             "SELECT * FROM tl_openai_config WHERE auto_update_enabled = '1' ORDER BY id",
         );
 
+        $hasActiveConfig = false;
         foreach ($configs as &$config) {
             $config['license_active'] = $this->licenseValidation->isLicenseActive((int) $config['id']);
             $config['cron_status'] = $this->cronStatus((int) $config['auto_update_last_run']);
@@ -92,6 +93,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             $config['warnings'] = $this->prerequisiteWarnings($config);
             $schedule = (string) ($config['auto_update_schedule'] ?? '') ?: '0 2 * * *';
             $config['schedule_label'] = $this->humanReadableSchedule($schedule);
+            $hasActiveConfig = $hasActiveConfig || $config['license_active'];
         }
         unset($config);
 
@@ -102,6 +104,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         return $this->render('@Contao/backend/vector_store_auto_update.html.twig', [
             'headline' => $this->translator->trans('MOD.vector_store_auto_update.0', [], 'contao_modules'),
             'configs' => $configs,
+            'has_active_config' => $hasActiveConfig,
             'log' => $log,
             'purchase_url' => 'https://licenses.juhe-it-solutions.at/openai-assistant',
             'request_token' => $this->csrfTokenManager->getToken($this->csrfTokenName)->getValue(),
