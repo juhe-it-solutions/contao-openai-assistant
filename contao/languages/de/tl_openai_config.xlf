@@ -166,8 +166,8 @@
                 <target>Lizenzschlüssel</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_key.1">
-                <source><![CDATA[Enter the license key you received after purchase at <a href="https://licenses.juhe-it-solutions.at" target="_blank" rel="noopener noreferrer">https://licenses.juhe-it-solutions.at</a>. Leave the masked value unchanged to keep the current key; clear the field to remove it.]]></source>
-                <target><![CDATA[Geben Sie den Lizenzschlüssel ein, den Sie nach dem Kauf auf <a href="https://licenses.juhe-it-solutions.at" target="_blank" rel="noopener noreferrer">https://licenses.juhe-it-solutions.at</a> erhalten haben. Lassen Sie den maskierten Wert unverändert, um den aktuellen Schlüssel zu behalten; leeren Sie das Feld, um ihn zu entfernen.]]></target>
+                <source><![CDATA[Enter the license key you received after purchase at <a href="https://licenses.juhe-it-solutions.at/openai-assistant" target="_blank" rel="noopener noreferrer">https://licenses.juhe-it-solutions.at/openai-assistant</a>. Leave the masked value unchanged to keep the current key; clear the field to remove it.]]></source>
+                <target><![CDATA[Geben Sie den Lizenzschlüssel ein, den Sie nach dem Kauf auf <a href="https://licenses.juhe-it-solutions.at/openai-assistant" target="_blank" rel="noopener noreferrer">https://licenses.juhe-it-solutions.at/openai-assistant</a> erhalten haben. Lassen Sie den maskierten Wert unverändert, um den aktuellen Schlüssel zu behalten; leeren Sie das Feld, um ihn zu entfernen.]]></target>
             </trans-unit>
             <trans-unit id="tl_openai_config.check_license_key">
                 <source>Check key</source>

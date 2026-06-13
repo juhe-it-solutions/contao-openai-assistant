@@ -103,7 +103,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             'headline' => $this->translator->trans('MOD.vector_store_auto_update.0', [], 'contao_modules'),
             'configs' => $configs,
             'log' => $log,
-            'purchase_url' => 'https://licenses.juhe-it-solutions.at/ai-assistant',
+            'purchase_url' => 'https://licenses.juhe-it-solutions.at/openai-assistant',
             'request_token' => $this->csrfTokenManager->getToken($this->csrfTokenName)->getValue(),
         ]);
     }

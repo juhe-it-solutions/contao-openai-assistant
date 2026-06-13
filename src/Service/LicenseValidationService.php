@@ -30,7 +30,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  */
 class LicenseValidationService
 {
-    private const VALIDATION_URL = 'https://licenses.juhe-it-solutions.at/api/ai-assistant/validate';
+    private const VALIDATION_URL = 'https://licenses.juhe-it-solutions.at/api/openai-assistant/validate';
 
     private const CACHE_TTL_ACTIVE = 604800; // 7 days after a successful "active" validation
 

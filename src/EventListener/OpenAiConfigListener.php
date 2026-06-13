@@ -606,7 +606,7 @@ class OpenAiConfigListener
     public function premiumLicenseIntroField(DataContainer $dc, string $xlabel = ''): string
     {
         $lang = $this->loadConfigLang();
-        $licenseUrl = 'https://licenses.juhe-it-solutions.at';
+        $licenseUrl = 'https://licenses.juhe-it-solutions.at/openai-assistant';
 
         $content = \sprintf(
             '<strong style="display: block; font-size: 22px; position: relative; top: -5px;">%s</strong>'
