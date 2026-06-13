@@ -34,7 +34,18 @@
         }
     }
 
+    function setAutoUpdateBlockVisible(visible) {
+        var firstField = document.querySelector(".widget.auto-update-license-field");
+        var fieldset = firstField ? firstField.closest("fieldset") : null;
+        if (fieldset) {
+            fieldset.style.display = visible ? "" : "none";
+        }
+    }
+
     function setAutoUpdateFieldsEnabled(enabled) {
+        // Hide the whole "Automatic vector store sync" block until the license is validated.
+        setAutoUpdateBlockVisible(enabled);
+
         document.querySelectorAll(".widget.auto-update-license-field").forEach(function (widget) {
             widget.classList.toggle("openai-auto-update-disabled", !enabled);
 

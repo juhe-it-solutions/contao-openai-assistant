@@ -225,7 +225,10 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_enabled'],
             'exclude'   => true,
             'inputType' => 'checkbox',
-            'eval'      => ['tl_class' => 'clr m12 auto-update-field auto-update-toggle auto-update-license-field'],
+            // submitOnChange: ticking the box auto-saves and reloads, so the model
+            // options_callback (which requires a persisted auto_update_enabled) runs
+            // immediately and populates "Generierungsmodell" without a second manual save.
+            'eval'      => ['submitOnChange' => true, 'tl_class' => 'clr m12 auto-update-field auto-update-toggle auto-update-license-field'],
             'sql'       => ['type' => 'boolean', 'default' => false],
         ],
         'auto_update_schedule_hour' => [

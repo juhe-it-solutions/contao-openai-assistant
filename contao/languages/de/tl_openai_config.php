@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 $GLOBALS['TL_LANG']['tl_openai_config']['auto_update_schedule_weekday_options'] = [
-    'every' => 'Jeden Tag',
+    'every' => 'Jeden Tag der Woche',
     'monday' => 'Montag',
     'tuesday' => 'Dienstag',
     'wednesday' => 'Mittwoch',
