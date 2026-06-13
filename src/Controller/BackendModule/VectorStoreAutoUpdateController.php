@@ -91,6 +91,10 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             $config['cron_status'] = $this->cronStatus((int) $config['auto_update_last_run']);
             $config['next_run'] = $this->nextRun($config);
             $config['warnings'] = $this->prerequisiteWarnings($config);
+            // A manual sync can run without the server cron, but not without a vector
+            // store, selected pages and an index. Those prerequisite warnings block it.
+            $config['blocking'] = [] !== $config['warnings'];
+            $config['plan_label'] = $this->planLabel($config);
             $schedule = (string) ($config['auto_update_schedule'] ?? '') ?: '0 2 * * *';
             $config['schedule_label'] = $this->humanReadableSchedule($schedule);
             $hasActiveConfig = $hasActiveConfig || $config['license_active'];
@@ -112,7 +116,33 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
     }
 
     /**
-     * never | healthy | stale — see §10.5. contao:cron runs every minute, so two
+     * Human-readable subscription label, e.g. "Business (up to 100 pages)" or
+     * "Enterprise (unlimited)". Empty when no plan was stored yet.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function planLabel(array $config): string
+    {
+        $plan = (string) ($config['premium_license_plan'] ?? '');
+        if ('' === $plan) {
+            return '';
+        }
+
+        $name = $this->translator->trans('MSC.vsau_plan_'.$plan, [], 'contao_default');
+
+        if ('enterprise' === $plan) {
+            $limit = $this->translator->trans('MSC.vsau_plan_unlimited', [], 'contao_default');
+        } elseif ((int) ($config['premium_license_max_pages'] ?? 0) > 0) {
+            $limit = $this->translator->trans('MSC.vsau_plan_pages', [(int) $config['premium_license_max_pages']], 'contao_default');
+        } else {
+            return $name;
+        }
+
+        return $name.' ('.$limit.')';
+    }
+
+    /**
+     * never | healthy | stale - see §10.5. contao:cron runs every minute, so two
      * missed ticks (120 s) is a reliable "cron stopped" signal.
      */
     private function cronStatus(int $lastRun): string

@@ -2,54 +2,73 @@
 
 {% block main_content %}
     <style>
-        .vsau-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; color: #fff; vertical-align: middle; }
+        .vsau-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #fff; vertical-align: middle; line-height: 1.4; }
         .vsau-badge.green  { background: #43a047; }
         .vsau-badge.red    { background: #e53935; }
         .vsau-badge.yellow { background: #f59e0b; }
         .vsau-badge.blue   { background: #2196f3; }
         .vsau-badge.grey   { background: #757575; }
 
-        .vsau-config { margin-bottom: 24px; padding: 0; overflow: hidden; }
-        .vsau-config-header {
-            padding: 10px 16px;
-            border-bottom: 1px solid var(--border, #3a3f50);
-            margin-bottom: 12px;
+        .vsau-card {
+            background: var(--info-bg);
+            border: 1px solid var(--active-bg);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .vsau-card-head {
             display: flex;
-            align-items: baseline;
-            gap: 8px;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding-bottom: 1rem;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid var(--active-bg);
         }
-        .vsau-config-label {
-            font-size: 11px;
-            color: var(--text-secondary, #888);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            flex-shrink: 0;
+        .vsau-eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary, #9aa0ad); }
+        .vsau-title { font-size: 19px; font-weight: 700; margin-right: auto; }
+        .vsau-chip { display: inline-block; padding: 3px 12px; border-radius: 999px; background: var(--active-bg); font-size: 12px; font-weight: 600; }
+
+        .vsau-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.25rem;
         }
-        .vsau-config-name {
-            font-size: 15px;
-            font-weight: bold;
-            color: var(--text-primary, #e0e0e0);
+        .vsau-stat {
+            border: 1px solid var(--active-bg);
+            border-radius: 0.75rem;
+            padding: 1rem 1.1rem;
+            background: rgba(0, 0, 0, 0.08);
         }
+        .vsau-stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary, #9aa0ad); margin-bottom: 0.6rem; }
+        .vsau-stat-value { font-size: 13px; line-height: 1.6; }
+        .vsau-stat-value .vsau-sub { display: block; margin-top: 6px; color: var(--text-secondary, #9aa0ad); font-size: 12px; }
+        .vsau-cron-mono { display: inline-block; margin-left: 6px; color: var(--text-secondary, #9aa0ad); font-size: 11px; }
 
-        dl.vsau-meta { margin: 0 0 8px 0; padding: 0 16px; }
-        dl.vsau-meta > div { display: flex; align-items: baseline; margin: 5px 0; gap: 8px; flex-wrap: wrap; }
-        dl.vsau-meta dt { font-weight: bold; min-width: 180px; flex-shrink: 0; font-size: 13px; }
-        dl.vsau-meta dd { margin: 0; font-size: 13px; }
+        .vsau-setup { border-radius: 0.75rem; padding: 1.1rem 1.25rem; margin-bottom: 1.25rem; border: 1px solid var(--active-bg); }
+        .vsau-setup.todo  { border-left: 4px solid #e53935; }
+        .vsau-setup.notice { border-left: 4px solid #f59e0b; }
+        .vsau-setup.ready { border-left: 4px solid #43a047; }
+        .vsau-setup h3 { margin: 0 0 0.75rem; font-size: 14px; font-weight: 700; }
+        .vsau-setup ul { list-style: none; margin: 0; padding: 0; }
+        .vsau-setup li { display: flex; gap: 10px; align-items: flex-start; margin: 0.6rem 0; font-size: 13px; line-height: 1.55; }
+        .vsau-setup li .vsau-mark { flex-shrink: 0; font-weight: 700; }
+        .vsau-setup li .vsau-mark.bad  { color: #e53935; }
+        .vsau-setup li .vsau-mark.warn { color: #f59e0b; }
+        .vsau-setup li .vsau-mark.ok   { color: #43a047; }
+        .vsau-setup code { background: rgba(0, 0, 0, 0.25); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
 
-        .vsau-schedule-label { font-weight: normal; }
-        .vsau-schedule-cron  { font-size: 11px; color: var(--text-secondary, #888); }
+        .vsau-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .vsau-actions .tl_submit[disabled] { opacity: 0.5; cursor: not-allowed; }
+        .vsau-actions-hint { font-size: 12px; color: var(--text-secondary, #9aa0ad); }
 
-        .vsau-license-gate { margin: 12px 16px 16px; }
+        .vsau-gate { border-radius: 0.75rem; padding: 1.1rem 1.25rem; border: 1px solid var(--active-bg); border-left: 4px solid #2196f3; font-size: 13px; }
 
-        .vsau-warnings { padding: 0 16px; }
-        .vsau-warnings p { margin: 4px 0; }
-
-        .vsau-run-form { padding: 12px 16px 16px; }
-
-        table.vsau-log { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        table.vsau-log th,
-        table.vsau-log td { border: 1px solid var(--border, #ddd); padding: 4px 8px; text-align: left; font-size: 12px; }
-        table.vsau-log th { font-weight: bold; }
+        table.vsau-log { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+        table.vsau-log th, table.vsau-log td { border: 1px solid var(--active-bg); padding: 8px 10px; text-align: left; font-size: 12px; vertical-align: top; }
+        table.vsau-log th { font-weight: 700; background: rgba(0, 0, 0, 0.08); }
     </style>
 
     {% if configs is empty %}
@@ -76,60 +95,89 @@
     {% endif %}
 
     {% for config in configs %}
-        <div class="tl_box vsau-config">
+        <div class="vsau-card">
 
-            {# Config title with label #}
-            <div class="vsau-config-header">
-                <span class="vsau-config-label">{{ 'MSC.vsau_config_label'|trans({}, 'contao_default') }}:</span>
-                <span class="vsau-config-name">{{ config.title }}</span>
+            {# Header: name + license + package #}
+            <div class="vsau-card-head">
+                <span>
+                    <span class="vsau-eyebrow">{{ 'MSC.vsau_config_label'|trans({}, 'contao_default') }}</span><br>
+                    <span class="vsau-title">{{ config.title }}</span>
+                </span>
+
+                {% if config.license_active %}
+                    <span class="vsau-badge green">{{ 'MSC.vsau_license_active'|trans({}, 'contao_default') }}</span>
+                    {% if config.plan_label %}
+                        <span class="vsau-chip">{{ config.plan_label }}</span>
+                    {% endif %}
+                    {% if config.premium_license_valid_until > 0 %}
+                        <span class="vsau-actions-hint">{{ 'MSC.vsau_license_expires'|trans({}, 'contao_default') }} {{ config.premium_license_valid_until|date('d.m.Y') }}</span>
+                    {% endif %}
+                {% elseif config.premium_license_status == 'error' %}
+                    <span class="vsau-badge yellow">{{ 'MSC.vsau_license_error_grace'|trans({}, 'contao_default') }}</span>
+                    <span class="vsau-actions-hint">{{ 'MSC.vsau_license_grace_hint'|trans({}, 'contao_default') }}</span>
+                {% else %}
+                    <span class="vsau-badge red">{{ 'MSC.vsau_license_inactive'|trans({}, 'contao_default') }}</span>
+                    <a href="{{ purchase_url }}" target="_blank" rel="noopener" class="tl_submit">{{ 'MSC.vsau_buy_license'|trans({}, 'contao_default') }}</a>
+                {% endif %}
             </div>
-
-            {# License status — always visible #}
-            <dl class="vsau-meta">
-                <div>
-                    <dt>{{ 'MSC.vsau_premium_license'|trans({}, 'contao_default') }}</dt>
-                    <dd>
-                        {% if config.license_active %}
-                            <span class="vsau-badge green">{{ 'MSC.vsau_license_active'|trans({}, 'contao_default') }}</span>
-                            {% if config.premium_license_valid_until > 0 %}
-                                <span>{{ 'MSC.vsau_license_expires'|trans({}, 'contao_default') }} {{ config.premium_license_valid_until|date('d.m.Y') }}</span>
-                            {% endif %}
-                        {% elseif config.premium_license_status == 'error' %}
-                            <span class="vsau-badge yellow">{{ 'MSC.vsau_license_error_grace'|trans({}, 'contao_default') }}</span>
-                            <span>{{ 'MSC.vsau_license_grace_hint'|trans({}, 'contao_default') }}</span>
-                        {% else %}
-                            <span class="vsau-badge red">{{ 'MSC.vsau_license_inactive'|trans({}, 'contao_default') }}</span>
-                            <a href="{{ purchase_url }}" target="_blank" rel="noopener" class="tl_submit">{{ 'MSC.vsau_buy_license'|trans({}, 'contao_default') }}</a>
-                        {% endif %}
-                    </dd>
-                </div>
-            </dl>
 
             {% if config.license_active %}
 
-                {# Detail rows — only shown with a valid license #}
-                <dl class="vsau-meta">
+                {# Setup status - most important right after onboarding, shown first #}
+                {% if config.warnings is not empty %}
+                    <div class="vsau-setup todo">
+                        <h3>{{ 'MSC.vsau_setup_todo'|trans({}, 'contao_default') }}</h3>
+                        <ul>
+                            {% for warning in config.warnings %}
+                                <li><span class="vsau-mark bad">✗</span><span>{{ warning }}</span></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% else %}
+                    <div class="vsau-setup ready">
+                        <ul>
+                            <li><span class="vsau-mark ok">✓</span><span>{{ 'MSC.vsau_setup_ready'|trans({}, 'contao_default') }}</span></li>
+                        </ul>
+                    </div>
+                {% endif %}
 
-                    {# Cron health #}
-                    <div>
-                        <dt>{{ 'MSC.vsau_cron_status'|trans({}, 'contao_default') }}</dt>
-                        <dd>
+                {# Cron not running yet (affects scheduled runs only, not manual) #}
+                {% if config.cron_status == 'never' %}
+                    <div class="vsau-setup notice">
+                        <h3>{{ 'MSC.vsau_cron_setup_heading'|trans({}, 'contao_default') }}</h3>
+                        <ul>
+                            <li>
+                                <span class="vsau-mark warn">!</span>
+                                <span>
+                                    {{ 'MSC.vsau_cron_never_warning'|trans({}, 'contao_default') }}
+                                    <br><code>* * * * * [php] [project]/vendor/bin/contao-console contao:cron</code>
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                {% endif %}
+
+                {# Status grid #}
+                <div class="vsau-grid">
+
+                    <div class="vsau-stat">
+                        <div class="vsau-stat-label">{{ 'MSC.vsau_cron_status'|trans({}, 'contao_default') }}</div>
+                        <div class="vsau-stat-value">
                             {% if config.cron_status == 'never' %}
                                 <span class="vsau-badge red">{{ 'MSC.vsau_cron_never'|trans({}, 'contao_default') }}</span>
                             {% elseif config.cron_status == 'healthy' %}
                                 <span class="vsau-badge green">{{ 'MSC.vsau_cron_healthy'|trans({}, 'contao_default') }}</span>
-                                <span>{{ 'MSC.vsau_cron_healthy_seen'|trans({}, 'contao_default') }} {{ config.auto_update_last_run|date('d.m.Y H:i:s') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_cron_healthy_seen'|trans({}, 'contao_default') }} {{ config.auto_update_last_run|date('d.m.Y H:i:s') }}</span>
                             {% else %}
                                 <span class="vsau-badge yellow">{{ 'MSC.vsau_cron_stale'|trans({}, 'contao_default') }}</span>
-                                <span>{{ 'MSC.vsau_cron_healthy_seen'|trans({}, 'contao_default') }} {{ config.auto_update_last_run|date('d.m.Y H:i:s') }} — {{ 'MSC.vsau_cron_stale_hint'|trans({}, 'contao_default') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_cron_healthy_seen'|trans({}, 'contao_default') }} {{ config.auto_update_last_run|date('d.m.Y H:i:s') }}. {{ 'MSC.vsau_cron_stale_hint'|trans({}, 'contao_default') }}</span>
                             {% endif %}
-                        </dd>
+                        </div>
                     </div>
 
-                    {# Last sync result #}
-                    <div>
-                        <dt>{{ 'MSC.vsau_last_sync'|trans({}, 'contao_default') }}</dt>
-                        <dd>
+                    <div class="vsau-stat">
+                        <div class="vsau-stat-label">{{ 'MSC.vsau_last_sync'|trans({}, 'contao_default') }}</div>
+                        <div class="vsau-stat-value">
                             {% set st = config.auto_update_last_status %}
                             {% if st == 'success' %}
                                 <span class="vsau-badge green">{{ 'MSC.vsau_sync_success'|trans({}, 'contao_default') }}</span>
@@ -139,86 +187,66 @@
                                 <span class="vsau-badge blue">{{ 'MSC.vsau_sync_running'|trans({}, 'contao_default') }}</span>
                             {% elseif st == 'queued' %}
                                 <span class="vsau-badge blue">{{ 'MSC.vsau_sync_queued'|trans({}, 'contao_default') }}</span>
-                                <span>— {{ 'MSC.vsau_sync_queued_hint'|trans({}, 'contao_default') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_sync_queued_hint'|trans({}, 'contao_default') }}</span>
                             {% else %}
                                 <span class="vsau-badge grey">{{ 'MSC.vsau_sync_never'|trans({}, 'contao_default') }}</span>
                             {% endif %}
-                            {% if config.auto_update_last_message %}
-                                <div class="tl_gray">{{ config.auto_update_last_message }}</div>
+                            {% if config.auto_update_last_run > 0 and st != 'queued' %}
+                                <span class="vsau-sub">{{ config.auto_update_last_run|date('d.m.Y H:i:s') }}</span>
                             {% endif %}
-                        </dd>
+                            {% if config.auto_update_last_message %}
+                                <span class="vsau-sub">{{ config.auto_update_last_message }}</span>
+                            {% endif %}
+                        </div>
                     </div>
 
-                    {# Schedule #}
-                    <div>
-                        <dt>{{ 'MSC.vsau_schedule'|trans({}, 'contao_default') }}</dt>
-                        <dd>
-                            <span class="vsau-schedule-label">{{ config.schedule_label }}</span>
+                    <div class="vsau-stat">
+                        <div class="vsau-stat-label">{{ 'MSC.vsau_schedule'|trans({}, 'contao_default') }}</div>
+                        <div class="vsau-stat-value">
+                            {{ config.schedule_label }}
                             {% if config.schedule_label != config.auto_update_schedule %}
-                                <span class="vsau-schedule-cron">({{ config.auto_update_schedule }})</span>
+                                <span class="vsau-cron-mono">({{ config.auto_update_schedule }})</span>
                             {% endif %}
                             {% if config.next_run %}
-                                &nbsp;·&nbsp;
-                                <span>{{ 'MSC.vsau_next_run'|trans({}, 'contao_default') }} {{ config.next_run|date('d.m.Y H:i') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_next_run'|trans({}, 'contao_default') }} {{ config.next_run|date('d.m.Y H:i') }}</span>
                             {% endif %}
-                        </dd>
+                        </div>
                     </div>
 
-                </dl>
-
-                {# Cron "never ran" warning #}
-                {% if config.cron_status == 'never' %}
-                    <div class="vsau-warnings">
-                        <p class="tl_gerror">
-                            {{ 'MSC.vsau_cron_never_warning'|trans({}, 'contao_default') }}
-                            <code>* * * * * [php] [project]/vendor/bin/contao-console contao:cron</code>
-                            {{ 'MSC.vsau_cron_never_warning_suffix'|trans({}, 'contao_default') }}
-                        </p>
-                    </div>
-                {% endif %}
-
-                {# Prerequisite warnings #}
-                {% if config.warnings is not empty %}
-                    <div class="vsau-warnings">
-                        {% for warning in config.warnings %}
-                            <p class="tl_gerror">{{ warning }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+                </div>
 
                 {# Manual trigger #}
-                <div class="vsau-run-form">
+                <div class="vsau-actions">
                     <form method="post" action="{{ path('vector_store_auto_update') }}">
                         <input type="hidden" name="REQUEST_TOKEN" value="{{ request_token }}">
                         <input type="hidden" name="config_id" value="{{ config.id }}">
                         <button type="submit" class="tl_submit"
-                                {% if config.auto_update_last_status in ['running', 'queued'] %}disabled{% endif %}>
+                                {% if config.blocking or config.auto_update_last_status in ['running', 'queued'] %}disabled{% endif %}>
                             {{ 'MSC.vsau_run_now'|trans({}, 'contao_default') }}
                         </button>
                     </form>
+                    {% if config.blocking %}
+                        <span class="vsau-actions-hint">{{ 'MSC.vsau_run_now_blocked_hint'|trans({}, 'contao_default') }}</span>
+                    {% endif %}
                 </div>
 
             {% else %}
 
-                {# License not active — show minimal hint #}
-                <div class="vsau-license-gate tl_info">
-                    {{ 'MSC.vsau_license_required_hint'|trans({}, 'contao_default') }}
-                </div>
+                <div class="vsau-gate">{{ 'MSC.vsau_license_required_hint'|trans({}, 'contao_default') }}</div>
 
             {% endif %}
 
         </div>
     {% endfor %}
 
-    {# Run history — only when at least one config has an active license #}
+    {# Run history - only when at least one config has an active license #}
     {% if has_active_config %}
-    <div class="tl_box">
-        <h2 style="padding: 10px 16px 8px; margin: 0; border-bottom: 1px solid var(--border, #3a3f50);">
-            {{ 'MSC.vsau_recent_runs'|trans({}, 'contao_default') }}
-        </h2>
-        <div style="padding: 12px 16px;">
+        <div class="vsau-card">
+            <div class="vsau-card-head">
+                <span class="vsau-title">{{ 'MSC.vsau_recent_runs'|trans({}, 'contao_default') }}</span>
+            </div>
             {% if log is empty %}
-                <p class="tl_gray">{{ 'MSC.vsau_no_runs'|trans({}, 'contao_default') }}</p>
+                <p class="vsau-actions-hint">{{ 'MSC.vsau_no_runs'|trans({}, 'contao_default') }}</p>
             {% else %}
                 <table class="vsau-log">
                     <thead>
@@ -241,7 +269,7 @@
                                     {% if row.status == 'success' %}
                                         <span class="vsau-badge green">{{ 'MSC.vsau_sync_success'|trans({}, 'contao_default') }}</span>
                                     {% else %}
-                                        <span class="vsau-badge red">{{ row.status }}</span>
+                                        <span class="vsau-badge red">{{ 'MSC.vsau_sync_error'|trans({}, 'contao_default') }}</span>
                                     {% endif %}
                                 </td>
                                 <td>{{ row.pages }}</td>
@@ -256,6 +284,5 @@
                 </table>
             {% endif %}
         </div>
-    </div>
     {% endif %}
 {% endblock %}

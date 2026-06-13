@@ -48,24 +48,24 @@
                 <target>Premium license</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_license_active">
-                <source>active</source>
-                <target>active</target>
+                <source>Active</source>
+                <target>Active</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_license_expires">
                 <source>expires</source>
                 <target>expires</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_license_error_grace">
-                <source>error</source>
-                <target>error</target>
+                <source>Error</source>
+                <target>Error</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_license_grace_hint">
-                <source>Could not reach license server — sync allowed under grace period.</source>
-                <target>Could not reach license server — sync allowed under grace period.</target>
+                <source>Could not reach license server - sync allowed under grace period.</source>
+                <target>Could not reach license server - sync allowed under grace period.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_license_inactive">
-                <source>inactive</source>
-                <target>inactive</target>
+                <source>Inactive</source>
+                <target>Inactive</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_buy_license">
                 <source>Buy premium license</source>
@@ -80,52 +80,52 @@
                 <target>Cron status</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_never">
-                <source>no runs recorded</source>
-                <target>no runs recorded</target>
+                <source>Never run</source>
+                <target>Never run</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_healthy">
-                <source>healthy</source>
-                <target>healthy</target>
+                <source>Active</source>
+                <target>Active</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_healthy_seen">
                 <source>last seen</source>
                 <target>last seen</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_stale">
-                <source>stale</source>
-                <target>stale</target>
+                <source>Stale</source>
+                <target>Stale</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_stale_hint">
                 <source>Your server cron may have stopped.</source>
                 <target>Your server cron may have stopped.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_never_warning">
-                <source>No runs recorded — your server cron has not triggered yet. Add</source>
-                <target>No runs recorded — your server cron has not triggered yet. Add</target>
+                <source>The server cron has not run yet. Scheduled syncs only start once it is set up. Add the following entry to your server cron:</source>
+                <target>The server cron has not run yet. Scheduled syncs only start once it is set up. Add the following entry to your server cron:</target>
             </trans-unit>
-            <trans-unit id="MSC.vsau_cron_never_warning_suffix">
-                <source>to your server cron.</source>
-                <target>to your server cron.</target>
+            <trans-unit id="MSC.vsau_cron_setup_heading">
+                <source>Scheduled runs (server cron)</source>
+                <target>Scheduled runs (server cron)</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_last_sync">
                 <source>Last sync</source>
                 <target>Last sync</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_sync_success">
-                <source>success</source>
-                <target>success</target>
+                <source>Success</source>
+                <target>Success</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_sync_error">
-                <source>error</source>
-                <target>error</target>
+                <source>Error</source>
+                <target>Error</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_sync_running">
-                <source>running</source>
-                <target>running</target>
+                <source>Running</source>
+                <target>Running</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_sync_queued">
-                <source>queued</source>
-                <target>queued</target>
+                <source>Queued</source>
+                <target>Queued</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_sync_queued_hint">
                 <source>refresh in a few minutes</source>
@@ -148,12 +148,12 @@
                 <target>Run sync now</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_recent_runs">
-                <source>Recent runs</source>
-                <target>Recent runs</target>
+                <source>Recent syncs</source>
+                <target>Recent syncs</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_no_runs">
-                <source>No runs recorded yet.</source>
-                <target>No runs recorded yet.</target>
+                <source>No syncs recorded yet.</source>
+                <target>No syncs recorded yet.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_col_date">
                 <source>Date</source>
@@ -192,16 +192,16 @@
                 <target>Sync queued. Refresh this page in a few minutes to see the result.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_vector_store">
-                <source>No vector store configured. Add a vector store ID to this configuration record first.</source>
-                <target>No vector store configured. Add a vector store ID to this configuration record first.</target>
+                <source>No vector store exists yet. Upload one document once via AI Tools → OpenAI Dashboard → File upload; this automatically creates the vector store.</source>
+                <target>No vector store exists yet. Upload one document once via AI Tools → OpenAI Dashboard → File upload; this automatically creates the vector store.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_crawl_page">
-                <source>No crawl start page selected. Pick a start page in OpenAI Configuration → Automatic vector store sync, or ensure a single site root exists.</source>
-                <target>No crawl start page selected. Pick a start page in OpenAI Configuration → Automatic vector store sync, or ensure a single site root exists.</target>
+                <source>No pages selected. Choose the pages to keep updated in the OpenAI configuration (AI Tools → OpenAI Dashboard) under "Automatic vector store sync".</source>
+                <target>No pages selected. Choose the pages to keep updated in the OpenAI configuration (AI Tools → OpenAI Dashboard) under "Automatic vector store sync".</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_indexed_pages">
-                <source>No pages indexed. Run a search re-index (System → Maintenance) before the first sync.</source>
-                <target>No pages indexed. Run a search re-index (System → Maintenance) before the first sync.</target>
+                <source>No pages in the search index yet. Update the search index under System → Maintenance → "Update the search index" before the first sync.</source>
+                <target>No pages in the search index yet. Update the search index under System → Maintenance → "Update the search index" before the first sync.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_invalid_config">
                 <source>Invalid or disabled configuration.</source>
@@ -266,6 +266,38 @@
             <trans-unit id="MSC.vsau_weekday_6">
                 <source>Saturday</source>
                 <target>Saturday</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_plan_starter">
+                <source>Starter</source>
+                <target>Starter</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_plan_business">
+                <source>Business</source>
+                <target>Business</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_plan_enterprise">
+                <source>Enterprise</source>
+                <target>Enterprise</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_plan_unlimited">
+                <source>unlimited</source>
+                <target>unlimited</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_plan_pages">
+                <source>up to %s pages</source>
+                <target>up to %s pages</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_setup_todo">
+                <source>To do before the first sync:</source>
+                <target>To do before the first sync:</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_setup_ready">
+                <source>Everything is ready - the sync can run.</source>
+                <target>Everything is ready - the sync can run.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_run_now_blocked_hint">
+                <source>Resolve the open items above first.</source>
+                <target>Resolve the open items above first.</target>
             </trans-unit>
         </body>
     </file>
