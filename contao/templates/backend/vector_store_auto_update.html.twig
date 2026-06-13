@@ -56,11 +56,17 @@
         <div class="tl_message">
             <p class="tl_info">
                 <strong style="display: block; font-size: 22px; position: relative; top: -5px;">{{ 'MSC.vsau_premium_heading'|trans({}, 'contao_default') }}</strong>
-                <img src="/bundles/contaoopenaiassistant/images/logo_juhe-licenses.svg"
-                     alt="JUHE Licenses" width="140" height="140"
-                     style="display: block; width: 140px; height: 140px; margin: 10px 0 14px;">
-                {{ 'MSC.vsau_premium_intro'|trans({}, 'contao_default') }}<br>
-                <span style="color: #f59e0b; line-height: 2">{{ 'MSC.vsau_premium_purchase'|trans({}, 'contao_default') }} <a href="{{ purchase_url }}" target="_blank" rel="noopener noreferrer" style="color: #4ea1ff; text-decoration: underline;">{{ purchase_url }}</a></span>
+                <span style="display: flex; gap: 16px; align-items: center; margin-top: 10px;">
+                    <a href="https://licenses.juhe-it-solutions.at/de/openai-assistant" target="_blank" rel="noopener noreferrer" style="flex-shrink: 0;">
+                        <img src="/bundles/contaoopenaiassistant/images/logo_juhe-licenses.svg"
+                             alt="JUHE Licenses" width="90" height="90"
+                             style="display: block; width: 90px; height: 90px;">
+                    </a>
+                    <span>
+                        {{ 'MSC.vsau_premium_intro'|trans({}, 'contao_default') }}<br>
+                        <span style="color: #f59e0b; line-height: 2">{{ 'MSC.vsau_premium_purchase'|trans({}, 'contao_default') }} <a href="{{ purchase_url }}" target="_blank" rel="noopener noreferrer" style="color: #4ea1ff; text-decoration: underline;">{{ purchase_url }}</a></span>
+                    </span>
+                </span>
                 <span style="display: block; margin-top: 28px; color: #c7ccd6;">
                     {{ 'MSC.vsau_no_config'|trans({}, 'contao_default') }}
                     <em style="display: block;">{{ 'MSC.vsau_no_config_hint'|trans({}, 'contao_default') }}</em>

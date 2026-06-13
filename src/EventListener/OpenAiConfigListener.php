@@ -607,15 +607,23 @@ class OpenAiConfigListener
     {
         $lang = $this->loadConfigLang();
         $licenseUrl = 'https://licenses.juhe-it-solutions.at/openai-assistant';
+        $logoLinkUrl = 'https://licenses.juhe-it-solutions.at/de/openai-assistant';
+        $logoUrl = '/bundles/contaoopenaiassistant/images/logo_juhe-licenses.svg';
 
         $content = \sprintf(
             '<strong style="display: block; font-size: 22px; position: relative; top: -5px;">%s</strong>'
-            .'%s<br>'
-            .'<span style="color: #f59e0b; line-height: 2">%s <a href="%s" target="_blank" rel="noopener noreferrer">%s</a></span>'
+            .'<span style="display: flex; gap: 16px; align-items: center; margin-top: 10px;">'
+            .'<a href="%s" target="_blank" rel="noopener noreferrer" style="flex-shrink: 0;">'
+            .'<img src="%s" alt="JUHE Licenses" width="90" height="90" style="display: block; width: 90px; height: 90px;"></a>'
+            .'<span>%s<br>'
+            .'<span style="color: #f59e0b; line-height: 2">%s <a href="%s" target="_blank" rel="noopener noreferrer" style="color: #4ea1ff; text-decoration: underline;">%s</a></span>'
+            .'</span></span>'
             .'<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin-top: 8px;">'
             .'<strong>ℹ️ %s:</strong> %s'
             .'</div>',
             (string) ($lang['premium_license_info_heading'] ?? 'Premium: automatic vector store sync'),
+            htmlspecialchars($logoLinkUrl, ENT_QUOTES),
+            htmlspecialchars($logoUrl, ENT_QUOTES),
             (string) ($lang['premium_license_info_text'] ?? ''),
             (string) ($lang['premium_license_info_purchase'] ?? 'Get a license at'),
             htmlspecialchars($licenseUrl, ENT_QUOTES),
