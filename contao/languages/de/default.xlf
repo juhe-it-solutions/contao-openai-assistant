@@ -76,8 +76,12 @@
                 <target>Geben Sie einen gültigen Lizenzschlüssel in der OpenAI-Konfiguration ein, um Details freizuschalten und die automatische Synchronisierung zu nutzen.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_status">
-                <source>Cron status</source>
-                <target>Cron-Status</target>
+                <source>Server cron (heartbeat)</source>
+                <target>Server-Cron (Heartbeat)</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_status_hint">
+                <source>External trigger that wakes Contao every minute.</source>
+                <target>Externer Taktgeber, der Contao jede Minute aufweckt.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_never">
                 <source>Never run</source>
@@ -104,12 +108,32 @@
                 <target>Der Server-Cron wurde noch nicht ausgeführt. Geplante Synchronisierungen starten erst, wenn der Cron-Job eingerichtet ist. Fügen Sie folgenden Eintrag zu Ihrem Server-Cron hinzu:</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_setup_heading">
-                <source>Scheduled runs (server cron)</source>
-                <target>Geplante Ausführung (Server-Cron)</target>
+                <source>Set up the server cron (heartbeat)</source>
+                <target>Server-Cron (Heartbeat) einrichten</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_action_required">
+                <source>Action required</source>
+                <target>Aktion erforderlich</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_manual_note">
+                <source>A manual sync via "Run sync now" works independently of this, as soon as the remaining prerequisites are met.</source>
+                <target>Eine manuelle Synchronisierung über „Jetzt synchronisieren" ist davon unabhängig möglich, sobald die übrigen Voraussetzungen erfüllt sind.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_copy">
+                <source>Copy</source>
+                <target>Kopieren</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_copied">
+                <source>Copied!</source>
+                <target>Kopiert!</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_last_sync">
                 <source>Last sync</source>
                 <target>Letzte Synchronisierung</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_last_sync_hint">
+                <source>Result of the last vector store update.</source>
+                <target>Ergebnis der letzten Vector-Store-Aktualisierung.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_sync_success">
                 <source>Success</source>
@@ -136,8 +160,12 @@
                 <target>Noch nie ausgeführt</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_schedule">
-                <source>Schedule</source>
-                <target>Zeitplan</target>
+                <source>Schedule (automatic sync)</source>
+                <target>Zeitplan (automatische Synchronisierung)</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_hint">
+                <source>Defined by you in the OpenAI configuration.</source>
+                <target>Von Ihnen in der OpenAI-Konfiguration festgelegt.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_next_run">
                 <source>next:</source>
@@ -152,8 +180,8 @@
                 <target>Letzte Synchronisierungen</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_no_runs">
-                <source>No syncs recorded yet.</source>
-                <target>Noch keine Synchronisierung aufgezeichnet.</target>
+                <source>No sync has run yet.</source>
+                <target>Es wurde noch keine Synchronisierung durchgeführt.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_col_date">
                 <source>Date</source>

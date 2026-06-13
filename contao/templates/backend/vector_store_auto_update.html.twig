@@ -72,6 +72,15 @@
         table.vsau-log { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
         table.vsau-log th, table.vsau-log td { border: 1px solid var(--active-bg); padding: 8px 10px; text-align: left; font-size: 12px; vertical-align: top; }
         table.vsau-log th { font-weight: 700; background: rgba(0, 0, 0, 0.08); }
+
+        .vsau-stat-hint { font-size: 11px; line-height: 1.45; color: var(--text-secondary, #9aa0ad); margin-bottom: 0.7rem; }
+
+        .vsau-setup .vsau-badge { margin-left: 8px; }
+        .vsau-cron-cmd { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+        .vsau-copy { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--active-bg); border-radius: 6px; background: rgba(0, 0, 0, 0.18); color: inherit; cursor: pointer; font-size: 12px; line-height: 1.4; }
+        .vsau-copy:hover { background: rgba(0, 0, 0, 0.32); }
+        .vsau-copy.copied { border-color: #43a047; color: #43a047; }
+        .vsau-copy svg { width: 14px; height: 14px; fill: currentColor; flex-shrink: 0; }
     </style>
 
     {% if configs is empty %}
@@ -144,16 +153,26 @@
                     </div>
                 {% endif %}
 
-                {# Cron not running yet (affects scheduled runs only, not manual) #}
+                {# Heartbeat (server cron) not running yet - needed for automatic runs only, not manual #}
                 {% if config.cron_status == 'never' %}
                     <div class="vsau-setup notice">
-                        <h3>{{ 'MSC.vsau_cron_setup_heading'|trans({}, 'contao_default') }}</h3>
+                        <h3>{{ 'MSC.vsau_cron_setup_heading'|trans({}, 'contao_default') }} <span class="vsau-badge yellow">{{ 'MSC.vsau_cron_action_required'|trans({}, 'contao_default') }}</span></h3>
                         <ul>
                             <li>
                                 <span class="vsau-mark warn">!</span>
                                 <span>
                                     {{ 'MSC.vsau_cron_never_warning'|trans({}, 'contao_default') }}
-                                    <br><code>* * * * * [php] [project]/vendor/bin/contao-console contao:cron</code>
+                                    <span class="vsau-cron-cmd">
+                                        <code id="vsau-cron-cmd-{{ config.id }}">* * * * * [php] [project]/vendor/bin/contao-console contao:cron</code>
+                                        <button type="button" class="vsau-copy" data-copy-target="vsau-cron-cmd-{{ config.id }}"
+                                                data-label-copy="{{ 'MSC.vsau_copy'|trans({}, 'contao_default') }}"
+                                                data-label-copied="{{ 'MSC.vsau_copied'|trans({}, 'contao_default') }}"
+                                                title="{{ 'MSC.vsau_copy'|trans({}, 'contao_default') }}">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4a2 2 0 0 0-2 2v12h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg>
+                                            <span class="vsau-copy-text">{{ 'MSC.vsau_copy'|trans({}, 'contao_default') }}</span>
+                                        </button>
+                                    </span>
+                                    <span class="vsau-stat-hint" style="margin-top: 8px;">{{ 'MSC.vsau_cron_manual_note'|trans({}, 'contao_default') }}</span>
                                 </span>
                             </li>
                         </ul>
@@ -165,6 +184,7 @@
 
                     <div class="vsau-stat">
                         <div class="vsau-stat-label">{{ 'MSC.vsau_cron_status'|trans({}, 'contao_default') }}</div>
+                        <div class="vsau-stat-hint">{{ 'MSC.vsau_cron_status_hint'|trans({}, 'contao_default') }}</div>
                         <div class="vsau-stat-value">
                             {% if config.cron_status == 'never' %}
                                 <span class="vsau-badge red">{{ 'MSC.vsau_cron_never'|trans({}, 'contao_default') }}</span>
@@ -180,6 +200,7 @@
 
                     <div class="vsau-stat">
                         <div class="vsau-stat-label">{{ 'MSC.vsau_last_sync'|trans({}, 'contao_default') }}</div>
+                        <div class="vsau-stat-hint">{{ 'MSC.vsau_last_sync_hint'|trans({}, 'contao_default') }}</div>
                         <div class="vsau-stat-value">
                             {% set st = config.auto_update_last_status %}
                             {% if st == 'success' %}
@@ -205,6 +226,7 @@
 
                     <div class="vsau-stat">
                         <div class="vsau-stat-label">{{ 'MSC.vsau_schedule'|trans({}, 'contao_default') }}</div>
+                        <div class="vsau-stat-hint">{{ 'MSC.vsau_schedule_hint'|trans({}, 'contao_default') }}</div>
                         <div class="vsau-stat-value">
                             {{ config.schedule_label }}
                             {% if config.schedule_label != config.auto_update_schedule %}
@@ -288,4 +310,45 @@
             {% endif %}
         </div>
     {% endif %}
+
+    <script>
+        (function () {
+            document.addEventListener('click', function (e) {
+                var btn = e.target.closest('.vsau-copy');
+                if (!btn) { return; }
+
+                var el = document.getElementById(btn.getAttribute('data-copy-target'));
+                if (!el) { return; }
+
+                var text = el.textContent.trim();
+                var feedback = function () {
+                    var label = btn.querySelector('.vsau-copy-text');
+                    if (label) { label.textContent = btn.getAttribute('data-label-copied'); }
+                    btn.classList.add('copied');
+                    setTimeout(function () {
+                        if (label) { label.textContent = btn.getAttribute('data-label-copy'); }
+                        btn.classList.remove('copied');
+                    }, 1800);
+                };
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(feedback, function () { fallback(text); feedback(); });
+                } else {
+                    fallback(text);
+                    feedback();
+                }
+
+                function fallback(str) {
+                    var ta = document.createElement('textarea');
+                    ta.value = str;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try { document.execCommand('copy'); } catch (err) {}
+                    document.body.removeChild(ta);
+                }
+            });
+        })();
+    </script>
 {% endblock %}

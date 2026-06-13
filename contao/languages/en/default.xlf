@@ -76,8 +76,12 @@
                 <target>Enter a valid license key in the OpenAI Configuration to unlock details and automatic sync.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_status">
-                <source>Cron status</source>
-                <target>Cron status</target>
+                <source>Server cron (heartbeat)</source>
+                <target>Server cron (heartbeat)</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_status_hint">
+                <source>External trigger that wakes Contao every minute.</source>
+                <target>External trigger that wakes Contao every minute.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_never">
                 <source>Never run</source>
@@ -104,12 +108,32 @@
                 <target>The server cron has not run yet. Scheduled syncs only start once the cron job is set up. Add the following entry to your server cron:</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_setup_heading">
-                <source>Scheduled runs (server cron)</source>
-                <target>Scheduled runs (server cron)</target>
+                <source>Set up the server cron (heartbeat)</source>
+                <target>Set up the server cron (heartbeat)</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_action_required">
+                <source>Action required</source>
+                <target>Action required</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_manual_note">
+                <source>A manual sync via "Run sync now" works independently of this, as soon as the remaining prerequisites are met.</source>
+                <target>A manual sync via "Run sync now" works independently of this, as soon as the remaining prerequisites are met.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_copy">
+                <source>Copy</source>
+                <target>Copy</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_copied">
+                <source>Copied!</source>
+                <target>Copied!</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_last_sync">
                 <source>Last sync</source>
                 <target>Last sync</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_last_sync_hint">
+                <source>Result of the last vector store update.</source>
+                <target>Result of the last vector store update.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_sync_success">
                 <source>Success</source>
@@ -136,8 +160,12 @@
                 <target>never run</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_schedule">
-                <source>Schedule</source>
-                <target>Schedule</target>
+                <source>Schedule (automatic sync)</source>
+                <target>Schedule (automatic sync)</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_hint">
+                <source>Defined by you in the OpenAI configuration.</source>
+                <target>Defined by you in the OpenAI configuration.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_next_run">
                 <source>next:</source>
@@ -152,8 +180,8 @@
                 <target>Recent syncs</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_no_runs">
-                <source>No syncs recorded yet.</source>
-                <target>No syncs recorded yet.</target>
+                <source>No sync has run yet.</source>
+                <target>No sync has run yet.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_col_date">
                 <source>Date</source>
