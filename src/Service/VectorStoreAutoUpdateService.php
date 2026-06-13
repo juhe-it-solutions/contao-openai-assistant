@@ -251,6 +251,36 @@ class VectorStoreAutoUpdateService
     }
 
     /**
+     * Count the unique tl_page rows in the crawl scope for a given page selection:
+     * every selected page plus its entire subtree. Used by the backend to enforce
+     * the subscription page limit before saving. Empty selection resolves to the
+     * single site root (whole site) when exactly one exists, else returns 0.
+     */
+    public function countScopePages(mixed $configValue): int
+    {
+        $startPageIds = self::parseConfiguredPageIds($configValue);
+
+        if ([] === $startPageIds) {
+            $roots = $this->connection->fetchAllAssociative(
+                "SELECT id FROM tl_page WHERE type = 'root' AND dns != ''",
+            );
+
+            if (1 !== \count($roots)) {
+                return 0;
+            }
+
+            $startPageIds = [(int) $roots[0]['id']];
+        }
+
+        $pageIds = [];
+        foreach ($startPageIds as $startPageId) {
+            $pageIds = array_merge($pageIds, $this->collectPageSubtreeIds((int) $startPageId));
+        }
+
+        return \count(array_unique($pageIds));
+    }
+
+    /**
      * @return list<int>
      */
     public static function parseConfiguredPageIds(mixed $value): array

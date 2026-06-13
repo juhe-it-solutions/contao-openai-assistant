@@ -90,7 +90,7 @@ class LicenseValidationService
     public function revalidate(int $configId, string $key): bool
     {
         $previous = $this->connection->fetchAssociative(
-            'SELECT premium_license_status, premium_license_valid_until, premium_license_checked_at FROM tl_openai_config WHERE id = ?',
+            'SELECT premium_license_status, premium_license_valid_until, premium_license_checked_at, premium_license_plan, premium_license_max_pages FROM tl_openai_config WHERE id = ?',
             [$configId],
         );
 
@@ -112,6 +112,10 @@ class LicenseValidationService
             $validUntil = isset($data['expires_at'])
                 ? (new \DateTimeImmutable((string) $data['expires_at']))->getTimestamp()
                 : 0;
+            // Plan + page limit drive the crawl-page-selection enforcement (max_crawl_pages
+            // null = enterprise/unlimited → stored as 0; the plan disambiguates).
+            $plan = (string) ($data['plan'] ?? '');
+            $maxPages = isset($data['max_crawl_pages']) ? (int) $data['max_crawl_pages'] : 0;
         } catch (\Throwable) {
             // Network error: fail safe — keep last known active status within grace period
             if ($this->wasRecentlyActive($previous)) {
@@ -126,11 +130,14 @@ class LicenseValidationService
             $active = false;
             $status = 'error';
             $validUntil = (int) ($previous['premium_license_valid_until'] ?? 0);
+            // Keep the previously stored plan/limit on error.
+            $plan = (string) ($previous['premium_license_plan'] ?? '');
+            $maxPages = (int) ($previous['premium_license_max_pages'] ?? 0);
         }
 
         $this->connection->executeStatement(
-            'UPDATE tl_openai_config SET premium_license_status = ?, premium_license_valid_until = ?, premium_license_checked_at = ? WHERE id = ?',
-            [$active ? 'active' : $status, $validUntil, time(), $configId],
+            'UPDATE tl_openai_config SET premium_license_status = ?, premium_license_valid_until = ?, premium_license_checked_at = ?, premium_license_plan = ?, premium_license_max_pages = ? WHERE id = ?',
+            [$active ? 'active' : $status, $validUntil, time(), $plan, $maxPages, $configId],
         );
 
         return $active || ('error' === $status && $this->wasRecentlyActive($previous));

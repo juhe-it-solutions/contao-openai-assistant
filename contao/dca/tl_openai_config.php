@@ -324,5 +324,13 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         'premium_license_checked_at' => [
             'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
+        // Subscription plan + page limit from the last validation; drive crawl-page
+        // selection enforcement. max_pages 0 = unlimited (enterprise) or not yet known.
+        'premium_license_plan' => [
+            'sql' => ['type' => 'string', 'length' => 20, 'default' => ''],
+        ],
+        'premium_license_max_pages' => [
+            'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+        ],
     ],
 ];

@@ -284,12 +284,16 @@
                 <target>Maximum characters of crawled text sent to the LLM. Reduce for large sites to control cost.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_site_root.0">
-                <source>Crawl pages</source>
-                <target>Crawl pages</target>
+                <source>Pages to keep updated</source>
+                <target>Pages to keep updated</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_site_root.1">
-                <source>Select one or more pages. For each selected page, all subpages are included in the crawl. Leave empty on single-site installations for auto-detection. Subscription limits can apply per selected branch later.</source>
-                <target>Select one or more pages. For each selected page, all subpages are included in the crawl. Leave empty on single-site installations for auto-detection. Subscription limits can apply per selected branch later.</target>
+                <source>Select the pages whose content should be synced into the chatbot's knowledge base. Each selected page automatically includes all of its subpages. The total number of pages (including subpages) must not exceed your subscription's page limit. On a single-site installation you may leave this empty to use the entire website.</source>
+                <target>Select the pages whose content should be synced into the chatbot's knowledge base. Each selected page automatically includes all of its subpages. The total number of pages (including subpages) must not exceed your subscription's page limit. On a single-site installation you may leave this empty to use the entire website.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_pages_over_limit">
+                <source>Your selection covers %1$s pages (including subpages), but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.</source>
+                <target>Your selection covers %1$s pages (including subpages), but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.0">
                 <source>Instructions for the knowledge document (optional)</source>

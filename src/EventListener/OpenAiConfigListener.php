@@ -61,8 +61,15 @@ class OpenAiConfigListener
         private readonly EncryptionService $encryption,
         private readonly LicenseValidationService $licenseValidation,
         private readonly OpenAiModelCatalogService $modelCatalog,
+        private readonly VectorStoreAutoUpdateService $autoUpdateService,
     ) {
     }
+
+    /** Page limits per subscription plan (mirror of the licensing server). */
+    private const PLAN_PAGE_LIMITS = [
+        'starter' => 30,
+        'business' => 100,
+    ];
 
     /**
      * load_callback: never expose the stored ciphertext (or the plaintext). Show a
@@ -847,6 +854,61 @@ class OpenAiConfigListener
         }
 
         return $dc->activeRecord->{$dc->field} ?? $value;
+    }
+
+    /**
+     * save_callback for auto_update_site_root: block selections whose crawl scope
+     * (selected pages + all subpages) exceeds the subscription's page limit.
+     * Chained after guardAutoUpdateFieldWithoutLicense. Throwing keeps the previous
+     * value and surfaces an inline field error (Contao standard behaviour).
+     */
+    public function enforceCrawlPageLimit($value, DataContainer $dc)
+    {
+        if (!$dc->id || !$this->licenseValidation->isLicenseActive((int) $dc->id)) {
+            return $value;
+        }
+
+        $record = $dc->activeRecord;
+        $limit = $this->resolvePageLimit(
+            (string) ($record->premium_license_plan ?? ''),
+            (int) ($record->premium_license_max_pages ?? 0),
+        );
+
+        if (null === $limit) {
+            return $value; // unlimited (enterprise) or plan not yet known
+        }
+
+        $count = $this->autoUpdateService->countScopePages($value);
+
+        if ($count > $limit) {
+            throw new \InvalidArgumentException(\sprintf(
+                $this->getConfigLangString(
+                    'auto_update_pages_over_limit',
+                    'Your selection covers %1$s pages (including subpages), but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.',
+                ),
+                $count,
+                $limit,
+            ));
+        }
+
+        return $value;
+    }
+
+    /**
+     * Resolve the effective page limit. Returns null when enforcement should be
+     * skipped: empty plan (not yet validated) or "enterprise" (unlimited).
+     */
+    private function resolvePageLimit(string $plan, int $maxPages): int|null
+    {
+        if ('' === $plan || 'enterprise' === $plan) {
+            return null;
+        }
+
+        if ($maxPages > 0) {
+            return $maxPages;
+        }
+
+        return self::PLAN_PAGE_LIMITS[$plan] ?? null;
     }
 
     public function loadAutoUpdateEnabled($value, DataContainer|null $dc = null): string

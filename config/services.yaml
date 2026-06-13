@@ -83,6 +83,7 @@ services:
             $connection: '@doctrine.dbal.default_connection'
             $encryption: '@JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService'
             $licenseValidation: '@JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService'
+            $autoUpdateService: '@JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService'
         public: true
         tags:
             - { name: contao.callback, table: tl_openai_config, target: config.onload, method: onLoadCallback }
@@ -107,6 +108,7 @@ services:
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_max_content.save, method: saveAutoUpdateMaxContent }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_site_root.load, method: loadAutoUpdateSiteRoots }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_site_root.save, method: guardAutoUpdateFieldWithoutLicense }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_site_root.save, method: enforceCrawlPageLimit }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_model.options, method: getAutoUpdateModelOptions }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_model.save, method: validateAutoUpdateModel }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_prompt_template.load, method: loadAutoUpdatePromptTemplate }
