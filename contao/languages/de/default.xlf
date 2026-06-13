@@ -81,7 +81,7 @@
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_status_hint">
                 <source>External trigger that wakes Contao every minute.</source>
-                <target>Externer Taktgeber, der Contao jede Minute aufweckt.</target>
+                <target>Externer Taktgeber, der Contao jede Minute "aufweckt".</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_never">
                 <source>Never run</source>
