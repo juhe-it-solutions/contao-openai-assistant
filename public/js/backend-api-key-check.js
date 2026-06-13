@@ -95,7 +95,7 @@
         button.addEventListener("click", function () {
             var apiKey = input.value;
             if (!apiKey) {
-                alert("Bitte geben Sie zuerst einen API-Schluessel ein.");
+                resultSpan.innerHTML = '<span style="color:orange;">&#9888; Bitte geben Sie zuerst einen API-Schlüssel ein.</span>';
                 return;
             }
 
@@ -172,7 +172,7 @@
         button.addEventListener("click", function () {
             var licenseKey = input.value;
             if (!licenseKey) {
-                alert(labels.noKey || "Please enter a license key first.");
+                resultSpan.innerHTML = '<span style="color:orange;">&#9888; ' + (labels.noKey || "Please enter a license key first.") + '</span>';
                 return;
             }
 

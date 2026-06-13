@@ -204,8 +204,8 @@
                 <target>Automatische Synchronisierung aktivieren</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_enabled.1">
-                <source>Periodically crawl the website and update the vector store document. Requires a valid premium license (use “Check key” above).</source>
-                <target>Die Website regelmäßig crawlen und das Vector-Store-Dokument aktualisieren. Erfordert eine gültige Premium-Lizenz (zuerst „Schlüssel prüfen“ oben).</target>
+                <source>Periodically crawl the website and update the vector store document. Requires a valid premium license (use &quot;Check key&quot; above). Only pages that Contao&apos;s search indexer is allowed to index are included: pages with robots=noindex or the page-level setting &quot;Search indexer: Never index&quot; are excluded. To include such pages in the chatbot knowledge base anyway, set their page-level &quot;Search indexer&quot; field to &quot;Always index&quot;.</source>
+                <target>Die Website regelmäßig crawlen und das Vector-Store-Dokument aktualisieren. Erfordert eine gültige Premium-Lizenz (zuerst &#x201E;Schlüssel prüfen&#x201C; oben). Es werden nur Seiten aufgenommen, die der Contao-Suchindexer indexieren darf: Seiten mit robots=noindex oder der Seiteneinstellung &#x201E;Suchindexer: Nie indexieren&#x201C; werden ausgeschlossen. Sollen solche Seiten trotzdem in die Chatbot-Wissensbasis aufgenommen werden, setzen Sie deren Seiteneinstellung &#x201E;Suchindexer&#x201C; auf &#x201E;Immer indexieren&#x201C;.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_requires_license">
                 <source>Automatic sync requires a valid premium license. Use “Check key” in the Premium License section.</source>

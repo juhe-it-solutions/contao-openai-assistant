@@ -125,7 +125,12 @@ class VectorStoreAutoUpdateService
 
             $rows = $this->readSearchIndex($configId);
             if (0 === \count($rows)) {
-                throw new \RuntimeException('tl_search is empty. Run a search re-index in the Contao backend (System → Maintenance) before enabling auto-update.');
+                throw new \RuntimeException(
+                    'No indexed pages found for this site root (tl_search is empty). '
+                    .'Run System → Maintenance → Rebuild search index. '
+                    .'If pages are still missing, check whether they carry robots=noindex or Suchindexer=Never index — '
+                    .'set Suchindexer=Always index on those page records to force-include them in both Contao search and the vector store.',
+                );
             }
 
             $input = $this->buildLlmInput($rows, $maxContent);
@@ -331,6 +336,55 @@ class VectorStoreAutoUpdateService
     {
         $systemPrompt = $promptTemplate ?? VectorStoreDocumentPrompt::DEFAULT_TEMPLATE;
 
+        // A low temperature keeps the factual summary deterministic. Reasoning models
+        // (o-series, gpt-5 reasoning, …) reject a custom temperature, however. Rather
+        // than maintain a model allow-list, send 0.3 and — if the API rejects it —
+        // retry once without the parameter, so any current or future model still works.
+        $payload = [
+            'model' => $model,
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => $systemPrompt,
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $pageContent,
+                ],
+            ],
+            'temperature' => 0.3,
+        ];
+
+        [$status, $data] = $this->postChatCompletion($apiKey, $payload);
+
+        if ($status >= 400 && $this->isUnsupportedTemperatureError($data)) {
+            unset($payload['temperature']);
+            [$status, $data] = $this->postChatCompletion($apiKey, $payload);
+        }
+
+        if ($status < 200 || $status >= 300) {
+            $apiMessage = (string) ($data['error']['message'] ?? 'unknown error');
+
+            throw new \RuntimeException('OpenAI chat completion failed (HTTP '.$status.'): '.$apiMessage);
+        }
+
+        return [
+            'text' => (string) ($data['choices'][0]['message']['content'] ?? ''),
+            'tokens_in' => (int) ($data['usage']['prompt_tokens'] ?? 0),
+            'tokens_out' => (int) ($data['usage']['completion_tokens'] ?? 0),
+        ];
+    }
+
+    /**
+     * POST a chat-completion payload. Reads 4xx/5xx bodies instead of throwing
+     * (throw: false) so the caller can inspect the error and decide whether to retry.
+     *
+     * @param array<string, mixed> $payload
+     *
+     * @return array{0: int, 1: array<string, mixed>}
+     */
+    private function postChatCompletion(string $apiKey, array $payload): array
+    {
         $response = $this->http->request(
             'POST',
             self::OPENAI_BASE.'/chat/completions',
@@ -339,31 +393,35 @@ class VectorStoreAutoUpdateService
                     'Authorization' => 'Bearer '.$apiKey,
                     'Content-Type' => 'application/json',
                 ],
-                'json' => [
-                    'model' => $model,
-                    'messages' => [
-                        [
-                            'role' => 'system',
-                            'content' => $systemPrompt,
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => $pageContent,
-                        ],
-                    ],
-                    'temperature' => 0.3,
-                ],
+                'json' => $payload,
                 'timeout' => 120,
             ],
         );
 
-        $data = $response->toArray();
+        return [$response->getStatusCode(), $response->toArray(throw: false)];
+    }
 
-        return [
-            'text' => (string) ($data['choices'][0]['message']['content'] ?? ''),
-            'tokens_in' => (int) ($data['usage']['prompt_tokens'] ?? 0),
-            'tokens_out' => (int) ($data['usage']['completion_tokens'] ?? 0),
-        ];
+    /**
+     * Detects the specific 400 OpenAI returns when a model does not accept a custom
+     * "temperature" (reasoning models only allow the default value).
+     *
+     * @param array<string, mixed> $data
+     */
+    private function isUnsupportedTemperatureError(array $data): bool
+    {
+        if ('temperature' === ($data['error']['param'] ?? null)) {
+            return true;
+        }
+
+        $message = strtolower((string) ($data['error']['message'] ?? ''));
+
+        return str_contains($message, 'temperature')
+            && (
+                str_contains($message, 'unsupported')
+                || str_contains($message, 'does not support')
+                || str_contains($message, 'not support')
+                || str_contains($message, 'only the default')
+            );
     }
 
     private function deleteOldFile(string $apiKey, string $vectorStoreId, string $oldFileId): void

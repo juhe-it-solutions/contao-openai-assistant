@@ -691,6 +691,17 @@ class OpenAiConfigListener
             return $options;
         }
 
+        // Only fetch live models when the license is active AND auto-update is enabled.
+        // This avoids unnecessary API calls and prevents "Unknown option" display when
+        // the feature is not yet configured.
+        if (!$this->licenseValidation->isLicenseActive((int) $dc->id)) {
+            return $options;
+        }
+
+        if (!$dc->activeRecord || !(bool) ($dc->activeRecord->auto_update_enabled ?? false)) {
+            return $options;
+        }
+
         $apiKey = $this->encryption->getApiKeyForConfig((int) $dc->id);
         if (!$apiKey) {
             return $options;
@@ -707,7 +718,7 @@ class OpenAiConfigListener
     {
         $model = trim((string) $value);
         if ('' === $model) {
-            return 'gpt-4o-mini';
+            return ''; // stored as empty; VectorStoreAutoUpdateService falls back to gpt-4o-mini at runtime
         }
 
         if (!$dc->id) {
@@ -820,8 +831,8 @@ class OpenAiConfigListener
             return;
         }
 
-        $minute = $this->normalizeScheduleMinute($_POST['auto_update_schedule_minute'] ?? '0');
-        $hour = $this->normalizeScheduleHour($_POST['auto_update_schedule_hour'] ?? '2');
+        $minute = $this->normalizeScheduleMinute($_POST['auto_update_schedule_minute'] ?? '*');
+        $hour = $this->normalizeScheduleHour($_POST['auto_update_schedule_hour'] ?? '*');
         $day = (string) ($_POST['auto_update_schedule_day'] ?? '*');
         $weekday = (string) ($_POST['auto_update_schedule_weekday'] ?? '*');
 
@@ -882,8 +893,8 @@ class OpenAiConfigListener
             return;
         }
 
-        $storedMinute = (string) ($dc->activeRecord->auto_update_schedule_minute ?? '0');
-        $storedHour = (string) ($dc->activeRecord->auto_update_schedule_hour ?? '2');
+        $storedMinute = (string) ($dc->activeRecord->auto_update_schedule_minute ?? '*');
+        $storedHour = (string) ($dc->activeRecord->auto_update_schedule_hour ?? '*');
         $storedDay = (string) ($dc->activeRecord->auto_update_schedule_day ?? '*');
         $storedWeekday = (string) ($dc->activeRecord->auto_update_schedule_weekday ?? '*');
 
