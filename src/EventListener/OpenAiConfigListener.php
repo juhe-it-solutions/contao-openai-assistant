@@ -97,7 +97,10 @@ class OpenAiConfigListener
 
         // New key entered — validate format before encrypting.
         if (!$this->encryption->isValidLicenseKeyFormat($posted)) {
-            Message::addError('Invalid license key format. Expected "JUHE-AI-…". The previous key was kept.');
+            Message::addError($this->getConfigLangString(
+                'premium_license_format_invalid',
+                'Invalid license key format. Expected "JUHE-AI-…". The previous key was kept.',
+            ));
 
             return $existing; // do not overwrite a good key with a malformed one
         }
@@ -115,6 +118,11 @@ class OpenAiConfigListener
         if (!$dc->id) {
             return;
         }
+
+        // The OpenAI API key uses Contao's Password widget, which always emits a
+        // "password has been changed" confirmation on save. That message is
+        // misleading here (it is an API key, not a password), so strip it.
+        $this->removePasswordChangedMessage();
 
         $posted = trim((string) ($_POST['premium_license_key'] ?? ''));
 
@@ -151,9 +159,48 @@ class OpenAiConfigListener
         $active = $this->licenseValidation->revalidate((int) $dc->id, $posted);
 
         if ($active) {
-            Message::addConfirmation('Premium license validated successfully.');
+            Message::addConfirmation($this->getConfigLangString(
+                'premium_license_validated',
+                'Premium license validated successfully.',
+            ));
         } else {
-            Message::addError('Premium license key is invalid or inactive. Auto-update sync will not run until a valid key is entered.');
+            Message::addError($this->getConfigLangString(
+                'premium_license_invalid',
+                'Premium license key is invalid or inactive. Auto-update sync will not run until a valid key is entered.',
+            ));
+        }
+    }
+
+    /**
+     * Remove Contao's automatic "password has been changed" confirmation
+     * (added by DataContainer when a Password widget is saved). The api_key
+     * field uses that widget, so the message would otherwise show on every
+     * config save even though no password exists.
+     */
+    private function removePasswordChangedMessage(): void
+    {
+        $session = $this->requestStack->getSession();
+        $flashBag = $session->getFlashBag();
+        $key = 'contao.BE.confirm';
+
+        if (!$flashBag->has($key)) {
+            return;
+        }
+
+        System::loadLanguageFile('default');
+        $pwChanged = $GLOBALS['TL_LANG']['MSC']['pw_changed'] ?? null;
+
+        if (null === $pwChanged) {
+            return;
+        }
+
+        $remaining = array_values(array_filter(
+            $flashBag->get($key),
+            static fn ($message): bool => $message !== $pwChanged,
+        ));
+
+        if ([] !== $remaining) {
+            $flashBag->set($key, $remaining);
         }
     }
 

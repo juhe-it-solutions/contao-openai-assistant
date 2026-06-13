@@ -161,6 +161,18 @@
                 <source>Enter your license key below and validate it with "Check key" before saving.</source>
                 <target>Enter your license key below and validate it with "Check key" before saving.</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_validated">
+                <source>Premium license validated successfully.</source>
+                <target>Premium license validated successfully.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_invalid">
+                <source>Premium license key is invalid or inactive. Auto-update sync will not run until a valid key is entered.</source>
+                <target>Premium license key is invalid or inactive. Auto-update sync will not run until a valid key is entered.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_format_invalid">
+                <source>Invalid license key format. Expected "JUHE-AI-…". The previous key was kept.</source>
+                <target>Invalid license key format. Expected "JUHE-AI-…". The previous key was kept.</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_key.0">
                 <source>License key</source>
                 <target>License key</target>
