@@ -142,8 +142,8 @@
                 <target>Premium-Lizenz</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_heading">
-                <source>Premium add-on: Auto-Update</source>
-                <target>Premium-Addon: Auto-Update</target>
+                <source>Premium add-on: Auto-Update Vector Store</source>
+                <target>Premium-Addon: Auto-Update Vector Store</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_text">
                 <source>With our premium add-on, your integrated chatbot stays up to date. Updated website content is automatically incorporated into the chatbot.</source>

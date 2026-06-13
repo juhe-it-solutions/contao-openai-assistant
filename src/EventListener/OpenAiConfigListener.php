@@ -672,7 +672,7 @@ class OpenAiConfigListener
             .'<span>%s<br>'
             .'<span style="color: #f59e0b; line-height: 2">%s <a href="%s" target="_blank" rel="noopener noreferrer" style="color: #4ea1ff; text-decoration: underline;">%s</a></span>'
             .'</span></span>'
-            .'<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin-top: 8px;">'
+            .'<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin-top: 8px; margin-left: 11px;">'
             .'<strong>ℹ️ %s:</strong> %s'
             .'</div>',
             (string) ($lang['premium_license_info_heading'] ?? 'Premium: automatic vector store sync'),
@@ -688,7 +688,9 @@ class OpenAiConfigListener
 
         return \sprintf(
             '<div class="widget clr premium-license-intro">'
-            .'<div class="tl_message"><p class="tl_info">%s</p></div>'
+            .'<div class="tl_message" style="padding: 1rem; background: var(--info-bg); border-radius: 1rem; border: 1px solid var(--active-bg);">'
+            .'<p class="tl_info" style="background: transparent url(icons/show.svg) no-repeat 11px 12px;">%s</p>'
+            .'</div>'
             .'</div>',
             $content,
         );

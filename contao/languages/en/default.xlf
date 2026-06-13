@@ -24,8 +24,8 @@
                 <target>Configuration</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_premium_heading">
-                <source>Premium add-on: Auto-Update</source>
-                <target>Premium add-on: Auto-Update</target>
+                <source>Premium add-on: Auto-Update Vector Store</source>
+                <target>Premium add-on: Auto-Update Vector Store</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_premium_intro">
                 <source>With our premium add-on, your integrated chatbot stays up to date. Updated website content is automatically incorporated into the chatbot's knowledge base. 14-day free trial, then billed monthly.</source>
