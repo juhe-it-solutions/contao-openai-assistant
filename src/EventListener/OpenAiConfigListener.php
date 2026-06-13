@@ -97,7 +97,7 @@ class OpenAiConfigListener
 
         // New key entered — validate format before encrypting.
         if (!$this->encryption->isValidLicenseKeyFormat($posted)) {
-            Message::addError('Invalid license key format. Expected "JH-AI-…". The previous key was kept.');
+            Message::addError('Invalid license key format. Expected "JUHE-AI-…". The previous key was kept.');
 
             return $existing; // do not overwrite a good key with a malformed one
         }

@@ -210,7 +210,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'eval'      => [
                 'maxlength'   => 255,
                 'tl_class'    => 'w50',
-                'placeholder' => 'JH-AI-...',
+                'placeholder' => 'JUHE-AI-...',
                 'allowHtml'   => true,
             ],
             'sql' => [

@@ -184,11 +184,11 @@ class EncryptionService
     }
 
     /**
-     * Validate the premium license key format ("JH-AI-" + uppercase hex/alphanumerics).
+     * Validate the premium license key format ("JUHE-AI-" + uppercase hex/alphanumerics).
      */
     public function isValidLicenseKeyFormat(string $key): bool
     {
-        return (bool) preg_match('/^JH-AI-[A-Z0-9]{8,}$/', trim($key));
+        return (bool) preg_match('/^JUHE-AI-[A-Z0-9]{8,}$/', trim($key));
     }
 
     /**
