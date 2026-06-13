@@ -100,8 +100,8 @@
                 <target>Ihr Server-Cron könnte gestoppt sein.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_never_warning">
-                <source>The server cron has not run yet. Scheduled syncs only start once it is set up. Add the following entry to your server cron:</source>
-                <target>Der Server-Cron wurde noch nicht ausgeführt. Geplante Synchronisierungen starten erst, wenn er eingerichtet ist. Fügen Sie folgenden Eintrag zu Ihrem Server-Cron hinzu:</target>
+                <source>The server cron has not run yet. Scheduled syncs only start once the cron job is set up. Add the following entry to your server cron:</source>
+                <target>Der Server-Cron wurde noch nicht ausgeführt. Geplante Synchronisierungen starten erst, wenn der Cron-Job eingerichtet ist. Fügen Sie folgenden Eintrag zu Ihrem Server-Cron hinzu:</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_setup_heading">
                 <source>Scheduled runs (server cron)</source>
