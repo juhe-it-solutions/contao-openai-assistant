@@ -142,12 +142,12 @@
                 <target>Premium-Lizenz</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_heading">
-                <source>Premium: automatic vector store sync</source>
-                <target>Premium: automatische Vector-Store-Synchronisierung</target>
+                <source>Premium add-on: Auto-Update</source>
+                <target>Premium-Addon: Auto-Update</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_text">
-                <source>Automatically crawls your website, generates a knowledge document with OpenAI, and replaces the previous file in your vector store — so the chatbot stays up to date without manual uploads.</source>
-                <target>Crawlt Ihre Website automatisch, erzeugt mit OpenAI ein Wissensdokument und ersetzt die vorherige Datei im Vector Store — der Chatbot bleibt ohne manuelle Uploads aktuell.</target>
+                <source>With our premium add-on, your integrated chatbot stays up to date. Updated website content is automatically incorporated into the chatbot.</source>
+                <target>Mit unserem Premium-Addon halten Sie Ihren integrierten Chatbot stets aktuell. Aktualisierte Webseiten-Inhalte werden automatisch in die Wissensdatenbank des Chatbots übernommen. 14 Tage kostenlos testen, dann monatliche Abrechnung.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_purchase">
                 <source>Get a license at</source>
