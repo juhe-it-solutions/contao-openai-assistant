@@ -98,12 +98,14 @@ services:
             - { name: contao.callback, table: tl_openai_config, target: config.onsubmit, method: compileAutoUpdateSchedule }
             - { name: contao.callback, table: tl_openai_config, target: fields.premium_license_key.load, method: processLicenseKeyForDisplay }
             - { name: contao.callback, table: tl_openai_config, target: fields.premium_license_key.save, method: processLicenseKeyForStorage }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_enabled.load, method: loadAutoUpdateEnabled }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_enabled.save, method: saveAutoUpdateEnabled }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_schedule_hour.save, method: guardAutoUpdateFieldWithoutLicense }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_schedule_minute.save, method: guardAutoUpdateFieldWithoutLicense }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_schedule_weekday.save, method: guardAutoUpdateFieldWithoutLicense }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_schedule_day.save, method: guardAutoUpdateFieldWithoutLicense }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_max_content.save, method: saveAutoUpdateMaxContent }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_site_root.load, method: loadAutoUpdateSiteRoots }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_site_root.save, method: guardAutoUpdateFieldWithoutLicense }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_model.options, method: getAutoUpdateModelOptions }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_model.save, method: validateAutoUpdateModel }

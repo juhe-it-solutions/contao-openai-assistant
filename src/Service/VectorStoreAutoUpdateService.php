@@ -31,7 +31,7 @@ class VectorStoreAutoUpdateService
     private const OPENAI_BASE = 'https://api.openai.com/v1';
 
     /** Hard cap on pages crawled per sync to limit DB load and LLM cost abuse. */
-    private const MAX_CRAWL_PAGES = 2000;
+    private const MAX_CRAWL_PAGES = 5000;
 
     public function __construct(
         private readonly Connection $connection,
@@ -188,7 +188,7 @@ class VectorStoreAutoUpdateService
     }
 
     /**
-     * Read tl_search rows scoped to the configured (or auto-detected) site root.
+     * Read tl_search rows scoped to the configured (or auto-detected) page selection.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -198,32 +198,38 @@ class VectorStoreAutoUpdateService
             'SELECT auto_update_site_root FROM tl_openai_config WHERE id = ?',
             [$configId],
         );
-        $startPageId = (int) ($config['auto_update_site_root'] ?? 0);
+        $startPageIds = self::parseConfiguredPageIds($config['auto_update_site_root'] ?? null);
 
-        if ($startPageId <= 0) {
+        if ([] === $startPageIds) {
             $roots = $this->connection->fetchAllAssociative(
                 "SELECT id FROM tl_page WHERE type = 'root' AND dns != ''",
             );
 
             if (1 === \count($roots)) {
-                $startPageId = (int) $roots[0]['id'];
+                $startPageIds = [(int) $roots[0]['id']];
             } elseif (\count($roots) > 1) {
-                throw new \RuntimeException('Multiple site roots detected. Select a crawl start page in OpenAI Configuration → Automatic vector store sync.');
+                throw new \RuntimeException('Multiple site roots detected. Select crawl pages in OpenAI Configuration → Automatic vector store sync.');
             } else {
                 return [];
             }
         }
 
-        $page = $this->connection->fetchAssociative(
-            'SELECT id, type FROM tl_page WHERE id = ?',
-            [$startPageId],
-        );
+        $pageIds = [];
 
-        if (!$page) {
-            throw new \RuntimeException('Invalid crawl start page selected for auto-update.');
+        foreach ($startPageIds as $startPageId) {
+            $page = $this->connection->fetchAssociative(
+                'SELECT id FROM tl_page WHERE id = ?',
+                [$startPageId],
+            );
+
+            if (!$page) {
+                throw new \RuntimeException('Invalid crawl page selected for auto-update (ID '.$startPageId.').');
+            }
+
+            $pageIds = array_merge($pageIds, $this->collectPageSubtreeIds($startPageId));
         }
 
-        $pageIds = $this->collectPageSubtreeIds($startPageId);
+        $pageIds = array_values(array_unique($pageIds));
 
         if ([] === $pageIds) {
             return [];
@@ -235,8 +241,35 @@ class VectorStoreAutoUpdateService
              WHERE s.pid IN (?)
              ORDER BY s.pid, s.url',
             [$pageIds],
-            [\Doctrine\DBAL\ArrayParameterType::INTEGER],
+            [ArrayParameterType::INTEGER],
         );
+    }
+
+    /**
+     * @return list<int>
+     */
+    public static function parseConfiguredPageIds(mixed $value): array
+    {
+        if (null === $value || '' === $value || 0 === $value || '0' === $value) {
+            return [];
+        }
+
+        if (\is_array($value)) {
+            return array_values(array_unique(array_filter(array_map(intval(...), $value))));
+        }
+
+        if (is_numeric($value)) {
+            return [(int) $value];
+        }
+
+        $raw = (string) $value;
+        $unserialized = @unserialize($raw, ['allowed_classes' => false]);
+
+        if (\is_array($unserialized)) {
+            return array_values(array_unique(array_filter(array_map(intval(...), $unserialized))));
+        }
+
+        return array_values(array_unique(array_filter(array_map(intval(...), explode(',', $raw)))));
     }
 
     /**

@@ -24,6 +24,7 @@ use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiModelCatalogService;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreDocumentPrompt;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -37,8 +38,9 @@ class OpenAiConfigListener
      */
     public const LICENSE_KEY_MASK = '••••••••••••••••';
 
-    /** @var list<string> Premium-gated auto-update fields (excludes the enable toggle). */
+    /** @var list<string> Premium-gated auto-update fields. */
     private const AUTO_UPDATE_LICENSE_FIELDS = [
+        'auto_update_enabled',
         'auto_update_schedule_hour',
         'auto_update_schedule_minute',
         'auto_update_schedule_weekday',
@@ -735,6 +737,14 @@ class OpenAiConfigListener
         return '' !== $value ? $value : VectorStoreDocumentPrompt::DEFAULT_TEMPLATE;
     }
 
+    /**
+     * @return array<int, int>
+     */
+    public function loadAutoUpdateSiteRoots($value, DataContainer|null $dc = null): array
+    {
+        return VectorStoreAutoUpdateService::parseConfiguredPageIds($value);
+    }
+
     public function saveAutoUpdatePromptTemplate($value, DataContainer $dc): string|null
     {
         if ($dc->id && !$this->licenseValidation->isLicenseActive((int) $dc->id)) {
@@ -773,6 +783,15 @@ class OpenAiConfigListener
         return $dc->activeRecord->{$dc->field} ?? $value;
     }
 
+    public function loadAutoUpdateEnabled($value, DataContainer|null $dc = null): string
+    {
+        if ($dc?->id && !$this->licenseValidation->isLicenseActive((int) $dc->id)) {
+            return '';
+        }
+
+        return $value ? '1' : '';
+    }
+
     public function saveAutoUpdateEnabled($value, DataContainer $dc): string
     {
         if (!$value || !$dc->id) {
@@ -801,8 +820,8 @@ class OpenAiConfigListener
             return;
         }
 
-        $minute = max(0, min(59, (int) ($_POST['auto_update_schedule_minute'] ?? 0)));
-        $hour = max(0, min(23, (int) ($_POST['auto_update_schedule_hour'] ?? 2)));
+        $minute = $this->normalizeScheduleMinute($_POST['auto_update_schedule_minute'] ?? '0');
+        $hour = $this->normalizeScheduleHour($_POST['auto_update_schedule_hour'] ?? '2');
         $day = (string) ($_POST['auto_update_schedule_day'] ?? '*');
         $weekday = (string) ($_POST['auto_update_schedule_weekday'] ?? '*');
 
@@ -814,7 +833,7 @@ class OpenAiConfigListener
             $weekday = '*';
         }
 
-        $cron = \sprintf('%d %d %s * %s', $minute, $hour, $day, $weekday);
+        $cron = \sprintf('%s %s %s * %s', $minute, $hour, $day, $weekday);
 
         $this->connection->executeStatement(
             'UPDATE tl_openai_config SET auto_update_schedule = ? WHERE id = ?',
@@ -846,13 +865,25 @@ class OpenAiConfigListener
             return;
         }
 
-        $minute = (int) $parts[0];
-        $hour = (int) $parts[1];
+        $minute = (string) $parts[0];
+        $hour = (string) $parts[1];
         $day = (string) $parts[2];
         $weekday = (string) $parts[4];
 
-        $storedMinute = (int) ($dc->activeRecord->auto_update_schedule_minute ?? 0);
-        $storedHour = (int) ($dc->activeRecord->auto_update_schedule_hour ?? 2);
+        if (1 === preg_match('/^\*\/(\d+)$/', $minute)) {
+            return;
+        }
+
+        if (!\in_array($minute, ['*'], true) && !ctype_digit($minute)) {
+            return;
+        }
+
+        if (!\in_array($hour, ['*'], true) && !ctype_digit($hour)) {
+            return;
+        }
+
+        $storedMinute = (string) ($dc->activeRecord->auto_update_schedule_minute ?? '0');
+        $storedHour = (string) ($dc->activeRecord->auto_update_schedule_hour ?? '2');
         $storedDay = (string) ($dc->activeRecord->auto_update_schedule_day ?? '*');
         $storedWeekday = (string) ($dc->activeRecord->auto_update_schedule_weekday ?? '*');
 
@@ -864,6 +895,24 @@ class OpenAiConfigListener
             'UPDATE tl_openai_config SET auto_update_schedule_minute = ?, auto_update_schedule_hour = ?, auto_update_schedule_day = ?, auto_update_schedule_weekday = ? WHERE id = ?',
             [$minute, $hour, $day, $weekday, (int) $dc->id],
         );
+    }
+
+    private function normalizeScheduleMinute(mixed $value): string
+    {
+        if ('*' === (string) $value) {
+            return '*';
+        }
+
+        return (string) max(0, min(59, (int) $value));
+    }
+
+    private function normalizeScheduleHour(mixed $value): string
+    {
+        if ('*' === (string) $value) {
+            return '*';
+        }
+
+        return (string) max(0, min(23, (int) $value));
     }
 
     private function configureAutoUpdateFieldAccess(int $configId): void

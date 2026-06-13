@@ -211,6 +211,14 @@
                 <source>Every %s minutes</source>
                 <target>Every %s minutes</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_every_minute">
+                <source>Every minute</source>
+                <target>Every minute</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_every_minute_in_hour">
+                <source>Every minute during hour %1$s</source>
+                <target>Every minute during hour %1$s</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_schedule_hourly">
                 <source>Hourly (minute %s)</source>
                 <target>Hourly (minute %s)</target>

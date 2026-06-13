@@ -9,13 +9,17 @@
 .widget.openai-auto-update-disabled,
 .widget.openai-auto-update-disabled .selector,
 .widget.openai-auto-update-disabled .selector_container,
+.widget.openai-auto-update-disabled .choices,
 .widget.openai-auto-update-disabled input,
 .widget.openai-auto-update-disabled select,
 .widget.openai-auto-update-disabled textarea,
 .widget.openai-auto-update-disabled button,
-.widget.openai-auto-update-disabled a.tl_submit {
+.widget.openai-auto-update-disabled a.tl_submit,
+.tl_select_wrapper.openai-auto-update-disabled,
+.tl_select_wrapper.openai-auto-update-disabled .choices {
     opacity: 0.55;
     pointer-events: none;
+    cursor: not-allowed;
 }
 
 .widget.auto-update-toggle {
@@ -24,6 +28,13 @@
 
 .widget.auto-update-license-field + .widget.auto-update-license-field.w50 {
     clear: none;
+}
+
+.widget.auto-update-toggle.openai-auto-update-disabled label,
+.widget.auto-update-toggle.openai-auto-update-disabled .tl_checkbox_container {
+    opacity: 0.55;
+    pointer-events: none;
+    cursor: not-allowed;
 }
 
 @media (max-width: 767px) {

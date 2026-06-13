@@ -151,9 +151,13 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
 
         [$minute, $hour, $dom, $month, $dow] = $parts;
 
-        $h = \sprintf('%02d', (int) $hour);
-        $m = \sprintf('%02d', (int) $minute);
+        $h = ctype_digit($hour) ? \sprintf('%02d', (int) $hour) : $hour;
+        $m = ctype_digit($minute) ? \sprintf('%02d', (int) $minute) : $minute;
         $t = 'contao_default';
+
+        if ('*' === $dom && '*' === $month && '*' === $dow && '*' === $minute && '*' === $hour) {
+            return $this->translator->trans('MSC.vsau_schedule_every_minute', [], $t);
+        }
 
         if ('*' === $dom && '*' === $month && '*' === $dow && ctype_digit($minute) && ctype_digit($hour)) {
             return $this->translator->trans('MSC.vsau_schedule_daily', [$h, $m], $t);
@@ -171,6 +175,10 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
 
         if ('*' === $hour && '*' === $dom && '*' === $month && '*' === $dow && ctype_digit($minute)) {
             return $this->translator->trans('MSC.vsau_schedule_hourly', [$m], $t);
+        }
+
+        if ('*' === $minute && '*' === $dom && '*' === $month && '*' === $dow && ctype_digit($hour)) {
+            return $this->translator->trans('MSC.vsau_schedule_every_minute_in_hour', [$h], $t);
         }
 
         if ('*' === $month && '*' === $dow && ctype_digit($dom) && ctype_digit($minute) && ctype_digit($hour)) {
@@ -196,7 +204,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             $warnings[] = $this->translator->trans('MSC.vsau_warn_no_vector_store', [], 'contao_default');
         }
 
-        $hasStartPage = (int) ($config['auto_update_site_root'] ?? 0) > 0;
+        $hasStartPage = [] !== VectorStoreAutoUpdateService::parseConfiguredPageIds($config['auto_update_site_root'] ?? null);
         $hasDomain = (int) $this->connection->fetchOne(
             "SELECT COUNT(*) FROM tl_page WHERE type = 'root' AND dns != ''",
         );

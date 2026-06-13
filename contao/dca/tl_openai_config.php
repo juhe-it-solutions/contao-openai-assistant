@@ -13,14 +13,18 @@ declare(strict_types=1);
 use Contao\DC_Table;
 use Contao\Message;
 
-$autoUpdateScheduleHours = [];
+$autoUpdateScheduleHours = [
+    '*' => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_schedule_hour_options']['every'],
+];
 for ($hour = 0; $hour <= 23; ++$hour) {
-    $autoUpdateScheduleHours[$hour] = sprintf('%02d:00', $hour);
+    $autoUpdateScheduleHours[(string) $hour] = sprintf('%02d:00', $hour);
 }
 
-$autoUpdateScheduleMinutes = [];
+$autoUpdateScheduleMinutes = [
+    '*' => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_schedule_minute_options']['every'],
+];
 for ($minute = 0; $minute <= 59; ++$minute) {
-    $autoUpdateScheduleMinutes[$minute] = sprintf('%02d', $minute);
+    $autoUpdateScheduleMinutes[(string) $minute] = sprintf('%02d', $minute);
 }
 
 $autoUpdateScheduleWeekdays = [
@@ -221,7 +225,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_enabled'],
             'exclude'   => true,
             'inputType' => 'checkbox',
-            'eval'      => ['tl_class' => 'clr m12 auto-update-field auto-update-toggle'],
+            'eval'      => ['tl_class' => 'clr m12 auto-update-field auto-update-toggle auto-update-license-field'],
             'sql'       => ['type' => 'boolean', 'default' => false],
         ],
         'auto_update_schedule_hour' => [
@@ -229,16 +233,16 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'exclude'   => true,
             'inputType' => 'select',
             'options'   => $autoUpdateScheduleHours,
-            'eval'      => ['tl_class' => 'w50 auto-update-field auto-update-license-field', 'chosen' => true],
-            'sql'       => ['type' => 'integer', 'unsigned' => true, 'default' => 2],
+            'eval'      => ['tl_class' => 'w50 auto-update-field auto-update-license-field', 'chosen' => true, 'isAssociative' => true],
+            'sql'       => ['type' => 'string', 'length' => 3, 'default' => '2'],
         ],
         'auto_update_schedule_minute' => [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_schedule_minute'],
             'exclude'   => true,
             'inputType' => 'select',
             'options'   => $autoUpdateScheduleMinutes,
-            'eval'      => ['tl_class' => 'w50 auto-update-field auto-update-license-field', 'chosen' => true],
-            'sql'       => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+            'eval'      => ['tl_class' => 'w50 auto-update-field auto-update-license-field', 'chosen' => true, 'isAssociative' => true],
+            'sql'       => ['type' => 'string', 'length' => 3, 'default' => '0'],
         ],
         'auto_update_schedule_weekday' => [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_schedule_weekday'],
@@ -279,11 +283,12 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'inputType' => 'pageTree',
             'foreignKey' => 'tl_page.title',
             'eval'      => [
-                'fieldType' => 'radio',
+                'multiple'  => true,
+                'fieldType' => 'checkbox',
                 'tl_class'  => 'clr auto-update-field auto-update-license-field',
             ],
-            'sql'       => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
-            'relation'  => ['type' => 'hasOne', 'load' => 'lazy'],
+            'sql'       => ['type' => 'blob', 'notnull' => false],
+            'relation'  => ['type' => 'hasMany', 'table' => 'tl_page', 'load' => 'lazy'],
         ],
         'auto_update_prompt_template' => [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_prompt_template'],

@@ -43,6 +43,10 @@
                     element.disabled = !enabled;
                 }
 
+                if (!enabled && element.type === "checkbox" && element.name === "auto_update_enabled") {
+                    element.checked = false;
+                }
+
                 if (!enabled) {
                     element.setAttribute("aria-disabled", "true");
                     element.setAttribute("tabindex", "-1");
@@ -51,7 +55,23 @@
                     element.removeAttribute("tabindex");
                 }
             });
+
+            widget.querySelectorAll('[data-controller="contao--choices"]').forEach(function (choicesWrapper) {
+                choicesWrapper.classList.toggle("openai-auto-update-disabled", !enabled);
+            });
         });
+    }
+
+    function syncAutoUpdateLicenseState() {
+        if (!document.querySelector(".widget.auto-update-license-field")) {
+            return;
+        }
+
+        if (!window.contaoOpenAiAutoUpdate) {
+            return;
+        }
+
+        setAutoUpdateFieldsEnabled(window.contaoOpenAiAutoUpdate.licenseActive === true);
     }
 
     function bindApiKeyButton(button) {
@@ -214,18 +234,23 @@
         document.querySelectorAll(".license-key-check-button").forEach(bindLicenseKeyButton);
 
         if (window.contaoOpenAiAutoUpdate) {
-            setAutoUpdateFieldsEnabled(!!window.contaoOpenAiAutoUpdate.licenseActive);
+            syncAutoUpdateLicenseState();
         }
     }
 
     if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", init);
+        document.addEventListener("DOMContentLoaded", function () {
+            init();
+            syncAutoUpdateLicenseState();
+        });
     } else {
         init();
+        syncAutoUpdateLicenseState();
     }
 
     var observer = new MutationObserver(function () {
         init();
+        syncAutoUpdateLicenseState();
     });
 
     if (document.body) {
