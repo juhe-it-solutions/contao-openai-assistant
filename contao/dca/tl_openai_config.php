@@ -299,7 +299,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_prompt_template'],
             'exclude'   => true,
             'inputType' => 'textarea',
-            'eval'      => ['rte' => false, 'rows' => 8, 'tl_class' => 'clr auto-update-field auto-update-license-field'],
+            'eval'      => ['rte' => false, 'rows' => 8, 'tl_class' => 'clr auto-update-field auto-update-license-field oaa-prompt-field'],
             'sql'       => ['type' => 'text', 'notnull' => false],
         ],
 

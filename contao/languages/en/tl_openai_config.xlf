@@ -296,8 +296,8 @@
                 <target>Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.0">
-                <source>Instructions for the knowledge document (optional)</source>
-                <target>Instructions for the knowledge document (optional)</target>
+                <source>Instructions for the knowledge document</source>
+                <target>Instructions for the knowledge document</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.1">
                 <source>Defines how your website texts are turned into the chatbot knowledge file during automatic sync. The default works for most sites — change it only if you want a different focus, style, or structure.</source>
