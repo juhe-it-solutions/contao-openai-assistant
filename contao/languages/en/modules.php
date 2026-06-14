@@ -18,6 +18,9 @@ $GLOBALS['TL_LANG']['MOD']['openai_dashboard.1'] = 'Manage OpenAI configurations
 $GLOBALS['TL_LANG']['MOD']['vector_store_auto_update']   = ['OpenAI vector store auto-update', 'Status, log and manual trigger for the automatic sync'];
 $GLOBALS['TL_LANG']['MOD']['vector_store_auto_update.0'] = 'OpenAI vector store auto-update';
 $GLOBALS['TL_LANG']['MOD']['vector_store_auto_update.1'] = 'Status, log and manual trigger for the automatic sync';
+$GLOBALS['TL_LANG']['MOD']['openai_sync_log']   = ['OpenAI sync log', 'Manage the automatic vector store sync history'];
+$GLOBALS['TL_LANG']['MOD']['openai_sync_log.0'] = 'OpenAI sync log';
+$GLOBALS['TL_LANG']['MOD']['openai_sync_log.1'] = 'Manage the automatic vector store sync history';
 $GLOBALS['TL_LANG']['MOD']['ai_chat']            = 'AI-Chatbot';
 
 // Module group (used in module creation)

@@ -9,6 +9,10 @@
         .vsau-badge.blue   { background: #2196f3; }
         .vsau-badge.grey   { background: #757575; }
 
+        .vsau-toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+        .vsau-refresh { display: inline-flex; align-items: center; gap: 6px; }
+        .vsau-refresh svg { width: 14px; height: 14px; fill: currentColor; }
+
         .vsau-card {
             background: var(--info-bg);
             border: 1px solid var(--active-bg);
@@ -82,6 +86,13 @@
         .vsau-copy.copied { border-color: #43a047; color: #43a047; }
         .vsau-copy svg { width: 14px; height: 14px; fill: currentColor; flex-shrink: 0; }
     </style>
+
+    <div class="vsau-toolbar">
+        <a href="{{ path('vector_store_auto_update') }}" class="tl_submit vsau-refresh">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+            {{ 'MSC.vsau_refresh'|trans({}, 'contao_default') }}
+        </a>
+    </div>
 
     {% if configs is empty %}
         <div class="tl_message" style="padding: 1rem; background: var(--info-bg); border-radius: 1rem; border: 1px solid var(--active-bg);">
@@ -269,6 +280,7 @@
         <div class="vsau-card">
             <div class="vsau-card-head">
                 <span class="vsau-title">{{ 'MSC.vsau_recent_runs'|trans({}, 'contao_default') }}</span>
+                <a href="{{ manage_log_url }}" class="tl_submit" style="margin-left: auto;">{{ 'MSC.vsau_manage_log'|trans({}, 'contao_default') }}</a>
             </div>
             {% if log is empty %}
                 <p class="vsau-actions-hint">{{ 'MSC.vsau_no_runs'|trans({}, 'contao_default') }}</p>

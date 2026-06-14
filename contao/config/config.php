@@ -20,6 +20,12 @@ $GLOBALS['BE_MOD']['ai_tools'] = [
     'vector_store_auto_update' => [
         'disablePermissionChecks' => false,
     ],
+    // Read-only run history for the automatic vector store sync (standard DC_Table list:
+    // pagination, search/sort, select mode + delete).
+    'openai_sync_log' => [
+        'tables' => ['tl_openai_sync_log'],
+        'icon'   => 'bundles/contaocore/icons/modules.svg',
+    ],
 ];
 
 // Load backend CSS for AI Tools menu icon (Contao 5 official way)

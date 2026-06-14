@@ -175,6 +175,14 @@
                 <source>Run sync now</source>
                 <target>Run sync now</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_refresh">
+                <source>Refresh</source>
+                <target>Refresh</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_manage_log">
+                <source>Manage log</source>
+                <target>Manage log</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_recent_runs">
                 <source>Recent syncs</source>
                 <target>Recent syncs</target>

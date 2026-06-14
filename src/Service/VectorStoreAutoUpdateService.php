@@ -498,13 +498,14 @@ class VectorStoreAutoUpdateService
 
     private function uploadFile(string $apiKey, string $markdownContent): string
     {
-        // Symfony HttpClient multipart needs a real stream — write to a temp file. Use
-        // a cryptographically random name and exclusive create ('xb') so a local
-        // attacker cannot pre-create / symlink the path (the .md extension is kept so
-        // OpenAI detects the file type). The handle is reused for both write and upload.
+        // Symfony HttpClient multipart needs a real, READABLE stream — write to a temp
+        // file and let the client read it back. Mode 'x+b' = read/write + exclusive
+        // create (a local attacker cannot pre-create / symlink the path); the handle must
+        // be readable, otherwise the multipart body reader fails with "Bad file
+        // descriptor". The .md extension is kept so OpenAI detects the file type.
         $tmpPath = sys_get_temp_dir().'/contao_vs_autoupdate_'.bin2hex(random_bytes(16)).'.md';
 
-        $handle = @fopen($tmpPath, 'x');
+        $handle = @fopen($tmpPath, 'x+b');
         if (false === $handle) {
             throw new \RuntimeException('Could not create a temporary file for the upload.');
         }

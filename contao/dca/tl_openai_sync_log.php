@@ -10,26 +10,42 @@
 
 declare(strict_types=1);
 
+use Contao\DC_Table;
+
 /*
  * Run-history table for the automatic vector store sync.
  *
- * This DCA exists ONLY to declare the schema. The table is managed entirely by
- * Contao's Doctrine schema sync (single source of truth) — there is no migration.
- * Declaring it here ensures the table is both created on install/update AND
- * protected from being flagged as an orphan "DROP TABLE" candidate.
- *
- * It is intentionally not registered in any BE_MOD, so it never appears as an
- * editable backend module; rows are written/read directly via DBAL by the
- * VectorStoreAutoUpdateService and the backend status controller.
+ * Registered as a read-only DC_Table backend module (BE_MOD ai_tools.openai_sync_log)
+ * so operators get the standard Contao list: pagination, search/sort, "edit multiple"
+ * select mode and (multi-)delete. Records are written by VectorStoreAutoUpdateService;
+ * the table is closed (no "new") and not editable/copyable — only deletable. The schema
+ * is still created/maintained by Contao's Doctrine schema sync (no migration).
  */
 $GLOBALS['TL_DCA']['tl_openai_sync_log'] = [
     'config' => [
+        'dataContainer'    => DC_Table::class,
+        'closed'           => true,  // no "new" records via the UI
+        'notCopyable'      => true,
+        'notEditable'      => true,  // read-only; delete + multi-delete remain
+        'enableVersioning' => false,
         'sql' => [
             'keys' => [
                 'id'     => 'primary',
                 'pid'    => 'index',
                 'run_at' => 'index',
             ],
+        ],
+    ],
+    'list' => [
+        'sorting' => [
+            'mode'        => 2,
+            'fields'      => ['run_at DESC'],
+            'flag'        => 6,
+            'panelLayout' => 'sort,search,limit',
+        ],
+        'label' => [
+            'fields'      => ['run_at', 'status', 'pages', 'tokens_in', 'tokens_out', 'duration', 'file_id', 'message'],
+            'showColumns' => true,
         ],
     ],
     'fields' => [
@@ -43,28 +59,41 @@ $GLOBALS['TL_DCA']['tl_openai_sync_log'] = [
             'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
         'run_at' => [
-            'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+            'label'   => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['run_at'],
+            'sorting' => true,
+            'flag'    => 6,
+            'eval'    => ['rgxp' => 'datim'],
+            'sql'     => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
         'status' => [
-            'sql' => ['type' => 'string', 'length' => 20, 'default' => ''],
+            'label'     => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['status'],
+            'filter'    => true,
+            'reference' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['status_ref'],
+            'sql'       => ['type' => 'string', 'length' => 20, 'default' => ''],
         ],
         'pages' => [
-            'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['pages'],
+            'sql'   => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
         'tokens_in' => [
-            'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['tokens_in'],
+            'sql'   => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
         'tokens_out' => [
-            'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['tokens_out'],
+            'sql'   => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
         'file_id' => [
-            'sql' => ['type' => 'string', 'length' => 255, 'default' => ''],
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['file_id'],
+            'sql'   => ['type' => 'string', 'length' => 255, 'default' => ''],
         ],
         'duration' => [
-            'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['duration'],
+            'sql'   => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
         'message' => [
-            'sql' => ['type' => 'text', 'notnull' => false],
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['message'],
+            'sql'   => ['type' => 'text', 'notnull' => false],
         ],
     ],
 ];

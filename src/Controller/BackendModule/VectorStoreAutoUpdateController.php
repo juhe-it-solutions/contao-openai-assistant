@@ -120,6 +120,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             'log' => $log,
             'purchase_url' => 'https://licenses.juhe-it-solutions.at/openai-assistant',
             'request_token' => $this->csrfTokenManager->getToken($this->csrfTokenName)->getValue(),
+            'manage_log_url' => $this->generateUrl('contao_backend', ['do' => 'openai_sync_log']),
         ]);
     }
 

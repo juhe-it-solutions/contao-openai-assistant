@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+    <file source-language="en" target-language="en" datatype="plaintext" original="tl_openai_sync_log.xlf">
+        <body>
+            <trans-unit id="tl_openai_sync_log.run_at">
+                <source>Date</source>
+                <target>Date</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.status">
+                <source>Status</source>
+                <target>Status</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.status_ref.success">
+                <source>Success</source>
+                <target>Success</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.status_ref.error">
+                <source>Error</source>
+                <target>Error</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.pages">
+                <source>Pages</source>
+                <target>Pages</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.tokens_in">
+                <source>Tokens in</source>
+                <target>Tokens in</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.tokens_out">
+                <source>Tokens out</source>
+                <target>Tokens out</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.duration">
+                <source>Duration (s)</source>
+                <target>Duration (s)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.file_id">
+                <source>File ID</source>
+                <target>File ID</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.message">
+                <source>Message</source>
+                <target>Message</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>
