@@ -24,8 +24,10 @@ use Contao\CoreBundle\Cron\Cron;
 use Contao\CoreBundle\DependencyInjection\Attribute\AsCronJob;
 use Contao\CoreBundle\Exception\CronExecutionSkippedException;
 use Cron\CronExpression;
+use Cron\FieldFactory;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
+use Psr\Log\LoggerInterface;
 
 /**
  * Runs every minute but exits immediately unless a config's per-record cron
@@ -42,6 +44,7 @@ class VectorStoreAutoUpdateCron
     public function __construct(
         private readonly Connection $connection,
         private readonly VectorStoreAutoUpdateService $service,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -84,10 +87,20 @@ class VectorStoreAutoUpdateCron
             return true;
         }
 
-        $expression = new CronExpression($schedule);
-        $lastRunDate = new \DateTimeImmutable('@'.$lastRun);
-        $nextRun = $expression->getNextRunDate($lastRunDate);
+        // A malformed schedule (or a cron-expression library version that does not
+        // auto-create its FieldFactory) must never bubble up — that would abort the
+        // whole contao:cron run and break the heartbeat for every cron job. Pass an
+        // explicit FieldFactory for cross-version compatibility and catch everything.
+        try {
+            $expression = new CronExpression($schedule, new FieldFactory());
+            $lastRunDate = new \DateTimeImmutable('@'.$lastRun);
+            $nextRun = $expression->getNextRunDate($lastRunDate);
 
-        return new \DateTimeImmutable() >= \DateTimeImmutable::createFromInterface($nextRun);
+            return new \DateTimeImmutable() >= \DateTimeImmutable::createFromInterface($nextRun);
+        } catch (\Throwable $e) {
+            $this->logger->error('Invalid auto-update schedule "'.$schedule.'": '.$e->getMessage());
+
+            return false;
+        }
     }
 }

@@ -65,6 +65,7 @@ services:
             $connection: '@doctrine.dbal.default_connection'
             $projectDir: '%kernel.project_dir%'
             $webDir: '%contao.web_dir%'
+            $appSecret: '%kernel.secret%'
         public: true
 
     JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiModelCatalogService:
@@ -184,6 +185,7 @@ services:
     JuheItSolutions\ContaoOpenaiAssistant\Cron\VectorStoreAutoUpdateCron:
         arguments:
             $connection: '@doctrine.dbal.default_connection'
+            $logger: '@monolog.logger.contao'
 
     # VectorStoreAutoUpdateController — public for routing; $connection + CSRF wired explicitly
     JuheItSolutions\ContaoOpenaiAssistant\Controller\BackendModule\VectorStoreAutoUpdateController:

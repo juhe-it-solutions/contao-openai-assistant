@@ -870,14 +870,21 @@ class OpenAiConfigListener
             return $value;
         }
 
-        $record = $dc->activeRecord;
-        $limit = $this->resolvePageLimit(
-            (string) ($record->premium_license_plan ?? ''),
-            (int) ($record->premium_license_max_pages ?? 0),
-        );
+        $plan = (string) ($dc->activeRecord->premium_license_plan ?? '');
+        $maxPages = (int) ($dc->activeRecord->premium_license_max_pages ?? 0);
+
+        // Backfill the plan/limit when it is not stored yet: a license validated before
+        // plan capture existed (status cached "active", so revalidate never re-ran), or a
+        // key entered in the same save (the onsubmit revalidation runs after this callback).
+        // Without this the limit could not be resolved and the check would silently pass.
+        if ('' === $plan) {
+            [$plan, $maxPages] = $this->refreshLicensePlan((int) $dc->id);
+        }
+
+        $limit = $this->resolvePageLimit($plan, $maxPages);
 
         if (null === $limit) {
-            return $value; // unlimited (enterprise) or plan not yet known
+            return $value; // unlimited (enterprise) or plan still unknown
         }
 
         $count = $this->autoUpdateService->countScopePages($value);
@@ -886,7 +893,7 @@ class OpenAiConfigListener
             throw new \InvalidArgumentException(\sprintf(
                 $this->getConfigLangString(
                     'auto_update_pages_over_limit',
-                    'Your selection covers %1$s pages (including subpages), but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.',
+                    'Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.',
                 ),
                 $count,
                 $limit,
@@ -911,6 +918,37 @@ class OpenAiConfigListener
         }
 
         return self::PLAN_PAGE_LIMITS[$plan] ?? null;
+    }
+
+    /**
+     * Force a remote re-validation to persist premium_license_plan / _max_pages, then
+     * read them back. Used when the limit must be enforced but the plan was not stored
+     * yet. Runs in the web request (config save), where the license key decrypts.
+     *
+     * @return array{0: string, 1: int} [plan, maxPages]
+     */
+    private function refreshLicensePlan(int $configId): array
+    {
+        $encrypted = (string) $this->connection->fetchOne(
+            'SELECT premium_license_key FROM tl_openai_config WHERE id = ?',
+            [$configId],
+        );
+
+        $plainKey = '' !== $encrypted ? $this->encryption->decryptLicenseKey($encrypted) : null;
+
+        if (null !== $plainKey) {
+            $this->licenseValidation->revalidate($configId, $plainKey);
+        }
+
+        $row = $this->connection->fetchAssociative(
+            'SELECT premium_license_plan, premium_license_max_pages FROM tl_openai_config WHERE id = ?',
+            [$configId],
+        );
+
+        return [
+            (string) ($row['premium_license_plan'] ?? ''),
+            (int) ($row['premium_license_max_pages'] ?? 0),
+        ];
     }
 
     public function loadAutoUpdateEnabled($value, DataContainer|null $dc = null): string

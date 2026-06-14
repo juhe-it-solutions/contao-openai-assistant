@@ -85,3 +85,20 @@
         transform: rotate(360deg);
     }
 }
+/* Collapse the "pages to keep updated" picker into a count (auto_update_site_root) */
+.oaa-picker-summary {
+    margin: 4px 0 8px;
+    font-size: 13px;
+}
+.oaa-picker-summary .oaa-picker-count {
+    font-weight: 700;
+}
+.oaa-picker-summary .oaa-picker-toggle {
+    margin-left: 8px;
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+}
+ul#sort_auto_update_site_root.oaa-picker-collapsed {
+    display: none;
+}

@@ -99,8 +99,9 @@ class LicenseValidationService
                 'GET',
                 self::VALIDATION_URL,
                 [
-                    'query' => [
-                        'key' => $key,
+                    // Send the key in a header, not the URL, so it never lands in access logs.
+                    'headers' => [
+                        'X-License-Key' => $key,
                     ],
                     'timeout' => 10,
                 ],
@@ -154,7 +155,8 @@ class LicenseValidationService
                 'GET',
                 self::VALIDATION_URL,
                 [
-                    'query' => ['key' => $key],
+                    // Send the key in a header, not the URL, so it never lands in access logs.
+                    'headers' => ['X-License-Key' => $key],
                     'timeout' => 10,
                 ],
             );

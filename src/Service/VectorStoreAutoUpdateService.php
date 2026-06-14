@@ -193,7 +193,10 @@ class VectorStoreAutoUpdateService
     }
 
     /**
-     * Read tl_search rows scoped to the configured (or auto-detected) page selection.
+     * Read tl_search rows scoped to the configured page selection.
+     *
+     * Explicitly selected pages are used as-is (no subpages implied). An empty
+     * selection falls back to the whole website when exactly one site root exists.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -203,35 +206,37 @@ class VectorStoreAutoUpdateService
             'SELECT auto_update_site_root FROM tl_openai_config WHERE id = ?',
             [$configId],
         );
-        $startPageIds = self::parseConfiguredPageIds($config['auto_update_site_root'] ?? null);
+        $selectedPageIds = self::parseConfiguredPageIds($config['auto_update_site_root'] ?? null);
 
-        if ([] === $startPageIds) {
+        if ([] !== $selectedPageIds) {
+            // Exact selection — only the pages the admin picked, no subpages implied.
+            $pageIds = [];
+
+            foreach ($selectedPageIds as $selectedPageId) {
+                $page = $this->connection->fetchAssociative(
+                    'SELECT id FROM tl_page WHERE id = ?',
+                    [$selectedPageId],
+                );
+
+                if (!$page) {
+                    throw new \RuntimeException('Invalid page selected for auto-update (ID '.$selectedPageId.').');
+                }
+
+                $pageIds[] = (int) $selectedPageId;
+            }
+        } else {
+            // Empty selection — fall back to the whole website (single site root + subtree).
             $roots = $this->connection->fetchAllAssociative(
                 "SELECT id FROM tl_page WHERE type = 'root' AND dns != ''",
             );
 
             if (1 === \count($roots)) {
-                $startPageIds = [(int) $roots[0]['id']];
+                $pageIds = $this->collectPageSubtreeIds((int) $roots[0]['id']);
             } elseif (\count($roots) > 1) {
-                throw new \RuntimeException('Multiple site roots detected. Select crawl pages in OpenAI Configuration → Automatic vector store sync.');
+                throw new \RuntimeException('Multiple site roots detected. Select the pages to keep updated in OpenAI Configuration → Automatic vector store sync.');
             } else {
                 return [];
             }
-        }
-
-        $pageIds = [];
-
-        foreach ($startPageIds as $startPageId) {
-            $page = $this->connection->fetchAssociative(
-                'SELECT id FROM tl_page WHERE id = ?',
-                [$startPageId],
-            );
-
-            if (!$page) {
-                throw new \RuntimeException('Invalid crawl page selected for auto-update (ID '.$startPageId.').');
-            }
-
-            $pageIds = array_merge($pageIds, $this->collectPageSubtreeIds($startPageId));
         }
 
         $pageIds = array_values(array_unique($pageIds));
@@ -251,33 +256,30 @@ class VectorStoreAutoUpdateService
     }
 
     /**
-     * Count the unique tl_page rows in the crawl scope for a given page selection:
-     * every selected page plus its entire subtree. Used by the backend to enforce
-     * the subscription page limit before saving. Empty selection resolves to the
-     * single site root (whole site) when exactly one exists, else returns 0.
+     * Count the tl_page rows in scope for a given page selection, used by the
+     * backend to enforce the subscription page limit before saving.
+     *
+     * Explicitly selected pages are counted exactly (no subpages implied). An empty
+     * selection resolves to the whole website (single site root + subtree) when
+     * exactly one root exists, else returns 0.
      */
     public function countScopePages(mixed $configValue): int
     {
-        $startPageIds = self::parseConfiguredPageIds($configValue);
+        $selectedPageIds = self::parseConfiguredPageIds($configValue);
 
-        if ([] === $startPageIds) {
-            $roots = $this->connection->fetchAllAssociative(
-                "SELECT id FROM tl_page WHERE type = 'root' AND dns != ''",
-            );
-
-            if (1 !== \count($roots)) {
-                return 0;
-            }
-
-            $startPageIds = [(int) $roots[0]['id']];
+        if ([] !== $selectedPageIds) {
+            return \count($selectedPageIds);
         }
 
-        $pageIds = [];
-        foreach ($startPageIds as $startPageId) {
-            $pageIds = array_merge($pageIds, $this->collectPageSubtreeIds((int) $startPageId));
+        $roots = $this->connection->fetchAllAssociative(
+            "SELECT id FROM tl_page WHERE type = 'root' AND dns != ''",
+        );
+
+        if (1 !== \count($roots)) {
+            return 0;
         }
 
-        return \count(array_unique($pageIds));
+        return \count(array_unique($this->collectPageSubtreeIds((int) $roots[0]['id'])));
     }
 
     /**

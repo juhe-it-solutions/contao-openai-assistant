@@ -22,6 +22,7 @@ class EncryptionService
         private readonly Connection|null $connection = null,
         private readonly string|null $projectDir = null,
         private readonly string|null $webDir = null,
+        private readonly string|null $appSecret = null,
     ) {
     }
 
@@ -72,7 +73,24 @@ class EncryptionService
      */
     public function getEncryptionKey(): string
     {
-        // Generate the same encryption key as in other services
+        // Prefer a key that is identical in web and CLI so the cron can decrypt what
+        // the backend encrypted. The app secret (APP_SECRET) is loaded from .env in
+        // both contexts. The legacy server-derived key is only a fallback for installs
+        // without an app secret; old values stay decryptable via getEncryptionKeyCandidates().
+        if (null !== $this->appSecret && '' !== $this->appSecret) {
+            return hash('sha256', 'contao-openai-assistant:'.$this->appSecret, true);
+        }
+
+        return $this->getLegacyServerKey();
+    }
+
+    /**
+     * Legacy key derivation (SERVER_NAME + DOCUMENT_ROOT). Differs between web and CLI,
+     * which is why it is no longer the primary key — kept for backward compatibility so
+     * values encrypted before the app-secret switch can still be decrypted.
+     */
+    private function getLegacyServerKey(): string
+    {
         $serverName = $_SERVER['SERVER_NAME'] ?? 'localhost';
         $documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? '/';
 
@@ -276,7 +294,8 @@ class EncryptionService
     private function getEncryptionKeyCandidates(): array
     {
         $keys = [
-            $this->getEncryptionKey(),
+            $this->getEncryptionKey(),   // primary (app-secret based when available)
+            $this->getLegacyServerKey(), // BC: values encrypted before the app-secret switch
         ];
 
         $hosts = $this->getHostCandidates();

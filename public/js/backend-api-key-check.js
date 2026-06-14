@@ -240,9 +240,78 @@
         });
     }
 
+    // Collapse the "pages to keep updated" page-tree picker into a count so configs
+    // with hundreds of selected pages do not blow up the form. Scoped to the
+    // auto_update_site_root field only; re-applies after the picker AJAX re-renders.
+    var PICKER_LABELS = {
+        de: { selected: "Seiten ausgewählt", selectedOne: "Seite ausgewählt", show: "anzeigen", hide: "verbergen" },
+        en: { selected: "pages selected", selectedOne: "page selected", show: "show", hide: "hide" }
+    };
+
+    function pickerLabels() {
+        var lang = (document.documentElement.getAttribute("lang") || "en").slice(0, 2).toLowerCase();
+        return PICKER_LABELS[lang] || PICKER_LABELS.en;
+    }
+
+    function setPickerToggle(summary, list) {
+        var toggle = summary.querySelector(".oaa-picker-toggle");
+        if (!toggle) {
+            return;
+        }
+        var collapsed = list.classList.contains("oaa-picker-collapsed");
+        toggle.textContent = "(" + (collapsed ? pickerLabels().show : pickerLabels().hide) + ")";
+    }
+
+    function summarizePagePicker() {
+        var list = document.getElementById("sort_auto_update_site_root");
+        if (!list) {
+            return;
+        }
+
+        var container = list.closest(".selector_container");
+        if (!container) {
+            return;
+        }
+
+        var count = list.querySelectorAll(":scope > li").length;
+        var summary = container.querySelector(".oaa-picker-summary");
+
+        // Already summarised for this exact count — avoid re-collapsing after the user
+        // expands it (and prevents a MutationObserver feedback loop on our own changes).
+        if (summary && summary.dataset.count === String(count)) {
+            return;
+        }
+
+        var labels = pickerLabels();
+
+        if (!summary) {
+            summary = document.createElement("p");
+            summary.className = "oaa-picker-summary";
+            container.insertBefore(summary, list);
+            summary.addEventListener("click", function (e) {
+                var toggle = e.target.closest(".oaa-picker-toggle");
+                if (!toggle) {
+                    return;
+                }
+                e.preventDefault();
+                list.classList.toggle("oaa-picker-collapsed");
+                setPickerToggle(summary, list);
+            });
+        }
+
+        summary.dataset.count = String(count);
+        var text = count === 1 ? "1 " + labels.selectedOne : count + " " + labels.selected;
+        summary.innerHTML = '<span class="oaa-picker-count">' + text + "</span>"
+            + (count > 0 ? ' <a href="#" class="oaa-picker-toggle"></a>' : "");
+
+        list.classList.add("oaa-picker-collapsed");
+        setPickerToggle(summary, list);
+    }
+
     function init() {
         document.querySelectorAll('button[id^="apiKeyCheck_"]').forEach(bindApiKeyButton);
         document.querySelectorAll(".license-key-check-button").forEach(bindLicenseKeyButton);
+        summarizePagePicker();
 
         if (window.contaoOpenAiAutoUpdate) {
             syncAutoUpdateLicenseState();

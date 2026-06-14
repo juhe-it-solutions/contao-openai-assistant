@@ -141,7 +141,7 @@
                         <h3>{{ 'MSC.vsau_setup_todo'|trans({}, 'contao_default') }}</h3>
                         <ul>
                             {% for warning in config.warnings %}
-                                <li><span class="vsau-mark bad">✗</span><span>{{ warning }}</span></li>
+                                <li><span class="vsau-mark bad">✗</span><span>{{ warning|raw }}</span></li>
                             {% endfor %}
                         </ul>
                     </div>
@@ -190,10 +190,10 @@
                                 <span class="vsau-badge red">{{ 'MSC.vsau_cron_never'|trans({}, 'contao_default') }}</span>
                             {% elseif config.cron_status == 'healthy' %}
                                 <span class="vsau-badge green">{{ 'MSC.vsau_cron_healthy'|trans({}, 'contao_default') }}</span>
-                                <span class="vsau-sub">{{ 'MSC.vsau_cron_healthy_seen'|trans({}, 'contao_default') }} {{ config.auto_update_last_run|date('d.m.Y H:i:s') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_cron_healthy_seen'|trans({}, 'contao_default') }} {{ config.heartbeat_last_run|date('d.m.Y H:i:s') }}</span>
                             {% else %}
                                 <span class="vsau-badge yellow">{{ 'MSC.vsau_cron_stale'|trans({}, 'contao_default') }}</span>
-                                <span class="vsau-sub">{{ 'MSC.vsau_cron_healthy_seen'|trans({}, 'contao_default') }} {{ config.auto_update_last_run|date('d.m.Y H:i:s') }}. {{ 'MSC.vsau_cron_stale_hint'|trans({}, 'contao_default') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_cron_healthy_seen'|trans({}, 'contao_default') }} {{ config.heartbeat_last_run|date('d.m.Y H:i:s') }}. {{ 'MSC.vsau_cron_stale_hint'|trans({}, 'contao_default') }}</span>
                             {% endif %}
                         </div>
                     </div>

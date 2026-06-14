@@ -228,8 +228,8 @@
                 <target>Es sind keine Seiten ausgewählt. Wählen Sie die zu aktualisierenden Seiten in der OpenAI-Konfiguration (KI-Tools → OpenAI Dashboard) unter „Automatische Vector-Store-Synchronisierung".</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_indexed_pages">
-                <source>No pages in the search index yet. Update the search index under System → Maintenance → "Update the search index" before the first sync.</source>
-                <target>Es sind noch keine Seiten im Suchindex. Aktualisieren Sie den Suchindex unter System → Wartung → „Suchindex aktualisieren", bevor Sie die erste Synchronisierung starten.</target>
+                <source><![CDATA[No pages in the search index yet. Update the search index under System → Maintenance → "Update the search index" before the first sync.<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></source>
+                <target><![CDATA[Es sind noch keine Seiten im Suchindex. Aktualisieren Sie den Suchindex unter System → Wartung → „Suchindex aktualisieren", bevor Sie die erste Synchronisierung starten.<br>Prüfen Sie dazu auch die relevanten Seiteneinstellungen „Robots-Tag" und „Diese Seite nicht durchsuchen" (Contao 5.3) bzw. „Suchindexer" (Contao 5.7).]]></target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_invalid_config">
                 <source>Invalid or disabled configuration.</source>

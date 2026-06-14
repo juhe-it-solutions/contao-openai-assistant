@@ -288,12 +288,12 @@
                 <target>Select the pages whose content should be updated automatically in the vector store</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_site_root.1">
-                <source>Select the pages whose content should be synced into the chatbot's knowledge base. Each selected page automatically includes all of its subpages. The total number of pages (including subpages) must not exceed your subscription's page limit. On a single-site installation you may leave this empty to use the entire website.</source>
-                <target>Select the pages whose content should be synced into the chatbot's knowledge base. Each selected page automatically includes all of its subpages. The total number of pages (including subpages) must not exceed your subscription's page limit. On a single-site installation you may leave this empty to use the entire website.</target>
+                <source><![CDATA[Select the pages whose content should be synced into the chatbot's knowledge base.<br>The total number of selected pages must not exceed your subscription's page limit.<br>For installations with only one website root you can leave this field empty to use the entire website.]]></source>
+                <target><![CDATA[Select the pages whose content should be synced into the chatbot's knowledge base.<br>The total number of selected pages must not exceed your subscription's page limit.<br>For installations with only one website root you can leave this field empty to use the entire website.]]></target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_pages_over_limit">
-                <source>Your selection covers %1$s pages (including subpages), but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.</source>
-                <target>Your selection covers %1$s pages (including subpages), but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.</target>
+                <source>Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.</source>
+                <target>Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.0">
                 <source>Instructions for the knowledge document (optional)</source>

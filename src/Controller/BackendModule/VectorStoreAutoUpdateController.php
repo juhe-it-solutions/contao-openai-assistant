@@ -17,6 +17,7 @@ use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\CoreBundle\Security\ContaoCorePermissions;
 use Contao\Message;
 use Cron\CronExpression;
+use Cron\FieldFactory;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
@@ -85,10 +86,17 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             "SELECT * FROM tl_openai_config WHERE auto_update_enabled = '1' ORDER BY id",
         );
 
+        // Real heartbeat: when did contao:cron last run at all? Contao records each
+        // cron job's lastRun in tl_cron_job, updated every minute. This reflects the
+        // server cron liveness — unlike auto_update_last_run, which only changes on a
+        // sync (daily). MAX(lastRun) is the most recent heartbeat tick.
+        $heartbeatLastRun = $this->heartbeatLastRun();
+
         $hasActiveConfig = false;
         foreach ($configs as &$config) {
             $config['license_active'] = $this->licenseValidation->isLicenseActive((int) $config['id']);
-            $config['cron_status'] = $this->cronStatus((int) $config['auto_update_last_run']);
+            $config['cron_status'] = $this->cronStatus($heartbeatLastRun);
+            $config['heartbeat_last_run'] = $heartbeatLastRun;
             $config['next_run'] = $this->nextRun($config);
             $config['warnings'] = $this->prerequisiteWarnings($config);
             // A manual sync can run without the server cron, but not without a vector
@@ -142,6 +150,28 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
     }
 
     /**
+     * Most recent contao:cron execution (heartbeat), read from Contao's tl_cron_job
+     * table. Returns 0 when the cron has never run (or the table is unavailable).
+     */
+    private function heartbeatLastRun(): int
+    {
+        try {
+            // Read the raw datetime and parse it in PHP (same timezone Doctrine used to
+            // store the datetime_immutable). Avoids MySQL UNIX_TIMESTAMP() session-timezone
+            // skew. tl_cron_job exists unchanged in Contao 5.3 and 5.7.
+            $raw = $this->connection->fetchOne('SELECT lastRun FROM tl_cron_job ORDER BY lastRun DESC LIMIT 1');
+
+            if (empty($raw)) {
+                return 0;
+            }
+
+            return (new \DateTimeImmutable((string) $raw))->getTimestamp();
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    /**
      * never | healthy | stale - see §10.5. contao:cron runs every minute, so two
      * missed ticks (120 s) is a reliable "cron stopped" signal.
      */
@@ -167,7 +197,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         $schedule = (string) ($config['auto_update_schedule'] ?? '') ?: '0 2 * * *';
 
         try {
-            $expression = new CronExpression($schedule);
+            $expression = new CronExpression($schedule, new FieldFactory());
 
             return $expression->getNextRunDate(new \DateTimeImmutable('@'.$lastRun))->getTimestamp();
         } catch (\Throwable) {
