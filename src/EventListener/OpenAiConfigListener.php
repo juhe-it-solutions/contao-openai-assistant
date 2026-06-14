@@ -697,7 +697,7 @@ class OpenAiConfigListener
             .'<style>'
             .'.premium-license-intro .openai-license-help-link{display:inline-flex;align-items:center;justify-content:center;margin-top:6px;padding:4px 10px;border-radius:6px;font-size:13px;font-weight:600;line-height:1.25;text-decoration:none;border:1px solid #c5eb52;background:#d7ff64;color:#1a1a1a;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease}'
             .'.premium-license-intro .openai-license-help-link:hover,.premium-license-intro .openai-license-help-link:focus-visible{background:#c5eb52;border-color:#b3d94a;color:#1a1a1a;outline:2px solid #4ea1ff;outline-offset:2px}'
-            .'@media (max-width:576px){.premium-license-intro .openai-license-help-link{width:100%}}'
+            .'@media (max-width:576px){.premium-license-intro .openai-license-help-link{width:100%%}}'
             .'</style>'
             .'<div class="tl_message" style="padding: 1rem; background: var(--info-bg); border-radius: 1rem; border: 1px solid var(--active-bg);">'
             .'<p class="tl_info" style="background: transparent url(icons/show.svg) no-repeat 11px 12px;">%s</p>'
