@@ -247,6 +247,30 @@ When you configure the extension in Contao, the following happens:
 - All communications with OpenAI use HTTPS
 - No sensitive data is logged or exposed
 
+### Automatic vector-store sync (premium)
+
+The scheduled sync crawls the selected pages and keeps the OpenAI vector store up to date —
+with **no character or page limit** on the indexed content.
+
+- **One file per page.** Every selected page is uploaded as its own vector-store document
+  (with `url`/`title` metadata), so retrieval is precise and answers can cite the source
+  page. Large sites scale because the vector store handles chunking/embedding itself.
+- **Incremental.** Only pages whose content changed since the last run are re-uploaded
+  (tracked in `tl_openai_vector_file` via a content hash); removed pages are deleted.
+- **Safe boilerplate removal.** Text that repeats across many pages (navigation, menus,
+  footers, cookie notices) is stripped automatically; unique page content is never removed.
+  For a guaranteed, content-precise exclusion, wrap chrome in Contao's
+  `<!-- indexer::stop -->` … `<!-- indexer::continue -->` markers — those regions are never
+  indexed.
+- **Modes (`Indexing mode`):**
+  - **Faithful (default):** the cleaned page text is uploaded unchanged. No AI cost.
+  - **AI polish (optional):** each page is additionally rewritten by an AI model into a
+    denser knowledge document. The model only ever sees one page at a time, so it can never
+    drop or confuse content from other pages. Costs tokens per page.
+- **Tip:** run the very first full sync from the CLI
+  (`vendor/bin/contao-console contao:openai-vector-sync <configId>`) on large sites; the
+  hourly cron then only processes changes.
+
 ## ⚙️ Configuration
 
 ### API Key Management

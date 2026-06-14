@@ -46,9 +46,9 @@ class OpenAiConfigListener
         'auto_update_schedule_minute',
         'auto_update_schedule_weekday',
         'auto_update_schedule_day',
-        'auto_update_raw_mode',
+        'auto_update_trigger',
+        'auto_update_mode',
         'auto_update_model',
-        'auto_update_max_content',
         'auto_update_site_root',
         'auto_update_prompt_template',
     ];
@@ -996,6 +996,18 @@ class OpenAiConfigListener
         }
 
         if (!$this->licenseValidation->isLicenseActive((int) $dc->id)) {
+            return;
+        }
+
+        // In manual-only mode the schedule fields are hidden (not submitted). Don't rebuild
+        // the cron expression from missing POST data - that would clobber a previously saved
+        // schedule with "* * * * *" (every minute) and make it run constantly if the user
+        // later switches back to scheduled. Leave the stored schedule untouched.
+        $trigger = (string) ($_POST['auto_update_trigger'] ?? '');
+        if ('' === $trigger) {
+            $trigger = (string) $this->connection->fetchOne('SELECT auto_update_trigger FROM tl_openai_config WHERE id = ?', [(int) $dc->id]);
+        }
+        if ('manual' === $trigger) {
             return;
         }
 

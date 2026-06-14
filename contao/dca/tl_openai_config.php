@@ -120,9 +120,14 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         ],
     ],
     'palettes' => [
+        '__selector__' => ['auto_update_trigger'],
         'default' => '{title_legend},title,api_key;{config_legend},vector_store_id'
             . ';{premium_legend},premium_license_intro,premium_license_key'
-            . ';{auto_update_legend},auto_update_enabled,auto_update_schedule_hour,auto_update_schedule_minute,auto_update_schedule_weekday,auto_update_schedule_day,auto_update_raw_mode,auto_update_model,auto_update_max_content,auto_update_site_root,auto_update_prompt_template',
+            . ';{auto_update_legend},auto_update_enabled,auto_update_trigger,auto_update_mode,auto_update_model,auto_update_site_root,auto_update_prompt_template',
+    ],
+    'subpalettes' => [
+        // Schedule fields only make sense for the automatic trigger; hidden in manual mode.
+        'auto_update_trigger_scheduled' => 'auto_update_schedule_hour,auto_update_schedule_minute,auto_update_schedule_weekday,auto_update_schedule_day',
     ],
     'fields' => [
         'id' => [
@@ -231,6 +236,17 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'eval'      => ['submitOnChange' => true, 'tl_class' => 'clr m12 auto-update-field auto-update-toggle auto-update-license-field'],
             'sql'       => ['type' => 'boolean', 'default' => false],
         ],
+        // Trigger: scheduled (server cron) or manual only (no cron dependency). submitOnChange
+        // reloads the palette so the schedule subpalette appears/disappears immediately.
+        'auto_update_trigger' => [
+            'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_trigger'],
+            'exclude'   => true,
+            'inputType' => 'select',
+            'options'   => ['scheduled', 'manual'],
+            'reference' => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_trigger_ref'],
+            'eval'      => ['submitOnChange' => true, 'includeBlankOption' => false, 'tl_class' => 'w50 clr auto-update-field auto-update-license-field'],
+            'sql'       => ['type' => 'string', 'length' => 16, 'default' => 'scheduled'],
+        ],
         'auto_update_schedule_hour' => [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_schedule_hour'],
             'exclude'   => true,
@@ -268,12 +284,20 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         'auto_update_schedule' => [
             'sql' => ['type' => 'string', 'length' => 20, 'default' => '0 2 * * *'],
         ],
+        // Deprecated: superseded by auto_update_mode. Column kept for backward compatibility
+        // (read as a fallback) but removed from the palette.
         'auto_update_raw_mode' => [
-            'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_raw_mode'],
-            'exclude'   => true,
-            'inputType' => 'checkbox',
-            'eval'      => ['tl_class' => 'clr m12 auto-update-field auto-update-license-field'],
             'sql'       => ['type' => 'boolean', 'default' => false],
+        ],
+        // Sync mode: faithful (default, no LLM) or llm_polish (per-page LLM rewrite, premium).
+        'auto_update_mode' => [
+            'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_mode'],
+            'exclude'   => true,
+            'inputType' => 'select',
+            'options'   => ['faithful', 'llm_polish'],
+            'reference' => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_mode_ref'],
+            'eval'      => ['tl_class' => 'w50 clr auto-update-field auto-update-license-field', 'includeBlankOption' => false],
+            'sql'       => ['type' => 'string', 'length' => 16, 'default' => 'faithful'],
         ],
         'auto_update_model' => [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_model'],
@@ -310,7 +334,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'sql'       => ['type' => 'text', 'notnull' => false],
         ],
 
-        // Read-only status / internal fields — NOT in any palette; written by the
+        // Read-only status / internal fields - NOT in any palette; written by the
         // cron/license services and displayed read-only in the backend module.
         'auto_update_file_id' => [
             'sql' => ['type' => 'string', 'length' => 255, 'default' => ''],

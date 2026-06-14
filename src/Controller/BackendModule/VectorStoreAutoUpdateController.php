@@ -120,6 +120,9 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         $hasActiveConfig = false;
         foreach ($configs as &$config) {
             $config['license_active'] = $this->licenseValidation->isLicenseActive((int) $config['id']);
+            // Manual-only configs ignore the cron entirely, so the dashboard suppresses cron
+            // health warnings for them and shows a "manual only" indicator instead.
+            $config['manual_mode'] = 'manual' === (string) ($config['auto_update_trigger'] ?? 'scheduled');
             $config['cron_status'] = $this->cronStatus($heartbeatLastRun);
             $config['heartbeat_last_run'] = $heartbeatLastRun;
             $config['next_run'] = $this->nextRun($config);
@@ -159,6 +162,9 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             'help_url' => $this->licensePortalUrls->getHelpUrl(),
             'request_token' => $this->csrfTokenManager->getToken($this->csrfTokenName)->getValue(),
             'manage_log_url' => $this->generateUrl('contao_backend', ['do' => 'openai_sync_log']),
+            // The "Run sync now" button spawns a CLI process via proc_open. Some shared hosts
+            // disable it; warn up front so the user isn't surprised by a failed click.
+            'process_spawning_available' => $this->processSpawningAvailable(),
         ]);
     }
 
@@ -182,7 +188,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         }
 
         $date = date('Y-m-d_His', (int) $row['run_at']);
-        $filename = 'vector-store-document_'.$date.'.md';
+        $filename = 'vector-store-manifest_'.$date.'.md';
 
         return new Response((string) $row['document'], Response::HTTP_OK, [
             'Content-Type' => 'text/markdown; charset=UTF-8',
@@ -250,6 +256,16 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         }
 
         return time() - $lastRun < 120 ? 'healthy' : 'stale';
+    }
+
+    /**
+     * Whether PHP can spawn a CLI process (proc_open) — required by the manual "Run sync now"
+     * button. function_exists() returns false when proc_open is listed in disable_functions,
+     * which is common on locked-down shared hosting.
+     */
+    private function processSpawningAvailable(): bool
+    {
+        return \function_exists('proc_open');
     }
 
     /**

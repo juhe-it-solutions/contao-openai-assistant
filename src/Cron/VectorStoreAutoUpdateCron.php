@@ -59,6 +59,12 @@ class VectorStoreAutoUpdateCron
         );
 
         foreach ($configs as $config) {
+            // Manual-only configs are never triggered by the cron - they sync solely via the
+            // backend "Run sync now" button, so the feature works without a server cron.
+            if ('manual' === (string) ($config['auto_update_trigger'] ?? 'scheduled')) {
+                continue;
+            }
+
             if (!$this->isDue($config)) {
                 continue;
             }

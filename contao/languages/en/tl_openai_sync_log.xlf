@@ -18,6 +18,10 @@
                 <source>Error</source>
                 <target>Error</target>
             </trans-unit>
+            <trans-unit id="tl_openai_sync_log.status_ref.partial">
+                <source>Partial (some pages failed)</source>
+                <target>Partial (some pages failed)</target>
+            </trans-unit>
             <trans-unit id="tl_openai_sync_log.trigger_source">
                 <source>Trigger</source>
                 <target>Trigger</target>
@@ -57,6 +61,34 @@
             <trans-unit id="tl_openai_sync_log.file_id">
                 <source>File ID</source>
                 <target>File ID</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.pages_added">
+                <source>Added</source>
+                <target>Added</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.pages_updated">
+                <source>Updated</source>
+                <target>Updated</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.pages_removed">
+                <source>Removed</source>
+                <target>Removed</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.pages_unchanged">
+                <source>Unchanged</source>
+                <target>Unchanged</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.files_uploaded">
+                <source>Files uploaded</source>
+                <target>Files uploaded</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.files_failed">
+                <source>Files failed</source>
+                <target>Files failed</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.bytes">
+                <source>Bytes</source>
+                <target>Bytes</target>
             </trans-unit>
             <trans-unit id="tl_openai_sync_log.message">
                 <source>Message</source>

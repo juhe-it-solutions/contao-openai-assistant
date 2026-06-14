@@ -18,6 +18,10 @@
                 <source>Error</source>
                 <target>Fehler</target>
             </trans-unit>
+            <trans-unit id="tl_openai_sync_log.status_ref.partial">
+                <source>Partial (some pages failed)</source>
+                <target>Teilweise (einige Seiten fehlgeschlagen)</target>
+            </trans-unit>
             <trans-unit id="tl_openai_sync_log.trigger_source">
                 <source>Trigger</source>
                 <target>Auslöser</target>
@@ -57,6 +61,34 @@
             <trans-unit id="tl_openai_sync_log.file_id">
                 <source>File ID</source>
                 <target>Datei-ID</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.pages_added">
+                <source>Added</source>
+                <target>Hinzugefügt</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.pages_updated">
+                <source>Updated</source>
+                <target>Aktualisiert</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.pages_removed">
+                <source>Removed</source>
+                <target>Entfernt</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.pages_unchanged">
+                <source>Unchanged</source>
+                <target>Unverändert</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.files_uploaded">
+                <source>Files uploaded</source>
+                <target>Dateien hochgeladen</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.files_failed">
+                <source>Files failed</source>
+                <target>Dateien fehlgeschlagen</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.bytes">
+                <source>Bytes</source>
+                <target>Bytes</target>
             </trans-unit>
             <trans-unit id="tl_openai_sync_log.message">
                 <source>Message</source>

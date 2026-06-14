@@ -22,9 +22,15 @@
       "JuheItSolutions\\ContaoOpenaiAssistant\\": "src/"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "JuheItSolutions\\ContaoOpenaiAssistant\\Tests\\": "tests/"
+    }
+  },
   "require-dev": {
     "contao/easy-coding-standard": "^6.13",
-    "phpstan/phpstan": "^2.0"
+    "phpstan/phpstan": "^2.0",
+    "phpunit/phpunit": "^10.5 || ^11.0"
   },
   "extra": {
     "contao-manager-plugin": "JuheItSolutions\\ContaoOpenaiAssistant\\ContaoManagerPlugin"

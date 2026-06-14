@@ -18,7 +18,7 @@ use Contao\DC_Table;
  * Registered as a read-only DC_Table backend module (BE_MOD ai_tools.openai_sync_log)
  * so operators get the standard Contao list: pagination, search/sort, "edit multiple"
  * select mode and (multi-)delete. Records are written by VectorStoreAutoUpdateService;
- * the table is closed (no "new") and not editable/copyable — only deletable. The schema
+ * the table is closed (no "new") and not editable/copyable - only deletable. The schema
  * is still created/maintained by Contao's Doctrine schema sync (no migration).
  */
 $GLOBALS['TL_DCA']['tl_openai_sync_log'] = [
@@ -44,7 +44,7 @@ $GLOBALS['TL_DCA']['tl_openai_sync_log'] = [
             'panelLayout' => 'sort,search,limit',
         ],
         'label' => [
-            'fields'      => ['run_at', 'status', 'trigger_source', 'model', 'pages', 'tokens_in', 'tokens_out', 'duration', 'file_id', 'message'],
+            'fields'      => ['run_at', 'status', 'trigger_source', 'model', 'pages', 'pages_added', 'pages_updated', 'pages_removed', 'pages_unchanged', 'files_uploaded', 'files_failed', 'duration', 'message'],
             'showColumns' => true,
         ],
     ],
@@ -96,6 +96,34 @@ $GLOBALS['TL_DCA']['tl_openai_sync_log'] = [
         'file_id' => [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['file_id'],
             'sql'   => ['type' => 'string', 'length' => 255, 'default' => ''],
+        ],
+        'pages_added' => [
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['pages_added'],
+            'sql'   => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+        ],
+        'pages_updated' => [
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['pages_updated'],
+            'sql'   => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+        ],
+        'pages_removed' => [
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['pages_removed'],
+            'sql'   => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+        ],
+        'pages_unchanged' => [
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['pages_unchanged'],
+            'sql'   => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+        ],
+        'files_uploaded' => [
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['files_uploaded'],
+            'sql'   => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+        ],
+        'files_failed' => [
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['files_failed'],
+            'sql'   => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+        ],
+        'bytes' => [
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['bytes'],
+            'sql'   => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
         'duration' => [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['duration'],

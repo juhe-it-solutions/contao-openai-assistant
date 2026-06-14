@@ -20,11 +20,11 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
  * Orchestrates an automatic vector store update:
- *   crawl → read search index → LLM summary → replace file in vector store.
+ *   crawl -> read search index -> LLM summary -> replace file in vector store.
  *
  * run() is invoked by the cron job and by the contao:openai-vector-sync command. The
  * backend manual trigger calls dispatchRun() (non-blocking CLI dispatch) only, never
- * run() inline — the crawl + LLM call can take minutes (constraint C4).
+ * run() inline - the crawl + LLM call can take minutes (constraint C4).
  */
 class VectorStoreAutoUpdateService
 {
@@ -33,13 +33,24 @@ class VectorStoreAutoUpdateService
     /** Hard cap on pages crawled per sync to limit DB load and LLM cost abuse. */
     private const MAX_CRAWL_PAGES = 5000;
 
-    /** What triggered a sync — persisted to tl_openai_sync_log.trigger_source. */
+    /**
+     * After this many seconds a "running"/"queued" status is considered stale (the run
+     * crashed) and a new dispatch is allowed. Matches the cron's stale-run guard - important
+     * for manual-only mode, where no cron exists to clear a stuck status.
+     */
+    private const STALE_RUN_SECONDS = 1800;
+
+    /** What triggered a sync - persisted to tl_openai_sync_log.trigger_source. */
     public const SOURCE_CRON = 'cron';     // automatic, via the schedule/heartbeat
     public const SOURCE_MANUAL = 'manual'; // backend "Run sync now" button
     public const SOURCE_CLI = 'cli';       // operator-run console command
 
     /** @var list<string> */
     public const SOURCES = [self::SOURCE_CRON, self::SOURCE_MANUAL, self::SOURCE_CLI];
+
+    /** Sync modes (tl_openai_config.auto_update_mode). */
+    public const MODE_FAITHFUL = 'faithful';   // upload cleaned page text as-is (default, no LLM)
+    public const MODE_LLM_POLISH = 'llm_polish'; // per-page LLM rewrite before upload (premium)
 
     public function __construct(
         private readonly Connection $connection,
@@ -48,6 +59,8 @@ class VectorStoreAutoUpdateService
         private readonly EncryptionService $encryption,
         private readonly ProcessUtil $processUtil,
         private readonly LicenseValidationService $licenseValidation,
+        private readonly BoilerplateFilter $boilerplate,
+        private readonly VectorStoreFileSync $fileSync,
     ) {
     }
 
@@ -61,7 +74,7 @@ class VectorStoreAutoUpdateService
         }
 
         $config = $this->connection->fetchAssociative(
-            "SELECT auto_update_last_status FROM tl_openai_config WHERE id = ? AND auto_update_enabled = '1'",
+            "SELECT auto_update_last_status, auto_update_last_run FROM tl_openai_config WHERE id = ? AND auto_update_enabled = '1'",
             [$configId],
         );
 
@@ -74,26 +87,44 @@ class VectorStoreAutoUpdateService
         }
 
         $status = (string) ($config['auto_update_last_status'] ?? '');
-        if (\in_array($status, ['running', 'queued'], true)) {
+        $lastRun = (int) ($config['auto_update_last_run'] ?? 0);
+
+        // Block only while a sync is genuinely in flight. A crashed run can otherwise leave a
+        // stale "running"/"queued" status forever - and in manual-only mode there is no cron
+        // to clear it - so treat a status older than the stale window as finished.
+        if (\in_array($status, ['running', 'queued'], true) && (time() - $lastRun) < self::STALE_RUN_SECONDS) {
             throw new \RuntimeException('MSC.vsau_err_sync_already_running');
         }
 
         $this->connection->executeStatement(
-            "UPDATE tl_openai_config SET auto_update_last_status = 'queued', auto_update_last_message = ? WHERE id = ?",
-            ['MSC.vsau_dispatched_manual', $configId],
+            "UPDATE tl_openai_config SET auto_update_last_run = ?, auto_update_last_status = 'queued', auto_update_last_message = ? WHERE id = ?",
+            [time(), 'MSC.vsau_dispatched_manual', $configId],
         );
 
-        $process = $this->processUtil->createSymfonyConsoleProcess(
-            'contao:openai-vector-sync',
-            (string) $configId,
-            '--source='.self::SOURCE_MANUAL,
-            '--no-interaction',
-        );
-        $process->start(); // non-blocking — do NOT call wait()
+        try {
+            $process = $this->processUtil->createSymfonyConsoleProcess(
+                'contao:openai-vector-sync',
+                (string) $configId,
+                '--source='.self::SOURCE_MANUAL,
+                '--no-interaction',
+            );
+            $process->start(); // non-blocking - do NOT call wait()
+        } catch (\Throwable $e) {
+            // Spawning a CLI process can fail on locked-down hosts (proc_open disabled) - the
+            // very hosts likely to use manual mode. Reset the status so the button is not stuck
+            // on "queued", and surface a clear error pointing to the CLI fallback.
+            $this->connection->executeStatement(
+                "UPDATE tl_openai_config SET auto_update_last_status = 'error', auto_update_last_message = ? WHERE id = ?",
+                ['MSC.vsau_err_dispatch_failed', $configId],
+            );
+            $this->logger->error('Manual sync dispatch failed for config '.$configId.': '.$e->getMessage());
+
+            throw new \RuntimeException('MSC.vsau_err_dispatch_failed');
+        }
     }
 
     /**
-     * Full sync flow for a single configuration record. Never throws — failures are
+     * Full sync flow for a single configuration record. Never throws - failures are
      * persisted as an "error" status + message in tl_openai_config / tl_openai_sync_log.
      */
     public function run(int $configId, string $triggerSource = self::SOURCE_CLI): void
@@ -103,11 +134,10 @@ class VectorStoreAutoUpdateService
         }
 
         $start = time();
-        $oldFileId = '';
         $model = '';
 
         try {
-            // License gate — silent no-op if not active.
+            // License gate - silent no-op if not active.
             if (!$this->licenseValidation->isLicenseActive($configId)) {
                 $this->logger->notice('VectorStoreAutoUpdate skipped for config '.$configId.': no active premium license.');
 
@@ -129,58 +159,100 @@ class VectorStoreAutoUpdateService
                 throw new \RuntimeException('MSC.vsau_err_no_vector_store_sync');
             }
 
-            $oldFileId = (string) ($config['auto_update_file_id'] ?? '');
-            $rawMode = (bool) ($config['auto_update_raw_mode'] ?? false);
-            // Raw mode uploads the extracted page text as-is — no model is involved,
-            // so record an empty model (the log shows "–" instead of a model name).
-            $model = $rawMode ? '' : ((string) ($config['auto_update_model'] ?? '') ?: 'gpt-4o-mini');
-            $maxContent = max(1000, min(500000, (int) ($config['auto_update_max_content'] ?? 100000)));
+            $mode = $this->resolveMode($config);
+            $model = self::MODE_LLM_POLISH === $mode ? ((string) ($config['auto_update_model'] ?? '') ?: 'gpt-4o-mini') : '';
             $promptTpl = $config['auto_update_prompt_template'] ?? null ?: null;
+            $legacyFileId = (string) ($config['auto_update_file_id'] ?? '');
 
             $this->markRunning($configId);
             $this->spawnCrawl();
 
-            $rows = $this->readSearchIndex($configId);
+            // Read EVERY in-scope page - no character or page limit, ever.
+            $rows = $this->readAllPages($configId);
             if (0 === \count($rows)) {
                 throw new \RuntimeException('MSC.vsau_err_no_indexed_pages');
             }
 
-            $input = $this->buildLlmInput($rows, $maxContent);
+            // Safe boilerplate removal: only strips text repeated across many pages.
+            $texts = [];
+            foreach ($rows as $i => $row) {
+                $texts[$i] = (string) $row['text'];
+            }
+            $clean = $this->boilerplate->clean($texts);
 
-            if ($rawMode) {
-                // Power-user mode: skip the LLM optimisation and push the cleaned-up
-                // page text straight to the vector store. No tokens spent.
-                $documentText = $input;
-                $tokensIn = 0;
-                $tokensOut = 0;
-            } else {
-                $result = $this->generateDocument($apiKey, $model, $input, $promptTpl);
-                $documentText = $result['text'];
-                $tokensIn = $result['tokens_in'];
-                $tokensOut = $result['tokens_out'];
+            // Aggregate by page id: a page can be indexed under several URLs (e.g. paginated
+            // readers), producing multiple tl_search rows. We want exactly one document per
+            // page, so the cleaned text of all its rows is concatenated.
+            $byPage = [];
+            foreach ($rows as $i => $row) {
+                $content = trim($clean['texts'][$i] ?? '');
+                if ('' === $content) {
+                    // Pure chrome collapses to nothing after de-dup - carries no information.
+                    continue;
+                }
+
+                $pageId = (int) $row['page_id'];
+                if (!isset($byPage[$pageId])) {
+                    $byPage[$pageId] = [
+                        'page_id' => $pageId,
+                        'url' => (string) $row['url'],
+                        'title' => (string) $row['title'],
+                        'language' => (string) $row['language'],
+                        'contents' => [],
+                        'checksums' => [],
+                    ];
+                }
+
+                $byPage[$pageId]['contents'][] = $content;
+                $byPage[$pageId]['checksums'][] = (string) ($row['checksum'] ?? '');
             }
 
-            if ('' === trim($documentText)) {
-                throw new \RuntimeException(
-                    $rawMode ? 'MSC.vsau_err_empty_document_raw' : 'MSC.vsau_err_empty_document_llm',
-                );
+            $tokensIn = 0;
+            $tokensOut = 0;
+            $pages = [];
+
+            foreach ($byPage as $page) {
+                $content = implode("\n\n", $page['contents']);
+
+                if (self::MODE_LLM_POLISH === $mode) {
+                    $polished = $this->polishPage($apiKey, $model, $page['title'], $page['url'], $content, $promptTpl);
+                    $tokensIn += $polished['tokens_in'];
+                    $tokensOut += $polished['tokens_out'];
+                    // Never drop a page: fall back to the faithful text if the LLM returns nothing.
+                    $content = '' !== trim($polished['text']) ? $polished['text'] : $content;
+                }
+
+                $pages[] = [
+                    'page_id' => $page['page_id'],
+                    'url' => $page['url'],
+                    'title' => $page['title'],
+                    'language' => $page['language'],
+                    'content' => $content,
+                    // Hash of the contributing row checksums - changes if any row changes.
+                    'search_checksum' => substr(md5(implode(',', $page['checksums'])), 0, 32),
+                ];
             }
 
-            $this->deleteOldFile($apiKey, $vectorStoreId, $oldFileId);
-            $newFileId = $this->uploadFile($apiKey, $documentText);
-            $this->attachToVectorStore($apiKey, $vectorStoreId, $newFileId);
+            if (0 === \count($pages)) {
+                throw new \RuntimeException('MSC.vsau_err_empty_document_raw');
+            }
+
+            $syncStats = $this->fileSync->sync($apiKey, $vectorStoreId, $configId, $pages, $legacyFileId);
+
+            $status = $syncStats['files_failed'] > 0 ? 'partial' : 'success';
 
             $this->persistResult(
                 $configId,
-                'success',
-                $newFileId,
+                $status,
+                '', // per-page mode has no single file id
                 [
-                    'pages' => \count($rows),
+                    'pages' => \count($pages),
                     'tokens_in' => $tokensIn,
                     'tokens_out' => $tokensOut,
                     'duration' => time() - $start,
                     'model' => $model,
-                    'document' => $documentText,
+                    'document' => $this->buildManifest($pages, $syncStats),
+                    'sync' => $syncStats,
                 ],
                 '',
                 $triggerSource,
@@ -190,7 +262,7 @@ class VectorStoreAutoUpdateService
             $this->persistResult(
                 $configId,
                 'error',
-                $oldFileId,
+                '',
                 [
                     'duration' => time() - $start,
                     'model' => $model,
@@ -199,6 +271,27 @@ class VectorStoreAutoUpdateService
                 $triggerSource,
             );
         }
+    }
+
+    /**
+     * Resolve the sync mode, defaulting to faithful (no LLM). Falls back to the legacy
+     * auto_update_raw_mode flag for configs saved before auto_update_mode existed:
+     * raw_mode = 1 -> faithful, raw_mode = 0 (old LLM default) -> llm_polish.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function resolveMode(array $config): string
+    {
+        $mode = (string) ($config['auto_update_mode'] ?? '');
+        if (\in_array($mode, [self::MODE_FAITHFUL, self::MODE_LLM_POLISH], true)) {
+            return $mode;
+        }
+
+        if (\array_key_exists('auto_update_raw_mode', $config) && null !== $config['auto_update_raw_mode']) {
+            return (bool) $config['auto_update_raw_mode'] ? self::MODE_FAITHFUL : self::MODE_LLM_POLISH;
+        }
+
+        return self::MODE_FAITHFUL;
     }
 
     private function markRunning(int $configId): void
@@ -232,7 +325,7 @@ class VectorStoreAutoUpdateService
      *
      * @return array<int, array<string, mixed>>
      */
-    private function readSearchIndex(int $configId): array
+    private function readAllPages(int $configId): array
     {
         $config = $this->connection->fetchAssociative(
             'SELECT auto_update_site_root FROM tl_openai_config WHERE id = ?',
@@ -241,7 +334,7 @@ class VectorStoreAutoUpdateService
         $selectedPageIds = self::parseConfiguredPageIds($config['auto_update_site_root'] ?? null);
 
         if ([] !== $selectedPageIds) {
-            // Exact selection — only the pages the admin picked, no subpages implied.
+            // Exact selection - only the pages the admin picked, no subpages implied.
             $pageIds = [];
 
             foreach ($selectedPageIds as $selectedPageId) {
@@ -257,7 +350,7 @@ class VectorStoreAutoUpdateService
                 $pageIds[] = (int) $selectedPageId;
             }
         } else {
-            // Empty selection — fall back to the whole website (single site root + subtree).
+            // Empty selection - fall back to the whole website (single site root + subtree).
             $roots = $this->connection->fetchAllAssociative(
                 "SELECT id FROM tl_page WHERE type = 'root' AND dns != ''",
             );
@@ -278,7 +371,7 @@ class VectorStoreAutoUpdateService
         }
 
         return $this->connection->fetchAllAssociative(
-            'SELECT s.url, s.title, s.text, s.language
+            'SELECT s.pid AS page_id, s.url, s.title, s.text, s.language, s.checksum
              FROM tl_search s
              WHERE s.pid IN (?)
              ORDER BY s.pid, s.url',
@@ -371,50 +464,26 @@ class VectorStoreAutoUpdateService
     }
 
     /**
-     * @param array<int, array<string, mixed>> $rows
-     */
-    private function buildLlmInput(array $rows, int $maxChars): string
-    {
-        $parts = [];
-        $total = 0;
-
-        foreach ($rows as $row) {
-            $block = \sprintf("## %s\nURL: %s\n\n%s", (string) $row['title'], (string) $row['url'], (string) $row['text']);
-            $len = mb_strlen($block);
-
-            if ($total + $len > $maxChars) {
-                break; // truncate at a page boundary, not mid-text
-            }
-
-            $parts[] = $block;
-            $total += $len;
-        }
-
-        return implode("\n\n---\n\n", $parts);
-    }
-
-    /**
+     * Premium "LLM polish" mode: rewrite ONE page into a clean, dense knowledge-base
+     * document. Because the model only ever sees a single page, it cannot drop or confuse
+     * content from other pages - the fidelity problem of the old bulk call is gone.
+     *
      * @return array{text: string, tokens_in: int, tokens_out: int}
      */
-    private function generateDocument(string $apiKey, string $model, string $pageContent, string|null $promptTemplate): array
+    private function polishPage(string $apiKey, string $model, string $title, string $url, string $content, string|null $promptTemplate): array
     {
         $systemPrompt = $promptTemplate ?? VectorStoreDocumentPrompt::DEFAULT_TEMPLATE;
+        $pageContent = \sprintf("## %s\nURL: %s\n\n%s", $title, $url, $content);
 
-        // A low temperature keeps the factual summary deterministic. Reasoning models
-        // (o-series, gpt-5 reasoning, …) reject a custom temperature, however. Rather
-        // than maintain a model allow-list, send 0.3 and — if the API rejects it —
-        // retry once without the parameter, so any current or future model still works.
+        // A low temperature keeps the rewrite deterministic. Reasoning models (o-series,
+        // gpt-5 reasoning, ...) reject a custom temperature, however. Rather than maintain a
+        // model allow-list, send 0.3 and - if the API rejects it - retry once without the
+        // parameter, so any current or future model still works.
         $payload = [
             'model' => $model,
             'messages' => [
-                [
-                    'role' => 'system',
-                    'content' => $systemPrompt,
-                ],
-                [
-                    'role' => 'user',
-                    'content' => $pageContent,
-                ],
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user', 'content' => $pageContent],
             ],
             'temperature' => 0.3,
         ];
@@ -427,9 +496,10 @@ class VectorStoreAutoUpdateService
         }
 
         if ($status < 200 || $status >= 300) {
-            $apiMessage = (string) ($data['error']['message'] ?? 'unknown error');
+            // Non-fatal: the caller falls back to the faithful text so the page is never lost.
+            $this->logger->warning('LLM polish failed ('.$status.') for '.$url.': '.(string) ($data['error']['message'] ?? 'unknown'));
 
-            throw new \RuntimeException('MSC.vsau_err_openai_chat|'.$status.'|'.$apiMessage);
+            return ['text' => '', 'tokens_in' => 0, 'tokens_out' => 0];
         }
 
         return [
@@ -488,115 +558,57 @@ class VectorStoreAutoUpdateService
             );
     }
 
-    private function deleteOldFile(string $apiKey, string $vectorStoreId, string $oldFileId): void
+    /**
+     * Build the downloadable inspection document: a summary header plus every page's
+     * uploaded content concatenated. This is NOT what gets uploaded (each page is its own
+     * vector-store file now) - it exists only so operators can review what was indexed.
+     *
+     * @param list<array{page_id: int, url: string, title: string, content: string}> $pages
+     * @param array{added: int, updated: int, removed: int, unchanged: int, files_uploaded: int, files_failed: int, bytes: int} $sync
+     */
+    private function buildManifest(array $pages, array $sync): string
     {
-        if ('' === $oldFileId) {
-            return;
-        }
+        $lines = [
+            '# Vector store sync manifest',
+            '',
+            \sprintf(
+                '- Pages indexed: %d | added: %d, updated: %d, unchanged: %d, removed: %d',
+                \count($pages),
+                $sync['added'],
+                $sync['updated'],
+                $sync['unchanged'],
+                $sync['removed'],
+            ),
+            \sprintf('- Files uploaded: %d, failed: %d, bytes: %d', $sync['files_uploaded'], $sync['files_failed'], $sync['bytes']),
+            '',
+            '---',
+            '',
+        ];
 
-        // Remove from the vector store first.
-        try {
-            $this->http->request(
-                'DELETE',
-                self::OPENAI_BASE."/vector_stores/{$vectorStoreId}/files/{$oldFileId}",
-                [
-                    'headers' => [
-                        'Authorization' => 'Bearer '.$apiKey,
-                        'OpenAI-Beta' => 'assistants=v2',
-                    ],
-                    'timeout' => 30,
-                ],
-            )->getStatusCode();
-        } catch (\Throwable $e) {
-            $this->logger->warning('Could not detach old file from vector store: '.$e->getMessage());
-        }
+        $manifest = implode("\n", $lines);
 
-        // Then delete the file itself.
-        try {
-            $this->http->request(
-                'DELETE',
-                self::OPENAI_BASE."/files/{$oldFileId}",
-                [
-                    'headers' => [
-                        'Authorization' => 'Bearer '.$apiKey,
-                    ],
-                    'timeout' => 30,
-                ],
-            )->getStatusCode();
-        } catch (\Throwable $e) {
-            $this->logger->warning('Could not delete old file from OpenAI Files: '.$e->getMessage());
-        }
-    }
+        // Hard cap so a large site cannot overflow the MEDIUMTEXT column (~16 MB) and abort
+        // the log insert. This document is only an inspection copy; the full content lives in
+        // the vector store regardless.
+        $maxChars = 8_000_000;
 
-    private function uploadFile(string $apiKey, string $markdownContent): string
-    {
-        // Symfony HttpClient multipart needs a real, READABLE stream — write to a temp
-        // file and let the client read it back. Mode 'x+b' = read/write + exclusive
-        // create (a local attacker cannot pre-create / symlink the path); the handle must
-        // be readable, otherwise the multipart body reader fails with "Bad file
-        // descriptor". The .md extension is kept so OpenAI detects the file type.
-        $tmpPath = sys_get_temp_dir().'/contao_vs_autoupdate_'.bin2hex(random_bytes(16)).'.md';
+        foreach ($pages as $page) {
+            $title = '' !== trim($page['title']) ? $page['title'] : $page['url'];
+            $block = '## '.$title."\nURL: ".$page['url']."\n\n".$page['content']."\n\n---\n\n";
 
-        $handle = @fopen($tmpPath, 'x+b');
-        if (false === $handle) {
-            throw new \RuntimeException('MSC.vsau_err_temp_file');
-        }
-
-        try {
-            fwrite($handle, $markdownContent);
-            rewind($handle);
-
-            $response = $this->http->request(
-                'POST',
-                self::OPENAI_BASE.'/files',
-                [
-                    'headers' => [
-                        'Authorization' => 'Bearer '.$apiKey,
-                    ],
-                    'body' => [
-                        'purpose' => 'assistants',
-                        'file' => $handle,
-                    ],
-                    'timeout' => 120,
-                ],
-            );
-
-            $id = (string) ($response->toArray()['id'] ?? '');
-            if ('' === $id) {
-                throw new \RuntimeException('MSC.vsau_err_upload_no_id');
+            if (mb_strlen($manifest) + mb_strlen($block) > $maxChars) {
+                $manifest .= "\n_(Manifest truncated for storage; full content is in the vector store.)_\n";
+                break;
             }
 
-            return $id;
-        } finally {
-            if (\is_resource($handle)) {
-                fclose($handle);
-            }
-
-            @unlink($tmpPath);
+            $manifest .= $block;
         }
-    }
 
-    private function attachToVectorStore(string $apiKey, string $vectorStoreId, string $fileId): void
-    {
-        $this->http->request(
-            'POST',
-            self::OPENAI_BASE."/vector_stores/{$vectorStoreId}/files",
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer '.$apiKey,
-                    'Content-Type' => 'application/json',
-                    'OpenAI-Beta' => 'assistants=v2',
-                ],
-                'json' => [
-                    'file_id' => $fileId,
-                ],
-                'timeout' => 60,
-            ],
-        )->getStatusCode();
+        return $manifest;
     }
 
     /**
-     * @param array{pages?: int, tokens_in?: int, tokens_out?: int, duration?: int, model?: string, document?: string} $stats
+     * @param array{pages?: int, tokens_in?: int, tokens_out?: int, duration?: int, model?: string, document?: string, sync?: array{added: int, updated: int, removed: int, unchanged: int, files_uploaded: int, files_failed: int, bytes: int}} $stats
      */
     private function persistResult(int $configId, string $status, string $fileId, array $stats, string $message = '', string $triggerSource = self::SOURCE_CLI): void
     {
@@ -608,6 +620,7 @@ class VectorStoreAutoUpdateService
         );
 
         $document = (string) ($stats['document'] ?? '');
+        $sync = $stats['sync'] ?? ['added' => 0, 'updated' => 0, 'removed' => 0, 'unchanged' => 0, 'files_uploaded' => 0, 'files_failed' => 0, 'bytes' => 0];
 
         $this->connection->insert('tl_openai_sync_log', [
             'pid' => $configId,
@@ -621,9 +634,16 @@ class VectorStoreAutoUpdateService
             'tokens_out' => $stats['tokens_out'] ?? 0,
             'file_id' => $fileId,
             'duration' => $stats['duration'] ?? 0,
-            // The generated markdown, kept so operators can download/inspect exactly
-            // what was pushed. OpenAI blocks downloading purpose=assistants files, so
-            // this local copy is the only way to see the document content.
+            'pages_added' => $sync['added'],
+            'pages_updated' => $sync['updated'],
+            'pages_removed' => $sync['removed'],
+            'pages_unchanged' => $sync['unchanged'],
+            'files_uploaded' => $sync['files_uploaded'],
+            'files_failed' => $sync['files_failed'],
+            'bytes' => $sync['bytes'],
+            // The inspection manifest, kept so operators can download/review exactly what
+            // was indexed. OpenAI blocks downloading purpose=assistants files, so this
+            // local copy is the only way to see the indexed content.
             'document' => '' !== $document ? $document : null,
             'message' => '' !== $message ? $message : null,
         ]);

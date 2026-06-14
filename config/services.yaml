@@ -173,8 +173,15 @@ services:
             $http: '@http_client'
             $encryption: '@JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService'
 
+    # VectorStoreFileSync — per-page upload/reconcile against the OpenAI vector store
+    JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreFileSync:
+        arguments:
+            $connection: '@doctrine.dbal.default_connection'
+            $http: '@http_client'
+            $logger: '@monolog.logger.contao'
+
     # VectorStoreAutoUpdateService — orchestration; ProcessUtil + EncryptionService +
-    # LicenseValidationService autowire by type
+    # LicenseValidationService + BoilerplateFilter + VectorStoreFileSync autowire by type
     JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService:
         arguments:
             $connection: '@doctrine.dbal.default_connection'

@@ -143,6 +143,34 @@
                 <source>Success</source>
                 <target>Erfolgreich</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_sync_partial">
+                <source>Partial</source>
+                <target>Teilweise</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_not_used">
+                <source>Not used (manual mode)</source>
+                <target>Nicht verwendet (manueller Modus)</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_not_used_hint">
+                <source>This configuration syncs only when you click “Run sync now”. No server cron is required.</source>
+                <target>Diese Konfiguration synchronisiert nur, wenn Sie „Jetzt synchronisieren“ klicken. Es ist kein Server-Cron erforderlich.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_manual">
+                <source>Manual only</source>
+                <target>Nur manuell</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_manual_hint">
+                <source>No automatic schedule — start each sync with the button below.</source>
+                <target>Kein automatischer Zeitplan – starten Sie jede Synchronisierung über die Schaltfläche unten.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_no_proc_open_heading">
+                <source>Manual sync button unavailable on this server</source>
+                <target>Schaltfläche „Jetzt synchronisieren“ auf diesem Server nicht verfügbar</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_no_proc_open_warning">
+                <source>This server disables PHP process spawning (proc_open), so the “Run sync now” button cannot start the sync. Run it from the command line instead (e.g. via SSH or a one-off cron task):</source>
+                <target>Auf diesem Server ist das Starten von PHP-Prozessen (proc_open) deaktiviert, daher kann die Schaltfläche „Jetzt synchronisieren“ die Synchronisierung nicht starten. Führen Sie sie stattdessen über die Kommandozeile aus (z. B. per SSH oder als einmalige Cron-Aufgabe):</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_sync_error">
                 <source>Error</source>
                 <target>Fehler</target>
@@ -314,6 +342,10 @@
             <trans-unit id="MSC.vsau_err_sync_already_running">
                 <source>A sync is already queued or running for this configuration.</source>
                 <target>Für diese Konfiguration läuft bereits eine Synchronisierung oder ist eine eingeplant.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_dispatch_failed">
+                <source>Could not start the sync process. Your host may disable PHP process spawning (proc_open). Run it from the command line instead: vendor/bin/contao-console contao:openai-vector-sync &lt;id&gt;</source>
+                <target>Der Synchronisierungs-Prozess konnte nicht gestartet werden. Möglicherweise ist das Starten von PHP-Prozessen (proc_open) bei Ihrem Hoster deaktiviert. Führen Sie ihn stattdessen über die Kommandozeile aus: vendor/bin/contao-console contao:openai-vector-sync &lt;id&gt;</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_config_not_found">
                 <source>OpenAI configuration %id% not found.</source>

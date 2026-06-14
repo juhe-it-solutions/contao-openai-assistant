@@ -227,6 +227,22 @@
                 <source>Automatic sync requires a valid premium license. Use “Check key” in the Premium License section.</source>
                 <target>Automatic sync requires a valid premium license. Use “Check key” in the Premium License section.</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_trigger.0">
+                <source>Synchronization trigger</source>
+                <target>Synchronization trigger</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_trigger.1">
+                <source><![CDATA[<strong>Scheduled (default):</strong> the sync runs automatically on the schedule below. This requires a working server cron (<code>contao:cron</code>).<br><br><strong>Manual only:</strong> the sync never runs automatically and needs no server cron at all - you start it yourself with the "Run sync now" button on the AI Tools -> Vector Store Sync page. Ideal for small sites that change rarely.]]></source>
+                <target><![CDATA[<strong>Scheduled (default):</strong> the sync runs automatically on the schedule below. This requires a working server cron (<code>contao:cron</code>).<br><br><strong>Manual only:</strong> the sync never runs automatically and needs no server cron at all - you start it yourself with the "Run sync now" button on the AI Tools -> Vector Store Sync page. Ideal for small sites that change rarely.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_trigger_ref.scheduled">
+                <source>Scheduled (automatic, needs server cron)</source>
+                <target>Scheduled (automatic, needs server cron)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_trigger_ref.manual">
+                <source>Manual only (no cron, run via button)</source>
+                <target>Manual only (no cron, run via button)</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_schedule_hour.0">
                 <source>Hour</source>
                 <target>Hour</target>
@@ -266,6 +282,22 @@
             <trans-unit id="tl_openai_config.auto_update_raw_mode.1">
                 <source><![CDATA[<strong>What this does.</strong> By default (unchecked) the crawled page text is first rewritten by an AI model into one clean, compact knowledge document: navigation, menus, footers and cookie notices are stripped out, repeated content is merged, and everything is restructured so the chatbot can find answers reliably. Facts such as names, addresses, phone numbers, prices and dates are kept unchanged. This usually gives clearly better chatbot answers and costs only a fraction of a cent per synchronisation.<br><br><strong>If you tick this box</strong> the AI step is skipped and the raw extracted page text is uploaded to the vector store unchanged. <strong>Advantages:</strong> no AI cost and your text is never altered. <strong>Disadvantages:</strong> noticeably weaker chatbot answers, because navigation and repeated boilerplate are stored alongside the real content. In this mode the "Generation model" and "Instructions for the knowledge document" settings below are ignored. Leave this unchecked unless you know exactly why you want the raw text.]]></source>
                 <target><![CDATA[<strong>What this does.</strong> By default (unchecked) the crawled page text is first rewritten by an AI model into one clean, compact knowledge document: navigation, menus, footers and cookie notices are stripped out, repeated content is merged, and everything is restructured so the chatbot can find answers reliably. Facts such as names, addresses, phone numbers, prices and dates are kept unchanged. This usually gives clearly better chatbot answers and costs only a fraction of a cent per synchronisation.<br><br><strong>If you tick this box</strong> the AI step is skipped and the raw extracted page text is uploaded to the vector store unchanged. <strong>Advantages:</strong> no AI cost and your text is never altered. <strong>Disadvantages:</strong> noticeably weaker chatbot answers, because navigation and repeated boilerplate are stored alongside the real content. In this mode the "Generation model" and "Instructions for the knowledge document" settings below are ignored. Leave this unchecked unless you know exactly why you want the raw text.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_mode.0">
+                <source>Indexing mode</source>
+                <target>Indexing mode</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_mode.1">
+                <source><![CDATA[<strong>Faithful (recommended).</strong> Every selected page is uploaded as its own document with no character or page limit. Navigation, menus and footers that repeat across pages are removed automatically, but your real content is never altered or shortened. No AI cost.<br><br><strong>AI polish (premium).</strong> Each page is additionally rewritten by an AI model into a denser knowledge document before upload. Because the model only ever sees one page at a time, it can never drop or confuse content from other pages. This can improve answers on messy sources but costs tokens per page; the "Generation model" and "Instructions" settings below apply only in this mode.]]></source>
+                <target><![CDATA[<strong>Faithful (recommended).</strong> Every selected page is uploaded as its own document with no character or page limit. Navigation, menus and footers that repeat across pages are removed automatically, but your real content is never altered or shortened. No AI cost.<br><br><strong>AI polish (premium).</strong> Each page is additionally rewritten by an AI model into a denser knowledge document before upload. Because the model only ever sees one page at a time, it can never drop or confuse content from other pages. This can improve answers on messy sources but costs tokens per page; the "Generation model" and "Instructions" settings below apply only in this mode.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_mode_ref.faithful">
+                <source>Faithful — upload full page content (recommended)</source>
+                <target>Faithful — upload full page content (recommended)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_mode_ref.llm_polish">
+                <source>AI polish — rewrite each page with an AI model (premium)</source>
+                <target>AI polish — rewrite each page with an AI model (premium)</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_model.0">
                 <source>Generation model</source>

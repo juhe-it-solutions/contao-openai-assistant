@@ -143,6 +143,34 @@
                 <source>Success</source>
                 <target>Success</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_sync_partial">
+                <source>Partial</source>
+                <target>Partial</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_not_used">
+                <source>Not used (manual mode)</source>
+                <target>Not used (manual mode)</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_not_used_hint">
+                <source>This configuration syncs only when you click “Run sync now”. No server cron is required.</source>
+                <target>This configuration syncs only when you click “Run sync now”. No server cron is required.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_manual">
+                <source>Manual only</source>
+                <target>Manual only</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_manual_hint">
+                <source>No automatic schedule — start each sync with the button below.</source>
+                <target>No automatic schedule — start each sync with the button below.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_no_proc_open_heading">
+                <source>Manual sync button unavailable on this server</source>
+                <target>Manual sync button unavailable on this server</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_no_proc_open_warning">
+                <source>This server disables PHP process spawning (proc_open), so the “Run sync now” button cannot start the sync. Run it from the command line instead (e.g. via SSH or a one-off cron task):</source>
+                <target>This server disables PHP process spawning (proc_open), so the “Run sync now” button cannot start the sync. Run it from the command line instead (e.g. via SSH or a one-off cron task):</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_sync_error">
                 <source>Error</source>
                 <target>Error</target>
@@ -314,6 +342,10 @@
             <trans-unit id="MSC.vsau_err_sync_already_running">
                 <source>A sync is already queued or running for this configuration.</source>
                 <target>A sync is already queued or running for this configuration.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_dispatch_failed">
+                <source>Could not start the sync process. Your host may disable PHP process spawning (proc_open). Run it from the command line instead: vendor/bin/contao-console contao:openai-vector-sync &lt;id&gt;</source>
+                <target>Could not start the sync process. Your host may disable PHP process spawning (proc_open). Run it from the command line instead: vendor/bin/contao-console contao:openai-vector-sync &lt;id&gt;</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_config_not_found">
                 <source>OpenAI configuration %id% not found.</source>

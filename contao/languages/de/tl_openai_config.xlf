@@ -227,6 +227,22 @@
                 <source>Automatic sync requires a valid premium license. Use “Check key” in the Premium License section.</source>
                 <target>Automatische Synchronisierung erfordert eine gültige Premium-Lizenz. Nutzen Sie „Schlüssel prüfen“ im Bereich Premium-Lizenz.</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_trigger.0">
+                <source>Synchronization trigger</source>
+                <target>Synchronisierungs-Auslöser</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_trigger.1">
+                <source><![CDATA[<strong>Scheduled (default):</strong> the sync runs automatically on the schedule below.]]></source>
+                <target><![CDATA[<strong>Zeitgesteuert (Standard):</strong> Die Synchronisierung läuft automatisch nach dem unten festgelegten Zeitplan. Dies erfordert einen funktionierenden Server-Cron (<code>contao:cron</code>).<br><br><strong>Nur manuell:</strong> Die Synchronisierung läuft nie automatisch und benötigt überhaupt keinen Server-Cron - Sie starten sie selbst über die Schaltfläche „Jetzt synchronisieren“ auf der Seite KI-Werkzeuge -> Vector-Store-Synchronisierung. Ideal für kleine Websites, die sich selten ändern.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_trigger_ref.scheduled">
+                <source>Scheduled (automatic, needs server cron)</source>
+                <target>Zeitgesteuert (automatisch, benötigt Server-Cron)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_trigger_ref.manual">
+                <source>Manual only (no cron, run via button)</source>
+                <target>Nur manuell (kein Cron, Start per Schaltfläche)</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_schedule_hour.0">
                 <source>Hour</source>
                 <target>Stunde</target>
@@ -266,6 +282,22 @@
             <trans-unit id="tl_openai_config.auto_update_raw_mode.1">
                 <source><![CDATA[<strong>What this does.</strong> By default (unchecked) the crawled page text is first rewritten by an AI model into one clean, compact knowledge document: navigation, menus, footers and cookie notices are stripped out, repeated content is merged, and everything is restructured so the chatbot can find answers reliably. Facts such as names, addresses, phone numbers, prices and dates are kept unchanged. This usually gives clearly better chatbot answers and costs only a fraction of a cent per synchronisation.<br><br><strong>If you tick this box</strong> the AI step is skipped and the raw extracted page text is uploaded to the vector store unchanged. <strong>Advantages:</strong> no AI cost and your text is never altered. <strong>Disadvantages:</strong> noticeably weaker chatbot answers, because navigation and repeated boilerplate are stored alongside the real content. In this mode the "Generation model" and "Instructions for the knowledge document" settings below are ignored. Leave this unchecked unless you know exactly why you want the raw text.]]></source>
                 <target><![CDATA[<strong>Was das bewirkt.</strong> Standardmäßig (Haken nicht gesetzt) wird der gecrawlte Seitentext zunächst von einem KI-Modell zu einem sauberen, kompakten Wissensdokument umgeschrieben: Navigation, Menüs, Fußzeilen und Cookie-Hinweise werden entfernt, wiederholte Inhalte zusammengefasst und alles so umstrukturiert, dass der Chatbot Antworten zuverlässig findet. Fakten wie Namen, Adressen, Telefonnummern, Preise und Daten bleiben unverändert. Das liefert in der Regel deutlich bessere Chatbot-Antworten und kostet pro Synchronisierung nur einen Bruchteil eines Cents.<br><br><strong>Wenn Sie diesen Haken setzen</strong>, wird der KI-Schritt übersprungen und der reine, extrahierte Seitentext unverändert in den Vector Store geladen. <strong>Vorteile:</strong> keine KI-Kosten und Ihr Text wird nie verändert. <strong>Nachteile:</strong> spürbar schwächere Chatbot-Antworten, da Navigations- und Wiederholungstext mitgespeichert wird. In diesem Modus werden die Einstellungen „Generierungsmodell“ und „Anweisungen für die Wissensdatei“ weiter unten ignoriert. Lassen Sie diesen Haken deaktiviert, sofern Sie nicht genau wissen, warum Sie den Rohtext benötigen.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_mode.0">
+                <source>Indexing mode</source>
+                <target>Indexierungsmodus</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_mode.1">
+                <source><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen – ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung (Premium).</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite; die Einstellungen „Generierungsmodell“ und „Anweisungen“ gelten nur in diesem Modus.]]></source>
+                <target><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen – ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung (Premium).</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite; die Einstellungen „Generierungsmodell“ und „Anweisungen“ gelten nur in diesem Modus.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_mode_ref.faithful">
+                <source>Faithful — upload full page content (recommended)</source>
+                <target>Originalgetreu – vollständigen Seiteninhalt hochladen (empfohlen)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_mode_ref.llm_polish">
+                <source>AI polish — rewrite each page with an AI model (premium)</source>
+                <target>KI-Aufbereitung – jede Seite mit einem KI-Modell umschreiben (Premium)</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_model.0">
                 <source>Generation model</source>

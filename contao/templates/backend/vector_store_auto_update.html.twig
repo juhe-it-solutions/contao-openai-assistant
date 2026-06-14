@@ -233,13 +233,13 @@
                             {# Heartbeat healthy → automatic sync is genuinely running; say so
                                instead of implying a manual action is still pending. Otherwise
                                keep the "ready, can be run" wording (only manual works without cron). #}
-                            <li><span class="vsau-mark ok">✓</span><span>{{ (config.cron_status == 'healthy' ? 'MSC.vsau_setup_ready_auto' : 'MSC.vsau_setup_ready')|trans({}, 'contao_default') }}</span></li>
+                            <li><span class="vsau-mark ok">✓</span><span>{{ (config.manual_mode ? 'MSC.vsau_setup_ready' : (config.cron_status == 'healthy' ? 'MSC.vsau_setup_ready_auto' : 'MSC.vsau_setup_ready'))|trans({}, 'contao_default') }}</span></li>
                         </ul>
                     </div>
                 {% endif %}
 
                 {# Heartbeat (server cron) not running yet - needed for automatic runs only, not manual #}
-                {% if config.cron_status == 'never' %}
+                {% if config.cron_status == 'never' and not config.manual_mode %}
                     <div class="vsau-setup notice">
                         <h3>{{ 'MSC.vsau_cron_setup_heading'|trans({}, 'contao_default') }} <span class="vsau-badge yellow">{{ 'MSC.vsau_cron_action_required'|trans({}, 'contao_default') }}</span></h3>
                         <ul>
@@ -271,7 +271,10 @@
                         <div class="vsau-stat-label">{{ 'MSC.vsau_cron_status'|trans({}, 'contao_default') }}</div>
                         <div class="vsau-stat-hint">{{ 'MSC.vsau_cron_status_hint'|trans({}, 'contao_default') }}</div>
                         <div class="vsau-stat-value">
-                            {% if config.cron_status == 'never' %}
+                            {% if config.manual_mode %}
+                                <span class="vsau-badge grey">{{ 'MSC.vsau_cron_not_used'|trans({}, 'contao_default') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_cron_not_used_hint'|trans({}, 'contao_default') }}</span>
+                            {% elseif config.cron_status == 'never' %}
                                 <span class="vsau-badge red">{{ 'MSC.vsau_cron_never'|trans({}, 'contao_default') }}</span>
                             {% elseif config.cron_status == 'healthy' %}
                                 <span class="vsau-badge green">{{ 'MSC.vsau_cron_healthy'|trans({}, 'contao_default') }}</span>
@@ -290,6 +293,8 @@
                             {% set st = config.auto_update_last_status %}
                             {% if st == 'success' %}
                                 <span class="vsau-badge green">{{ 'MSC.vsau_sync_success'|trans({}, 'contao_default') }}</span>
+                            {% elseif st == 'partial' %}
+                                <span class="vsau-badge amber">{{ 'MSC.vsau_sync_partial'|trans({}, 'contao_default') }}</span>
                             {% elseif st == 'error' %}
                                 <span class="vsau-badge red">{{ 'MSC.vsau_sync_error'|trans({}, 'contao_default') }}</span>
                             {% elseif st == 'running' %}
@@ -313,17 +318,48 @@
                         <div class="vsau-stat-label">{{ 'MSC.vsau_schedule'|trans({}, 'contao_default') }}</div>
                         <div class="vsau-stat-hint">{{ 'MSC.vsau_schedule_hint'|trans({}, 'contao_default') }}</div>
                         <div class="vsau-stat-value">
-                            {{ config.schedule_label }}
-                            {% if config.schedule_label != config.auto_update_schedule %}
-                                <span class="vsau-cron-mono">({{ config.auto_update_schedule }})</span>
-                            {% endif %}
-                            {% if config.next_run %}
-                                <span class="vsau-sub">{{ 'MSC.vsau_next_run'|trans({}, 'contao_default') }} {{ config.next_run|date('d.m.Y H:i') }}</span>
+                            {% if config.manual_mode %}
+                                <span class="vsau-badge grey">{{ 'MSC.vsau_schedule_manual'|trans({}, 'contao_default') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_schedule_manual_hint'|trans({}, 'contao_default') }}</span>
+                            {% else %}
+                                {{ config.schedule_label }}
+                                {% if config.schedule_label != config.auto_update_schedule %}
+                                    <span class="vsau-cron-mono">({{ config.auto_update_schedule }})</span>
+                                {% endif %}
+                                {% if config.next_run %}
+                                    <span class="vsau-sub">{{ 'MSC.vsau_next_run'|trans({}, 'contao_default') }} {{ config.next_run|date('d.m.Y H:i') }}</span>
+                                {% endif %}
                             {% endif %}
                         </div>
                     </div>
 
                 </div>
+
+                {# proc_open disabled - the "Run sync now" button cannot spawn the CLI process.
+                   Warn up front and point to the command-line fallback. #}
+                {% if not process_spawning_available %}
+                    <div class="vsau-setup notice">
+                        <h3>{{ 'MSC.vsau_no_proc_open_heading'|trans({}, 'contao_default') }} <span class="vsau-badge yellow">{{ 'MSC.vsau_cron_action_required'|trans({}, 'contao_default') }}</span></h3>
+                        <ul>
+                            <li>
+                                <span class="vsau-mark warn">!</span>
+                                <span>
+                                    {{ 'MSC.vsau_no_proc_open_warning'|trans({}, 'contao_default') }}
+                                    <span class="vsau-cron-cmd">
+                                        <code id="vsau-sync-cmd-{{ config.id }}">[php] [project]/vendor/bin/contao-console contao:openai-vector-sync {{ config.id }}</code>
+                                        <button type="button" class="vsau-copy" data-copy-target="vsau-sync-cmd-{{ config.id }}"
+                                                data-label-copy="{{ 'MSC.vsau_copy'|trans({}, 'contao_default') }}"
+                                                data-label-copied="{{ 'MSC.vsau_copied'|trans({}, 'contao_default') }}"
+                                                title="{{ 'MSC.vsau_copy'|trans({}, 'contao_default') }}">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4a2 2 0 0 0-2 2v12h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg>
+                                            <span class="vsau-copy-text">{{ 'MSC.vsau_copy'|trans({}, 'contao_default') }}</span>
+                                        </button>
+                                    </span>
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                {% endif %}
 
                 {# Manual trigger (needs an active license) #}
                 <div class="vsau-actions">
@@ -331,7 +367,7 @@
                         <input type="hidden" name="REQUEST_TOKEN" value="{{ request_token }}">
                         <input type="hidden" name="config_id" value="{{ config.id }}">
                         <button type="submit" class="tl_submit"
-                                {% if config.blocking or config.auto_update_last_status in ['running', 'queued'] %}disabled{% endif %}>
+                                {% if config.blocking or not process_spawning_available or config.auto_update_last_status in ['running', 'queued'] %}disabled{% endif %}>
                             {{ 'MSC.vsau_run_now'|trans({}, 'contao_default') }}
                         </button>
                     </form>
@@ -394,6 +430,8 @@
                                 <td>
                                     {% if row.status == 'success' %}
                                         <span class="vsau-badge green">{{ 'MSC.vsau_sync_success'|trans({}, 'contao_default') }}</span>
+                                    {% elseif row.status == 'partial' %}
+                                        <span class="vsau-badge amber">{{ 'MSC.vsau_sync_partial'|trans({}, 'contao_default') }}</span>
                                     {% else %}
                                         <span class="vsau-badge red">{{ 'MSC.vsau_sync_error'|trans({}, 'contao_default') }}</span>
                                     {% endif %}
