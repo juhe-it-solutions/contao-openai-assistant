@@ -22,6 +22,7 @@ use Contao\Message;
 use Contao\System;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\LicensePortalUrlService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiModelCatalogService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
@@ -60,6 +61,7 @@ class OpenAiConfigListener
         private readonly RequestStack $requestStack,
         private readonly Connection $connection,
         private readonly EncryptionService $encryption,
+        private readonly LicensePortalUrlService $licensePortalUrls,
         private readonly LicenseValidationService $licenseValidation,
         private readonly OpenAiModelCatalogService $modelCatalog,
         private readonly VectorStoreAutoUpdateService $autoUpdateService,
@@ -661,10 +663,8 @@ class OpenAiConfigListener
     public function premiumLicenseIntroField(DataContainer $dc, string $xlabel = ''): string
     {
         $lang = $this->loadConfigLang();
-        $licenseUrl = 'https://licenses.juhe-it-solutions.at/openai-assistant';
-        $logoLinkUrl = 'https://licenses.juhe-it-solutions.at/de/openai-assistant';
-        // Unprefixed help URL: the licensing host 301s to the visitor's locale.
-        $helpUrl = 'https://licenses.juhe-it-solutions.at/openai-assistant/help';
+        $licenseUrl = $this->licensePortalUrls->getProductUrl();
+        $helpUrl = $this->licensePortalUrls->getHelpUrl();
         $logoUrl = '/bundles/contaoopenaiassistant/images/logo_juhe-licenses.svg';
 
         $content = \sprintf(
@@ -680,7 +680,7 @@ class OpenAiConfigListener
             .'<strong>ℹ️ %s:</strong> %s'
             .'</div>',
             (string) ($lang['premium_license_info_heading'] ?? 'Premium: automatic vector store sync'),
-            htmlspecialchars($logoLinkUrl, ENT_QUOTES),
+            htmlspecialchars($licenseUrl, ENT_QUOTES),
             htmlspecialchars($logoUrl, ENT_QUOTES),
             (string) ($lang['premium_license_info_text'] ?? ''),
             (string) ($lang['premium_license_info_purchase'] ?? 'Get a license at'),

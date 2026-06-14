@@ -19,6 +19,7 @@ use Contao\Message;
 use Cron\CronExpression;
 use Cron\FieldFactory;
 use Doctrine\DBAL\Connection;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\LicensePortalUrlService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
 use Symfony\Component\HttpFoundation\Request;
@@ -38,6 +39,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         private readonly Connection $connection,
         private readonly VectorStoreAutoUpdateService $service,
         private readonly LicenseValidationService $licenseValidation,
+        private readonly LicensePortalUrlService $licensePortalUrls,
         private readonly ContaoCsrfTokenManager $csrfTokenManager,
         private readonly string $csrfTokenName,
         private readonly TranslatorInterface $translator,
@@ -143,10 +145,8 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             'configs' => $configs,
             'has_active_config' => $hasActiveConfig,
             'log' => $log,
-            'purchase_url' => 'https://licenses.juhe-it-solutions.at/openai-assistant',
-            // Unprefixed URL: the licensing host 301s to the visitor's locale
-            // (de/en) via Accept-Language, same pattern as purchase_url above.
-            'help_url' => 'https://licenses.juhe-it-solutions.at/openai-assistant/help',
+            'purchase_url' => $this->licensePortalUrls->getProductUrl(),
+            'help_url' => $this->licensePortalUrls->getHelpUrl(),
             'request_token' => $this->csrfTokenManager->getToken($this->csrfTokenName)->getValue(),
             'manage_log_url' => $this->generateUrl('contao_backend', ['do' => 'openai_sync_log']),
         ]);
