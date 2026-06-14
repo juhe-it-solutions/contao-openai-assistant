@@ -35,6 +35,10 @@
                 <source>Get a license at</source>
                 <target>Lizenz erhalten unter</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_help_link">
+                <source>View the guide &amp; help</source>
+                <target>Anleitung &amp; Hilfe ansehen</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_no_config">
                 <source>No configuration has automatic sync enabled yet.</source>
                 <target>Noch keine Konfiguration mit automatischer Synchronisierung aktiviert.</target>

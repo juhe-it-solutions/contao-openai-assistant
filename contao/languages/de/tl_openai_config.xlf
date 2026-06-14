@@ -153,6 +153,10 @@
                 <source>Get a license at</source>
                 <target>Lizenz erhalten unter</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_docs">
+                <source>View the guide &amp; help</source>
+                <target>Anleitung &amp; Hilfe ansehen</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_hint_heading">
                 <source>Note</source>
                 <target>Hinweis</target>

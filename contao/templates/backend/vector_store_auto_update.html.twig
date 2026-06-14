@@ -96,6 +96,9 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
             {{ 'MSC.vsau_refresh'|trans({}, 'contao_default') }}
         </a>
+        <a href="{{ help_url }}" target="_blank" rel="noopener noreferrer" class="tl_submit">
+            {{ 'MSC.vsau_help_link'|trans({}, 'contao_default') }}
+        </a>
     </div>
 
     {% if configs is empty %}
@@ -110,7 +113,8 @@
                     </a>
                     <span>
                         {{ 'MSC.vsau_premium_intro'|trans({}, 'contao_default') }}<br>
-                        <span style="color: #f59e0b; line-height: 2">{{ 'MSC.vsau_premium_purchase'|trans({}, 'contao_default') }} <a href="{{ purchase_url }}" target="_blank" rel="noopener noreferrer" style="color: #4ea1ff; text-decoration: underline;">{{ purchase_url }}</a></span>
+                        <span style="color: #f59e0b; line-height: 2">{{ 'MSC.vsau_premium_purchase'|trans({}, 'contao_default') }} <a href="{{ purchase_url }}" target="_blank" rel="noopener noreferrer" style="color: #4ea1ff; text-decoration: underline;">{{ purchase_url }}</a></span><br>
+                        <a href="{{ help_url }}" target="_blank" rel="noopener noreferrer" style="color: #4ea1ff; text-decoration: underline;">{{ 'MSC.vsau_help_link'|trans({}, 'contao_default') }}</a>
                     </span>
                 </span>
                 <span style="display: block; margin-top: 28px; color: #c7ccd6;">

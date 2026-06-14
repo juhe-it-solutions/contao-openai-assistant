@@ -35,6 +35,10 @@
                 <source>Get a license at</source>
                 <target>Get a license at</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_help_link">
+                <source>View the guide &amp; help</source>
+                <target>View the guide &amp; help</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_no_config">
                 <source>No configuration has automatic sync enabled yet.</source>
                 <target>No configuration has automatic sync enabled yet.</target>
