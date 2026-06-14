@@ -290,7 +290,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'eval'      => [
                 'multiple'  => true,
                 'fieldType' => 'checkbox',
-                'tl_class'  => 'clr auto-update-field auto-update-license-field',
+                'tl_class'  => 'clr auto-update-field auto-update-license-field oaa-picker-field',
             ],
             'sql'       => ['type' => 'blob', 'notnull' => false],
             'relation'  => ['type' => 'hasMany', 'table' => 'tl_page', 'load' => 'lazy'],

@@ -102,3 +102,8 @@
 ul#sort_auto_update_site_root.oaa-picker-collapsed {
     display: none;
 }
+/* Extra breathing room around the page-picker section */
+.widget.oaa-picker-field {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+}
