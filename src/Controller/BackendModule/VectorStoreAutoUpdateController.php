@@ -51,6 +51,12 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         // Per-group access control (BE_MOD does not auto-gate custom routes).
         $this->denyAccessUnlessGranted(ContaoCorePermissions::USER_CAN_ACCESS_MODULE, 'vector_store_auto_update');
 
+        // Download the generated markdown for one sync-log row. OpenAI blocks
+        // downloading purpose=assistants files, so we serve our local copy.
+        if ($request->isMethod('GET') && null !== $request->query->get('download')) {
+            return $this->downloadDocument((int) $request->query->get('download'));
+        }
+
         // Manual trigger (PRG) — the route's _token_check validates REQUEST_TOKEN.
         if ($request->isMethod('POST')) {
             $configId = (int) $request->request->get('config_id');
@@ -62,6 +68,21 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
 
             if (!$config) {
                 Message::addError($this->translator->trans('MSC.vsau_err_invalid_config', [], 'contao_default'));
+
+                return $this->redirectToRoute('vector_store_auto_update');
+            }
+
+            // Stop automatic sync: unset auto_update_enabled on the config — exactly
+            // what unticking "Automatische Synchronisierung aktivieren" does, but
+            // reachable straight from this dashboard. Re-enable in the OpenAI config.
+            if ('stop' === $request->request->get('action')) {
+                // auto_update_enabled is a boolean/TINYINT column — write integer 0,
+                // not '' (an empty string errors under MySQL strict mode).
+                $this->connection->executeStatement(
+                    'UPDATE tl_openai_config SET auto_update_enabled = 0, tstamp = ? WHERE id = ?',
+                    [time(), $configId],
+                );
+                Message::addConfirmation($this->translator->trans('MSC.vsau_stopped_confirm', [], 'contao_default'));
 
                 return $this->redirectToRoute('vector_store_auto_update');
             }
@@ -109,8 +130,12 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         }
         unset($config);
 
+        // Do not select the (potentially large) document blob for the list — only a
+        // flag of whether a downloadable copy exists for each row.
         $log = $this->connection->fetchAllAssociative(
-            'SELECT * FROM tl_openai_sync_log ORDER BY run_at DESC LIMIT 20',
+            "SELECT id, pid, run_at, status, trigger_source, model, pages, tokens_in, tokens_out, file_id, duration, message,
+                    (document IS NOT NULL AND document <> '') AS has_document
+             FROM tl_openai_sync_log ORDER BY run_at DESC LIMIT 20",
         );
 
         return $this->render('@Contao/backend/vector_store_auto_update.html.twig', [
@@ -121,6 +146,35 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             'purchase_url' => 'https://licenses.juhe-it-solutions.at/openai-assistant',
             'request_token' => $this->csrfTokenManager->getToken($this->csrfTokenName)->getValue(),
             'manage_log_url' => $this->generateUrl('contao_backend', ['do' => 'openai_sync_log']),
+        ]);
+    }
+
+    /**
+     * Stream the stored markdown of one sync-log row as a file download. Redirects
+     * back with an error if the row or its document is missing.
+     */
+    private function downloadDocument(int $logId): Response
+    {
+        $row = $logId > 0
+            ? $this->connection->fetchAssociative(
+                'SELECT run_at, file_id, document FROM tl_openai_sync_log WHERE id = ?',
+                [$logId],
+            )
+            : null;
+
+        if (empty($row) || '' === (string) ($row['document'] ?? '')) {
+            Message::addError($this->translator->trans('MSC.vsau_download_missing', [], 'contao_default'));
+
+            return $this->redirectToRoute('vector_store_auto_update');
+        }
+
+        $date = date('Y-m-d_His', (int) $row['run_at']);
+        $filename = 'vector-store-document_'.$date.'.md';
+
+        return new Response((string) $row['document'], Response::HTTP_OK, [
+            'Content-Type' => 'text/markdown; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 
@@ -199,8 +253,13 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
 
         try {
             $expression = new CronExpression($schedule, new FieldFactory());
+            // Evaluate the schedule in the app timezone (not UTC); a '@'-epoch
+            // DateTime is always UTC, which would offset "nächster" by the local
+            // UTC offset (e.g. +2h in CEST). Must match VectorStoreAutoUpdateCron.
+            $tz = new \DateTimeZone(date_default_timezone_get());
+            $from = (new \DateTimeImmutable('@'.$lastRun))->setTimezone($tz);
 
-            return $expression->getNextRunDate(new \DateTimeImmutable('@'.$lastRun))->getTimestamp();
+            return $expression->getNextRunDate($from)->getTimestamp();
         } catch (\Throwable) {
             return null;
         }

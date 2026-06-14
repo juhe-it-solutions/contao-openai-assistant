@@ -69,6 +69,8 @@
 
         .vsau-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .vsau-actions .tl_submit[disabled] { opacity: 0.5; cursor: not-allowed; }
+        .vsau-actions .tl_submit.vsau-stop { background: #e53935; border-color: #e53935; }
+        .vsau-actions .tl_submit.vsau-stop:hover { background: #c62828; }
         .vsau-actions-hint { font-size: 12px; color: var(--text-secondary, #9aa0ad); }
 
         .vsau-gate { border-radius: 0.75rem; padding: 1.1rem 1.25rem; border: 1px solid var(--active-bg); border-left: 4px solid #2196f3; font-size: 13px; }
@@ -76,6 +78,8 @@
         table.vsau-log { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
         table.vsau-log th, table.vsau-log td { border: 1px solid var(--active-bg); padding: 8px 10px; text-align: left; font-size: 12px; vertical-align: top; }
         table.vsau-log th { font-weight: 700; background: rgba(0, 0, 0, 0.08); }
+        .vsau-dl { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 11px; text-decoration: underline; white-space: nowrap; }
+        .vsau-dl svg { width: 12px; height: 12px; fill: currentColor; }
 
         .vsau-stat-hint { font-size: 11px; line-height: 1.45; color: var(--text-secondary, #9aa0ad); margin-bottom: 0.7rem; }
 
@@ -159,7 +163,10 @@
                 {% else %}
                     <div class="vsau-setup ready">
                         <ul>
-                            <li><span class="vsau-mark ok">✓</span><span>{{ 'MSC.vsau_setup_ready'|trans({}, 'contao_default') }}</span></li>
+                            {# Heartbeat healthy → automatic sync is genuinely running; say so
+                               instead of implying a manual action is still pending. Otherwise
+                               keep the "ready, can be run" wording (only manual works without cron). #}
+                            <li><span class="vsau-mark ok">✓</span><span>{{ (config.cron_status == 'healthy' ? 'MSC.vsau_setup_ready_auto' : 'MSC.vsau_setup_ready')|trans({}, 'contao_default') }}</span></li>
                         </ul>
                     </div>
                 {% endif %}
@@ -251,7 +258,7 @@
 
                 </div>
 
-                {# Manual trigger #}
+                {# Manual trigger (needs an active license) #}
                 <div class="vsau-actions">
                     <form method="post" action="{{ path('vector_store_auto_update') }}">
                         <input type="hidden" name="REQUEST_TOKEN" value="{{ request_token }}">
@@ -272,6 +279,19 @@
 
             {% endif %}
 
+            {# Stop automatic sync — always available while the config is enabled,
+               regardless of license state (re-enable later in the OpenAI config). #}
+            <div class="vsau-actions" style="margin-top: 14px;">
+                <form method="post" action="{{ path('vector_store_auto_update') }}"
+                      onsubmit="return confirm('{{ 'MSC.vsau_stop_confirm_js'|trans({}, 'contao_default')|e('js') }}');">
+                    <input type="hidden" name="REQUEST_TOKEN" value="{{ request_token }}">
+                    <input type="hidden" name="config_id" value="{{ config.id }}">
+                    <input type="hidden" name="action" value="stop">
+                    <button type="submit" class="tl_submit vsau-stop">{{ 'MSC.vsau_stop_sync'|trans({}, 'contao_default') }}</button>
+                </form>
+            </div>
+            <p class="vsau-actions-hint" style="margin-top: 10px;">{{ 'MSC.vsau_stop_hint'|trans({}, 'contao_default') }}</p>
+
         </div>
     {% endfor %}
 
@@ -290,6 +310,8 @@
                         <tr>
                             <th>{{ 'MSC.vsau_col_date'|trans({}, 'contao_default') }}</th>
                             <th>{{ 'MSC.vsau_col_status'|trans({}, 'contao_default') }}</th>
+                            <th>{{ 'MSC.vsau_col_source'|trans({}, 'contao_default') }}</th>
+                            <th>{{ 'MSC.vsau_col_model'|trans({}, 'contao_default') }}</th>
                             <th>{{ 'MSC.vsau_col_pages'|trans({}, 'contao_default') }}</th>
                             <th>{{ 'MSC.vsau_col_tokens_in'|trans({}, 'contao_default') }}</th>
                             <th>{{ 'MSC.vsau_col_tokens_out'|trans({}, 'contao_default') }}</th>
@@ -309,11 +331,21 @@
                                         <span class="vsau-badge red">{{ 'MSC.vsau_sync_error'|trans({}, 'contao_default') }}</span>
                                     {% endif %}
                                 </td>
+                                <td>{% if row.trigger_source %}{{ ('MSC.vsau_source_' ~ row.trigger_source)|trans({}, 'contao_default') }}{% else %}–{% endif %}</td>
+                                <td>{{ row.model ?: '–' }}</td>
                                 <td>{{ row.pages }}</td>
                                 <td>{{ row.tokens_in }}</td>
                                 <td>{{ row.tokens_out }}</td>
                                 <td>{{ row.duration }}s</td>
-                                <td><code>{{ row.file_id }}</code></td>
+                                <td>
+                                    <code>{{ row.file_id }}</code>
+                                    {% if row.has_document %}
+                                        <a class="vsau-dl" href="{{ path('vector_store_auto_update', {download: row.id}) }}">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>
+                                            {{ 'MSC.vsau_download'|trans({}, 'contao_default') }}
+                                        </a>
+                                    {% endif %}
+                                </td>
                                 <td>{{ row.message }}</td>
                             </tr>
                         {% endfor %}

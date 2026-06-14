@@ -63,7 +63,7 @@ class VectorStoreAutoUpdateCron
                 continue;
             }
 
-            $this->service->run((int) $config['id']);
+            $this->service->run((int) $config['id'], VectorStoreAutoUpdateService::SOURCE_CRON);
         }
     }
 
@@ -93,10 +93,15 @@ class VectorStoreAutoUpdateCron
         // explicit FieldFactory for cross-version compatibility and catch everything.
         try {
             $expression = new CronExpression($schedule, new FieldFactory());
-            $lastRunDate = new \DateTimeImmutable('@'.$lastRun);
+            // The cron library evaluates the schedule in the reference time's
+            // timezone. A '@'-epoch DateTime is always UTC, which would make
+            // "30 5 * * *" fire at 05:30 UTC instead of 05:30 local. Convert to
+            // the app timezone so the schedule matches what the user configured.
+            $tz = new \DateTimeZone(date_default_timezone_get());
+            $lastRunDate = (new \DateTimeImmutable('@'.$lastRun))->setTimezone($tz);
             $nextRun = $expression->getNextRunDate($lastRunDate);
 
-            return new \DateTimeImmutable() >= \DateTimeImmutable::createFromInterface($nextRun);
+            return new \DateTimeImmutable('now', $tz) >= \DateTimeImmutable::createFromInterface($nextRun);
         } catch (\Throwable $e) {
             $this->logger->error('Invalid auto-update schedule "'.$schedule.'": '.$e->getMessage());
 

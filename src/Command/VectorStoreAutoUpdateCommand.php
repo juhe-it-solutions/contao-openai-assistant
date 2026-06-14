@@ -25,6 +25,7 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
@@ -48,6 +49,9 @@ class VectorStoreAutoUpdateCommand extends Command
     protected function configure(): void
     {
         $this->addArgument('config-id', InputArgument::REQUIRED, 'tl_openai_config.id');
+        // The backend "Run sync now" button dispatches this command with
+        // --source=manual; an operator running it by hand leaves the default (cli).
+        $this->addOption('source', null, InputOption::VALUE_REQUIRED, 'Trigger source recorded in the sync log (cron|manual|cli)', VectorStoreAutoUpdateService::SOURCE_CLI);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -60,7 +64,7 @@ class VectorStoreAutoUpdateCommand extends Command
             return Command::INVALID;
         }
 
-        $this->service->run($configId);
+        $this->service->run($configId, (string) $input->getOption('source'));
         $output->writeln('<info>Vector store auto-update finished for config '.$configId.'.</info>');
 
         return Command::SUCCESS;

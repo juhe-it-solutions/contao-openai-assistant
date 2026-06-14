@@ -18,6 +18,26 @@
                 <source>Error</source>
                 <target>Error</target>
             </trans-unit>
+            <trans-unit id="tl_openai_sync_log.trigger_source">
+                <source>Trigger</source>
+                <target>Trigger</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.source_ref.cron">
+                <source>Schedule</source>
+                <target>Schedule</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.source_ref.manual">
+                <source>Manual (button)</source>
+                <target>Manual (button)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.source_ref.cli">
+                <source>Console</source>
+                <target>Console</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.model">
+                <source>Model</source>
+                <target>Model</target>
+            </trans-unit>
             <trans-unit id="tl_openai_sync_log.pages">
                 <source>Pages</source>
                 <target>Pages</target>

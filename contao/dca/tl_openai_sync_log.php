@@ -44,7 +44,7 @@ $GLOBALS['TL_DCA']['tl_openai_sync_log'] = [
             'panelLayout' => 'sort,search,limit',
         ],
         'label' => [
-            'fields'      => ['run_at', 'status', 'pages', 'tokens_in', 'tokens_out', 'duration', 'file_id', 'message'],
+            'fields'      => ['run_at', 'status', 'trigger_source', 'model', 'pages', 'tokens_in', 'tokens_out', 'duration', 'file_id', 'message'],
             'showColumns' => true,
         ],
     ],
@@ -71,6 +71,16 @@ $GLOBALS['TL_DCA']['tl_openai_sync_log'] = [
             'reference' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['status_ref'],
             'sql'       => ['type' => 'string', 'length' => 20, 'default' => ''],
         ],
+        'trigger_source' => [
+            'label'     => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['trigger_source'],
+            'filter'    => true,
+            'reference' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['source_ref'],
+            'sql'       => ['type' => 'string', 'length' => 20, 'default' => ''],
+        ],
+        'model' => [
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['model'],
+            'sql'   => ['type' => 'string', 'length' => 100, 'default' => ''],
+        ],
         'pages' => [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['pages'],
             'sql'   => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
@@ -94,6 +104,11 @@ $GLOBALS['TL_DCA']['tl_openai_sync_log'] = [
         'message' => [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['message'],
             'sql'   => ['type' => 'text', 'notnull' => false],
+        ],
+        // Local copy of the generated markdown for download/inspection. Not shown
+        // in the list (potentially large); served via the dashboard download link.
+        'document' => [
+            'sql' => ['type' => 'text', 'length' => 16777215, 'notnull' => false], // MEDIUMTEXT
         ],
     ],
 ];

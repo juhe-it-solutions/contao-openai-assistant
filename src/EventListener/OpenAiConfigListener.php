@@ -45,6 +45,7 @@ class OpenAiConfigListener
         'auto_update_schedule_minute',
         'auto_update_schedule_weekday',
         'auto_update_schedule_day',
+        'auto_update_raw_mode',
         'auto_update_model',
         'auto_update_max_content',
         'auto_update_site_root',

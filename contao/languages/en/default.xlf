@@ -172,8 +172,8 @@
                 <target>next:</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_run_now">
-                <source>Run sync now</source>
-                <target>Run sync now</target>
+                <source>Run manual sync now</source>
+                <target>Run manual sync now</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_refresh">
                 <source>Refresh</source>
@@ -222,6 +222,50 @@
             <trans-unit id="MSC.vsau_col_message">
                 <source>Message</source>
                 <target>Message</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_source">
+                <source>Trigger</source>
+                <target>Trigger</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_model">
+                <source>Model</source>
+                <target>Model</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_download">
+                <source>Download</source>
+                <target>Download</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_download_missing">
+                <source>No stored document is available for this sync run.</source>
+                <target>No stored document is available for this sync run.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_source_cron">
+                <source>Schedule</source>
+                <target>Schedule</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_source_manual">
+                <source>Manual (button)</source>
+                <target>Manual (button)</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_source_cli">
+                <source>Console</source>
+                <target>Console</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_stop_sync">
+                <source>Stop automatic sync</source>
+                <target>Stop automatic sync</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_stop_confirm_js">
+                <source>Stop the automatic synchronisation for this configuration? No further scheduled syncs will run until you re-enable it in the OpenAI configuration.</source>
+                <target>Stop the automatic synchronisation for this configuration? No further scheduled syncs will run until you re-enable it in the OpenAI configuration.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_stopped_confirm">
+                <source>Automatic synchronisation stopped. Re-enable it any time in the OpenAI configuration under "Automatic vector store sync".</source>
+                <target>Automatic synchronisation stopped. Re-enable it any time in the OpenAI configuration under "Automatic vector store sync".</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_stop_hint">
+                <source>"Stop automatic sync" unticks "Enable automatic synchronisation" in the OpenAI configuration. Re-enable it there whenever you want scheduled syncs to resume.</source>
+                <target>"Stop automatic sync" unticks "Enable automatic synchronisation" in the OpenAI configuration. Re-enable it there whenever you want scheduled syncs to resume.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_queued_confirm">
                 <source>Sync queued. Refresh this page in a few minutes to see the result.</source>
@@ -330,6 +374,10 @@
             <trans-unit id="MSC.vsau_setup_ready">
                 <source>Everything is ready - the sync can run.</source>
                 <target>Everything is ready - the sync can run.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_setup_ready_auto">
+                <source>Everything is ready - automatic synchronisation is active and runs on schedule. You can also start a manual sync any time below.</source>
+                <target>Everything is ready - automatic synchronisation is active and runs on schedule. You can also start a manual sync any time below.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_run_now_blocked_hint">
                 <source>Resolve the open items above first.</source>

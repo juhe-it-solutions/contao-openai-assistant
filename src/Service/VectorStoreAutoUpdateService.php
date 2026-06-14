@@ -33,6 +33,14 @@ class VectorStoreAutoUpdateService
     /** Hard cap on pages crawled per sync to limit DB load and LLM cost abuse. */
     private const MAX_CRAWL_PAGES = 5000;
 
+    /** What triggered a sync — persisted to tl_openai_sync_log.trigger_source. */
+    public const SOURCE_CRON = 'cron';     // automatic, via the schedule/heartbeat
+    public const SOURCE_MANUAL = 'manual'; // backend "Run sync now" button
+    public const SOURCE_CLI = 'cli';       // operator-run console command
+
+    /** @var list<string> */
+    public const SOURCES = [self::SOURCE_CRON, self::SOURCE_MANUAL, self::SOURCE_CLI];
+
     public function __construct(
         private readonly Connection $connection,
         private readonly HttpClientInterface $http,
@@ -78,6 +86,7 @@ class VectorStoreAutoUpdateService
         $process = $this->processUtil->createSymfonyConsoleProcess(
             'contao:openai-vector-sync',
             (string) $configId,
+            '--source='.self::SOURCE_MANUAL,
             '--no-interaction',
         );
         $process->start(); // non-blocking — do NOT call wait()
@@ -87,10 +96,15 @@ class VectorStoreAutoUpdateService
      * Full sync flow for a single configuration record. Never throws — failures are
      * persisted as an "error" status + message in tl_openai_config / tl_openai_sync_log.
      */
-    public function run(int $configId): void
+    public function run(int $configId, string $triggerSource = self::SOURCE_CLI): void
     {
+        if (!\in_array($triggerSource, self::SOURCES, true)) {
+            $triggerSource = self::SOURCE_CLI;
+        }
+
         $start = time();
         $oldFileId = '';
+        $model = '';
 
         try {
             // License gate — silent no-op if not active.
@@ -116,7 +130,10 @@ class VectorStoreAutoUpdateService
             }
 
             $oldFileId = (string) ($config['auto_update_file_id'] ?? '');
-            $model = (string) ($config['auto_update_model'] ?? '') ?: 'gpt-4o-mini';
+            $rawMode = (bool) ($config['auto_update_raw_mode'] ?? false);
+            // Raw mode uploads the extracted page text as-is — no model is involved,
+            // so record an empty model (the log shows "–" instead of a model name).
+            $model = $rawMode ? '' : ((string) ($config['auto_update_model'] ?? '') ?: 'gpt-4o-mini');
             $maxContent = max(1000, min(500000, (int) ($config['auto_update_max_content'] ?? 100000)));
             $promptTpl = $config['auto_update_prompt_template'] ?? null ?: null;
 
@@ -134,14 +151,30 @@ class VectorStoreAutoUpdateService
             }
 
             $input = $this->buildLlmInput($rows, $maxContent);
-            $result = $this->generateDocument($apiKey, $model, $input, $promptTpl);
 
-            if ('' === trim($result['text'])) {
-                throw new \RuntimeException('The model returned an empty document; aborting before replacing the existing file.');
+            if ($rawMode) {
+                // Power-user mode: skip the LLM optimisation and push the cleaned-up
+                // page text straight to the vector store. No tokens spent.
+                $documentText = $input;
+                $tokensIn = 0;
+                $tokensOut = 0;
+            } else {
+                $result = $this->generateDocument($apiKey, $model, $input, $promptTpl);
+                $documentText = $result['text'];
+                $tokensIn = $result['tokens_in'];
+                $tokensOut = $result['tokens_out'];
+            }
+
+            if ('' === trim($documentText)) {
+                throw new \RuntimeException(
+                    $rawMode
+                        ? 'No page content found to upload; aborting before replacing the existing file.'
+                        : 'The model returned an empty document; aborting before replacing the existing file.',
+                );
             }
 
             $this->deleteOldFile($apiKey, $vectorStoreId, $oldFileId);
-            $newFileId = $this->uploadFile($apiKey, $result['text']);
+            $newFileId = $this->uploadFile($apiKey, $documentText);
             $this->attachToVectorStore($apiKey, $vectorStoreId, $newFileId);
 
             $this->persistResult(
@@ -150,10 +183,14 @@ class VectorStoreAutoUpdateService
                 $newFileId,
                 [
                     'pages' => \count($rows),
-                    'tokens_in' => $result['tokens_in'],
-                    'tokens_out' => $result['tokens_out'],
+                    'tokens_in' => $tokensIn,
+                    'tokens_out' => $tokensOut,
                     'duration' => time() - $start,
+                    'model' => $model,
+                    'document' => $documentText,
                 ],
+                '',
+                $triggerSource,
             );
         } catch (\Throwable $e) {
             $this->logger->error('VectorStoreAutoUpdate failed for config '.$configId.': '.$e->getMessage());
@@ -163,8 +200,10 @@ class VectorStoreAutoUpdateService
                 $oldFileId,
                 [
                     'duration' => time() - $start,
+                    'model' => $model,
                 ],
                 $e->getMessage(),
+                $triggerSource,
             );
         }
     }
@@ -564,9 +603,9 @@ class VectorStoreAutoUpdateService
     }
 
     /**
-     * @param array{pages?: int, tokens_in?: int, tokens_out?: int, duration?: int} $stats
+     * @param array{pages?: int, tokens_in?: int, tokens_out?: int, duration?: int, model?: string, document?: string} $stats
      */
-    private function persistResult(int $configId, string $status, string $fileId, array $stats, string $message = ''): void
+    private function persistResult(int $configId, string $status, string $fileId, array $stats, string $message = '', string $triggerSource = self::SOURCE_CLI): void
     {
         $now = time();
 
@@ -575,16 +614,24 @@ class VectorStoreAutoUpdateService
             [$now, $status, $fileId, '' !== $message ? $message : null, $configId],
         );
 
+        $document = (string) ($stats['document'] ?? '');
+
         $this->connection->insert('tl_openai_sync_log', [
             'pid' => $configId,
             'tstamp' => $now,
             'run_at' => $now,
             'status' => $status,
+            'trigger_source' => $triggerSource,
+            'model' => (string) ($stats['model'] ?? ''),
             'pages' => $stats['pages'] ?? 0,
             'tokens_in' => $stats['tokens_in'] ?? 0,
             'tokens_out' => $stats['tokens_out'] ?? 0,
             'file_id' => $fileId,
             'duration' => $stats['duration'] ?? 0,
+            // The generated markdown, kept so operators can download/inspect exactly
+            // what was pushed. OpenAI blocks downloading purpose=assistants files, so
+            // this local copy is the only way to see the document content.
+            'document' => '' !== $document ? $document : null,
             'message' => '' !== $message ? $message : null,
         ]);
     }

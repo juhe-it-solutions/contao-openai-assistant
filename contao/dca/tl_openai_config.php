@@ -122,7 +122,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
     'palettes' => [
         'default' => '{title_legend},title,api_key;{config_legend},vector_store_id'
             . ';{premium_legend},premium_license_intro,premium_license_key'
-            . ';{auto_update_legend},auto_update_enabled,auto_update_schedule_hour,auto_update_schedule_minute,auto_update_schedule_weekday,auto_update_schedule_day,auto_update_model,auto_update_max_content,auto_update_site_root,auto_update_prompt_template',
+            . ';{auto_update_legend},auto_update_enabled,auto_update_schedule_hour,auto_update_schedule_minute,auto_update_schedule_weekday,auto_update_schedule_day,auto_update_raw_mode,auto_update_model,auto_update_max_content,auto_update_site_root,auto_update_prompt_template',
     ],
     'fields' => [
         'id' => [
@@ -267,6 +267,13 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         ],
         'auto_update_schedule' => [
             'sql' => ['type' => 'string', 'length' => 20, 'default' => '0 2 * * *'],
+        ],
+        'auto_update_raw_mode' => [
+            'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_raw_mode'],
+            'exclude'   => true,
+            'inputType' => 'checkbox',
+            'eval'      => ['tl_class' => 'clr m12 auto-update-field auto-update-license-field'],
+            'sql'       => ['type' => 'boolean', 'default' => false],
         ],
         'auto_update_model' => [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_model'],
