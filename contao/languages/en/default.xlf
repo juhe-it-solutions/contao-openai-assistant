@@ -36,8 +36,8 @@
                 <target>Get a license at</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_help_link">
-                <source>View the guide &amp; help</source>
-                <target>View the guide &amp; help</target>
+                <source>Guide &amp; help</source>
+                <target>Guide &amp; help</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_no_config">
                 <source>No configuration has automatic sync enabled yet.</source>
@@ -274,6 +274,66 @@
             <trans-unit id="MSC.vsau_queued_confirm">
                 <source>Sync queued. Refresh this page in a few minutes to see the result.</source>
                 <target>Sync queued. Refresh this page in a few minutes to see the result.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_dispatched_manual">
+                <source>Manual sync dispatched to CLI. Refresh this page in a few minutes.</source>
+                <target>Manual sync dispatched to CLI. Refresh this page in a few minutes.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_no_indexed_pages">
+                <source>No indexed pages found for this site root (tl_search is empty). Run System → Maintenance → Rebuild search index. If pages are still missing, check whether they carry robots=noindex or Search indexer=Never index — set Search indexer=Always index on those page records to force-include them in both Contao search and the vector store.</source>
+                <target>No indexed pages found for this site root (tl_search is empty). Run System → Maintenance → Rebuild search index. If pages are still missing, check whether they carry robots=noindex or Search indexer=Never index — set Search indexer=Always index on those page records to force-include them in both Contao search and the vector store.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_empty_document_raw">
+                <source>No page content found to upload; aborting before replacing the existing file.</source>
+                <target>No page content found to upload; aborting before replacing the existing file.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_empty_document_llm">
+                <source>The model returned an empty document; aborting before replacing the existing file.</source>
+                <target>The model returned an empty document; aborting before replacing the existing file.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_no_vector_store_sync">
+                <source>No vector store ID configured. Complete the file upload workflow or set a vector store ID first.</source>
+                <target>No vector store ID configured. Complete the file upload workflow or set a vector store ID first.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_multiple_roots">
+                <source>Multiple site roots detected. Select the pages to keep updated in OpenAI Configuration → Automatic vector store sync.</source>
+                <target>Multiple site roots detected. Select the pages to keep updated in OpenAI Configuration → Automatic vector store sync.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_temp_file">
+                <source>Could not create a temporary file for the upload.</source>
+                <target>Could not create a temporary file for the upload.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_upload_no_id">
+                <source>OpenAI Files upload did not return a file ID.</source>
+                <target>OpenAI Files upload did not return a file ID.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_sync_not_enabled">
+                <source>Automatic sync is not enabled for this configuration.</source>
+                <target>Automatic sync is not enabled for this configuration.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_sync_already_running">
+                <source>A sync is already queued or running for this configuration.</source>
+                <target>A sync is already queued or running for this configuration.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_config_not_found">
+                <source>OpenAI configuration %id% not found.</source>
+                <target>OpenAI configuration %id% not found.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_no_api_key">
+                <source>No usable OpenAI API key for configuration %id%.</source>
+                <target>No usable OpenAI API key for configuration %id%.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_invalid_page">
+                <source>Invalid page selected for auto-update (ID %id%).</source>
+                <target>Invalid page selected for auto-update (ID %id%).</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_crawl_failed">
+                <source>contao:crawl failed: %details%</source>
+                <target>contao:crawl failed: %details%</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_openai_chat">
+                <source>OpenAI chat completion failed (HTTP %status%): %details%</source>
+                <target>OpenAI chat completion failed (HTTP %status%): %details%</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_vector_store">
                 <source>No vector store exists yet. Upload one document once via AI Tools → OpenAI Dashboard → File upload; this automatically creates the vector store.</source>

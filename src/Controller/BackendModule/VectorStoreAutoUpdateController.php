@@ -22,6 +22,7 @@ use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\LicensePortalUrlService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreSyncMessageTranslator;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -40,6 +41,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         private readonly VectorStoreAutoUpdateService $service,
         private readonly LicenseValidationService $licenseValidation,
         private readonly LicensePortalUrlService $licensePortalUrls,
+        private readonly VectorStoreSyncMessageTranslator $syncMessages,
         private readonly ContaoCsrfTokenManager $csrfTokenManager,
         private readonly string $csrfTokenName,
         private readonly TranslatorInterface $translator,
@@ -99,7 +101,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
                 $this->service->dispatchRun($configId);
                 Message::addConfirmation($this->translator->trans('MSC.vsau_queued_confirm', [], 'contao_default'));
             } catch (\Throwable $e) {
-                Message::addError($e->getMessage());
+                Message::addError($this->syncMessages->translate($e->getMessage()) ?? $e->getMessage());
             }
 
             return $this->redirectToRoute('vector_store_auto_update');
@@ -128,6 +130,9 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             $config['plan_label'] = $this->planLabel($config);
             $schedule = (string) ($config['auto_update_schedule'] ?? '') ?: '0 2 * * *';
             $config['schedule_label'] = $this->humanReadableSchedule($schedule);
+            $config['auto_update_last_message'] = $this->syncMessages->translate(
+                isset($config['auto_update_last_message']) ? (string) $config['auto_update_last_message'] : null,
+            );
             $hasActiveConfig = $hasActiveConfig || $config['license_active'];
         }
         unset($config);
@@ -139,6 +144,11 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
                     (document IS NOT NULL AND document <> '') AS has_document
              FROM tl_openai_sync_log ORDER BY run_at DESC LIMIT 20",
         );
+
+        foreach ($log as &$row) {
+            $row['message'] = $this->syncMessages->translate(isset($row['message']) ? (string) $row['message'] : null);
+        }
+        unset($row);
 
         return $this->render('@Contao/backend/vector_store_auto_update.html.twig', [
             'headline' => $this->translator->trans('MOD.vector_store_auto_update.0', [], 'contao_modules'),

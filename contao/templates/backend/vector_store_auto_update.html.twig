@@ -9,9 +9,72 @@
         .vsau-badge.blue   { background: #2196f3; }
         .vsau-badge.grey   { background: #757575; }
 
-        .vsau-toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
-        .vsau-refresh { display: inline-flex; align-items: center; gap: 6px; }
-        .vsau-refresh svg { width: 14px; height: 14px; fill: currentColor; }
+        .vsau-toolbar {
+            display: flex;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 0 1rem 12px;
+            padding: 8px 0 0;
+        }
+        .vsau-toolbar-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            min-height: 30px;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.25;
+            text-decoration: none;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+        .vsau-toolbar-btn:focus-visible {
+            outline: 2px solid #4ea1ff;
+            outline-offset: 2px;
+        }
+        .vsau-toolbar-btn--refresh {
+            background: #2196f3;
+            border-color: #1976d2;
+            color: #fff;
+        }
+        .vsau-toolbar-btn--refresh:hover,
+        .vsau-toolbar-btn--refresh:focus-visible {
+            background: #1976d2;
+            border-color: #1565c0;
+            color: #fff;
+        }
+        .vsau-toolbar-btn--help {
+            background: #d7ff64;
+            border-color: #c5eb52;
+            color: #1a1a1a;
+        }
+        .vsau-toolbar-btn--help:hover,
+        .vsau-toolbar-btn--help:focus-visible {
+            background: #c5eb52;
+            border-color: #b3d94a;
+            color: #1a1a1a;
+        }
+        .vsau-help-link--inline {
+            min-height: 0;
+            padding: 4px 10px;
+            margin-top: 6px;
+        }
+        .vsau-toolbar-btn svg { width: 13px; height: 13px; fill: currentColor; flex-shrink: 0; }
+
+        @media (max-width: 576px) {
+            .vsau-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .vsau-toolbar-btn {
+                width: 100%;
+            }
+        }
 
         .vsau-card {
             background: var(--info-bg);
@@ -92,11 +155,11 @@
     </style>
 
     <div class="vsau-toolbar">
-        <a href="{{ path('vector_store_auto_update') }}" class="tl_submit vsau-refresh">
+        <a href="{{ path('vector_store_auto_update') }}" class="vsau-toolbar-btn vsau-toolbar-btn--refresh">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
             {{ 'MSC.vsau_refresh'|trans({}, 'contao_default') }}
         </a>
-        <a href="{{ help_url }}" target="_blank" rel="noopener noreferrer" class="tl_submit">
+        <a href="{{ help_url }}" target="_blank" rel="noopener noreferrer" class="vsau-toolbar-btn vsau-toolbar-btn--help">
             {{ 'MSC.vsau_help_link'|trans({}, 'contao_default') }}
         </a>
     </div>
@@ -114,7 +177,7 @@
                     <span>
                         {{ 'MSC.vsau_premium_intro'|trans({}, 'contao_default') }}<br>
                         <span style="color: #f59e0b; line-height: 2">{{ 'MSC.vsau_premium_purchase'|trans({}, 'contao_default') }} <a href="{{ purchase_url }}" target="_blank" rel="noopener noreferrer" style="color: #4ea1ff; text-decoration: underline;">{{ purchase_url }}</a></span><br>
-                        <a href="{{ help_url }}" target="_blank" rel="noopener noreferrer" style="color: #4ea1ff; text-decoration: underline;">{{ 'MSC.vsau_help_link'|trans({}, 'contao_default') }}</a>
+                        <a href="{{ help_url }}" target="_blank" rel="noopener noreferrer" class="vsau-toolbar-btn vsau-toolbar-btn--help vsau-help-link--inline">{{ 'MSC.vsau_help_link'|trans({}, 'contao_default') }}</a>
                     </span>
                 </span>
                 <span style="display: block; margin-top: 28px; color: #c7ccd6;">

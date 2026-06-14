@@ -66,21 +66,21 @@ class VectorStoreAutoUpdateService
         );
 
         if (!$config) {
-            throw new \RuntimeException('Automatic sync is not enabled for this configuration.');
+            throw new \RuntimeException('MSC.vsau_err_sync_not_enabled');
         }
 
         if (!$this->licenseValidation->isLicenseActive($configId)) {
-            throw new \RuntimeException('No active premium license.');
+            throw new \RuntimeException('MSC.vsau_err_no_license');
         }
 
         $status = (string) ($config['auto_update_last_status'] ?? '');
         if (\in_array($status, ['running', 'queued'], true)) {
-            throw new \RuntimeException('A sync is already queued or running for this configuration.');
+            throw new \RuntimeException('MSC.vsau_err_sync_already_running');
         }
 
         $this->connection->executeStatement(
             "UPDATE tl_openai_config SET auto_update_last_status = 'queued', auto_update_last_message = ? WHERE id = ?",
-            ['Manual sync dispatched to CLI. Refresh this page in a few minutes.', $configId],
+            ['MSC.vsau_dispatched_manual', $configId],
         );
 
         $process = $this->processUtil->createSymfonyConsoleProcess(
@@ -116,17 +116,17 @@ class VectorStoreAutoUpdateService
 
             $config = $this->connection->fetchAssociative('SELECT * FROM tl_openai_config WHERE id = ?', [$configId]);
             if (!$config) {
-                throw new \RuntimeException('OpenAI configuration '.$configId.' not found.');
+                throw new \RuntimeException('MSC.vsau_err_config_not_found|'.$configId);
             }
 
             $apiKey = $this->encryption->getApiKeyForConfig($configId);
             if (!$apiKey) {
-                throw new \RuntimeException('No usable OpenAI API key for configuration '.$configId.'.');
+                throw new \RuntimeException('MSC.vsau_err_no_api_key|'.$configId);
             }
 
             $vectorStoreId = (string) ($config['vector_store_id'] ?? '');
             if ('' === $vectorStoreId) {
-                throw new \RuntimeException('No vector store ID configured. Complete the file upload workflow or set a vector store ID first.');
+                throw new \RuntimeException('MSC.vsau_err_no_vector_store_sync');
             }
 
             $oldFileId = (string) ($config['auto_update_file_id'] ?? '');
@@ -142,12 +142,7 @@ class VectorStoreAutoUpdateService
 
             $rows = $this->readSearchIndex($configId);
             if (0 === \count($rows)) {
-                throw new \RuntimeException(
-                    'No indexed pages found for this site root (tl_search is empty). '
-                    .'Run System → Maintenance → Rebuild search index. '
-                    .'If pages are still missing, check whether they carry robots=noindex or Suchindexer=Never index — '
-                    .'set Suchindexer=Always index on those page records to force-include them in both Contao search and the vector store.',
-                );
+                throw new \RuntimeException('MSC.vsau_err_no_indexed_pages');
             }
 
             $input = $this->buildLlmInput($rows, $maxContent);
@@ -167,9 +162,7 @@ class VectorStoreAutoUpdateService
 
             if ('' === trim($documentText)) {
                 throw new \RuntimeException(
-                    $rawMode
-                        ? 'No page content found to upload; aborting before replacing the existing file.'
-                        : 'The model returned an empty document; aborting before replacing the existing file.',
+                    $rawMode ? 'MSC.vsau_err_empty_document_raw' : 'MSC.vsau_err_empty_document_llm',
                 );
             }
 
@@ -227,7 +220,7 @@ class VectorStoreAutoUpdateService
         $promise->wait(); // blocks until the crawl finishes
 
         if (!$process->isSuccessful()) {
-            throw new \RuntimeException('contao:crawl failed: '.$process->getErrorOutput());
+            throw new \RuntimeException('MSC.vsau_err_crawl_failed|'.$process->getErrorOutput());
         }
     }
 
@@ -258,7 +251,7 @@ class VectorStoreAutoUpdateService
                 );
 
                 if (!$page) {
-                    throw new \RuntimeException('Invalid page selected for auto-update (ID '.$selectedPageId.').');
+                    throw new \RuntimeException('MSC.vsau_err_invalid_page|'.$selectedPageId);
                 }
 
                 $pageIds[] = (int) $selectedPageId;
@@ -272,7 +265,7 @@ class VectorStoreAutoUpdateService
             if (1 === \count($roots)) {
                 $pageIds = $this->collectPageSubtreeIds((int) $roots[0]['id']);
             } elseif (\count($roots) > 1) {
-                throw new \RuntimeException('Multiple site roots detected. Select the pages to keep updated in OpenAI Configuration → Automatic vector store sync.');
+                throw new \RuntimeException('MSC.vsau_err_multiple_roots');
             } else {
                 return [];
             }
@@ -436,7 +429,7 @@ class VectorStoreAutoUpdateService
         if ($status < 200 || $status >= 300) {
             $apiMessage = (string) ($data['error']['message'] ?? 'unknown error');
 
-            throw new \RuntimeException('OpenAI chat completion failed (HTTP '.$status.'): '.$apiMessage);
+            throw new \RuntimeException('MSC.vsau_err_openai_chat|'.$status.'|'.$apiMessage);
         }
 
         return [
@@ -546,7 +539,7 @@ class VectorStoreAutoUpdateService
 
         $handle = @fopen($tmpPath, 'x+b');
         if (false === $handle) {
-            throw new \RuntimeException('Could not create a temporary file for the upload.');
+            throw new \RuntimeException('MSC.vsau_err_temp_file');
         }
 
         try {
@@ -570,7 +563,7 @@ class VectorStoreAutoUpdateService
 
             $id = (string) ($response->toArray()['id'] ?? '');
             if ('' === $id) {
-                throw new \RuntimeException('OpenAI Files upload did not return a file ID.');
+                throw new \RuntimeException('MSC.vsau_err_upload_no_id');
             }
 
             return $id;
