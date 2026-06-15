@@ -150,6 +150,7 @@
         .vsau-actions .tl_submit.vsau-stop { background: #e53935; border-color: #e53935; }
         .vsau-actions .tl_submit.vsau-stop:hover { background: #c62828; }
         .vsau-actions-hint { font-size: 12px; color: var(--text-secondary, #9aa0ad); }
+        .vsau-recent-hint { font-size: 13px; line-height: 1.55; margin: -0.5rem 0 1.25rem; }
 
         .vsau-gate { border-radius: 0.75rem; padding: 1.1rem 1.25rem; border: 1px solid var(--active-bg); border-left: 4px solid #2196f3; font-size: 13px; }
 
@@ -452,6 +453,7 @@
                 <span class="vsau-title">{{ 'MSC.vsau_recent_runs'|trans({}, 'contao_default') }}</span>
                 <a href="{{ manage_log_url }}" class="tl_submit" style="margin-left: auto;">{{ 'MSC.vsau_manage_log'|trans({}, 'contao_default') }}</a>
             </div>
+            <p class="vsau-recent-hint">{{ 'MSC.vsau_recent_files_hint'|trans({}, 'contao_default') }}</p>
             {% if log is empty %}
                 <p class="vsau-actions-hint">{{ 'MSC.vsau_no_runs'|trans({}, 'contao_default') }}</p>
             {% else %}
