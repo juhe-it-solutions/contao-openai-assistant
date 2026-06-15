@@ -159,6 +159,36 @@
         .vsau-dl { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 11px; text-decoration: underline; white-space: nowrap; }
         .vsau-dl svg { width: 12px; height: 12px; fill: currentColor; }
 
+        .vsau-info { position: relative; display: inline-flex; align-items: center; margin-left: 5px; vertical-align: middle; }
+        .vsau-info-icon { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; padding: 0; border: 0; background: none; cursor: help; color: var(--text-secondary, #9aa0ad); }
+        .vsau-info-icon svg { width: 14px; height: 14px; fill: currentColor; }
+        .vsau-info-icon:hover, .vsau-info-icon:focus-visible { color: #4ea1ff; }
+        .vsau-info-pop {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 240px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: var(--invert-bg);
+            color: var(--invert-text);
+            font-size: 12px;
+            font-weight: 400;
+            line-height: 1.5;
+            text-align: left;
+            white-space: normal;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.12s ease, visibility 0.12s ease;
+            z-index: 20;
+        }
+        .vsau-info:hover .vsau-info-pop,
+        .vsau-info:focus-within .vsau-info-pop { opacity: 1; visibility: visible; pointer-events: auto; }
+        .vsau-info-pop a { color: #4ea1ff; text-decoration: underline; }
+
         .vsau-stat-hint { font-size: 11px; line-height: 1.45; color: var(--text-secondary, #9aa0ad); margin-bottom: 0.7rem; }
 
         .vsau-setup .vsau-badge { margin-left: 8px; }
@@ -432,7 +462,18 @@
                             <th>{{ 'MSC.vsau_col_model'|trans({}, 'contao_default') }}</th>
                             <th>{{ 'MSC.vsau_col_pages'|trans({}, 'contao_default') }}</th>
                             <th>{{ 'MSC.vsau_col_tokens_in'|trans({}, 'contao_default') }}</th>
-                            <th>{{ 'MSC.vsau_col_tokens_out'|trans({}, 'contao_default') }}</th>
+                            <th>
+                                {{ 'MSC.vsau_col_tokens_out'|trans({}, 'contao_default') }}
+                                <span class="vsau-info">
+                                    <button type="button" class="vsau-info-icon" aria-label="{{ 'MSC.vsau_cost_tooltip'|trans({}, 'contao_default') }}">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                                    </button>
+                                    <span class="vsau-info-pop" role="tooltip">
+                                        {{ 'MSC.vsau_cost_tooltip'|trans({}, 'contao_default') }}
+                                        <a href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">{{ 'MSC.vsau_cost_tooltip_link'|trans({}, 'contao_default') }}</a>
+                                    </span>
+                                </span>
+                            </th>
                             <th>{{ 'MSC.vsau_col_duration'|trans({}, 'contao_default') }}</th>
                             <th>{{ 'MSC.vsau_col_file_id'|trans({}, 'contao_default') }}</th>
                             <th>{{ 'MSC.vsau_col_message'|trans({}, 'contao_default') }}</th>
@@ -456,7 +497,7 @@
                                 <td>{{ row.pages }}</td>
                                 <td>{{ row.tokens_in }}</td>
                                 <td>{{ row.tokens_out }}</td>
-                                <td>{{ row.duration }}s</td>
+                                <td>{{ '%02d:%02d:%02d'|format(row.duration // 3600, (row.duration // 60) % 60, row.duration % 60) }}</td>
                                 <td>
                                     <code>{{ row.file_id }}</code>
                                     {% if row.has_document %}

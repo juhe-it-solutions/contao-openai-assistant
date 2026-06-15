@@ -288,8 +288,8 @@
                 <target>Indexierungsmodus</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_mode.1">
-                <source><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen – ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung (Premium).</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite; die Einstellungen „Generierungsmodell“ und „Anweisungen“ gelten nur in diesem Modus.]]></source>
-                <target><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen – ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung (Premium).</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite; die Einstellungen „Generierungsmodell“ und „Anweisungen“ gelten nur in diesem Modus.]]></target>
+                <source><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen – ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung.</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite; die Einstellungen „Generierungsmodell“ und „Anweisungen“ gelten nur in diesem Modus.]]></source>
+                <target><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen – ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung.</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite; die Einstellungen „Generierungsmodell“ und „Anweisungen“ gelten nur in diesem Modus.]]></target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_mode_ref.faithful">
                 <source>Faithful — upload full page content (recommended)</source>
@@ -297,7 +297,7 @@
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_mode_ref.llm_polish">
                 <source>AI polish — rewrite each page with an AI model (premium)</source>
-                <target>KI-Aufbereitung – jede Seite mit einem KI-Modell umschreiben (Premium)</target>
+                <target>KI-Aufbereitung – jede Seite mit einem KI-Modell umschreiben</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_model.0">
                 <source>Generation model</source>
@@ -340,8 +340,8 @@
                 <target>Ihre Auswahl umfasst %1$s Seiten, Ihr aktueller Tarif erlaubt jedoch höchstens %2$s. Reduzieren Sie die Auswahl oder führen Sie ein Upgrade durch; die vorherige Auswahl wurde beibehalten.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.0">
-                <source>Instructions for the knowledge document</source>
-                <target>Anweisungen für die Wissensdatei</target>
+                <source>System prompt for AI processing of the content</source>
+                <target>System-Prompt für KI-Aufbereitung der Inhalte</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.1">
                 <source>Defines how your website texts are turned into the chatbot knowledge file during automatic sync. The default works for most sites — change it only if you want a different focus, style, or structure.</source>

@@ -248,12 +248,20 @@
                 <target>Dauer</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_col_file_id">
-                <source>File ID</source>
-                <target>Datei-ID</target>
+                <source>File</source>
+                <target>Datei</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_col_message">
                 <source>Message</source>
                 <target>Meldung</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cost_tooltip">
+                <source>These are token counts. The OpenAI API does not report costs; see your actual billed usage in the OpenAI dashboard.</source>
+                <target>Dies sind Token-Zahlen. Die OpenAI-API liefert keine Kosten; Ihre tatsächlich abgerechnete Nutzung sehen Sie im OpenAI-Dashboard.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cost_tooltip_link">
+                <source>Open OpenAI usage dashboard</source>
+                <target>OpenAI-Nutzungs-Dashboard öffnen</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_col_source">
                 <source>Trigger</source>

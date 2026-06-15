@@ -288,16 +288,16 @@
                 <target>Indexing mode</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_mode.1">
-                <source><![CDATA[<strong>Faithful (recommended).</strong> Every selected page is uploaded as its own document with no character or page limit. Navigation, menus and footers that repeat across pages are removed automatically, but your real content is never altered or shortened. No AI cost.<br><br><strong>AI polish (premium).</strong> Each page is additionally rewritten by an AI model into a denser knowledge document before upload. Because the model only ever sees one page at a time, it can never drop or confuse content from other pages. This can improve answers on messy sources but costs tokens per page; the "Generation model" and "Instructions" settings below apply only in this mode.]]></source>
-                <target><![CDATA[<strong>Faithful (recommended).</strong> Every selected page is uploaded as its own document with no character or page limit. Navigation, menus and footers that repeat across pages are removed automatically, but your real content is never altered or shortened. No AI cost.<br><br><strong>AI polish (premium).</strong> Each page is additionally rewritten by an AI model into a denser knowledge document before upload. Because the model only ever sees one page at a time, it can never drop or confuse content from other pages. This can improve answers on messy sources but costs tokens per page; the "Generation model" and "Instructions" settings below apply only in this mode.]]></target>
+                <source><![CDATA[<strong>Faithful (recommended).</strong> Every selected page is uploaded as its own document with no character or page limit. Navigation, menus and footers that repeat across pages are removed automatically, but your real content is never altered or shortened. No AI cost.<br><br><strong>AI polish.</strong> Each page is additionally rewritten by an AI model into a denser knowledge document before upload. Because the model only ever sees one page at a time, it can never drop or confuse content from other pages. This can improve answers on messy sources but costs tokens per page; the "Generation model" and "Instructions" settings below apply only in this mode.]]></source>
+                <target><![CDATA[<strong>Faithful (recommended).</strong> Every selected page is uploaded as its own document with no character or page limit. Navigation, menus and footers that repeat across pages are removed automatically, but your real content is never altered or shortened. No AI cost.<br><br><strong>AI polish.</strong> Each page is additionally rewritten by an AI model into a denser knowledge document before upload. Because the model only ever sees one page at a time, it can never drop or confuse content from other pages. This can improve answers on messy sources but costs tokens per page; the "Generation model" and "Instructions" settings below apply only in this mode.]]></target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_mode_ref.faithful">
                 <source>Faithful — upload full page content (recommended)</source>
                 <target>Faithful — upload full page content (recommended)</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_mode_ref.llm_polish">
-                <source>AI polish — rewrite each page with an AI model (premium)</source>
-                <target>AI polish — rewrite each page with an AI model (premium)</target>
+                <source>AI polish — rewrite each page with an AI model</source>
+                <target>AI polish — rewrite each page with an AI model</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_model.0">
                 <source>Generation model</source>
@@ -340,8 +340,8 @@
                 <target>Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.0">
-                <source>Instructions for the knowledge document</source>
-                <target>Instructions for the knowledge document</target>
+                <source>System prompt for AI processing of the content</source>
+                <target>System prompt for AI processing of the content</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.1">
                 <source>Defines how your website texts are turned into the chatbot knowledge file during automatic sync. The default works for most sites — change it only if you want a different focus, style, or structure.</source>

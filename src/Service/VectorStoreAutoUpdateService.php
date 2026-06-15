@@ -477,7 +477,7 @@ class VectorStoreAutoUpdateService
 
         // A low temperature keeps the rewrite deterministic. Reasoning models (o-series,
         // gpt-5 reasoning, ...) reject a custom temperature, however. Rather than maintain a
-        // model allow-list, send 0.3 and - if the API rejects it - retry once without the
+        // model allow-list, send 0.2 and - if the API rejects it - retry once without the
         // parameter, so any current or future model still works.
         $payload = [
             'model' => $model,
@@ -485,7 +485,7 @@ class VectorStoreAutoUpdateService
                 ['role' => 'system', 'content' => $systemPrompt],
                 ['role' => 'user', 'content' => $pageContent],
             ],
-            'temperature' => 0.3,
+            'temperature' => 0.2,
         ];
 
         [$status, $data] = $this->postChatCompletion($apiKey, $payload);

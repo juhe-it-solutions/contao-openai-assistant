@@ -262,6 +262,11 @@
         toggle.textContent = "(" + (collapsed ? pickerLabels().show : pickerLabels().hide) + ")";
     }
 
+    function summaryText(count) {
+        var labels = pickerLabels();
+        return count === 1 ? "1 " + labels.selectedOne : count + " " + labels.selected;
+    }
+
     function summarizePagePicker() {
         var list = document.getElementById("sort_auto_update_site_root");
         if (!list) {
@@ -273,16 +278,26 @@
             return;
         }
 
-        var count = list.querySelectorAll(":scope > li").length;
         var summary = container.querySelector(".oaa-picker-summary");
 
-        // Already summarised for this exact count — avoid re-collapsing after the user
-        // expands it (and prevents a MutationObserver feedback loop on our own changes).
-        if (summary && summary.dataset.count === String(count)) {
+        // We tag each list node we've collapsed. A node we've already handled is
+        // left in whatever state the user put it (so a manual "show" stays open),
+        // we only keep its count label fresh. The picker's "apply" re-renders the
+        // field with a BRAND-NEW, expanded list node that carries no tag — that is
+        // the case we must always re-collapse, and the marker lets us tell the two
+        // apart (the old count-based guard failed when the count was unchanged).
+        if (list.dataset.oaaSummarized === "1") {
+            if (summary) {
+                var countEl = summary.querySelector(".oaa-picker-count");
+                if (countEl) {
+                    countEl.textContent = summaryText(list.querySelectorAll(":scope > li").length);
+                }
+            }
             return;
         }
+        list.dataset.oaaSummarized = "1";
 
-        var labels = pickerLabels();
+        var count = list.querySelectorAll(":scope > li").length;
 
         if (!summary) {
             summary = document.createElement("p");
@@ -294,14 +309,19 @@
                     return;
                 }
                 e.preventDefault();
-                list.classList.toggle("oaa-picker-collapsed");
-                setPickerToggle(summary, list);
+                // Resolve the current list at click time: the summary element is
+                // reused across re-renders, so the node captured at bind time may
+                // be stale/detached.
+                var current = document.getElementById("sort_auto_update_site_root");
+                if (!current) {
+                    return;
+                }
+                current.classList.toggle("oaa-picker-collapsed");
+                setPickerToggle(summary, current);
             });
         }
 
-        summary.dataset.count = String(count);
-        var text = count === 1 ? "1 " + labels.selectedOne : count + " " + labels.selected;
-        summary.innerHTML = '<span class="oaa-picker-count">' + text + "</span>"
+        summary.innerHTML = '<span class="oaa-picker-count">' + summaryText(count) + "</span>"
             + (count > 0 ? ' <a href="#" class="oaa-picker-toggle"></a>' : "");
 
         list.classList.add("oaa-picker-collapsed");

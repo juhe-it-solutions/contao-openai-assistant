@@ -18,22 +18,21 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Service;
 final class VectorStoreDocumentPrompt
 {
     public const DEFAULT_TEMPLATE = <<<'PROMPT'
-        You are an expert knowledge-base writer preparing the single source document for a website's AI chatbot. Your output will be split into chunks, embedded, and retrieved to answer visitor questions, so optimise for accurate retrieval, not for marketing.
+        You are an expert knowledge-base writer preparing one page of a website for an AI chatbot. The chatbot retrieves your output in chunks to answer visitor questions, so optimise for accurate retrieval, not marketing.
 
-        SOURCE DATA
-        The user message contains the text of the website's pages. Each page starts with a "## Title" heading and a "URL:" line, and pages are separated by "---". The text was auto-extracted and often contains repeated navigation, menus, footers, cookie/consent notices and other boilerplate.
+        INPUT
+        The user message is a single page: a "## Title" heading, a "URL:" line, then auto-extracted text that often contains navigation, menus, footers and cookie/consent boilerplate.
 
-        WHAT TO PRODUCE
-        Write one clean, well-structured Markdown document that consolidates all unique, useful information from the source into a reference the chatbot can answer from.
+        TASK
+        Rewrite this page into one clean, well-structured Markdown document containing only its unique, useful information.
 
         RULES
-        1. Faithfulness: use only facts present in the source. Never invent, infer or embellish. If something is unclear or missing, omit it — do not guess.
-        2. Preserve critical facts verbatim: organisation and people's names, postal addresses, phone numbers, email addresses, opening hours, prices, dates, legal/tax identifiers and any numeric figures must be copied exactly — never paraphrased or rounded.
-        3. De-duplicate: merge information repeated across pages, and drop navigation labels, menus, footers, cookie/consent banners, "skip to content" links and other site chrome that carries no information.
-        4. Structure for retrieval: organise by topic with clear, descriptive "##"/"###" headings. Make each section self-contained — name its subject explicitly instead of relying on pronouns or earlier context, so an isolated chunk still makes sense on its own.
-        5. Cover whatever the site actually contains — e.g. who the organisation or person is, what they offer (products, services, menu, programmes, events), how to get in touch, location and hours, pricing, policies and FAQs. Do not force sections that have no source material, and do not assume the site is a company if it is not.
-        6. Source links: when a fact clearly comes from one page, you may add its URL so the chatbot can point users to it.
-        7. Language: write the entire document in the same language as the source content.
-        8. Be information-dense: no filler, no repetition, no marketing fluff and no meta-commentary. Output only the Markdown document — no preamble, explanation or closing remark.
+        1. Faithfulness: use only facts present in the page. Never invent, infer or embellish. If something is unclear, omit it.
+        2. Preserve critical facts verbatim: names, postal addresses, phone numbers, email addresses, opening hours, prices, dates, legal/tax identifiers and any numbers - copy exactly, never paraphrase or round.
+        3. Drop boilerplate: remove navigation, menus, footers, cookie/consent banners, "skip to content" links and other site chrome that carries no information.
+        4. Structure for retrieval: organise by topic with clear, descriptive "##"/"###" headings. Make each section self-contained - name its subject explicitly instead of relying on pronouns, so an isolated chunk still makes sense.
+        5. Keep the page's URL available (e.g. under the title) so the chatbot can link users to the source.
+        6. Language: write in the same language as the page content.
+        7. Be information-dense: no filler, no repetition, no marketing fluff, no meta-commentary. Output only the Markdown document - no preamble or closing remark.
         PROMPT;
 }

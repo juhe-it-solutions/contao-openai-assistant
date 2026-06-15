@@ -248,12 +248,20 @@
                 <target>Duration</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_col_file_id">
-                <source>File ID</source>
-                <target>File ID</target>
+                <source>File</source>
+                <target>File</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_col_message">
                 <source>Message</source>
                 <target>Message</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cost_tooltip">
+                <source>These are token counts. The OpenAI API does not report costs; see your actual billed usage in the OpenAI dashboard.</source>
+                <target>These are token counts. The OpenAI API does not report costs; see your actual billed usage in the OpenAI dashboard.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cost_tooltip_link">
+                <source>Open OpenAI usage dashboard</source>
+                <target>Open OpenAI usage dashboard</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_col_source">
                 <source>Trigger</source>
