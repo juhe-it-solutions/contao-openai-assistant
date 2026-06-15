@@ -365,5 +365,11 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         'premium_license_max_pages' => [
             'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
+        // Stable, non-secret per-installation id generated on first license validation and
+        // sent to the licensing server (header X-Install-Id) so it can tell apart legitimate
+        // domain moves from one key being shared across several live installs. Spec §16.
+        'premium_license_install_id' => [
+            'sql' => ['type' => 'string', 'length' => 64, 'default' => ''],
+        ],
     ],
 ];

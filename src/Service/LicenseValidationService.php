@@ -99,10 +99,11 @@ class LicenseValidationService
                 'GET',
                 self::VALIDATION_URL,
                 [
-                    // Send the key in a header, not the URL, so it never lands in access logs.
-                    'headers' => [
-                        'X-License-Key' => $key,
-                    ],
+                    // Send the key (and the non-secret install signals) in headers, not the
+                    // URL, so they never land in access logs. The domain + stable install id
+                    // let the licensing server tell legitimate domain moves apart from one
+                    // key shared across several live installs (spec §16).
+                    'headers' => $this->buildValidationHeaders($key, $configId),
                     'timeout' => 10,
                 ],
             );
@@ -155,8 +156,9 @@ class LicenseValidationService
                 'GET',
                 self::VALIDATION_URL,
                 [
-                    // Send the key in a header, not the URL, so it never lands in access logs.
-                    'headers' => ['X-License-Key' => $key],
+                    // Pre-save "check key" button: send the key + domain, but no install id, so
+                    // the server records no seat for a key that may not yet be saved/owned.
+                    'headers' => $this->buildValidationHeaders($key, null),
                     'timeout' => 10,
                 ],
             );
@@ -167,6 +169,82 @@ class LicenseValidationService
         } catch (\Throwable) {
             return false;
         }
+    }
+
+    /**
+     * Build the headers for a validation request. The key is always sent; the install id is
+     * added only when a config id is given (persisted revalidation), and the domain whenever
+     * it can be resolved. All three go in headers so they stay out of access-log URLs.
+     *
+     * @return array<string, string>
+     */
+    private function buildValidationHeaders(string $key, int|null $configId): array
+    {
+        $headers = ['X-License-Key' => $key];
+
+        if (null !== $configId) {
+            $installId = $this->resolveInstallId($configId);
+            if ('' !== $installId) {
+                $headers['X-Install-Id'] = $installId;
+            }
+        }
+
+        $domain = $this->resolveSiteDomain();
+        if (null !== $domain) {
+            $headers['X-Install-Domain'] = $domain;
+        }
+
+        return $headers;
+    }
+
+    /**
+     * Stable, non-secret per-installation id. Generated once on first validation and stored
+     * on the config record; identifies "the same install" even if its domain later changes.
+     */
+    private function resolveInstallId(int $configId): string
+    {
+        $existing = $this->connection->fetchOne(
+            'SELECT premium_license_install_id FROM tl_openai_config WHERE id = ?',
+            [$configId],
+        );
+
+        if (\is_string($existing) && '' !== $existing) {
+            return $existing;
+        }
+
+        $installId = bin2hex(random_bytes(16));
+        $this->connection->executeStatement(
+            'UPDATE tl_openai_config SET premium_license_install_id = ? WHERE id = ?',
+            [$installId, $configId],
+        );
+
+        return $installId;
+    }
+
+    /**
+     * Resolve the site's canonical domain on the CLI (no request available): prefer the
+     * configured root-page DNS, then fall back to the host of the most recently indexed
+     * search URL. Returns null if neither is set (seat then stays untracked — fine for soft
+     * enforcement). The licensing server normalizes/strips the value further.
+     */
+    private function resolveSiteDomain(): string|null
+    {
+        $dns = $this->connection->fetchOne(
+            "SELECT dns FROM tl_page WHERE type = 'root' AND dns != '' ORDER BY id ASC LIMIT 1",
+        );
+        if (\is_string($dns) && '' !== trim($dns)) {
+            return trim($dns);
+        }
+
+        $url = $this->connection->fetchOne('SELECT url FROM tl_search ORDER BY tstamp DESC LIMIT 1');
+        if (\is_string($url) && '' !== $url) {
+            $host = parse_url($url, PHP_URL_HOST);
+            if (\is_string($host) && '' !== $host) {
+                return $host;
+            }
+        }
+
+        return null;
     }
 
     private function isCacheFresh(string $status, int $checkedAt): bool
