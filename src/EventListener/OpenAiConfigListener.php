@@ -700,7 +700,7 @@ class OpenAiConfigListener
             .'@media (max-width:576px){.premium-license-intro .openai-license-help-link{width:100%%}}'
             .'</style>'
             .'<div class="tl_message" style="padding: 1rem; background: var(--info-bg); border-radius: 1rem; border: 1px solid var(--active-bg);">'
-            .'<p class="tl_info" style="background: transparent url(icons/show.svg) no-repeat 11px 12px;">%s</p>'
+            .'<p class="tl_info" style="background: transparent url(system/themes/flexible/icons/show.svg) no-repeat 11px 12px;">%s</p>'
             .'</div>'
             .'</div>',
             $content,

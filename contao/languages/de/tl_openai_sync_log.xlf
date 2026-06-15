@@ -55,8 +55,8 @@
                 <target>Token (Ausgabe)</target>
             </trans-unit>
             <trans-unit id="tl_openai_sync_log.duration">
-                <source>Duration (s)</source>
-                <target>Dauer (s)</target>
+                <source>Duration</source>
+                <target>Dauer</target>
             </trans-unit>
             <trans-unit id="tl_openai_sync_log.file_id">
                 <source>File ID</source>

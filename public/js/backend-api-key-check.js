@@ -267,7 +267,15 @@
         return count === 1 ? "1 " + labels.selectedOne : count + " " + labels.selected;
     }
 
-    function summarizePagePicker() {
+    // Collapse the page list into its count. Idempotent and observer-safe: a summary
+    // already sitting in the container means this exact list instance is handled, so
+    // we only refresh the count and DO NOT touch the collapsed state (a manual "show"
+    // stays open). When the picker "apply" replaces the whole .selector_container it
+    // takes our summary with it, so the next call sees a fresh, expanded list with no
+    // summary and re-collapses it. That keyed-on-summary check replaces the old
+    // node-marker, which failed because we relied on the body-wide MutationObserver
+    // catching the swap rather than the deterministic post-apply signal below.
+    function ensurePagePickerCollapsed() {
         var list = document.getElementById("sort_auto_update_site_root");
         if (!list) {
             return;
@@ -278,49 +286,20 @@
             return;
         }
 
+        var count = list.querySelectorAll(":scope > li").length;
         var summary = container.querySelector(".oaa-picker-summary");
 
-        // We tag each list node we've collapsed. A node we've already handled is
-        // left in whatever state the user put it (so a manual "show" stays open),
-        // we only keep its count label fresh. The picker's "apply" re-renders the
-        // field with a BRAND-NEW, expanded list node that carries no tag — that is
-        // the case we must always re-collapse, and the marker lets us tell the two
-        // apart (the old count-based guard failed when the count was unchanged).
-        if (list.dataset.oaaSummarized === "1") {
-            if (summary) {
-                var countEl = summary.querySelector(".oaa-picker-count");
-                if (countEl) {
-                    countEl.textContent = summaryText(list.querySelectorAll(":scope > li").length);
-                }
+        if (summary) {
+            var countEl = summary.querySelector(".oaa-picker-count");
+            if (countEl) {
+                countEl.textContent = summaryText(count);
             }
             return;
         }
-        list.dataset.oaaSummarized = "1";
 
-        var count = list.querySelectorAll(":scope > li").length;
-
-        if (!summary) {
-            summary = document.createElement("p");
-            summary.className = "oaa-picker-summary";
-            container.insertBefore(summary, list);
-            summary.addEventListener("click", function (e) {
-                var toggle = e.target.closest(".oaa-picker-toggle");
-                if (!toggle) {
-                    return;
-                }
-                e.preventDefault();
-                // Resolve the current list at click time: the summary element is
-                // reused across re-renders, so the node captured at bind time may
-                // be stale/detached.
-                var current = document.getElementById("sort_auto_update_site_root");
-                if (!current) {
-                    return;
-                }
-                current.classList.toggle("oaa-picker-collapsed");
-                setPickerToggle(summary, current);
-            });
-        }
-
+        summary = document.createElement("p");
+        summary.className = "oaa-picker-summary";
+        container.insertBefore(summary, list);
         summary.innerHTML = '<span class="oaa-picker-count">' + summaryText(count) + "</span>"
             + (count > 0 ? ' <a href="#" class="oaa-picker-toggle"></a>' : "");
 
@@ -328,10 +307,49 @@
         setPickerToggle(summary, list);
     }
 
+    // Bind the picker's document-level listeners exactly once. init() runs on every
+    // MutationObserver tick, so per-instance binding here would stack up handlers.
+    var pickerDelegatesBound = false;
+
+    function bindPagePickerDelegates() {
+        if (pickerDelegatesBound) {
+            return;
+        }
+        pickerDelegatesBound = true;
+
+        // Toggle show/hide. The summary and list are re-created on every apply, so we
+        // delegate on document and resolve both nodes fresh at click time.
+        document.addEventListener("click", function (e) {
+            var toggle = e.target.closest && e.target.closest(".oaa-picker-toggle");
+            if (!toggle) {
+                return;
+            }
+            e.preventDefault();
+            var list = document.getElementById("sort_auto_update_site_root");
+            var summary = toggle.closest(".oaa-picker-summary");
+            if (!list || !summary) {
+                return;
+            }
+            list.classList.toggle("oaa-picker-collapsed");
+            setPickerToggle(summary, list);
+        });
+
+        // Deterministic post-apply hook: core's PageTree picker callback replaces the
+        // selector_container HTML and then dispatches a bubbling "change" on the hidden
+        // control (see core PageTree.php). At that point the new list is fully in the
+        // DOM, so collapsing here avoids any flash and the body-wide observer race.
+        document.addEventListener("change", function (e) {
+            if (e.target && e.target.id === "ctrl_auto_update_site_root") {
+                ensurePagePickerCollapsed();
+            }
+        });
+    }
+
     function init() {
         document.querySelectorAll('button[id^="apiKeyCheck_"]').forEach(bindApiKeyButton);
         document.querySelectorAll(".license-key-check-button").forEach(bindLicenseKeyButton);
-        summarizePagePicker();
+        bindPagePickerDelegates();
+        ensurePagePickerCollapsed();
 
         if (window.contaoOpenAiAutoUpdate) {
             syncAutoUpdateLicenseState();

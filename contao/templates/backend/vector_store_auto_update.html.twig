@@ -156,6 +156,8 @@
         table.vsau-log { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
         table.vsau-log th, table.vsau-log td { border: 1px solid var(--active-bg); padding: 8px 10px; text-align: left; font-size: 12px; vertical-align: top; }
         table.vsau-log th { font-weight: 700; background: rgba(0, 0, 0, 0.08); }
+        table.vsau-log td.col-message .vsau-msg { display: block; max-width: 360px; overflow-wrap: anywhere; }
+        table.vsau-log td.col-file code { overflow-wrap: anywhere; }
         .vsau-dl { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 11px; text-decoration: underline; white-space: nowrap; }
         .vsau-dl svg { width: 12px; height: 12px; fill: currentColor; }
 
@@ -211,7 +213,7 @@
 
     {% if configs is empty %}
         <div class="tl_message" style="padding: 1rem; background: var(--info-bg); border-radius: 1rem; border: 1px solid var(--active-bg);">
-            <p class="tl_info" style="background: transparent url(icons/show.svg) no-repeat 11px 12px;">
+            <p class="tl_info" style="background: transparent url({{ asset('system/themes/flexible/icons/show.svg') }}) no-repeat 11px 12px;">
                 <strong style="display: block; font-size: 22px; position: relative; top: -5px;">{{ 'MSC.vsau_premium_heading'|trans({}, 'contao_default') }}</strong>
                 <span style="display: flex; gap: 16px; align-items: center; margin-top: 10px;">
                     <a href="{{ purchase_url }}" target="_blank" rel="noopener noreferrer" style="flex-shrink: 0;">
@@ -475,8 +477,8 @@
                                 </span>
                             </th>
                             <th>{{ 'MSC.vsau_col_duration'|trans({}, 'contao_default') }}</th>
-                            <th>{{ 'MSC.vsau_col_file_id'|trans({}, 'contao_default') }}</th>
-                            <th>{{ 'MSC.vsau_col_message'|trans({}, 'contao_default') }}</th>
+                            <th class="col-file">{{ 'MSC.vsau_col_file_id'|trans({}, 'contao_default') }}</th>
+                            <th class="col-message">{{ 'MSC.vsau_col_message'|trans({}, 'contao_default') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -498,7 +500,7 @@
                                 <td>{{ row.tokens_in }}</td>
                                 <td>{{ row.tokens_out }}</td>
                                 <td>{{ '%02d:%02d:%02d'|format(row.duration // 3600, (row.duration // 60) % 60, row.duration % 60) }}</td>
-                                <td>
+                                <td class="col-file">
                                     <code>{{ row.file_id }}</code>
                                     {% if row.has_document %}
                                         <a class="vsau-dl" href="{{ path('vector_store_auto_update', {download: row.id}) }}">
@@ -507,7 +509,7 @@
                                         </a>
                                     {% endif %}
                                 </td>
-                                <td>{{ row.message }}</td>
+                                <td class="col-message"><span class="vsau-msg">{{ row.message }}</span></td>
                             </tr>
                         {% endfor %}
                     </tbody>

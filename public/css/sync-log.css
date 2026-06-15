@@ -1,0 +1,63 @@
+/*
+ * Styling for the read-only "OpenAI Sync-Protokoll" listing (tl_openai_sync_log).
+ * Loaded only on that backend page (see OpenAiSyncLogListener::loadStylesheet) so
+ * these rules never affect other DC_Table listings. The look mirrors the
+ * "Letzte Synchronisierungen" card on the vector-store-auto-update dashboard.
+ */
+
+/* Card around the whole listing */
+#tl_listing.tl_listing_container.list_view {
+    background: var(--info-bg);
+    border: 1px solid var(--active-bg);
+    border-radius: 1rem;
+    padding: 1.25rem 1.5rem 1.5rem;
+    margin-top: 1rem;
+}
+
+/* Table */
+#tl_listing table.tl_listing.showColumns {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+#tl_listing table.tl_listing.showColumns th,
+#tl_listing table.tl_listing.showColumns td {
+    border: 1px solid var(--active-bg);
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 12px;
+    vertical-align: top;
+}
+#tl_listing table.tl_listing.showColumns thead th {
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.08);
+}
+
+/* Cap the message column instead of letting it stretch the whole table */
+#tl_listing table.tl_listing.showColumns td.col_message {
+    max-width: 360px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+/* File IDs are long unbroken tokens - let them wrap rather than widen the column */
+#tl_listing table.tl_listing.showColumns td.col_file_id {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+/* Status badge - mirrors .vsau-badge on the dashboard */
+#tl_listing .vsau-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+#tl_listing .vsau-badge.green { background: #43a047; }
+#tl_listing .vsau-badge.red   { background: #e53935; }
+#tl_listing .vsau-badge.amber { background: #f59e0b; color: #1a1a1a; }
+#tl_listing .vsau-badge.grey  { background: #757575; }
