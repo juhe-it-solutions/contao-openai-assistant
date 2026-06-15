@@ -9,6 +9,21 @@
         .vsau-badge.blue   { background: #2196f3; }
         .vsau-badge.grey   { background: #757575; }
 
+        .vsau-spinner {
+            display: inline-block;
+            width: 11px; height: 11px;
+            margin-right: 6px;
+            vertical-align: -1px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: vsau-spin 0.7s linear infinite;
+        }
+        @keyframes vsau-spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) {
+            .vsau-spinner { animation-duration: 2s; }
+        }
+
         .vsau-toolbar {
             display: flex;
             justify-content: flex-end;
@@ -298,7 +313,7 @@
                             {% elseif st == 'error' %}
                                 <span class="vsau-badge red">{{ 'MSC.vsau_sync_error'|trans({}, 'contao_default') }}</span>
                             {% elseif st == 'running' %}
-                                <span class="vsau-badge blue">{{ 'MSC.vsau_sync_running'|trans({}, 'contao_default') }}</span>
+                                <span class="vsau-badge blue"><span class="vsau-spinner" aria-hidden="true"></span>{{ 'MSC.vsau_sync_running'|trans({}, 'contao_default') }}</span>
                             {% elseif st == 'queued' %}
                                 <span class="vsau-badge blue">{{ 'MSC.vsau_sync_queued'|trans({}, 'contao_default') }}</span>
                                 <span class="vsau-sub">{{ 'MSC.vsau_sync_queued_hint'|trans({}, 'contao_default') }}</span>

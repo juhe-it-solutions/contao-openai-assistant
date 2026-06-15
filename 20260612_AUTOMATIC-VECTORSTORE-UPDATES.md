@@ -2,7 +2,7 @@
 
 > Status: **implemented** (phases 0-5 complete; audited)
 > Owner: JUHE IT-solutions
-> Last updated: 2026-06-14
+> Last updated: 2026-06-15
 
 Implementation reference for the redesign of the automatic vector-store sync. Each phase
 below has concrete tasks with checkboxes a coding agent can work through and tick off.
@@ -117,7 +117,7 @@ Contao (potentially thousands of pages).
 ```
 contao:crawl → read ALL in-scope pages from tl_search (uncapped)
             → safe cross-page boilerplate de-dup
-            → one cleaned file PER PAGE (split only if > OpenAI per-file limit)
+            → one cleaned file PER PAGE (split only if > 2,000,000-char safety ceiling)
             → incremental diff vs stored state (content hash)
             → upload new/changed (one file per page, with attributes), delete removed
             → (optional) per-page LLM polish, default OFF
@@ -202,15 +202,16 @@ Indexes: `pid`, `(pid, page_id)`, `openai_file_id`.
 - [x] `readAllPages(int $configId): array` — same scoping as `readSearchIndex()` but **no
       `maxChars`**; returns `page_id, url, title, text, language, checksum` for every page.
 - [x] New `VectorStoreFileSync` collaborator (or methods on the service) that:
-  - [x] builds per-page document content (`# title` + body; URL kept as attribute, not inline noise);
+  - [x] builds per-page document content (`# title` + body; URL kept **both inline** (`Quelle: <url>`, so retrieved chunks can be cited) **and** as a file attribute);
   - [x] uploads one file per page via `POST /v1/files` (`purpose=assistants`);
   - [x] attaches each file via **`POST /v1/vector_stores/{id}/files`** with `attributes`
         (`page_id`, `url`, `title`, `language`, `content_hash`, `chunk`). **Deviation:** uses
         single-file create (with an attributes-rejection fallback), not `file_batches` — batches
         remain a future throughput optimisation (see §0).
   - [x] polls each file's ingestion status (`completed`/`failed`/timeout); records per-file outcome.
-  - [x] safety-net split: if a page ever exceeds a safe byte threshold, split into
-        `chunk_index` parts (expected to never trigger).
+  - [x] safety-net split: if a page ever exceeds the `MAX_FILE_CHARS` ceiling (2,000,000
+        chars), split at paragraph boundaries into `chunk_index` parts — never truncate
+        (expected to never trigger).
 - [x] Reconcile: upload all pages, then delete vector-store files + OpenAI files no longer in scope.
 - [x] Remove the char cap from the default path; `buildLlmInput()`/single-file
       upload/`generateDocument` bulk call are retired (kept only behind the optional polish toggle, Phase 4).
