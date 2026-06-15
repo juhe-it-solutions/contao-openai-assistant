@@ -82,9 +82,15 @@ class VectorStoreAutoUpdateCron
         $schedule = (string) ($config['auto_update_schedule'] ?? '') ?: '0 2 * * *';
         $status = (string) ($config['auto_update_last_status'] ?? '');
 
-        // Stale-run guard: skip while a run is still in progress (<30 min). A "queued"
-        // status does NOT block — only "running" does.
-        if ('running' === $status && time() - $lastRun < 1800) {
+        // Lease guard: skip while a run is still in flight. A live run refreshes its
+        // auto_update_last_run heartbeat, so "in flight" means a running/queued status whose
+        // lease is still fresh; once the lease goes stale the run is assumed crashed and may
+        // be taken over. "queued" is included so a just-dispatched manual run is not raced by
+        // the cron during the brief window before it flips to "running".
+        if (
+            \in_array($status, ['running', 'queued'], true)
+            && time() - $lastRun < VectorStoreAutoUpdateService::STALE_RUN_SECONDS
+        ) {
             return false;
         }
 

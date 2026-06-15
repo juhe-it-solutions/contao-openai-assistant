@@ -12,7 +12,6 @@ declare(strict_types=1);
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Service;
 
-use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
@@ -42,13 +41,19 @@ class VectorStoreFileSync
      */
     private const MAX_FILE_CHARS = 2_000_000;
 
-    /** Max seconds to wait for a single file's server-side ingestion before moving on. */
+    /**
+     * Max seconds to wait for a single file's server-side ingestion before moving on.
+     */
     private const INGEST_WAIT_SECONDS = 30;
 
-    /** How many times a rate-limited (429) or transiently failing call is retried. */
+    /**
+     * How many times a rate-limited (429) or transiently failing call is retried.
+     */
     private const MAX_RETRIES = 5;
 
-    /** Upper bound on a single backoff sleep, in seconds. */
+    /**
+     * Upper bound on a single backoff sleep, in seconds.
+     */
     private const MAX_BACKOFF_SECONDS = 60;
 
     public function __construct(
@@ -60,10 +65,11 @@ class VectorStoreFileSync
 
     /**
      * @param list<array{page_id: int, url: string, title: string, language: string, content: string, search_checksum: string}> $pages
+     * @param (callable():void)|null                                                                                            $heartbeat called once per page so the orchestrator can refresh the run lease during a long sync
      *
      * @return array{added: int, updated: int, removed: int, unchanged: int, files_uploaded: int, files_failed: int, bytes: int}
      */
-    public function sync(string $apiKey, string $vectorStoreId, int $configId, array $pages, string $legacyFileId = ''): array
+    public function sync(string $apiKey, string $vectorStoreId, int $configId, array $pages, string $legacyFileId = '', callable|null $heartbeat = null): array
     {
         // One-time cleanup: the old pipeline left a single bulk file. Remove it the first
         // time the per-page sync runs so the store does not keep a stale superset document.
@@ -86,6 +92,10 @@ class VectorStoreFileSync
         $seenPageIds = [];
 
         foreach ($pages as $page) {
+            if (null !== $heartbeat) {
+                $heartbeat();
+            }
+
             $pageId = $page['page_id'];
             $seenPageIds[$pageId] = true;
             $contentHash = hash('sha256', $page['content']);
@@ -142,6 +152,10 @@ class VectorStoreFileSync
                 continue;
             }
 
+            if (null !== $heartbeat) {
+                $heartbeat();
+            }
+
             foreach ($row['files'] as $fileId) {
                 $this->detachAndDelete($apiKey, $vectorStoreId, $fileId);
             }
@@ -177,6 +191,7 @@ class VectorStoreFileSync
         );
 
         $state = [];
+
         foreach ($rows as $row) {
             $pageId = (int) $row['page_id'];
             if (!isset($state[$pageId])) {
@@ -284,7 +299,7 @@ class VectorStoreFileSync
     {
         $tmpPath = sys_get_temp_dir().'/contao_vs_page_'.bin2hex(random_bytes(16)).'.md';
 
-        $handle = @fopen($tmpPath, 'x+b');
+        $handle = @fopen($tmpPath, 'x+');
         if (false === $handle) {
             throw new \RuntimeException('Could not create temp file for upload.');
         }
@@ -293,15 +308,19 @@ class VectorStoreFileSync
             fwrite($handle, $content);
 
             // The stream is consumed on each send, so rewind it before every (re)try.
-            $response = $this->request('POST', self::OPENAI_BASE.'/files', static function () use ($apiKey, $handle): array {
-                rewind($handle);
+            $response = $this->request(
+                'POST',
+                self::OPENAI_BASE.'/files',
+                static function () use ($apiKey, $handle): array {
+                    rewind($handle);
 
-                return [
-                    'headers' => ['Authorization' => 'Bearer '.$apiKey],
-                    'body' => ['purpose' => 'assistants', 'file' => $handle],
-                    'timeout' => 120,
-                ];
-            });
+                    return [
+                        'headers' => ['Authorization' => 'Bearer '.$apiKey],
+                        'body' => ['purpose' => 'assistants', 'file' => $handle],
+                        'timeout' => 120,
+                    ];
+                },
+            );
 
             $id = (string) ($response->toArray()['id'] ?? '');
             if ('' === $id) {
@@ -358,14 +377,18 @@ class VectorStoreFileSync
             $json['attributes'] = $attributes;
         }
 
-        $response = $this->request('POST', self::OPENAI_BASE."/vector_stores/{$vectorStoreId}/files", [
-            'headers' => [
-                'Authorization' => 'Bearer '.$apiKey,
-                'Content-Type' => 'application/json',
+        $response = $this->request(
+            'POST',
+            self::OPENAI_BASE."/vector_stores/{$vectorStoreId}/files",
+            [
+                'headers' => [
+                    'Authorization' => 'Bearer '.$apiKey,
+                    'Content-Type' => 'application/json',
+                ],
+                'json' => $json,
+                'timeout' => 60,
             ],
-            'json' => $json,
-            'timeout' => 60,
-        ]);
+        );
 
         return [$response->getStatusCode(), $response->toArray(throw: false)];
     }
@@ -380,10 +403,14 @@ class VectorStoreFileSync
         $deadline = time() + self::INGEST_WAIT_SECONDS;
 
         do {
-            $data = $this->request('GET', self::OPENAI_BASE."/vector_stores/{$vectorStoreId}/files/{$fileId}", [
-                'headers' => ['Authorization' => 'Bearer '.$apiKey],
-                'timeout' => 30,
-            ])->toArray(throw: false);
+            $data = $this->request(
+                'GET',
+                self::OPENAI_BASE."/vector_stores/{$vectorStoreId}/files/{$fileId}",
+                [
+                    'headers' => ['Authorization' => 'Bearer '.$apiKey],
+                    'timeout' => 30,
+                ],
+            )->toArray(throw: false);
 
             $status = (string) ($data['status'] ?? 'completed');
 
@@ -406,19 +433,27 @@ class VectorStoreFileSync
         }
 
         try {
-            $this->request('DELETE', self::OPENAI_BASE."/vector_stores/{$vectorStoreId}/files/{$fileId}", [
-                'headers' => ['Authorization' => 'Bearer '.$apiKey],
-                'timeout' => 30,
-            ])->getStatusCode();
+            $this->request(
+                'DELETE',
+                self::OPENAI_BASE."/vector_stores/{$vectorStoreId}/files/{$fileId}",
+                [
+                    'headers' => ['Authorization' => 'Bearer '.$apiKey],
+                    'timeout' => 30,
+                ],
+            )->getStatusCode();
         } catch (\Throwable $e) {
             $this->logger->warning('Could not detach file '.$fileId.' from vector store: '.$e->getMessage());
         }
 
         try {
-            $this->request('DELETE', self::OPENAI_BASE."/files/{$fileId}", [
-                'headers' => ['Authorization' => 'Bearer '.$apiKey],
-                'timeout' => 30,
-            ])->getStatusCode();
+            $this->request(
+                'DELETE',
+                self::OPENAI_BASE."/files/{$fileId}",
+                [
+                    'headers' => ['Authorization' => 'Bearer '.$apiKey],
+                    'timeout' => 30,
+                ],
+            )->getStatusCode();
         } catch (\Throwable $e) {
             $this->logger->warning('Could not delete file '.$fileId.' from OpenAI Files: '.$e->getMessage());
         }
@@ -431,7 +466,7 @@ class VectorStoreFileSync
      *
      * @param array<string, mixed>|\Closure(): array<string, mixed> $options
      */
-    private function request(string $method, string $url, array|\Closure $options): ResponseInterface
+    private function request(string $method, string $url, \Closure|array $options): ResponseInterface
     {
         $attempt = 0;
 

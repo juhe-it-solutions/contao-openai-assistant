@@ -85,19 +85,6 @@ class EncryptionService
     }
 
     /**
-     * Legacy key derivation (SERVER_NAME + DOCUMENT_ROOT). Differs between web and CLI,
-     * which is why it is no longer the primary key — kept for backward compatibility so
-     * values encrypted before the app-secret switch can still be decrypted.
-     */
-    private function getLegacyServerKey(): string
-    {
-        $serverName = $_SERVER['SERVER_NAME'] ?? 'localhost';
-        $documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? '/';
-
-        return hash('sha256', $serverName.$documentRoot, true);
-    }
-
-    /**
      * Encrypt API key for storage.
      */
     public function encryptApiKey(string $apiKey): string
@@ -286,6 +273,19 @@ class EncryptionService
     }
 
     /**
+     * Legacy key derivation (SERVER_NAME + DOCUMENT_ROOT). Differs between web and CLI,
+     * which is why it is no longer the primary key — kept for backward compatibility so
+     * values encrypted before the app-secret switch can still be decrypted.
+     */
+    private function getLegacyServerKey(): string
+    {
+        $serverName = $_SERVER['SERVER_NAME'] ?? 'localhost';
+        $documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? '/';
+
+        return hash('sha256', $serverName.$documentRoot, true);
+    }
+
+    /**
      * Build candidate encryption keys so CLI migrations can still decrypt keys that
      * were encrypted in web context (different SERVER_NAME/DOCUMENT_ROOT).
      *
@@ -294,7 +294,7 @@ class EncryptionService
     private function getEncryptionKeyCandidates(): array
     {
         $keys = [
-            $this->getEncryptionKey(),   // primary (app-secret based when available)
+            $this->getEncryptionKey(), // primary (app-secret based when available)
             $this->getLegacyServerKey(), // BC: values encrypted before the app-secret switch
         ];
 

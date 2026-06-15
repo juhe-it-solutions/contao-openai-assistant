@@ -1,11 +1,69 @@
 # Automatic Vector-Store Updates — Redesign Plan
 
-> Status: **implemented** (phases 0-5 complete; audited)
+> Status: **implemented** (phases 0-5 complete; audited; pre-merge reviewed 2026-06-15)
 > Owner: JUHE IT-solutions
 > Last updated: 2026-06-15
 
 Implementation reference for the redesign of the automatic vector-store sync. Each phase
 below has concrete tasks with checkboxes a coding agent can work through and tick off.
+
+## Pre-merge review & hardening (2026-06-15)
+
+Independent pre-merge review of branch `feature/auto-vectorstore-updates` against `main`.
+All quality gates now pass: `php -l`, PHPStan level 5 (0 errors), ECS (clean), and the
+`BoilerplateFilter` unit test (8 assertions). **Changes are code/tooling only — no behaviour
+regressions.**
+
+### CI blockers found and fixed
+The CI workflow (`.github/workflows/ci.yml`) gates on `ecs check`, `ecs check --fix` +
+git-clean, and PHPStan level 5. As committed, the branch would have **failed CI**:
+
+1. **PHPStan error** — `OpenAiConfigListener::removePasswordChangedMessage()` called
+   `getFlashBag()` on `SessionInterface`, which does not declare it. Fixed with a
+   `FlashBagAwareSessionInterface` instance guard.
+2. **ECS crash** — the bundled `Contao\…\CommentLengthFixer` aborts ("Cannot set empty
+   content for id-based Token") on the new files' PHPDoc array-shape annotations
+   (`@param array{…}`, `@return list<array{…}>`). **Correction to the earlier audit note:
+   this is _not_ a pre-existing environment issue** — baseline (`origin/main`) files do not
+   crash; only the branch's new comment style does. Resolved by skipping that single buggy
+   fixer in `ecs.php` (the type annotations are kept because they aid PHPStan; re-enable once
+   the upstream fixer is fixed). The new files were then formatted to the Contao standard via
+   `ecs check --fix` (whitespace, element/import ordering, array indentation — all cosmetic).
+
+### Concurrency hardening — run lease via heartbeat (supersedes the 30-min guard)
+The previous design protected against concurrent syncs only with a status + 30-minute
+stale-window heuristic. That left two gaps: (a) a sync running longer than 30 min (a large
+first sync) stopped being protected and could be raced by a sub-daily schedule tick or a
+manual "Run now" click; (b) the brief `queued` window before a dispatched run flips to
+`running` was not treated as in-flight by the cron. Two overlapping runs would upload
+**duplicate** vector-store files (doubled cost, worse retrieval).
+
+Fixed with a proper **run lease**:
+- A live run now **refreshes `auto_update_last_run` periodically** (`heartbeat()` in
+  `VectorStoreAutoUpdateService`, throttled to `HEARTBEAT_INTERVAL = 60 s`, scoped to
+  `status = 'running'`). It is called once per page from `VectorStoreFileSync::sync()` (via a
+  callback) and during the crawl — `spawnCrawl()` now **polls the process** instead of a
+  blocking `wait()` so the lease stays fresh through a long crawl (process timeout disabled).
+- The stale window (`STALE_RUN_SECONDS`) is now **public and shared** by the cron and the
+  manual dispatch guard, and **tightened to 900 s** (it only has to cover one heartbeat gap +
+  the slowest single page, not the whole sync).
+- `VectorStoreAutoUpdateCron::isDue()` now treats **both `running` and `queued`** as in-flight
+  while the lease is fresh.
+
+Net effect: a long but healthy sync keeps its lease and is never raced; a genuinely crashed
+run lets the lease go stale and is taken over on the next tick. This **resolves the
+"concurrent second run uploads duplicates" limitation** noted below; the defensive unique
+`(pid, page_id)` key (option #3) was deemed unnecessary and not added.
+
+### Other observations (not blocking; not changed)
+- **phpunit is not installed and CI has no test step** — `BoilerplateFilterTest` only runs by
+  hand (verified passing). Wiring it into CI was explicitly declined for now.
+- **Plan page-limit is enforced at config-save only**, not at sync runtime; a site that grows
+  past its plan after saving still indexes up to `MAX_CRAWL_PAGES = 5000`. Low severity.
+- **Crawl indexes the public site** (`contao:crawl`); genuinely auth-gated intranet pages may
+  never enter `tl_search`. Customer-facing caveat.
+- **`composer.lock` is not committed** (bundle convention) → CI resolves php-cs-fixer fresh;
+  watch the first CI run in case its fixer version formats differently from local.
 
 ## 0. Implementation status & key decisions
 
@@ -27,10 +85,12 @@ All five phases are implemented and audited. Highlights / deviations from the or
 - **Inspection download is now a capped manifest** (8 MB ceiling) summarising the indexed
   pages, not the uploaded payload (each page is its own vector-store file).
 - **Verification:** `BoilerplateFilter` covered by `tests/Service/BoilerplateFilterTest.php`
-  (3 cases, all green via standalone run); changed files pass PHPStan level 5. ECS cannot run
-  locally because the bundled `CommentLengthFixer` crashes on single-line `/** */` docblocks
-  (the house style) — reproduced on untouched baseline files, i.e. a pre-existing environment
-  issue, not a regression.
+  (3 cases, all green via standalone run; phpunit is not installed locally and is not run in
+  CI); all files pass PHPStan level 5 and ECS. **Correction (2026-06-15):** the earlier claim
+  that "ECS cannot run locally … a pre-existing environment issue" was wrong — the
+  `CommentLengthFixer` crash is triggered by the branch's `@param array{…}` PHPDoc shapes
+  (baseline files do not crash) and is now handled by skipping that fixer in `ecs.php`. See
+  "Pre-merge review & hardening" above.
 
 ### Manual-only trigger (added post-implementation)
 New `auto_update_trigger` field: **`scheduled`** (default, current behaviour, needs server
@@ -42,17 +102,22 @@ no server cron at all. For small/rarely-changing sites and hosts without reliabl
   - `dispatchRun()` now resets status to `error` (with a CLI-fallback message) if process
     spawning fails — e.g. `proc_open` disabled on shared hosting — so the button never sticks
     on `queued`.
-  - `dispatchRun()` gained the same 30-min stale-run escape the cron has, so a crashed manual
-    run can't lock the button forever (no cron exists to clear it in manual mode).
+  - `dispatchRun()` gained the same stale-run escape the cron has, so a crashed manual
+    run can't lock the button forever (no cron exists to clear it in manual mode). *(Updated
+    2026-06-15: the stale window is now the shared, heartbeat-refreshed `STALE_RUN_SECONDS`
+    lease — see "Pre-merge review & hardening" above.)*
   - `compileAutoUpdateSchedule()` no longer overwrites the saved schedule while in manual mode
     (prevented a "* * * * *" / every-minute schedule if the user later switched back).
 
 ### Known limitations / follow-ups (from audit)
 - **Very large first sync (thousands of pages):** uploads run sequentially with a short
-  per-file ingestion check, so an initial full sync can take a long time and may exceed the
-  cron's 30-minute stale-run guard, risking a concurrent second run that uploads duplicates.
-  Mitigation: run the first sync via CLI (`contao:openai-vector-sync <id>`); incremental runs
-  afterwards are small. Future: file-batch uploads + a longer run lease.
+  per-file ingestion check, so an initial full sync can take a long time (potentially hours).
+  ~~may exceed the cron's stale-run guard, risking a concurrent second run that uploads
+  duplicates~~ — **resolved 2026-06-15** by the heartbeat-refreshed run lease (see "Pre-merge
+  review & hardening"): a long but healthy sync keeps its lease and cannot be raced by the
+  cron or a manual click. Duration itself is unchanged; running the first sync via CLI
+  (`contao:openai-vector-sync <id>`) is still recommended so it does not hold the Contao cron
+  lock (and thus the heartbeat) for the whole duration. Future: file-batch uploads.
 - **Rate limiting (429):** handled. Every OpenAI call in `VectorStoreFileSync` goes through a
   retry wrapper with exponential backoff (1-60 s, capped, 5 attempts) that honours the
   `Retry-After` header and also retries 503 / transient transport errors. If retries are
@@ -270,7 +335,8 @@ Indexes: `pid`, `(pid, page_id)`, `openai_file_id`.
 - [x] Update help text / labels in the config + sync-log language files (EN/DE); char-cap
       field no longer shown.
 - [x] README: document the new pipeline, the `indexer::stop` guidance, the modes, and limits.
-- [x] Final `phpstan` pass (clean). `ecs` blocked locally — see Phase 1 note / §0.
+- [x] Final `phpstan` pass (clean). `ecs` now also clean (see "Pre-merge review & hardening":
+      the `CommentLengthFixer` crash was branch-specific and is skipped; the rest auto-fixed).
 
 ---
 
@@ -279,7 +345,11 @@ Indexes: `pid`, `(pid, page_id)`, `openai_file_id`.
   errors, mark the run `partial`, keep already-uploaded files.
 - **Idempotency / resumability:** the state table makes re-runs converge; a crashed run is
   healed by the next sync.
-- **Stale-run guard:** existing 30-min `running` guard in the cron remains valid.
+- **Stale-run guard / run lease:** a live run refreshes `auto_update_last_run` every
+  `HEARTBEAT_INTERVAL` (60 s); the cron (`isDue`) and manual dispatch (`dispatchRun`) treat a
+  `running`/`queued` config as in-flight while that lease is younger than the shared
+  `STALE_RUN_SECONDS` (900 s). This is the authoritative concurrency guard (replaced the old
+  fixed 30-min `running`-only window on 2026-06-15).
 - **Testing:** the bundle currently has **no test suite**. Add a minimal `tests/` for the
   pure logic (`BoilerplateFilter`, content-hash diff, scope resolution) — deterministic and
   high value. Wire `phpunit` dev dependency.

@@ -118,6 +118,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         $heartbeatLastRun = $this->heartbeatLastRun();
 
         $hasActiveConfig = false;
+
         foreach ($configs as &$config) {
             $config['license_active'] = $this->licenseValidation->isLicenseActive((int) $config['id']);
             // Manual-only configs ignore the cron entirely, so the dashboard suppresses cron
@@ -190,11 +191,15 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         $date = date('Y-m-d_His', (int) $row['run_at']);
         $filename = 'vector-store-manifest_'.$date.'.md';
 
-        return new Response((string) $row['document'], Response::HTTP_OK, [
-            'Content-Type' => 'text/markdown; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
-            'X-Content-Type-Options' => 'nosniff',
-        ]);
+        return new Response(
+            (string) $row['document'],
+            Response::HTTP_OK,
+            [
+                'Content-Type' => 'text/markdown; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+                'X-Content-Type-Options' => 'nosniff',
+            ],
+        );
     }
 
     /**

@@ -32,7 +32,9 @@ class BoilerplateFilter
      */
     private const MIN_PAGES = 4;
 
-    /** A segment is boilerplate when it appears on at least this fraction of pages. */
+    /**
+     * A segment is boilerplate when it appears on at least this fraction of pages.
+     */
     private const DEFAULT_THRESHOLD = 0.5;
 
     /**
@@ -45,8 +47,8 @@ class BoilerplateFilter
      * Clean a set of pages. Input and output are keyed identically so callers can map the
      * result back to their page records.
      *
-     * @param array<int|string, string> $texts        page key => raw extracted text
-     * @param float                     $threshold    fraction of pages a segment must hit (0-1)
+     * @param array<int|string, string> $texts     page key => raw extracted text
+     * @param float                     $threshold fraction of pages a segment must hit (0-1)
      *
      * @return array{texts: array<int|string, string>, stats: array{removed_segments: int, samples: list<string>}}
      */
@@ -66,8 +68,10 @@ class BoilerplateFilter
 
         // Pass 1: document frequency of each normalised segment (counted once per page).
         $documentFrequency = [];
+
         foreach ($texts as $text) {
             $seen = [];
+
             foreach ($this->segment((string) $text) as $segment) {
                 $norm = $this->normalise($segment);
                 if ('' === $norm || isset($seen[$norm])) {
@@ -82,6 +86,7 @@ class BoilerplateFilter
 
         // Build the boilerplate set: segments appearing on >= minPages pages.
         $boilerplate = [];
+
         foreach ($documentFrequency as $norm => $freq) {
             if ($freq >= $minPages) {
                 $boilerplate[$norm] = true;
@@ -96,6 +101,7 @@ class BoilerplateFilter
 
         foreach ($texts as $key => $text) {
             $kept = [];
+
             foreach ($this->segment((string) $text) as $segment) {
                 $norm = $this->normalise($segment);
 
@@ -144,6 +150,7 @@ class BoilerplateFilter
             // boundaries so menu items glued onto a sentence can still be isolated.
             if (mb_strlen($line) > 200) {
                 $parts = preg_split('/(?<=[.!?:])\s+/u', $line) ?: [$line];
+
                 foreach ($parts as $part) {
                     $part = trim($part);
                     if ('' !== $part) {

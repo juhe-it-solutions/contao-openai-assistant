@@ -13,8 +13,8 @@ declare(strict_types=1);
 namespace JuheItSolutions\ContaoOpenaiAssistant\Service;
 
 use Contao\CoreBundle\Util\ProcessUtil;
-use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\DBAL\Connection;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -28,29 +28,51 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  */
 class VectorStoreAutoUpdateService
 {
+    /**
+     * What triggered a sync - persisted to tl_openai_sync_log.trigger_source.
+     */
+    public const SOURCE_CRON = 'cron'; // automatic, via the schedule/heartbeat
+
+    public const SOURCE_MANUAL = 'manual'; // backend "Run sync now" button
+
+    public const SOURCE_CLI = 'cli'; // operator-run console command
+
+    public const SOURCES = [self::SOURCE_CRON, self::SOURCE_MANUAL, self::SOURCE_CLI];
+
+    /**
+     * Sync modes (tl_openai_config.auto_update_mode).
+     */
+    public const MODE_FAITHFUL = 'faithful'; // upload cleaned page text as-is (default, no LLM)
+
+    public const MODE_LLM_POLISH = 'llm_polish'; // per-page LLM rewrite before upload (premium)
+
+    /**
+     * Lease window: a "running"/"queued" run is considered alive only while its
+     * auto_update_last_run is younger than this. A live run keeps refreshing that
+     * timestamp (see heartbeat()), so a long but healthy sync is never mistaken for a
+     * crashed one; if the timestamp goes this stale the run is assumed dead and a new one
+     * may take over. Must comfortably exceed HEARTBEAT_INTERVAL plus the slowest single
+     * page (upload + retries + ingest). Shared with the cron and the manual dispatch guard.
+     */
+    public const STALE_RUN_SECONDS = 900;
+
     private const OPENAI_BASE = 'https://api.openai.com/v1';
 
-    /** Hard cap on pages crawled per sync to limit DB load and LLM cost abuse. */
+    /**
+     * Hard cap on pages crawled per sync to limit DB load and LLM cost abuse.
+     */
     private const MAX_CRAWL_PAGES = 5000;
 
     /**
-     * After this many seconds a "running"/"queued" status is considered stale (the run
-     * crashed) and a new dispatch is allowed. Matches the cron's stale-run guard - important
-     * for manual-only mode, where no cron exists to clear a stuck status.
+     * How often a live run refreshes its lease (auto_update_last_run). Throttled so the
+     * heartbeat does not write to the DB on every page; must be well below STALE_RUN_SECONDS.
      */
-    private const STALE_RUN_SECONDS = 1800;
+    private const HEARTBEAT_INTERVAL = 60;
 
-    /** What triggered a sync - persisted to tl_openai_sync_log.trigger_source. */
-    public const SOURCE_CRON = 'cron';     // automatic, via the schedule/heartbeat
-    public const SOURCE_MANUAL = 'manual'; // backend "Run sync now" button
-    public const SOURCE_CLI = 'cli';       // operator-run console command
-
-    /** @var list<string> */
-    public const SOURCES = [self::SOURCE_CRON, self::SOURCE_MANUAL, self::SOURCE_CLI];
-
-    /** Sync modes (tl_openai_config.auto_update_mode). */
-    public const MODE_FAITHFUL = 'faithful';   // upload cleaned page text as-is (default, no LLM)
-    public const MODE_LLM_POLISH = 'llm_polish'; // per-page LLM rewrite before upload (premium)
+    /**
+     * Unix time of the last lease refresh in the current run; reset by markRunning().
+     */
+    private int $lastHeartbeatAt = 0;
 
     public function __construct(
         private readonly Connection $connection,
@@ -165,7 +187,7 @@ class VectorStoreAutoUpdateService
             $legacyFileId = (string) ($config['auto_update_file_id'] ?? '');
 
             $this->markRunning($configId);
-            $this->spawnCrawl();
+            $this->spawnCrawl($configId);
 
             // Read EVERY in-scope page - no character or page limit, ever.
             $rows = $this->readAllPages($configId);
@@ -175,6 +197,7 @@ class VectorStoreAutoUpdateService
 
             // Safe boilerplate removal: only strips text repeated across many pages.
             $texts = [];
+
             foreach ($rows as $i => $row) {
                 $texts[$i] = (string) $row['text'];
             }
@@ -184,6 +207,7 @@ class VectorStoreAutoUpdateService
             // readers), producing multiple tl_search rows. We want exactly one document per
             // page, so the cleaned text of all its rows is concatenated.
             $byPage = [];
+
             foreach ($rows as $i => $row) {
                 $content = trim($clean['texts'][$i] ?? '');
                 if ('' === $content) {
@@ -237,14 +261,24 @@ class VectorStoreAutoUpdateService
                 throw new \RuntimeException('MSC.vsau_err_empty_document_raw');
             }
 
-            $syncStats = $this->fileSync->sync($apiKey, $vectorStoreId, $configId, $pages, $legacyFileId);
+            $syncStats = $this->fileSync->sync(
+                $apiKey,
+                $vectorStoreId,
+                $configId,
+                $pages,
+                $legacyFileId,
+                function () use ($configId): void {
+                    $this->heartbeat($configId);
+                },
+            );
 
             $status = $syncStats['files_failed'] > 0 ? 'partial' : 'success';
 
             $this->persistResult(
                 $configId,
                 $status,
-                '', // per-page mode has no single file id
+                '',
+                // per-page mode has no single file id
                 [
                     'pages' => \count($pages),
                     'tokens_in' => $tokensIn,
@@ -274,6 +308,60 @@ class VectorStoreAutoUpdateService
     }
 
     /**
+     * Count the tl_page rows in scope for a given page selection, used by the
+     * backend to enforce the subscription page limit before saving.
+     *
+     * Explicitly selected pages are counted exactly (no subpages implied). An empty
+     * selection resolves to the whole website (single site root + subtree) when
+     * exactly one root exists, else returns 0.
+     */
+    public function countScopePages(mixed $configValue): int
+    {
+        $selectedPageIds = self::parseConfiguredPageIds($configValue);
+
+        if ([] !== $selectedPageIds) {
+            return \count($selectedPageIds);
+        }
+
+        $roots = $this->connection->fetchAllAssociative(
+            "SELECT id FROM tl_page WHERE type = 'root' AND dns != ''",
+        );
+
+        if (1 !== \count($roots)) {
+            return 0;
+        }
+
+        return \count(array_unique($this->collectPageSubtreeIds((int) $roots[0]['id'])));
+    }
+
+    /**
+     * @return list<int>
+     */
+    public static function parseConfiguredPageIds(mixed $value): array
+    {
+        if (null === $value || '' === $value || 0 === $value || '0' === $value) {
+            return [];
+        }
+
+        if (\is_array($value)) {
+            return array_values(array_unique(array_filter(array_map(intval(...), $value))));
+        }
+
+        if (is_numeric($value)) {
+            return [(int) $value];
+        }
+
+        $raw = (string) $value;
+        $unserialized = @unserialize($raw, ['allowed_classes' => false]);
+
+        if (\is_array($unserialized)) {
+            return array_values(array_unique(array_filter(array_map(intval(...), $unserialized))));
+        }
+
+        return array_values(array_unique(array_filter(array_map(intval(...), explode(',', $raw)))));
+    }
+
+    /**
      * Resolve the sync mode, defaulting to faithful (no LLM). Falls back to the legacy
      * auto_update_raw_mode flag for configs saved before auto_update_mode existed:
      * raw_mode = 1 -> faithful, raw_mode = 0 (old LLM default) -> llm_polish.
@@ -296,21 +384,52 @@ class VectorStoreAutoUpdateService
 
     private function markRunning(int $configId): void
     {
+        $now = time();
         $this->connection->executeStatement(
             "UPDATE tl_openai_config SET auto_update_last_run = ?, auto_update_last_status = 'running', auto_update_last_message = NULL WHERE id = ?",
-            [time(), $configId],
+            [$now, $configId],
+        );
+        // The lease was just written; the next refresh is not due for HEARTBEAT_INTERVAL.
+        $this->lastHeartbeatAt = $now;
+    }
+
+    /**
+     * Refresh the run lease (auto_update_last_run) so a long but healthy sync is not treated
+     * as crashed by the cron/manual stale-run guard. Throttled to HEARTBEAT_INTERVAL and
+     * scoped to status='running' so it never resurrects a run that already finished or errored.
+     */
+    private function heartbeat(int $configId): void
+    {
+        $now = time();
+        if ($now - $this->lastHeartbeatAt < self::HEARTBEAT_INTERVAL) {
+            return;
+        }
+
+        $this->lastHeartbeatAt = $now;
+        $this->connection->executeStatement(
+            "UPDATE tl_openai_config SET auto_update_last_run = ? WHERE id = ? AND auto_update_last_status = 'running'",
+            [$now, $configId],
         );
     }
 
-    private function spawnCrawl(): void
+    private function spawnCrawl(int $configId): void
     {
         $process = $this->processUtil->createSymfonyConsoleProcess(
             'contao:crawl',
             '--subscribers=search-index',
             '--no-interaction',
         );
-        $promise = $this->processUtil->createPromise($process);
-        $promise->wait(); // blocks until the crawl finishes
+
+        // Poll instead of a blocking wait() so the lease keeps refreshing during a long crawl
+        // (a few thousand pages can take many minutes). No process timeout: the crawl must run
+        // to completion, however long it legitimately takes.
+        $process->setTimeout(null);
+        $process->start();
+
+        while ($process->isRunning()) {
+            $this->heartbeat($configId);
+            usleep(2_000_000);
+        }
 
         if (!$process->isSuccessful()) {
             throw new \RuntimeException('MSC.vsau_err_crawl_failed|'.$process->getErrorOutput());
@@ -378,60 +497,6 @@ class VectorStoreAutoUpdateService
             [$pageIds],
             [ArrayParameterType::INTEGER],
         );
-    }
-
-    /**
-     * Count the tl_page rows in scope for a given page selection, used by the
-     * backend to enforce the subscription page limit before saving.
-     *
-     * Explicitly selected pages are counted exactly (no subpages implied). An empty
-     * selection resolves to the whole website (single site root + subtree) when
-     * exactly one root exists, else returns 0.
-     */
-    public function countScopePages(mixed $configValue): int
-    {
-        $selectedPageIds = self::parseConfiguredPageIds($configValue);
-
-        if ([] !== $selectedPageIds) {
-            return \count($selectedPageIds);
-        }
-
-        $roots = $this->connection->fetchAllAssociative(
-            "SELECT id FROM tl_page WHERE type = 'root' AND dns != ''",
-        );
-
-        if (1 !== \count($roots)) {
-            return 0;
-        }
-
-        return \count(array_unique($this->collectPageSubtreeIds((int) $roots[0]['id'])));
-    }
-
-    /**
-     * @return list<int>
-     */
-    public static function parseConfiguredPageIds(mixed $value): array
-    {
-        if (null === $value || '' === $value || 0 === $value || '0' === $value) {
-            return [];
-        }
-
-        if (\is_array($value)) {
-            return array_values(array_unique(array_filter(array_map(intval(...), $value))));
-        }
-
-        if (is_numeric($value)) {
-            return [(int) $value];
-        }
-
-        $raw = (string) $value;
-        $unserialized = @unserialize($raw, ['allowed_classes' => false]);
-
-        if (\is_array($unserialized)) {
-            return array_values(array_unique(array_filter(array_map(intval(...), $unserialized))));
-        }
-
-        return array_values(array_unique(array_filter(array_map(intval(...), explode(',', $raw)))));
     }
 
     /**
@@ -563,7 +628,7 @@ class VectorStoreAutoUpdateService
      * uploaded content concatenated. This is NOT what gets uploaded (each page is its own
      * vector-store file now) - it exists only so operators can review what was indexed.
      *
-     * @param list<array{page_id: int, url: string, title: string, content: string}> $pages
+     * @param list<array{page_id: int, url: string, title: string, content: string}>                                            $pages
      * @param array{added: int, updated: int, removed: int, unchanged: int, files_uploaded: int, files_failed: int, bytes: int} $sync
      */
     private function buildManifest(array $pages, array $sync): string

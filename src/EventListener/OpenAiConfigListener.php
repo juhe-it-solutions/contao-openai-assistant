@@ -29,6 +29,7 @@ use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreDocumentPrompt;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class OpenAiConfigListener
@@ -39,7 +40,6 @@ class OpenAiConfigListener
      */
     public const LICENSE_KEY_MASK = '••••••••••••••••';
 
-    /** @var list<string> Premium-gated auto-update fields. */
     private const AUTO_UPDATE_LICENSE_FIELDS = [
         'auto_update_enabled',
         'auto_update_schedule_hour',
@@ -51,6 +51,14 @@ class OpenAiConfigListener
         'auto_update_model',
         'auto_update_site_root',
         'auto_update_prompt_template',
+    ];
+
+    /**
+     * Page limits per subscription plan (mirror of the licensing server).
+     */
+    private const PLAN_PAGE_LIMITS = [
+        'starter' => 30,
+        'business' => 100,
     ];
 
     public function __construct(
@@ -67,12 +75,6 @@ class OpenAiConfigListener
         private readonly VectorStoreAutoUpdateService $autoUpdateService,
     ) {
     }
-
-    /** Page limits per subscription plan (mirror of the licensing server). */
-    private const PLAN_PAGE_LIMITS = [
-        'starter' => 30,
-        'business' => 100,
-    ];
 
     /**
      * load_callback: never expose the stored ciphertext (or the plaintext). Show a
@@ -178,39 +180,6 @@ class OpenAiConfigListener
                 'premium_license_invalid',
                 'Premium license key is invalid or inactive. Auto-update sync will not run until a valid key is entered.',
             ));
-        }
-    }
-
-    /**
-     * Remove Contao's automatic "password has been changed" confirmation
-     * (added by DataContainer when a Password widget is saved). The api_key
-     * field uses that widget, so the message would otherwise show on every
-     * config save even though no password exists.
-     */
-    private function removePasswordChangedMessage(): void
-    {
-        $session = $this->requestStack->getSession();
-        $flashBag = $session->getFlashBag();
-        $key = 'contao.BE.confirm';
-
-        if (!$flashBag->has($key)) {
-            return;
-        }
-
-        System::loadLanguageFile('default');
-        $pwChanged = $GLOBALS['TL_LANG']['MSC']['pw_changed'] ?? null;
-
-        if (null === $pwChanged) {
-            return;
-        }
-
-        $remaining = array_values(array_filter(
-            $flashBag->get($key),
-            static fn ($message): bool => $message !== $pwChanged,
-        ));
-
-        if ([] !== $remaining) {
-            $flashBag->set($key, $remaining);
         }
     }
 
@@ -901,65 +870,10 @@ class OpenAiConfigListener
         $count = $this->autoUpdateService->countScopePages($value);
 
         if ($count > $limit) {
-            throw new \InvalidArgumentException(\sprintf(
-                $this->getConfigLangString(
-                    'auto_update_pages_over_limit',
-                    'Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.',
-                ),
-                $count,
-                $limit,
-            ));
+            throw new \InvalidArgumentException(\sprintf($this->getConfigLangString('auto_update_pages_over_limit', 'Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.'), $count, $limit));
         }
 
         return $value;
-    }
-
-    /**
-     * Resolve the effective page limit. Returns null when enforcement should be
-     * skipped: empty plan (not yet validated) or "enterprise" (unlimited).
-     */
-    private function resolvePageLimit(string $plan, int $maxPages): int|null
-    {
-        if ('' === $plan || 'enterprise' === $plan) {
-            return null;
-        }
-
-        if ($maxPages > 0) {
-            return $maxPages;
-        }
-
-        return self::PLAN_PAGE_LIMITS[$plan] ?? null;
-    }
-
-    /**
-     * Force a remote re-validation to persist premium_license_plan / _max_pages, then
-     * read them back. Used when the limit must be enforced but the plan was not stored
-     * yet. Runs in the web request (config save), where the license key decrypts.
-     *
-     * @return array{0: string, 1: int} [plan, maxPages]
-     */
-    private function refreshLicensePlan(int $configId): array
-    {
-        $encrypted = (string) $this->connection->fetchOne(
-            'SELECT premium_license_key FROM tl_openai_config WHERE id = ?',
-            [$configId],
-        );
-
-        $plainKey = '' !== $encrypted ? $this->encryption->decryptLicenseKey($encrypted) : null;
-
-        if (null !== $plainKey) {
-            $this->licenseValidation->revalidate($configId, $plainKey);
-        }
-
-        $row = $this->connection->fetchAssociative(
-            'SELECT premium_license_plan, premium_license_max_pages FROM tl_openai_config WHERE id = ?',
-            [$configId],
-        );
-
-        return [
-            (string) ($row['premium_license_plan'] ?? ''),
-            (int) ($row['premium_license_max_pages'] ?? 0),
-        ];
     }
 
     public function loadAutoUpdateEnabled($value, DataContainer|null $dc = null): string
@@ -1038,6 +952,94 @@ class OpenAiConfigListener
     public function decryptApiKey(string $encryptedData): string|null
     {
         return $this->encryption->decryptApiKey($encryptedData);
+    }
+
+    /**
+     * Remove Contao's automatic "password has been changed" confirmation
+     * (added by DataContainer when a Password widget is saved). The api_key
+     * field uses that widget, so the message would otherwise show on every
+     * config save even though no password exists.
+     */
+    private function removePasswordChangedMessage(): void
+    {
+        $session = $this->requestStack->getSession();
+
+        // getSession() is typed as SessionInterface, which does not expose getFlashBag();
+        // the flash bag only exists on the concrete (flash-aware) session implementation.
+        if (!$session instanceof FlashBagAwareSessionInterface) {
+            return;
+        }
+
+        $flashBag = $session->getFlashBag();
+        $key = 'contao.BE.confirm';
+
+        if (!$flashBag->has($key)) {
+            return;
+        }
+
+        System::loadLanguageFile('default');
+        $pwChanged = $GLOBALS['TL_LANG']['MSC']['pw_changed'] ?? null;
+
+        if (null === $pwChanged) {
+            return;
+        }
+
+        $remaining = array_values(array_filter(
+            $flashBag->get($key),
+            static fn ($message): bool => $message !== $pwChanged,
+        ));
+
+        if ([] !== $remaining) {
+            $flashBag->set($key, $remaining);
+        }
+    }
+
+    /**
+     * Resolve the effective page limit. Returns null when enforcement should be
+     * skipped: empty plan (not yet validated) or "enterprise" (unlimited).
+     */
+    private function resolvePageLimit(string $plan, int $maxPages): int|null
+    {
+        if ('' === $plan || 'enterprise' === $plan) {
+            return null;
+        }
+
+        if ($maxPages > 0) {
+            return $maxPages;
+        }
+
+        return self::PLAN_PAGE_LIMITS[$plan] ?? null;
+    }
+
+    /**
+     * Force a remote re-validation to persist premium_license_plan / _max_pages, then
+     * read them back. Used when the limit must be enforced but the plan was not stored
+     * yet. Runs in the web request (config save), where the license key decrypts.
+     *
+     * @return array{0: string, 1: int} [plan, maxPages]
+     */
+    private function refreshLicensePlan(int $configId): array
+    {
+        $encrypted = (string) $this->connection->fetchOne(
+            'SELECT premium_license_key FROM tl_openai_config WHERE id = ?',
+            [$configId],
+        );
+
+        $plainKey = '' !== $encrypted ? $this->encryption->decryptLicenseKey($encrypted) : null;
+
+        if (null !== $plainKey) {
+            $this->licenseValidation->revalidate($configId, $plainKey);
+        }
+
+        $row = $this->connection->fetchAssociative(
+            'SELECT premium_license_plan, premium_license_max_pages FROM tl_openai_config WHERE id = ?',
+            [$configId],
+        );
+
+        return [
+            (string) ($row['premium_license_plan'] ?? ''),
+            (int) ($row['premium_license_max_pages'] ?? 0),
+        ];
     }
 
     private function migrateScheduleFieldsOnLoad(DataContainer $dc): void

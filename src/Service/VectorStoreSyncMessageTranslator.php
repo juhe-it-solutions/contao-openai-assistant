@@ -24,7 +24,6 @@ class VectorStoreSyncMessageTranslator
 {
     private const DOMAIN = 'contao_default';
 
-    /** @var array<string, string> Legacy English text => translation key */
     private const LEGACY_KEYS = [
         'Manual sync dispatched to CLI. Refresh this page in a few minutes.' => 'MSC.vsau_dispatched_manual',
         'No indexed pages found for this site root (tl_search is empty). Run System → Maintenance → Rebuild search index. If pages are still missing, check whether they carry robots=noindex or Suchindexer=Never index — set Suchindexer=Always index on those page records to force-include them in both Contao search and the vector store.' => 'MSC.vsau_err_no_indexed_pages',
@@ -39,12 +38,11 @@ class VectorStoreSyncMessageTranslator
         'A sync is already queued or running for this configuration.' => 'MSC.vsau_err_sync_already_running',
     ];
 
-    public function __construct(
-        private readonly TranslatorInterface $translator,
-    ) {
+    public function __construct(private readonly TranslatorInterface $translator)
+    {
     }
 
-    public function translate(?string $message): ?string
+    public function translate(string|null $message): string|null
     {
         if (null === $message || '' === $message) {
             return $message;
