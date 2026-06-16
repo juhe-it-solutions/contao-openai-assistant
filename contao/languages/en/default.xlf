@@ -39,6 +39,10 @@
                 <source>Guide &amp; help</source>
                 <target>Guide &amp; help</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_manage_link">
+                <source>Manage subscription</source>
+                <target>Manage subscription</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_no_config">
                 <source>No configuration has automatic sync enabled yet.</source>
                 <target>No configuration has automatic sync enabled yet.</target>

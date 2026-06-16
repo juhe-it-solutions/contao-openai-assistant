@@ -39,6 +39,10 @@
                 <source>Guide &amp; help</source>
                 <target>Anleitung &amp; Hilfe</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_manage_link">
+                <source>Manage subscription</source>
+                <target>Abo verwalten</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_no_config">
                 <source>No configuration has automatic sync enabled yet.</source>
                 <target>Noch keine Konfiguration mit automatischer Synchronisierung aktiviert.</target>

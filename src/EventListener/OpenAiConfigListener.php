@@ -635,6 +635,7 @@ class OpenAiConfigListener
         $lang = $this->loadConfigLang();
         $licenseUrl = $this->licensePortalUrls->getProductUrl();
         $helpUrl = $this->licensePortalUrls->getHelpUrl();
+        $manageUrl = $this->licensePortalUrls->getManageUrl();
         $logoUrl = '/bundles/contaoopenaiassistant/images/logo_juhe-licenses.svg';
 
         $content = \sprintf(
@@ -644,7 +645,10 @@ class OpenAiConfigListener
             .'<img src="%s" alt="JUHE Licenses" width="90" height="90" style="display: block; width: 90px; height: 90px;"></a>'
             .'<span>%s<br>'
             .'<span style="color: #f59e0b; line-height: 2">%s <a href="%s" target="_blank" rel="noopener noreferrer" class="oaa-license-url-link">%s</a></span>'
-            .'<br><a class="openai-license-help-link" href="%s" target="_blank" rel="noopener noreferrer">%s</a>'
+            .'<br><span class="openai-license-actions">'
+            .'<a class="openai-license-help-link" href="%s" target="_blank" rel="noopener noreferrer">%s</a>'
+            .'<a class="openai-license-help-link" href="%s" target="_blank" rel="noopener noreferrer">%s</a>'
+            .'</span>'
             .'</span></span>'
             .'<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin-top: 8px; margin-left: 11px;">'
             .'<strong>ℹ️ %s:</strong> %s'
@@ -656,6 +660,8 @@ class OpenAiConfigListener
             (string) ($lang['premium_license_info_purchase'] ?? 'Get a license at'),
             htmlspecialchars($licenseUrl, ENT_QUOTES),
             htmlspecialchars($licenseUrl, ENT_QUOTES),
+            htmlspecialchars($manageUrl, ENT_QUOTES),
+            (string) ($lang['premium_license_info_manage'] ?? 'Manage subscription'),
             htmlspecialchars($helpUrl, ENT_QUOTES),
             (string) ($lang['premium_license_info_docs'] ?? 'Guide & help'),
             (string) ($lang['premium_license_info_hint_heading'] ?? 'Note'),
@@ -665,6 +671,7 @@ class OpenAiConfigListener
         return \sprintf(
             '<div class="widget clr premium-license-intro">'
             .'<style>'
+            .'.premium-license-intro .openai-license-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}'
             .'.premium-license-intro .openai-license-help-link,.premium-license-intro .openai-license-help-link:link,.premium-license-intro .openai-license-help-link:visited{display:inline-flex;align-items:center;justify-content:center;margin-top:6px;padding:4px 10px;border-radius:6px;font-size:13px;font-weight:600;line-height:1.25;text-decoration:none;border:1px solid #c5eb52;background:#d7ff64;color:#1a1a1a;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease}'
             .'.premium-license-intro .openai-license-help-link:hover,.premium-license-intro .openai-license-help-link:focus-visible,.premium-license-intro .openai-license-help-link:active{background:#c5eb52;border-color:#b3d94a;color:#1a1a1a;outline:2px solid #4ea1ff;outline-offset:2px}'
             .'@media (max-width:576px){.premium-license-intro .openai-license-help-link{width:100%%}}'

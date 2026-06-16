@@ -157,6 +157,10 @@
                 <source>Guide &amp; help</source>
                 <target>Anleitung &amp; Hilfe</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_manage">
+                <source>Manage subscription</source>
+                <target>Abo verwalten</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_hint_heading">
                 <source>Note</source>
                 <target>Hinweis</target>

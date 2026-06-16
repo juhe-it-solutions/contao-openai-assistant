@@ -45,6 +45,11 @@ class LicensePortalUrlService
         return $this->getProductUrl().'/help';
     }
 
+    public function getManageUrl(): string
+    {
+        return $this->getProductUrl().'/manage';
+    }
+
     /**
      * Maps the active Contao backend locale to the license portal path prefix.
      */

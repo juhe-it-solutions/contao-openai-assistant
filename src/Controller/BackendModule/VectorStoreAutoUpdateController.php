@@ -161,6 +161,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             'log' => $log,
             'purchase_url' => $this->licensePortalUrls->getProductUrl(),
             'help_url' => $this->licensePortalUrls->getHelpUrl(),
+            'manage_url' => $this->licensePortalUrls->getManageUrl(),
             'request_token' => $this->csrfTokenManager->getToken($this->csrfTokenName)->getValue(),
             'manage_log_url' => $this->generateUrl('contao_backend', ['do' => 'openai_sync_log']),
             // The "Run sync now" button spawns a CLI process via proc_open. Some shared hosts
