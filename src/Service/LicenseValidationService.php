@@ -32,6 +32,8 @@ class LicenseValidationService
 {
     private const VALIDATION_URL = 'https://licenses.juhe-it-solutions.at/api/openai-assistant/validate';
 
+    private const DEACTIVATE_URL = 'https://licenses.juhe-it-solutions.at/api/openai-assistant/deactivate';
+
     private const CACHE_TTL_ACTIVE = 604800; // 7 days after a successful "active" validation
 
     private const CACHE_TTL_ERROR = 3600; // 1 hour after network/endpoint errors — retry sooner
@@ -168,6 +170,42 @@ class LicenseValidationService
             return ($data['valid'] ?? false) === true;
         } catch (\Throwable) {
             return false;
+        }
+    }
+
+    /**
+     * Release this install's seat on the licensing server. Called once, from the config's
+     * ondelete_callback, while the row still exists. Best-effort: a failed/unreachable call
+     * only leaves the seat claimed server-side until it naturally expires - it never blocks
+     * or rolls back the local config deletion.
+     */
+    public function deactivate(int $configId): void
+    {
+        $config = $this->connection->fetchAssociative(
+            'SELECT premium_license_key, premium_license_install_id FROM tl_openai_config WHERE id = ?',
+            [$configId],
+        );
+
+        if (!$config || empty($config['premium_license_key']) || empty($config['premium_license_install_id'])) {
+            // No license was ever activated for this install - nothing to release.
+            return;
+        }
+
+        $plainKey = $this->encryption->decryptLicenseKey((string) $config['premium_license_key']);
+        if (null === $plainKey) {
+            return;
+        }
+
+        $headers = ['X-License-Key' => $plainKey, 'X-Install-Id' => (string) $config['premium_license_install_id']];
+        $domain = $this->resolveSiteDomain();
+        if (null !== $domain) {
+            $headers['X-Install-Domain'] = $domain;
+        }
+
+        try {
+            $this->http->request('POST', self::DEACTIVATE_URL, ['headers' => $headers, 'timeout' => 10]);
+        } catch (\Throwable) {
+            // Best-effort only: the seat may remain claimed server-side until it expires.
         }
     }
 

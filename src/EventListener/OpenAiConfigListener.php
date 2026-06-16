@@ -395,12 +395,25 @@ class OpenAiConfigListener
      * intentionally removed: the Assistants API is sunset on 2026-08-26 and any
      * orphaned assistants are cleaned up once by
      * Version20260416000001CleanupOrphanAssistants.
+     *
+     * tl_openai_vector_file and tl_openai_sync_log are not registered as child
+     * tables (they have no ptable, so Contao core's ctable cascade does not reach
+     * them) - they are deleted explicitly here to avoid leaving permanent orphan
+     * rows, including the MEDIUMTEXT sync log document, behind for a config that
+     * no longer exists.
      */
     public function deleteVectorStore($dc): void
     {
         if (!$dc->activeRecord) {
             return;
         }
+
+        $configId = (int) $dc->id;
+
+        $this->connection->executeStatement('DELETE FROM tl_openai_vector_file WHERE pid = ?', [$configId]);
+        $this->connection->executeStatement('DELETE FROM tl_openai_sync_log WHERE pid = ?', [$configId]);
+
+        $this->licenseValidation->deactivate($configId);
 
         $vectorStoreId = $dc->activeRecord->vector_store_id;
         if (!$vectorStoreId) {
