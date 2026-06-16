@@ -159,7 +159,7 @@ ul#sort_auto_update_site_root.oaa-picker-collapsed {
    wrapper, so this is scoped to the plain (non-card) .tl_message parent
    to avoid doubling its margin. */
 .tl_message > .oaa-info-card {
-    margin: 0 15px 12px;
+    margin: 15px 15px 10px 15px;
 }
 
 /* Widen Contao's backend help tooltip so long help texts stay short
