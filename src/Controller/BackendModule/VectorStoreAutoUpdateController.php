@@ -77,7 +77,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             }
 
             // Stop automatic sync: unset auto_update_enabled on the config — exactly
-            // what unticking "Automatische Synchronisierung aktivieren" does, but
+            // what unticking "Synchronisierung aktivieren" does, but
             // reachable straight from this dashboard. Re-enable in the OpenAI config.
             if ('stop' === $request->request->get('action')) {
                 // auto_update_enabled is a boolean/TINYINT column — write integer 0,

@@ -182,8 +182,8 @@
                 <target>License key</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_key.1">
-                <source><![CDATA[Enter the license key you received after purchase at <a href="https://licenses.juhe-it-solutions.at/openai-assistant" target="_blank" rel="noopener noreferrer">https://licenses.juhe-it-solutions.at/openai-assistant</a>. Leave the masked value unchanged to keep the current key; clear the field to remove it.]]></source>
-                <target><![CDATA[Enter the license key you received after purchase at <a href="https://licenses.juhe-it-solutions.at/openai-assistant" target="_blank" rel="noopener noreferrer">https://licenses.juhe-it-solutions.at/openai-assistant</a>. Leave the masked value unchanged to keep the current key; clear the field to remove it.]]></target>
+                <source><![CDATA[Enter the license key you received after purchase at <a href="https://licenses.juhe-it-solutions.at/openai-assistant" target="_blank" rel="noopener noreferrer" class="oaa-license-url-link">https://licenses.juhe-it-solutions.at/openai-assistant</a>. Leave the masked value unchanged to keep the current key; clear the field to remove it.]]></source>
+                <target><![CDATA[Enter the license key you received after purchase at <a href="https://licenses.juhe-it-solutions.at/openai-assistant" target="_blank" rel="noopener noreferrer" class="oaa-license-url-link">https://licenses.juhe-it-solutions.at/openai-assistant</a>. Leave the masked value unchanged to keep the current key; clear the field to remove it.]]></target>
             </trans-unit>
             <trans-unit id="tl_openai_config.check_license_key">
                 <source>Check key</source>
@@ -212,16 +212,16 @@
 
             <!-- Automatic vector store sync -->
             <trans-unit id="tl_openai_config.auto_update_legend">
-                <source>Automatic vector store sync</source>
-                <target>Automatic vector store sync</target>
+                <source>Vector store sync</source>
+                <target>Vector store sync</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_enabled.0">
-                <source>Enable automatic sync</source>
-                <target>Enable automatic sync</target>
+                <source>Enable sync</source>
+                <target>Enable sync</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_enabled.1">
-                <source>Periodically crawl the website and update the vector store document. Requires a valid premium license (use &quot;Check key&quot; above). Only pages that Contao&apos;s search indexer is allowed to index are included: pages with robots=noindex or the page-level setting &quot;Search indexer: Never index&quot; are excluded. To include such pages in the chatbot knowledge base anyway, set their page-level &quot;Search indexer&quot; field to &quot;Always index&quot;.</source>
-                <target>Periodically crawl the website and update the vector store document. Requires a valid premium license (use &quot;Check key&quot; above). Only pages that Contao&apos;s search indexer is allowed to index are included: pages with robots=noindex or the page-level setting &quot;Search indexer: Never index&quot; are excluded. To include such pages in the chatbot knowledge base anyway, set their page-level &quot;Search indexer&quot; field to &quot;Always index&quot;.</target>
+                <source>Crawl the website and update the vector store document. Requires a valid premium license (use &quot;Check key&quot; above). Only pages that Contao&apos;s search indexer is allowed to index are included: pages with robots=noindex or the page-level setting &quot;Search indexer: Never index&quot; are excluded. To include such pages in the chatbot knowledge base anyway, set their page-level &quot;Search indexer&quot; field to &quot;Always index&quot;.</source>
+                <target>Crawl the website and update the vector store document. Requires a valid premium license (use &quot;Check key&quot; above). Only pages that Contao&apos;s search indexer is allowed to index are included: pages with robots=noindex or the page-level setting &quot;Search indexer: Never index&quot; are excluded. To include such pages in the chatbot knowledge base anyway, set their page-level &quot;Search indexer&quot; field to &quot;Always index&quot;.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_requires_license">
                 <source>Automatic sync requires a valid premium license. Use “Check key” in the Premium License section.</source>

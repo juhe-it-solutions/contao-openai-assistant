@@ -43,7 +43,7 @@
     }
 
     function setAutoUpdateFieldsEnabled(enabled) {
-        // Hide the whole "Automatic vector store sync" block until the license is validated.
+        // Hide the whole "Vector store sync" block until the license is validated.
         setAutoUpdateBlockVisible(enabled);
 
         document.querySelectorAll(".widget.auto-update-license-field").forEach(function (widget) {

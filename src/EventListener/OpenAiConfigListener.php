@@ -620,6 +620,7 @@ class OpenAiConfigListener
         if ($dc && $dc->id && 'edit' === ($request?->get('act') ?? '')) {
             $this->migrateScheduleFieldsOnLoad($dc);
             $this->configureAutoUpdateFieldAccess((int) $dc->id);
+            $this->configureAutoUpdateModelVisibility((int) $dc->id);
             $this->injectAutoUpdateBackendScript((int) $dc->id, $this->licenseValidation->isLicenseActive((int) $dc->id));
         }
     }
@@ -637,12 +638,12 @@ class OpenAiConfigListener
         $logoUrl = '/bundles/contaoopenaiassistant/images/logo_juhe-licenses.svg';
 
         $content = \sprintf(
-            '<strong style="display: block; font-size: 22px; position: relative; top: -5px;">%s</strong>'
+            '<strong class="oaa-info-card-heading" style="display: block; font-size: 22px; position: relative; top: -5px;">%s</strong>'
             .'<span style="display: flex; gap: 16px; align-items: center; margin-top: 10px;">'
             .'<a href="%s" target="_blank" rel="noopener noreferrer" style="flex-shrink: 0;">'
             .'<img src="%s" alt="JUHE Licenses" width="90" height="90" style="display: block; width: 90px; height: 90px;"></a>'
             .'<span>%s<br>'
-            .'<span style="color: #f59e0b; line-height: 2">%s <a href="%s" target="_blank" rel="noopener noreferrer" style="color: #4ea1ff; text-decoration: underline;">%s</a></span>'
+            .'<span style="color: #f59e0b; line-height: 2">%s <a href="%s" target="_blank" rel="noopener noreferrer" class="oaa-license-url-link">%s</a></span>'
             .'<br><a class="openai-license-help-link" href="%s" target="_blank" rel="noopener noreferrer">%s</a>'
             .'</span></span>'
             .'<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin-top: 8px; margin-left: 11px;">'
@@ -664,11 +665,11 @@ class OpenAiConfigListener
         return \sprintf(
             '<div class="widget clr premium-license-intro">'
             .'<style>'
-            .'.premium-license-intro .openai-license-help-link{display:inline-flex;align-items:center;justify-content:center;margin-top:6px;padding:4px 10px;border-radius:6px;font-size:13px;font-weight:600;line-height:1.25;text-decoration:none;border:1px solid #c5eb52;background:#d7ff64;color:#1a1a1a;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease}'
-            .'.premium-license-intro .openai-license-help-link:hover,.premium-license-intro .openai-license-help-link:focus-visible{background:#c5eb52;border-color:#b3d94a;color:#1a1a1a;outline:2px solid #4ea1ff;outline-offset:2px}'
+            .'.premium-license-intro .openai-license-help-link,.premium-license-intro .openai-license-help-link:link,.premium-license-intro .openai-license-help-link:visited{display:inline-flex;align-items:center;justify-content:center;margin-top:6px;padding:4px 10px;border-radius:6px;font-size:13px;font-weight:600;line-height:1.25;text-decoration:none;border:1px solid #c5eb52;background:#d7ff64;color:#1a1a1a;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease}'
+            .'.premium-license-intro .openai-license-help-link:hover,.premium-license-intro .openai-license-help-link:focus-visible,.premium-license-intro .openai-license-help-link:active{background:#c5eb52;border-color:#b3d94a;color:#1a1a1a;outline:2px solid #4ea1ff;outline-offset:2px}'
             .'@media (max-width:576px){.premium-license-intro .openai-license-help-link{width:100%%}}'
             .'</style>'
-            .'<div class="tl_message" style="padding: 1rem; background: var(--info-bg); border-radius: 1rem; border: 1px solid var(--active-bg);">'
+            .'<div class="tl_message oaa-info-card oaa-info-card--premium">'
             .'<p class="tl_info" style="background: transparent url(system/themes/flexible/icons/show.svg) no-repeat 11px 12px;">%s</p>'
             .'</div>'
             .'</div>',
@@ -1122,6 +1123,32 @@ class OpenAiConfigListener
             } else {
                 unset($GLOBALS['TL_DCA']['tl_openai_config']['fields'][$field]['eval']['disabled']);
             }
+        }
+    }
+
+    /**
+     * Manual trigger + faithful indexing mode means pages are uploaded verbatim, with no
+     * LLM rewrite step - so the "Generation model" field has nothing to act on. Drop it
+     * from the palette in that combination instead of leaving a dead-end setting visible.
+     */
+    private function configureAutoUpdateModelVisibility(int $configId): void
+    {
+        $trigger = (string) ($_POST['auto_update_trigger'] ?? '');
+        if ('' === $trigger) {
+            $trigger = (string) $this->connection->fetchOne('SELECT auto_update_trigger FROM tl_openai_config WHERE id = ?', [$configId]);
+        }
+
+        $mode = (string) ($_POST['auto_update_mode'] ?? '');
+        if ('' === $mode) {
+            $mode = (string) $this->connection->fetchOne('SELECT auto_update_mode FROM tl_openai_config WHERE id = ?', [$configId]);
+        }
+
+        if ('manual' === $trigger && 'faithful' === $mode) {
+            $GLOBALS['TL_DCA']['tl_openai_config']['palettes']['default'] = str_replace(
+                ',auto_update_model,',
+                ',',
+                $GLOBALS['TL_DCA']['tl_openai_config']['palettes']['default'],
+            );
         }
     }
 

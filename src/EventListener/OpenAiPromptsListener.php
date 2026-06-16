@@ -258,22 +258,28 @@ class OpenAiPromptsListener
 
         $lang = $GLOBALS['TL_LANG']['tl_openai_prompts'] ?? [];
 
-        $combinedMessage = '<strong style="display: block; font-size: 22px; position: relative; top: -5px;">'.
+        $combinedMessage = '<div class="oaa-info-card">';
+        $combinedMessage .= '<p class="tl_info" style="background: transparent url(system/themes/flexible/icons/show.svg) no-repeat 11px 12px;">';
+        $combinedMessage .= '<strong class="oaa-info-card-heading" style="display: block; font-size: 22px; position: relative; top: -5px;">'.
                           ($lang['welcome_heading'] ?? 'OpenAI Prompt').
                           '</strong>'.
                           ($lang['welcome_message1'] ?? 'Welcome to the OpenAI Prompt screen.').
                           '<br>'.
                           ($lang['welcome_message2'] ?? 'Here you can configure the prompt that drives your chat.');
+        $combinedMessage .= '</p>';
 
-        $combinedMessage .= '<div style="margin: 15px 0 0 0; padding: 15px 13px; background: var(--info-bg); border-left: 4px solid #007cba; line-height: 1.3;">';
+        // Merged into the same card (not a separately bordered sub-box): a thin top
+        // divider, aligned with the heading text, is enough to separate the tips list.
+        $combinedMessage .= '<div style="margin: 12px 0 0 33px; padding-top: 12px; border-top: 1px solid var(--active-bg); line-height: 1.3;">';
         $combinedMessage .= '<strong>💡 '.($lang['model_info_heading'] ?? 'Model Selection Tips').':</strong><br>';
         $combinedMessage .= '<span style="padding-left: 5px;">• <strong>'.($lang['model_info_dynamic'] ?? 'All Models: All available models from your OpenAI account are shown').'</strong><br></span>';
         $combinedMessage .= '<span style="padding-left: 5px;">• <strong>'.($lang['model_info_custom'] ?? 'Custom Models: Select "Enter Custom Model" to use any OpenAI model').'</strong><br></span>';
         $combinedMessage .= '<span style="padding-left: 5px;">• <strong>'.($lang['model_info_compatibility'] ?? 'Model Validation: Model compatibility is checked when you save the prompt').'</strong><br></span>';
         $combinedMessage .= '<span style="padding-left: 5px;">• <strong>'.($lang['model_info_help'] ?? 'Need Help?').'</strong> <a href="https://platform.openai.com/docs/models" target="_blank" style="color: #007cba;">'.($lang['model_info_link'] ?? 'View all available models on OpenAI Platform').'</a></span>';
         $combinedMessage .= '</div>';
+        $combinedMessage .= '</div>';
 
-        Message::addInfo($combinedMessage);
+        Message::addRaw($combinedMessage);
 
         $script = '<script>
         function toggleManualModelField(select) {

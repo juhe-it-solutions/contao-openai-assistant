@@ -44,8 +44,8 @@
                 <target>No configuration has automatic sync enabled yet.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_no_config_hint">
-                <source>Enable it in AI Tools → OpenAI Configuration → Automatic vector store sync.</source>
-                <target>Enable it in AI Tools → OpenAI Configuration → Automatic vector store sync.</target>
+                <source>Enable it in AI Tools → OpenAI Configuration → Vector store sync.</source>
+                <target>Enable it in AI Tools → OpenAI Configuration → Vector store sync.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_premium_license">
                 <source>Premium license</source>
@@ -304,12 +304,12 @@
                 <target>Stop the automatic synchronisation for this configuration? No further scheduled syncs will run until you re-enable it in the OpenAI configuration.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_stopped_confirm">
-                <source>Automatic synchronisation stopped. Re-enable it any time in the OpenAI configuration under "Automatic vector store sync".</source>
-                <target>Automatic synchronisation stopped. Re-enable it any time in the OpenAI configuration under "Automatic vector store sync".</target>
+                <source>Automatic synchronisation stopped. Re-enable it any time in the OpenAI configuration under "Vector store sync".</source>
+                <target>Automatic synchronisation stopped. Re-enable it any time in the OpenAI configuration under "Vector store sync".</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_stop_hint">
-                <source>"Stop automatic sync" unticks "Enable automatic synchronisation" in the OpenAI configuration. Re-enable it there whenever you want scheduled syncs to resume.</source>
-                <target>"Stop automatic sync" unticks "Enable automatic synchronisation" in the OpenAI configuration. Re-enable it there whenever you want scheduled syncs to resume.</target>
+                <source>"Stop automatic sync" unticks "Enable sync" in the OpenAI configuration. Re-enable it there whenever you want scheduled syncs to resume.</source>
+                <target>"Stop automatic sync" unticks "Enable sync" in the OpenAI configuration. Re-enable it there whenever you want scheduled syncs to resume.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_queued_confirm">
                 <source>Sync queued. Refresh this page in a few minutes to see the result.</source>
@@ -336,8 +336,8 @@
                 <target>No vector store ID configured. Complete the file upload workflow or set a vector store ID first.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_multiple_roots">
-                <source>Multiple site roots detected. Select the pages to keep updated in OpenAI Configuration → Automatic vector store sync.</source>
-                <target>Multiple site roots detected. Select the pages to keep updated in OpenAI Configuration → Automatic vector store sync.</target>
+                <source>Multiple site roots detected. Select the pages to keep updated in OpenAI Configuration → Vector store sync.</source>
+                <target>Multiple site roots detected. Select the pages to keep updated in OpenAI Configuration → Vector store sync.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_temp_file">
                 <source>Could not create a temporary file for the upload.</source>
@@ -384,8 +384,8 @@
                 <target>No vector store exists yet. Upload one document once via AI Tools → OpenAI Dashboard → File upload; this automatically creates the vector store.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_crawl_page">
-                <source>No pages selected. Choose the pages to keep updated in the OpenAI configuration (AI Tools → OpenAI Dashboard) under "Automatic vector store sync".</source>
-                <target>No pages selected. Choose the pages to keep updated in the OpenAI configuration (AI Tools → OpenAI Dashboard) under "Automatic vector store sync".</target>
+                <source>No pages selected. Choose the pages to keep updated in the OpenAI configuration (AI Tools → OpenAI Dashboard) under "Vector store sync".</source>
+                <target>No pages selected. Choose the pages to keep updated in the OpenAI configuration (AI Tools → OpenAI Dashboard) under "Vector store sync".</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_indexed_pages">
                 <source><![CDATA[No pages in the search index yet. Update the search index under System → Maintenance → "Update the search index" before the first sync.<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></source>

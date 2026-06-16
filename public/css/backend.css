@@ -46,8 +46,28 @@
 }
 
 .premium-license-info-block a {
-    color: #2196f3;
+    color: #1a1a1a;
     text-decoration: underline;
+}
+
+/* License portal links – stay dark in all interaction states (Contao :visited overrides) */
+a.oaa-license-url-link,
+a.oaa-license-url-link:link,
+a.oaa-license-url-link:visited,
+a.oaa-license-url-link:hover,
+a.oaa-license-url-link:active,
+a.oaa-license-url-link:focus-visible {
+    color: #1a1a1a;
+    text-decoration: underline;
+}
+
+a.openai-license-help-link,
+a.openai-license-help-link:link,
+a.openai-license-help-link:visited,
+a.openai-license-help-link:hover,
+a.openai-license-help-link:active,
+a.openai-license-help-link:focus-visible {
+    color: #1a1a1a;
 }
 
 /* Remove API Status Indicator Styles and related rules */
@@ -112,6 +132,23 @@ ul#sort_auto_update_site_root.oaa-picker-collapsed {
 /* Italic prompt text in the "Instructions for the knowledge document" field */
 .widget.oaa-prompt-field textarea {
     font-style: italic;
+}
+
+/* Shared "info card" styling for the onload welcome/info banners on the
+   OpenAI-Konfiguration, Datei-Upload and OpenAI-Prompt edit screens, plus
+   the Premium-Addon block - so the basic-config and premium areas read as
+   one visual system instead of a plain, unstyled Contao message. */
+.oaa-info-card {
+    padding: 1rem;
+    background: var(--info-bg);
+    border-radius: 1rem;
+    border: 1px solid var(--active-bg);
+}
+.oaa-info-card--premium {
+    border-color: #d7ff64;
+}
+.oaa-info-card--premium .oaa-info-card-heading {
+    color: #d7ff64;
 }
 
 /* Widen Contao's backend help tooltip so long help texts stay short

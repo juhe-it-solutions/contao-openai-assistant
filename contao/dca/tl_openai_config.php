@@ -52,7 +52,9 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         'enableVersioning' => true,
         'onload_callback'  => [
             function ($dc) {
-                $message = '<strong style="display: block; font-size: 22px; position: relative; top: -5px;">' .
+                $message = '<div class="oaa-info-card">' .
+                          '<p class="tl_info" style="background: transparent url(system/themes/flexible/icons/show.svg) no-repeat 11px 12px;">' .
+                          '<strong class="oaa-info-card-heading" style="display: block; font-size: 22px; position: relative; top: -5px;">' .
                           $GLOBALS['TL_LANG']['tl_openai_config']['welcome_heading'] .
                           '</strong>' .
                           $GLOBALS['TL_LANG']['tl_openai_config']['welcome_message1'] .
@@ -60,11 +62,13 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
                           $GLOBALS['TL_LANG']['tl_openai_config']['welcome_message2'] .
                           '<br>' .
                           '<span style="color: #f59e0b; line-height: 2">' . $GLOBALS['TL_LANG']['tl_openai_config']['navigation_message'] . '</span>' .
-                          '<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin-top: -2px;">' .
+                          '</p>' .
+                          '<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin: 8px 0 0 11px;">' .
                           '<strong>ℹ️ ' . ($GLOBALS['TL_LANG']['tl_openai_config']['single_config_heading'] ?? 'Single Configuration') . ':</strong> ' .
                           ($GLOBALS['TL_LANG']['tl_openai_config']['single_config_message'] ?? 'Only one OpenAI configuration is allowed per system. If a configuration already exists, you will be redirected to edit it.') .
+                          '</div>' .
                           '</div>';
-                Message::addInfo($message);
+                Message::addRaw($message);
             },
             ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener', 'onLoadCallback'],
         ],
@@ -296,7 +300,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'inputType' => 'select',
             'options'   => ['faithful', 'llm_polish'],
             'reference' => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_mode_ref'],
-            'eval'      => ['tl_class' => 'w50 clr auto-update-field auto-update-license-field', 'includeBlankOption' => false],
+            'eval'      => ['submitOnChange' => true, 'tl_class' => 'w50 clr auto-update-field auto-update-license-field', 'includeBlankOption' => false],
             'sql'       => ['type' => 'string', 'length' => 16, 'default' => 'faithful'],
         ],
         'auto_update_model' => [

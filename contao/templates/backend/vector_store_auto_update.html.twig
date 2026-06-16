@@ -63,13 +63,16 @@
             border-color: #1565c0;
             color: #fff;
         }
-        .vsau-toolbar-btn--help {
+        .vsau-toolbar-btn--help,
+        .vsau-toolbar-btn--help:link,
+        .vsau-toolbar-btn--help:visited {
             background: #d7ff64;
             border-color: #c5eb52;
             color: #1a1a1a;
         }
         .vsau-toolbar-btn--help:hover,
-        .vsau-toolbar-btn--help:focus-visible {
+        .vsau-toolbar-btn--help:focus-visible,
+        .vsau-toolbar-btn--help:active {
             background: #c5eb52;
             border-color: #b3d94a;
             color: #1a1a1a;
@@ -224,7 +227,7 @@
                     </a>
                     <span>
                         {{ 'MSC.vsau_premium_intro'|trans({}, 'contao_default') }}<br>
-                        <span style="color: #f59e0b; line-height: 2">{{ 'MSC.vsau_premium_purchase'|trans({}, 'contao_default') }} <a href="{{ purchase_url }}" target="_blank" rel="noopener noreferrer" style="color: #4ea1ff; text-decoration: underline;">{{ purchase_url }}</a></span><br>
+                        <span style="color: #f59e0b; line-height: 2">{{ 'MSC.vsau_premium_purchase'|trans({}, 'contao_default') }} <a href="{{ purchase_url }}" target="_blank" rel="noopener noreferrer" class="oaa-license-url-link">{{ purchase_url }}</a></span><br>
                         <a href="{{ help_url }}" target="_blank" rel="noopener noreferrer" class="vsau-toolbar-btn vsau-toolbar-btn--help vsau-help-link--inline">{{ 'MSC.vsau_help_link'|trans({}, 'contao_default') }}</a>
                     </span>
                 </span>

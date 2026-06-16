@@ -44,8 +44,8 @@
                 <target>Noch keine Konfiguration mit automatischer Synchronisierung aktiviert.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_no_config_hint">
-                <source>Enable it in AI Tools → OpenAI Configuration → Automatic vector store sync.</source>
-                <target>Aktivieren Sie diese unter KI-Tools → OpenAI-Konfiguration → Automatische Vector-Store-Synchronisierung.</target>
+                <source>Enable it in AI Tools → OpenAI Configuration → Vector store sync.</source>
+                <target>Aktivieren Sie diese unter KI-Tools → OpenAI-Konfiguration → Vector-Store-Synchronisierung.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_premium_license">
                 <source>Premium license</source>
@@ -304,12 +304,12 @@
                 <target>Automatische Synchronisierung für diese Konfiguration stoppen? Es werden keine geplanten Synchronisierungen mehr ausgeführt, bis Sie sie in der OpenAI-Konfiguration wieder aktivieren.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_stopped_confirm">
-                <source>Automatic synchronisation stopped. Re-enable it any time in the OpenAI configuration under "Automatic vector store sync".</source>
-                <target>Automatische Synchronisierung gestoppt. Sie können sie jederzeit in der OpenAI-Konfiguration unter „Automatische Vector-Store-Synchronisierung“ wieder aktivieren.</target>
+                <source>Automatic synchronisation stopped. Re-enable it any time in the OpenAI configuration under "Vector store sync".</source>
+                <target>Automatische Synchronisierung gestoppt. Sie können sie jederzeit in der OpenAI-Konfiguration unter „Vector-Store-Synchronisierung“ wieder aktivieren.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_stop_hint">
-                <source>"Stop automatic sync" unticks "Enable automatic synchronisation" in the OpenAI configuration. Re-enable it there whenever you want scheduled syncs to resume.</source>
-                <target>„Automatische Synchronisierung stoppen“ entfernt den Haken bei „Automatische Synchronisierung aktivieren“ in der OpenAI-Konfiguration. Aktivieren Sie sie dort wieder, sobald geplante Synchronisierungen fortgesetzt werden sollen.</target>
+                <source>"Stop automatic sync" unticks "Enable sync" in the OpenAI configuration. Re-enable it there whenever you want scheduled syncs to resume.</source>
+                <target>„Automatische Synchronisierung stoppen“ entfernt den Haken bei „Synchronisierung aktivieren“ in der OpenAI-Konfiguration. Aktivieren Sie sie dort wieder, sobald geplante Synchronisierungen fortgesetzt werden sollen.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_queued_confirm">
                 <source>Sync queued. Refresh this page in a few minutes to see the result.</source>
@@ -336,8 +336,8 @@
                 <target>Keine Vector-Store-ID konfiguriert. Schließen Sie zuerst den Datei-Upload ab oder tragen Sie eine Vector-Store-ID ein.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_multiple_roots">
-                <source>Multiple site roots detected. Select the pages to keep updated in OpenAI Configuration → Automatic vector store sync.</source>
-                <target>Mehrere Website-Startpunkte erkannt. Wählen Sie die zu aktualisierenden Seiten in der OpenAI-Konfiguration unter „Automatische Vector-Store-Synchronisierung“.</target>
+                <source>Multiple site roots detected. Select the pages to keep updated in OpenAI Configuration → Vector store sync.</source>
+                <target>Mehrere Website-Startpunkte erkannt. Wählen Sie die zu aktualisierenden Seiten in der OpenAI-Konfiguration unter „Vector-Store-Synchronisierung“.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_temp_file">
                 <source>Could not create a temporary file for the upload.</source>
@@ -384,8 +384,8 @@
                 <target>Es ist noch kein Vector Store vorhanden. Laden Sie einmalig ein Dokument über KI-Tools → OpenAI Dashboard → Datei-Upload hoch. Dabei wird der Vector Store automatisch angelegt.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_crawl_page">
-                <source>No pages selected. Choose the pages to keep updated under AI Tools → OpenAI Configuration → Automatic vector store sync → "Pages to keep updated".</source>
-                <target>Es sind keine Seiten ausgewählt. Wählen Sie die zu aktualisierenden Seiten in der OpenAI-Konfiguration (KI-Tools → OpenAI Dashboard) unter „Automatische Vector-Store-Synchronisierung".</target>
+                <source>No pages selected. Choose the pages to keep updated under AI Tools → OpenAI Configuration → Vector store sync → "Pages to keep updated".</source>
+                <target>Es sind keine Seiten ausgewählt. Wählen Sie die zu aktualisierenden Seiten in der OpenAI-Konfiguration (KI-Tools → OpenAI Dashboard) unter „Vector-Store-Synchronisierung".</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_indexed_pages">
                 <source><![CDATA[No pages in the search index yet. Update the search index under System → Maintenance → "Update the search index" before the first sync.<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></source>
