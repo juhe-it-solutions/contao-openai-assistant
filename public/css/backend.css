@@ -50,14 +50,16 @@
     text-decoration: underline;
 }
 
-/* License portal links – stay dark in all interaction states (Contao :visited overrides) */
+/* License portal URL link, shown directly on the dark card background (not a
+   button) - needs a light, readable color in all interaction states (Contao
+   :visited overrides), unlike the dark-on-yellow button links below. */
 a.oaa-license-url-link,
 a.oaa-license-url-link:link,
 a.oaa-license-url-link:visited,
 a.oaa-license-url-link:hover,
 a.oaa-license-url-link:active,
 a.oaa-license-url-link:focus-visible {
-    color: #1a1a1a;
+    color: #4ea1ff;
     text-decoration: underline;
 }
 
@@ -149,6 +151,15 @@ ul#sort_auto_update_site_root.oaa-picker-collapsed {
 }
 .oaa-info-card--premium .oaa-info-card-heading {
     color: #d7ff64;
+}
+/* The onload welcome cards sit directly inside Contao's plain .tl_message
+   wrapper (no field/widget spacing applies there), so they touch the page
+   edges unless given the same horizontal inset as a regular .widget row.
+   The Premium-Addon box already gets that inset from its own .widget
+   wrapper, so this is scoped to the plain (non-card) .tl_message parent
+   to avoid doubling its margin. */
+.tl_message > .oaa-info-card {
+    margin: 0 15px 12px;
 }
 
 /* Widen Contao's backend help tooltip so long help texts stay short
