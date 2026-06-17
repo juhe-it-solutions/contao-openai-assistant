@@ -635,6 +635,7 @@ class OpenAiConfigListener
             $this->configureAutoUpdateFieldAccess((int) $dc->id);
             $this->configureAutoUpdateModelVisibility((int) $dc->id);
             $this->injectAutoUpdateBackendScript((int) $dc->id, $this->licenseValidation->isLicenseActive((int) $dc->id));
+            $this->addNoFilesNoticeIfNeeded((int) $dc->id);
         }
     }
 
@@ -1232,6 +1233,21 @@ class OpenAiConfigListener
         $lang = $this->loadConfigLang();
 
         return $lang[$key] ?? $fallback;
+    }
+
+    private function addNoFilesNoticeIfNeeded(int $configId): void
+    {
+        $count = (int) $this->connection->fetchOne(
+            'SELECT COUNT(*) FROM tl_openai_files WHERE pid = ?',
+            [$configId],
+        );
+
+        if (0 === $count) {
+            Message::addInfo($this->getTranslatedString(
+                'no_files_notice',
+                'No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Go to «File upload» to add your first file.',
+            ));
+        }
     }
 
     /**
