@@ -165,15 +165,15 @@
                 <source>Note</source>
                 <target>Hinweis</target>
             </trans-unit>
-            <trans-unit id=”tl_openai_config.premium_license_info_hint”>
+            <trans-unit id="tl_openai_config.premium_license_info_hint">
                 <source>Enter your license key below and validate it with “Check key” before saving.</source>
                 <target>Geben Sie unten Ihren Lizenzschlüssel ein und validieren Sie ihn mit „Schlüssel prüfen”, bevor Sie speichern.</target>
             </trans-unit>
-            <trans-unit id=”tl_openai_config.premium_license_info_hint_active”>
+            <trans-unit id="tl_openai_config.premium_license_info_hint_active">
                 <source>To force an immediate license check (e.g. after a plan change), clear this field, re-enter your key, and save.</source>
                 <target>Um eine sofortige Lizenzprüfung zu erzwingen (z. B. nach einer Planänderung), leeren Sie dieses Feld, geben Sie Ihren Schlüssel erneut ein und speichern Sie.</target>
             </trans-unit>
-            <trans-unit id=”tl_openai_config.premium_license_validated”>
+            <trans-unit id="tl_openai_config.premium_license_validated">
                 <source>Premium license validated successfully.</source>
                 <target>Premium-Lizenz erfolgreich validiert.</target>
             </trans-unit>
