@@ -85,6 +85,7 @@ services:
             $encryption: '@JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService'
             $licenseValidation: '@JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService'
             $autoUpdateService: '@JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService'
+            $fileSync: '@JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreFileSync'
         public: true
         tags:
             - { name: contao.callback, table: tl_openai_config, target: config.onload, method: onLoadCallback }

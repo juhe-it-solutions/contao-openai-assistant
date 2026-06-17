@@ -27,6 +27,7 @@ use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiModelCatalogService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreDocumentPrompt;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreFileSync;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
@@ -73,6 +74,7 @@ class OpenAiConfigListener
         private readonly LicenseValidationService $licenseValidation,
         private readonly OpenAiModelCatalogService $modelCatalog,
         private readonly VectorStoreAutoUpdateService $autoUpdateService,
+        private readonly VectorStoreFileSync $fileSync,
     ) {
     }
 
@@ -410,17 +412,17 @@ class OpenAiConfigListener
 
         $configId = (int) $dc->id;
 
-        $this->connection->executeStatement('DELETE FROM tl_openai_vector_file WHERE pid = ?', [$configId]);
         $this->connection->executeStatement('DELETE FROM tl_openai_sync_log WHERE pid = ?', [$configId]);
 
         $this->licenseValidation->deactivate($configId);
 
         $vectorStoreId = $dc->activeRecord->vector_store_id;
-        if (!$vectorStoreId) {
-            return;
-        }
 
         try {
+            if (!$vectorStoreId) {
+                return;
+            }
+
             $apiKey = $this->encryption->getApiKeyForConfig((int) $dc->id);
             if (!$apiKey) {
                 $this->logger->warning(
@@ -432,6 +434,19 @@ class OpenAiConfigListener
                 );
 
                 return;
+            }
+
+            try {
+                $this->fileSync->purge($apiKey, (string) $vectorStoreId, $configId);
+            } catch (\Exception $e) {
+                $this->logger->error(
+                    'Error deleting auto-sync files from OpenAI platform: '.$e->getMessage(),
+                    [
+                        'contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR),
+                        'config_id' => $configId,
+                        'vector_store_id' => $vectorStoreId,
+                    ],
+                );
             }
 
             // Delete all associated files from the OpenAI platform
@@ -567,6 +582,8 @@ class OpenAiConfigListener
                     'contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR),
                 ],
             );
+        } finally {
+            $this->connection->executeStatement('DELETE FROM tl_openai_vector_file WHERE pid = ?', [$configId]);
         }
     }
 
