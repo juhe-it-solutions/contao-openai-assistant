@@ -1130,23 +1130,18 @@ class OpenAiConfigListener
     }
 
     /**
-     * Manual trigger + faithful indexing mode means pages are uploaded verbatim, with no
-     * LLM rewrite step - so the "Generation model" field has nothing to act on. Drop it
-     * from the palette in that combination instead of leaving a dead-end setting visible.
+     * "Faithful" indexing uploads pages verbatim with no LLM rewrite step, so the
+     * "Generation model" field has nothing to act on regardless of the trigger type.
+     * Drop it from the palette whenever faithful mode is active.
      */
     private function configureAutoUpdateModelVisibility(int $configId): void
     {
-        $trigger = (string) ($_POST['auto_update_trigger'] ?? '');
-        if ('' === $trigger) {
-            $trigger = (string) $this->connection->fetchOne('SELECT auto_update_trigger FROM tl_openai_config WHERE id = ?', [$configId]);
-        }
-
         $mode = (string) ($_POST['auto_update_mode'] ?? '');
         if ('' === $mode) {
             $mode = (string) $this->connection->fetchOne('SELECT auto_update_mode FROM tl_openai_config WHERE id = ?', [$configId]);
         }
 
-        if ('manual' === $trigger && 'faithful' === $mode) {
+        if ('faithful' === $mode) {
             $GLOBALS['TL_DCA']['tl_openai_config']['palettes']['default'] = str_replace(
                 ',auto_update_model,',
                 ',',
