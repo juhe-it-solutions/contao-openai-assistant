@@ -59,6 +59,7 @@ class BackendMenuListener
         }
 
         if (!$this->hasAnyActiveLicense()) {
+            $categoryNode->removeChild('vector_store_auto_update');
             $categoryNode->removeChild('openai_sync_log');
 
             return;
