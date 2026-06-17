@@ -246,13 +246,15 @@ class VectorStoreFileSync
      */
     private function replacePageState(int $configId, int $pageId, array $rows): void
     {
-        $this->connection->transactional(function () use ($configId, $pageId, $rows): void {
-            $this->connection->delete('tl_openai_vector_file', ['pid' => $configId, 'page_id' => $pageId]);
+        $this->connection->transactional(
+            function () use ($configId, $pageId, $rows): void {
+                $this->connection->delete('tl_openai_vector_file', ['pid' => $configId, 'page_id' => $pageId]);
 
-            foreach ($rows as $row) {
-                $this->insertState(...$row);
-            }
-        });
+                foreach ($rows as $row) {
+                    $this->insertState(...$row);
+                }
+            },
+        );
     }
 
     /**
