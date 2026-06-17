@@ -213,7 +213,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['premium_license_key'],
             'exclude'   => true,
             'inputType' => 'text',
-            'xlabel'    => [
+            'wizard'    => [
                 ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener', 'licenseKeyWizard'],
             ],
             'eval'      => [
