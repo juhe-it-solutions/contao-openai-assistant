@@ -551,24 +551,28 @@ class OpenAiFilesListener
             </div>';
 
             $script = '<script>
-                document.addEventListener("DOMContentLoaded", function() {
-                    // Try multiple selectors to find the best place to insert the status indicator
-                    var header = document.querySelector(".tl_header");
-                    var title = document.querySelector(".tl_title");
-                    var container = document.querySelector(".tl_content");
-
-                    var targetElement = header || title || container;
-
-                    if (targetElement) {
-                        // Create a wrapper div for the status indicator
-                        var statusWrapper = document.createElement("div");
-                        statusWrapper.style.cssText = "margin: 10px 0; padding: 10px; border-radius: 4px;";
-                        statusWrapper.innerHTML = \''.addslashes($neutralIndicator).'\';
-
-                        // Insert at the beginning of the target element
-                        targetElement.insertBefore(statusWrapper, targetElement.firstChild);
-                    }
-                });
+(function () {
+    function insertStatusIndicator() {
+        if (document.querySelector(".oaa-api-status-wrapper")) { return; }
+        var header = document.querySelector(".tl_header");
+        var title = document.querySelector(".tl_title");
+        var container = document.querySelector(".tl_content");
+        var targetElement = header || title || container;
+        if (targetElement) {
+            var statusWrapper = document.createElement("div");
+            statusWrapper.className = "oaa-api-status-wrapper";
+            statusWrapper.style.cssText = "margin: 10px 0; padding: 10px; border-radius: 4px;";
+            statusWrapper.innerHTML = \''.addslashes($neutralIndicator).'\';
+            targetElement.insertBefore(statusWrapper, targetElement.firstChild);
+        }
+    }
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", insertStatusIndicator);
+    } else {
+        insertStatusIndicator();
+    }
+    document.addEventListener("turbo:load", insertStatusIndicator);
+}());
             </script>';
 
             // Add the script to the page

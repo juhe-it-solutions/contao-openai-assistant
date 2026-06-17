@@ -134,13 +134,13 @@
                     var result = JSON.parse(xhr.responseText || "{}");
 
                     if (result.valid) {
-                        resultSpan.innerHTML = '<span style="color:green;">✓ API-Schluessel ist gueltig!</span>';
+                        resultSpan.innerHTML = '<span style="color:green;">✓ API-Schlüssel ist gültig!</span>';
                         input.style.backgroundColor = "lightgreen";
                         input.style.color = "#121212";
                         return;
                     }
 
-                    resultSpan.innerHTML = '<span style="color:red;">✗ API-Schluessel ist ungueltig. ' + (result.message || "") + '</span>';
+                    resultSpan.innerHTML = '<span style="color:red;">✗ API-Schlüssel ist ungültig. ' + (result.message || "") + '</span>';
                     input.style.backgroundColor = "lightcoral";
                     input.style.color = "#121212";
                 } catch (e) {

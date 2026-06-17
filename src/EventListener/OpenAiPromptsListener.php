@@ -282,33 +282,40 @@ class OpenAiPromptsListener
         Message::addRaw($combinedMessage);
 
         $script = '<script>
-        function toggleManualModelField(select) {
-            const manualField = document.querySelector("input[name=\'model_manual\']");
-            const manualRow = manualField ? manualField.closest(".tl_field") : null;
-
-            if (select.value === "manual") {
-                if (manualRow) manualRow.style.display = "block";
-                if (manualField) {
-                    manualField.focus();
-                    manualField.style.borderColor = "#007cba";
-                    manualField.style.backgroundColor = "#f8f9fa";
-                }
-            } else {
-                if (manualRow) manualRow.style.display = "none";
-                if (manualField) {
-                    manualField.value = "";
-                    manualField.style.borderColor = "";
-                    manualField.style.backgroundColor = "";
-                }
+(function () {
+    function toggleManualModelField(select) {
+        var manualField = document.querySelector("input[name=\'model_manual\']");
+        var manualRow = manualField ? manualField.closest(".tl_field") : null;
+        if (select.value === "manual") {
+            if (manualRow) { manualRow.style.display = "block"; }
+            if (manualField) {
+                manualField.focus();
+                manualField.style.borderColor = "#007cba";
+                manualField.style.backgroundColor = "#f8f9fa";
+            }
+        } else {
+            if (manualRow) { manualRow.style.display = "none"; }
+            if (manualField) {
+                manualField.value = "";
+                manualField.style.borderColor = "";
+                manualField.style.backgroundColor = "";
             }
         }
+    }
+    window.toggleManualModelField = toggleManualModelField;
 
-        document.addEventListener("DOMContentLoaded", function() {
-            const modelSelect = document.querySelector("select[name=\'model\']");
-            if (modelSelect) {
-                toggleManualModelField(modelSelect);
-            }
-        });
+    function initToggle() {
+        var modelSelect = document.querySelector("select[name=\'model\']");
+        if (modelSelect) { toggleManualModelField(modelSelect); }
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initToggle);
+    } else {
+        initToggle();
+    }
+    document.addEventListener("turbo:load", initToggle);
+}());
         </script>';
 
         $GLOBALS['TL_BODY'][] = $script;

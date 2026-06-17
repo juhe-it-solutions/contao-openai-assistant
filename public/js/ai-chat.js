@@ -683,13 +683,22 @@ function initAiChat(wrapper) {
   });
 }
 
-  // Initialize all AI chat modules when DOM is ready
-  document.addEventListener('DOMContentLoaded', () => {
-    const chatModules = document.querySelectorAll('.mod_ai_chat');
-    chatModules.forEach(module => {
+  // Initialize all AI chat modules — guard against double-init on Turbo navigation.
+  function initAllAiChats() {
+    document.querySelectorAll('.mod_ai_chat:not([data-ai-chat-init])').forEach(function (module) {
+      module.setAttribute('data-ai-chat-init', '1');
       initAiChat(module);
     });
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAllAiChats);
+  } else {
+    initAllAiChats();
+  }
+
+  // Re-init after Turbo-driven page transitions (Contao 5.7+).
+  document.addEventListener('turbo:load', initAllAiChats);
   
   // Handle viewport height changes (for mobile browsers)
   window.addEventListener('resize', appHeight);
