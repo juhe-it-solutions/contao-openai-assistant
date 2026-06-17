@@ -1132,7 +1132,8 @@ class OpenAiConfigListener
     /**
      * "Faithful" indexing uploads pages verbatim with no LLM rewrite step, so the
      * "Generation model" field has nothing to act on regardless of the trigger type.
-     * Drop it from the palette whenever faithful mode is active.
+     * Drop it from the palette whenever the mode is not explicitly "llm_polish".
+     * Empty/legacy rows default to faithful behaviour, so they are treated the same.
      */
     private function configureAutoUpdateModelVisibility(int $configId): void
     {
@@ -1141,10 +1142,12 @@ class OpenAiConfigListener
             $mode = (string) $this->connection->fetchOne('SELECT auto_update_mode FROM tl_openai_config WHERE id = ?', [$configId]);
         }
 
-        if ('faithful' === $mode) {
-            $GLOBALS['TL_DCA']['tl_openai_config']['palettes']['default'] = str_replace(
-                ',auto_update_model,',
-                ',',
+        if ('llm_polish' !== $mode) {
+            // Use a regex so the field is removed regardless of its position in
+            // the palette string (first item after legend, last item, or middle).
+            $GLOBALS['TL_DCA']['tl_openai_config']['palettes']['default'] = (string) preg_replace(
+                '/,auto_update_model(?=[,;]|$)/',
+                '',
                 $GLOBALS['TL_DCA']['tl_openai_config']['palettes']['default'],
             );
         }
