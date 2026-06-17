@@ -245,7 +245,7 @@
                         return;
                     }
 
-                    resultSpan.innerHTML = '<span style="color:red;">✗ ' + (labels.invalid || "License key is invalid!") + " " + (result.message || "") + '</span>';
+                    resultSpan.innerHTML = '<span style="color:red;">✗ ' + (labels.invalid || "License key is invalid!") + '</span>';
                     input.style.backgroundColor = "lightcoral";
                     input.style.color = "#121212";
                     setAutoUpdateFieldsEnabled(false);
@@ -367,18 +367,6 @@
         });
     }
 
-    function init() {
-        placeApiKeyWrappers();
-        setupApiKeyDelegate();
-        setupLicenseKeyDelegate();
-        bindPagePickerDelegates();
-        ensurePagePickerCollapsed();
-
-        if (window.contaoOpenAiAutoUpdate) {
-            syncAutoUpdateLicenseState();
-        }
-    }
-
     var observer = new MutationObserver(function () {
         init();
         syncAutoUpdateLicenseState();
@@ -388,15 +376,33 @@
         observer.observe(document.body, { childList: true, subtree: true });
     }
 
+    // Disconnect before any DOM manipulation so that insertBefore / innerHTML
+    // calls inside init() do not re-trigger the observer (infinite loop).
+    // Reconnect unconditionally at the end so subsequent Turbo navigations and
+    // AJAX re-renders are still caught.
+    function init() {
+        observer.disconnect();
+
+        placeApiKeyWrappers();
+        setupApiKeyDelegate();
+        setupLicenseKeyDelegate();
+        bindPagePickerDelegates();
+        ensurePagePickerCollapsed();
+
+        if (window.contaoOpenAiAutoUpdate) {
+            syncAutoUpdateLicenseState();
+        }
+
+        startObserver();
+    }
+
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", function () {
             init();
             syncAutoUpdateLicenseState();
-            startObserver();
         });
     } else {
         init();
         syncAutoUpdateLicenseState();
-        startObserver();
     }
 })();
