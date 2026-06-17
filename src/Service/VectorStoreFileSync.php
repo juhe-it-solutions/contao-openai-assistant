@@ -109,17 +109,11 @@ class VectorStoreFileSync
                 continue;
             }
 
-            // Replace: delete the previously uploaded file(s) for this page first.
-            if (null !== $current) {
-                foreach ($current['files'] as $oldFileId) {
-                    $this->detachAndDelete($apiKey, $vectorStoreId, $oldFileId);
-                }
-                $this->connection->delete('tl_openai_vector_file', ['pid' => $configId, 'page_id' => $pageId]);
-            }
-
             $chunks = $this->splitContent($page['content']);
             $chunkCount = \count($chunks);
             $pageOk = true;
+            $replacementRows = [];
+            $replacementFileIds = [];
 
             foreach ($chunks as $i => $chunk) {
                 $document = $this->buildDocument($page, $chunk, $i, $chunkCount);
@@ -127,22 +121,50 @@ class VectorStoreFileSync
 
                 try {
                     $fileId = $this->uploadFile($apiKey, $document);
+                    $replacementFileIds[] = $fileId;
                     $this->attachToStore($apiKey, $vectorStoreId, $fileId, $page, $contentHash, $i, $chunkCount);
                     $this->waitForIngestion($apiKey, $vectorStoreId, $fileId);
 
-                    $this->insertState($configId, $page, $contentHash, $fileId, $bytes, $i, $chunkCount, 'uploaded', null);
+                    $replacementRows[] = [$configId, $page, $contentHash, $fileId, $bytes, $i, $chunkCount, 'uploaded', null];
                     ++$stats['files_uploaded'];
                     $stats['bytes'] += $bytes;
                 } catch (\Throwable $e) {
                     $pageOk = false;
                     ++$stats['files_failed'];
                     $this->logger->error('Vector file upload failed for page '.$pageId.' chunk '.$i.': '.$e->getMessage());
-                    $this->insertState($configId, $page, $contentHash, '', $bytes, $i, $chunkCount, 'failed', $e->getMessage());
+
+                    if (null === $current) {
+                        $this->insertState($configId, $page, $contentHash, '', $bytes, $i, $chunkCount, 'failed', $e->getMessage());
+                    }
                 }
             }
 
             if ($pageOk) {
+                // A changed page is swapped only after every replacement chunk was uploaded,
+                // attached and ingested. Until this point the previous files remain queryable.
+                try {
+                    $this->replacePageState($configId, $pageId, $replacementRows);
+                } catch (\Throwable $e) {
+                    foreach ($replacementFileIds as $replacementFileId) {
+                        $this->detachAndDelete($apiKey, $vectorStoreId, $replacementFileId);
+                    }
+
+                    throw $e;
+                }
+
+                if (null !== $current) {
+                    foreach ($current['files'] as $oldFileId) {
+                        $this->detachAndDelete($apiKey, $vectorStoreId, $oldFileId);
+                    }
+                }
+
                 null === $current ? ++$stats['added'] : ++$stats['updated'];
+            } elseif ([] !== $replacementFileIds) {
+                // Partial replacement files would duplicate old knowledge for changed pages
+                // (or leave orphan chunks for new pages), so remove them best-effort.
+                foreach ($replacementFileIds as $replacementFileId) {
+                    $this->detachAndDelete($apiKey, $vectorStoreId, $replacementFileId);
+                }
             }
         }
 
@@ -214,6 +236,23 @@ class VectorStoreFileSync
         }
 
         return $state;
+    }
+
+    /**
+     * Atomically swap the tracked files for one page. Remote old files are deleted only after
+     * this transaction succeeds; if the DB write fails, the previous tracking remains intact.
+     *
+     * @param list<array{0: int, 1: array{page_id: int, url: string, title: string, language: string, search_checksum: string}, 2: string, 3: string, 4: int, 5: int, 6: int, 7: string, 8: string|null}> $rows
+     */
+    private function replacePageState(int $configId, int $pageId, array $rows): void
+    {
+        $this->connection->transactional(function () use ($configId, $pageId, $rows): void {
+            $this->connection->delete('tl_openai_vector_file', ['pid' => $configId, 'page_id' => $pageId]);
+
+            foreach ($rows as $row) {
+                $this->insertState(...$row);
+            }
+        });
     }
 
     /**
