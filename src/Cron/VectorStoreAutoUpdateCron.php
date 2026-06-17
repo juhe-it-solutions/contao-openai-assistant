@@ -54,6 +54,17 @@ class VectorStoreAutoUpdateCron
             throw new CronExecutionSkippedException();
         }
 
+        // Skip silently when contao:migrate has not yet created the extension tables
+        // (e.g. cron fires before the install wizard completes on a fresh install).
+        $schemaManager = $this->connection->createSchemaManager();
+        if (!$schemaManager->tablesExist(['tl_openai_config'])) {
+            throw new CronExecutionSkippedException();
+        }
+        $columns = $schemaManager->listTableColumns('tl_openai_config');
+        if (!isset($columns['auto_update_enabled'])) {
+            throw new CronExecutionSkippedException();
+        }
+
         $configs = $this->connection->fetchAllAssociative(
             "SELECT * FROM tl_openai_config WHERE auto_update_enabled = '1'",
         );

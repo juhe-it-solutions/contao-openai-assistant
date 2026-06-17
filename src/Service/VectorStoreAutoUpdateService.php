@@ -155,6 +155,14 @@ class VectorStoreAutoUpdateService
             $triggerSource = self::SOURCE_CLI;
         }
 
+        // Guard against running before contao:migrate has created the extension tables
+        // (e.g. CLI command invoked on a fresh install before the install wizard finishes).
+        if (!$this->connection->createSchemaManager()->tablesExist(['tl_openai_config'])) {
+            $this->logger->notice('VectorStoreAutoUpdate skipped for config '.$configId.': extension tables not yet created (run contao:migrate).');
+
+            return;
+        }
+
         $start = time();
         $model = '';
 
