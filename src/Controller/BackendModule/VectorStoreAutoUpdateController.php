@@ -91,8 +91,29 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
                 return $this->redirectToRoute('vector_store_auto_update');
             }
 
+            // Force a fresh remote revalidation without re-entering the key (UX-06).
+            if ('refresh_license' === $request->request->get('action')) {
+                $active = $this->licenseValidation->forceRevalidate($configId);
+                if ($active) {
+                    Message::addConfirmation($this->translator->trans('MSC.vsau_refresh_license_confirm', [], 'contao_default'));
+                } else {
+                    Message::addInfo($this->translator->trans('MSC.vsau_refresh_license_inactive', [], 'contao_default'));
+                }
+
+                return $this->redirectToRoute('vector_store_auto_update');
+            }
+
             if (!$this->licenseValidation->isLicenseActive($configId)) {
                 Message::addError($this->translator->trans('MSC.vsau_err_no_license', [], 'contao_default'));
+
+                return $this->redirectToRoute('vector_store_auto_update');
+            }
+
+            // Check proc_open at dispatch time, not just at render time — so a hosting
+            // config change after page load surfaces a clear error rather than a silent
+            // failure (UX-05).
+            if (!$this->processSpawningAvailable()) {
+                Message::addError($this->translator->trans('MSC.vsau_err_no_proc_open', [], 'contao_default'));
 
                 return $this->redirectToRoute('vector_store_auto_update');
             }

@@ -22,6 +22,10 @@
                 <source>Partial (some pages failed)</source>
                 <target>Partial (some pages failed)</target>
             </trans-unit>
+            <trans-unit id="tl_openai_sync_log.status_ref.skipped">
+                <source>Skipped</source>
+                <target>Skipped</target>
+            </trans-unit>
             <trans-unit id="tl_openai_sync_log.trigger_source">
                 <source>Trigger</source>
                 <target>Trigger</target>

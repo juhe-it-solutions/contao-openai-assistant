@@ -159,9 +159,24 @@ class VectorStoreAutoUpdateService
         $model = '';
 
         try {
-            // License gate - silent no-op if not active.
+            // License gate — write a skipped log entry so the run-history table shows why
+            // syncs stopped, rather than leaving an unexplained gap (UX-10).
             if (!$this->licenseValidation->isLicenseActive($configId)) {
                 $this->logger->notice('VectorStoreAutoUpdate skipped for config '.$configId.': no active premium license.');
+                $this->connection->insert('tl_openai_sync_log', [
+                    'pid' => $configId,
+                    'tstamp' => $start,
+                    'run_at' => $start,
+                    'status' => 'skipped',
+                    'trigger_source' => $triggerSource,
+                    'message' => 'MSC.vsau_sync_skipped_license',
+                ]);
+                // Clear the 'queued' status written by dispatchRun() so the dashboard
+                // "Run sync now" button becomes re-clickable immediately (REV-02).
+                $this->connection->executeStatement(
+                    "UPDATE tl_openai_config SET auto_update_last_status = 'skipped', auto_update_last_run = ? WHERE id = ?",
+                    [$start, $configId],
+                );
 
                 return;
             }
@@ -189,8 +204,12 @@ class VectorStoreAutoUpdateService
             $this->markRunning($configId);
             $this->spawnCrawl($configId);
 
-            // Read EVERY in-scope page - no character or page limit, ever.
-            $rows = $this->readAllPages($configId);
+            // Plan-based page cap: enforce the subscription limit at runtime so a
+            // downgrade immediately shrinks the sync scope without requiring the admin to
+            // re-save their site-root selection (BUG-06).
+            $planPageLimit = (int) ($config['premium_license_max_pages'] ?? 0);
+
+            $rows = $this->readAllPages($configId, $planPageLimit);
             if (0 === \count($rows)) {
                 throw new \RuntimeException('MSC.vsau_err_no_indexed_pages');
             }
@@ -444,7 +463,7 @@ class VectorStoreAutoUpdateService
      *
      * @return array<int, array<string, mixed>>
      */
-    private function readAllPages(int $configId): array
+    private function readAllPages(int $configId, int $planPageLimit = 0): array
     {
         $config = $this->connection->fetchAssociative(
             'SELECT auto_update_site_root FROM tl_openai_config WHERE id = ?',
@@ -487,6 +506,17 @@ class VectorStoreAutoUpdateService
 
         if ([] === $pageIds) {
             return [];
+        }
+
+        // Apply the subscription plan page cap. A 0 limit means unlimited (enterprise).
+        if ($planPageLimit > 0 && \count($pageIds) > $planPageLimit) {
+            $this->logger->notice(\sprintf(
+                'VectorStoreAutoUpdate: plan page limit %d applied for config %d (scope was %d pages).',
+                $planPageLimit,
+                $configId,
+                \count($pageIds),
+            ));
+            $pageIds = \array_slice($pageIds, 0, $planPageLimit);
         }
 
         return $this->connection->fetchAllAssociative(

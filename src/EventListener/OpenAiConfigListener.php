@@ -651,35 +651,59 @@ class OpenAiConfigListener
         $manageUrl = $this->licensePortalUrls->getManageUrl();
         $logoUrl = '/bundles/contaoopenaiassistant/images/logo_juhe-licenses.svg';
 
-        $content = \sprintf(
-            '<strong class="oaa-info-card-heading" style="display: block; font-size: 22px; position: relative; top: -5px;">%s</strong>'
-            .'<span style="display: flex; gap: 16px; align-items: center; margin-top: 10px;">'
-            .'<a href="%s" target="_blank" rel="noopener noreferrer" style="flex-shrink: 0;">'
-            .'<img src="%s" alt="JUHE Licenses" width="90" height="90" style="display: block; width: 90px; height: 90px;"></a>'
-            .'<span>%s<br>'
-            .'<span style="color: #f59e0b; line-height: 2">%s <a href="%s" target="_blank" rel="noopener noreferrer" class="oaa-license-url-link">%s</a></span>'
-            .'<br><span class="openai-license-actions">'
-            .'<a class="openai-license-help-link" href="%s" target="_blank" rel="noopener noreferrer">%s</a>'
-            .'<a class="openai-license-help-link" href="%s" target="_blank" rel="noopener noreferrer">%s</a>'
-            .'</span>'
-            .'</span></span>'
-            .'<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin-top: 8px; margin-left: 11px;">'
-            .'<strong>ℹ️ %s:</strong> %s'
-            .'</div>',
-            (string) ($lang['premium_license_info_heading'] ?? 'Premium: automatic vector store sync'),
-            htmlspecialchars($licenseUrl, ENT_QUOTES),
-            htmlspecialchars($logoUrl, ENT_QUOTES),
-            (string) ($lang['premium_license_info_text'] ?? ''),
-            (string) ($lang['premium_license_info_purchase'] ?? 'Get a license at'),
-            htmlspecialchars($licenseUrl, ENT_QUOTES),
-            htmlspecialchars($licenseUrl, ENT_QUOTES),
-            htmlspecialchars($manageUrl, ENT_QUOTES),
-            (string) ($lang['premium_license_info_manage'] ?? 'Manage subscription'),
-            htmlspecialchars($helpUrl, ENT_QUOTES),
-            (string) ($lang['premium_license_info_docs'] ?? 'Guide & help'),
-            (string) ($lang['premium_license_info_hint_heading'] ?? 'Note'),
-            (string) ($lang['premium_license_info_hint'] ?? 'Enter your license key below and validate it with "Check key" before saving.'),
-        );
+        $licenseActive = $dc->id && $this->licenseValidation->isLicenseActive((int) $dc->id);
+
+        if ($licenseActive) {
+            // Active subscriber: replace the sales card with a neutral "about" note that
+            // links to manage/help without any purchase CTAs.
+            $content = \sprintf(
+                '<strong class="oaa-info-card-heading" style="display: block; font-size: 22px; position: relative; top: -5px;">%s</strong>'
+                .'<span class="openai-license-actions" style="margin-top: 10px;">'
+                .'<a class="openai-license-help-link" href="%s" target="_blank" rel="noopener noreferrer">%s</a>'
+                .'<a class="openai-license-help-link" href="%s" target="_blank" rel="noopener noreferrer">%s</a>'
+                .'</span>'
+                .'<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin-top: 8px; margin-left: 11px;">'
+                .'<strong>ℹ️ %s:</strong> %s'
+                .'</div>',
+                (string) ($lang['premium_license_info_heading'] ?? 'Premium: automatic vector store sync'),
+                htmlspecialchars($manageUrl, ENT_QUOTES),
+                (string) ($lang['premium_license_info_manage'] ?? 'Manage subscription'),
+                htmlspecialchars($helpUrl, ENT_QUOTES),
+                (string) ($lang['premium_license_info_docs'] ?? 'Guide & help'),
+                (string) ($lang['premium_license_info_hint_heading'] ?? 'Note'),
+                (string) ($lang['premium_license_info_hint_active'] ?? 'To force an immediate license check (e.g. after a plan change), clear this field, re-enter your key, and save.'),
+            );
+        } else {
+            $content = \sprintf(
+                '<strong class="oaa-info-card-heading" style="display: block; font-size: 22px; position: relative; top: -5px;">%s</strong>'
+                .'<span style="display: flex; gap: 16px; align-items: center; margin-top: 10px;">'
+                .'<a href="%s" target="_blank" rel="noopener noreferrer" style="flex-shrink: 0;">'
+                .'<img src="%s" alt="JUHE Licenses" width="90" height="90" style="display: block; width: 90px; height: 90px;"></a>'
+                .'<span>%s<br>'
+                .'<span style="color: #f59e0b; line-height: 2">%s <a href="%s" target="_blank" rel="noopener noreferrer" class="oaa-license-url-link">%s</a></span>'
+                .'<br><span class="openai-license-actions">'
+                .'<a class="openai-license-help-link" href="%s" target="_blank" rel="noopener noreferrer">%s</a>'
+                .'<a class="openai-license-help-link" href="%s" target="_blank" rel="noopener noreferrer">%s</a>'
+                .'</span>'
+                .'</span></span>'
+                .'<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin-top: 8px; margin-left: 11px;">'
+                .'<strong>ℹ️ %s:</strong> %s'
+                .'</div>',
+                (string) ($lang['premium_license_info_heading'] ?? 'Premium: automatic vector store sync'),
+                htmlspecialchars($licenseUrl, ENT_QUOTES),
+                htmlspecialchars($logoUrl, ENT_QUOTES),
+                (string) ($lang['premium_license_info_text'] ?? ''),
+                (string) ($lang['premium_license_info_purchase'] ?? 'Get a license at'),
+                htmlspecialchars($licenseUrl, ENT_QUOTES),
+                htmlspecialchars($licenseUrl, ENT_QUOTES),
+                htmlspecialchars($manageUrl, ENT_QUOTES),
+                (string) ($lang['premium_license_info_manage'] ?? 'Manage subscription'),
+                htmlspecialchars($helpUrl, ENT_QUOTES),
+                (string) ($lang['premium_license_info_docs'] ?? 'Guide & help'),
+                (string) ($lang['premium_license_info_hint_heading'] ?? 'Note'),
+                (string) ($lang['premium_license_info_hint'] ?? 'Enter your license key below and validate it with "Check key" before saving.'),
+            );
+        }
 
         return \sprintf(
             '<div class="widget clr premium-license-intro">'
@@ -873,12 +897,12 @@ class OpenAiConfigListener
 
         $plan = (string) ($dc->activeRecord->premium_license_plan ?? '');
         $maxPages = (int) ($dc->activeRecord->premium_license_max_pages ?? 0);
+        $checkedAt = (int) ($dc->activeRecord->premium_license_checked_at ?? 0);
 
-        // Backfill the plan/limit when it is not stored yet: a license validated before
-        // plan capture existed (status cached "active", so revalidate never re-ran), or a
-        // key entered in the same save (the onsubmit revalidation runs after this callback).
-        // Without this the limit could not be resolved and the check would silently pass.
-        if ('' === $plan) {
+        // Refresh plan data when: (a) never fetched, or (b) older than 1 hour — so a
+        // plan upgrade is usable immediately without waiting 7 days for the cache to expire.
+        $planIsStale = 0 === $checkedAt || time() - $checkedAt > 3600;
+        if ('' === $plan || $planIsStale) {
             [$plan, $maxPages] = $this->refreshLicensePlan((int) $dc->id);
         }
 

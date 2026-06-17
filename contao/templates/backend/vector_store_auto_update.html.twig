@@ -6,6 +6,7 @@
         .vsau-badge.green  { background: #43a047; }
         .vsau-badge.red    { background: #e53935; }
         .vsau-badge.yellow { background: #f59e0b; color: #1a1a1a; }
+        .vsau-badge.amber  { background: #e65100; }
         .vsau-badge.blue   { background: #2196f3; }
         .vsau-badge.grey   { background: #757575; }
 
@@ -130,6 +131,7 @@
         .vsau-stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary, #9aa0ad); margin-bottom: 0.6rem; }
         .vsau-stat-value { font-size: 13px; line-height: 1.6; }
         .vsau-stat-value .vsau-sub { display: block; margin-top: 6px; color: var(--text-secondary, #9aa0ad); font-size: 12px; }
+        .vsau-link { color: var(--active-bg, #c5eb52); text-decoration: underline; }
         .vsau-cron-mono { display: inline-block; margin-left: 6px; color: var(--text-secondary, #9aa0ad); font-size: 11px; }
 
         .vsau-setup { border-radius: 0.75rem; padding: 1.1rem 1.25rem; margin-bottom: 1.25rem; border: 1px solid var(--active-bg); }
@@ -251,19 +253,53 @@
                 </span>
 
                 {% if config.license_active %}
-                    <span class="vsau-badge green">{{ 'MSC.vsau_license_active'|trans({}, 'contao_default') }}</span>
-                    {% if config.plan_label %}
-                        <span class="vsau-chip">{{ config.plan_label }}</span>
+                    {% if config.premium_license_status == 'error' %}
+                        <span class="vsau-badge yellow">{{ 'MSC.vsau_license_error_grace'|trans({}, 'contao_default') }}</span>
+                        <span class="vsau-actions-hint">{{ 'MSC.vsau_license_grace_hint'|trans({}, 'contao_default') }}</span>
+                    {% elseif config.premium_license_status == 'past_due' %}
+                        <span class="vsau-badge amber">{{ 'MSC.vsau_license_past_due'|trans({}, 'contao_default') }}</span>
+                        <span class="vsau-actions-hint">{{ 'MSC.vsau_license_past_due_hint'|trans({}, 'contao_default') }}</span>
+                        <a href="{{ manage_url }}" target="_blank" rel="noopener" class="tl_submit">{{ 'MSC.vsau_manage_subscription'|trans({}, 'contao_default') }}</a>
+                    {% elseif config.premium_license_cancel_at_period_end %}
+                        <span class="vsau-badge amber">{{ 'MSC.vsau_license_cancels'|trans({}, 'contao_default') }}</span>
+                        {% if config.premium_license_valid_until > 0 %}
+                            <span class="vsau-actions-hint">{{ 'MSC.vsau_license_cancels_on'|trans({}, 'contao_default') }} {{ config.premium_license_valid_until|date('d.m.Y') }}. {{ 'MSC.vsau_sync_continues_until_then'|trans({}, 'contao_default') }}</span>
+                        {% else %}
+                            <span class="vsau-actions-hint">{{ 'MSC.vsau_sync_continues_until_then'|trans({}, 'contao_default') }}</span>
+                        {% endif %}
+                    {% elseif config.premium_license_status == 'trialing' %}
+                        <span class="vsau-badge amber">{{ 'MSC.vsau_license_trialing'|trans({}, 'contao_default') }}</span>
+                        {% if config.plan_label %}
+                            <span class="vsau-chip">{{ config.plan_label }}</span>
+                        {% endif %}
+                        {% if config.premium_license_valid_until > 0 %}
+                            <span class="vsau-actions-hint">{{ 'MSC.vsau_license_trial_ends'|trans({}, 'contao_default') }} {{ config.premium_license_valid_until|date('d.m.Y') }}</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="vsau-badge green">{{ 'MSC.vsau_license_active'|trans({}, 'contao_default') }}</span>
+                        {% if config.plan_label %}
+                            <span class="vsau-chip">{{ config.plan_label }}</span>
+                        {% endif %}
+                        {% if config.premium_license_valid_until > 0 %}
+                            <span class="vsau-actions-hint">{{ 'MSC.vsau_license_expires'|trans({}, 'contao_default') }} {{ config.premium_license_valid_until|date('d.m.Y') }}</span>
+                        {% endif %}
                     {% endif %}
-                    {% if config.premium_license_valid_until > 0 %}
-                        <span class="vsau-actions-hint">{{ 'MSC.vsau_license_expires'|trans({}, 'contao_default') }} {{ config.premium_license_valid_until|date('d.m.Y') }}</span>
-                    {% endif %}
+                    <form method="post" action="{{ path('vector_store_auto_update') }}" style="display:inline">
+                        <input type="hidden" name="REQUEST_TOKEN" value="{{ request_token }}">
+                        <input type="hidden" name="config_id" value="{{ config.id }}">
+                        <input type="hidden" name="action" value="refresh_license">
+                        <button type="submit" class="vsau-toolbar-btn" title="{{ 'MSC.vsau_refresh_license_title'|trans({}, 'contao_default') }}">{{ 'MSC.vsau_refresh_license'|trans({}, 'contao_default') }}</button>
+                    </form>
                 {% elseif config.premium_license_status == 'error' %}
                     <span class="vsau-badge yellow">{{ 'MSC.vsau_license_error_grace'|trans({}, 'contao_default') }}</span>
                     <span class="vsau-actions-hint">{{ 'MSC.vsau_license_grace_hint'|trans({}, 'contao_default') }}</span>
+                {% elseif config.premium_license_status == 'paused' %}
+                    <span class="vsau-badge amber">{{ 'MSC.vsau_license_paused'|trans({}, 'contao_default') }}</span>
+                    <a href="{{ manage_url }}" target="_blank" rel="noopener" class="tl_submit">{{ 'MSC.vsau_manage_subscription'|trans({}, 'contao_default') }}</a>
                 {% else %}
                     <span class="vsau-badge red">{{ 'MSC.vsau_license_inactive'|trans({}, 'contao_default') }}</span>
                     <a href="{{ purchase_url }}" target="_blank" rel="noopener" class="tl_submit">{{ 'MSC.vsau_buy_license'|trans({}, 'contao_default') }}</a>
+                    <a href="{{ help_url }}" target="_blank" rel="noopener" class="vsau-toolbar-btn vsau-toolbar-btn--help">{{ 'MSC.vsau_help_link'|trans({}, 'contao_default') }}</a>
                 {% endif %}
             </div>
 
@@ -328,12 +364,14 @@
                                 <span class="vsau-sub">{{ 'MSC.vsau_cron_not_used_hint'|trans({}, 'contao_default') }}</span>
                             {% elseif config.cron_status == 'never' %}
                                 <span class="vsau-badge red">{{ 'MSC.vsau_cron_never'|trans({}, 'contao_default') }}</span>
+                                <a href="{{ help_url }}" target="_blank" rel="noopener" class="vsau-sub vsau-link">{{ 'MSC.vsau_cron_setup_guide'|trans({}, 'contao_default') }}</a>
                             {% elseif config.cron_status == 'healthy' %}
                                 <span class="vsau-badge green">{{ 'MSC.vsau_cron_healthy'|trans({}, 'contao_default') }}</span>
                                 <span class="vsau-sub">{{ 'MSC.vsau_cron_healthy_seen'|trans({}, 'contao_default') }} {{ config.heartbeat_last_run|date('d.m.Y H:i:s') }}</span>
                             {% else %}
                                 <span class="vsau-badge yellow">{{ 'MSC.vsau_cron_stale'|trans({}, 'contao_default') }}</span>
                                 <span class="vsau-sub">{{ 'MSC.vsau_cron_healthy_seen'|trans({}, 'contao_default') }} {{ config.heartbeat_last_run|date('d.m.Y H:i:s') }}. {{ 'MSC.vsau_cron_stale_hint'|trans({}, 'contao_default') }}</span>
+                                <a href="{{ help_url }}" target="_blank" rel="noopener" class="vsau-sub vsau-link">{{ 'MSC.vsau_cron_setup_guide'|trans({}, 'contao_default') }}</a>
                             {% endif %}
                         </div>
                     </div>
@@ -354,6 +392,8 @@
                             {% elseif st == 'queued' %}
                                 <span class="vsau-badge blue">{{ 'MSC.vsau_sync_queued'|trans({}, 'contao_default') }}</span>
                                 <span class="vsau-sub">{{ 'MSC.vsau_sync_queued_hint'|trans({}, 'contao_default') }}</span>
+                            {% elseif st == 'skipped' %}
+                                <span class="vsau-badge yellow">{{ 'MSC.vsau_sync_skipped'|trans({}, 'contao_default') }}</span>
                             {% else %}
                                 <span class="vsau-badge grey">{{ 'MSC.vsau_sync_never'|trans({}, 'contao_default') }}</span>
                             {% endif %}
@@ -431,6 +471,8 @@
             {% else %}
 
                 <div class="vsau-gate">{{ 'MSC.vsau_license_required_hint'|trans({}, 'contao_default') }}</div>
+                <p class="vsau-actions-hint" style="margin-top: 8px;">{{ 'MSC.vsau_license_content_live'|trans({}, 'contao_default') }}</p>
+                <p class="vsau-actions-hint">{{ 'MSC.vsau_license_resubscribe_hint'|trans({}, 'contao_default') }}</p>
 
             {% endif %}
 
@@ -450,8 +492,8 @@
         </div>
     {% endfor %}
 
-    {# Run history - only when at least one config has an active license #}
-    {% if has_active_config %}
+    {# Run history - keep visible for inactive licenses too, so skipped rows explain why sync stopped. #}
+    {% if configs is not empty %}
         <div class="vsau-card">
             <div class="vsau-card-head">
                 <span class="vsau-title">{{ 'MSC.vsau_recent_runs'|trans({}, 'contao_default') }}</span>
@@ -496,6 +538,8 @@
                                         <span class="vsau-badge green">{{ 'MSC.vsau_sync_success'|trans({}, 'contao_default') }}</span>
                                     {% elseif row.status == 'partial' %}
                                         <span class="vsau-badge amber">{{ 'MSC.vsau_sync_partial'|trans({}, 'contao_default') }}</span>
+                                    {% elseif row.status == 'skipped' %}
+                                        <span class="vsau-badge yellow">{{ 'MSC.vsau_sync_skipped'|trans({}, 'contao_default') }}</span>
                                     {% else %}
                                         <span class="vsau-badge red">{{ 'MSC.vsau_sync_error'|trans({}, 'contao_default') }}</span>
                                     {% endif %}

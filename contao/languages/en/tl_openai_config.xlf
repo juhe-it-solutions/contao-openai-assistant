@@ -169,6 +169,10 @@
                 <source>Enter your license key below and validate it with "Check key" before saving.</source>
                 <target>Enter your license key below and validate it with "Check key" before saving.</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_hint_active">
+                <source>To force an immediate license check (e.g. after a plan change), clear this field, re-enter your key, and save.</source>
+                <target>To force an immediate license check (e.g. after a plan change), clear this field, re-enter your key, and save.</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_validated">
                 <source>Premium license validated successfully.</source>
                 <target>Premium license validated successfully.</target>

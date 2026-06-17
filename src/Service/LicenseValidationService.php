@@ -38,6 +38,8 @@ class LicenseValidationService
 
     private const CACHE_TTL_ERROR = 3600; // 1 hour after network/endpoint errors — retry sooner
 
+    private const CACHE_TTL_PLAN = 3600; // 1 hour: plan/max_pages re-fetched this often so upgrades propagate quickly
+
     private const GRACE_PERIOD = 604800; // 7 days: allow sync if last known good validation was recent
 
     public function __construct(
@@ -68,6 +70,15 @@ class LicenseValidationService
         // Fresh cache hit: decide from the cached status alone — no decryption, no
         // network call. This is the common path on every cron tick.
         if ($checkedAt > 0 && $this->isCacheFresh($status, $checkedAt)) {
+            // Even on a binary cache hit, refresh plan/max_pages hourly so plan
+            // upgrades and downgrades propagate without waiting 7 days (BUG-05).
+            if ($this->isEntitledStatus($status) && time() - $checkedAt > self::CACHE_TTL_PLAN) {
+                $plainKey = $this->encryption->decryptLicenseKey((string) $config['premium_license_key']);
+                if (null !== $plainKey) {
+                    $this->revalidate($configId, $plainKey);
+                }
+            }
+
             return $this->isActiveStatus($status, $config);
         }
 
@@ -92,7 +103,7 @@ class LicenseValidationService
     public function revalidate(int $configId, string $key): bool
     {
         $previous = $this->connection->fetchAssociative(
-            'SELECT premium_license_status, premium_license_valid_until, premium_license_checked_at, premium_license_plan, premium_license_max_pages FROM tl_openai_config WHERE id = ?',
+            'SELECT premium_license_status, premium_license_valid_until, premium_license_checked_at, premium_license_plan, premium_license_max_pages, premium_license_cancel_at_period_end FROM tl_openai_config WHERE id = ?',
             [$configId],
         );
 
@@ -106,13 +117,13 @@ class LicenseValidationService
                     // let the licensing server tell legitimate domain moves apart from one
                     // key shared across several live installs (spec §16).
                     'headers' => $this->buildValidationHeaders($key, $configId),
-                    'timeout' => 10,
+                    'timeout' => 5,
                 ],
             );
 
             $data = $response->toArray(false);
             $active = ($data['valid'] ?? false) === true;
-            $status = $active ? 'active' : (string) ($data['status'] ?? 'inactive');
+            $status = (string) ($data['status'] ?? ($active ? 'active' : 'inactive'));
             $validUntil = isset($data['expires_at'])
                 ? (new \DateTimeImmutable((string) $data['expires_at']))->getTimestamp()
                 : 0;
@@ -120,6 +131,7 @@ class LicenseValidationService
             // null = enterprise/unlimited → stored as 0; the plan disambiguates).
             $plan = (string) ($data['plan'] ?? '');
             $maxPages = isset($data['max_crawl_pages']) ? (int) $data['max_crawl_pages'] : 0;
+            $cancelAtPeriodEnd = ($data['cancel_at_period_end'] ?? false) === true;
         } catch (\Throwable) {
             // Network error: fail safe — keep last known active status within grace period
             if ($this->wasRecentlyActive($previous)) {
@@ -137,14 +149,39 @@ class LicenseValidationService
             // Keep the previously stored plan/limit on error.
             $plan = (string) ($previous['premium_license_plan'] ?? '');
             $maxPages = (int) ($previous['premium_license_max_pages'] ?? 0);
+            $cancelAtPeriodEnd = (bool) ($previous['premium_license_cancel_at_period_end'] ?? false);
         }
 
         $this->connection->executeStatement(
-            'UPDATE tl_openai_config SET premium_license_status = ?, premium_license_valid_until = ?, premium_license_checked_at = ?, premium_license_plan = ?, premium_license_max_pages = ? WHERE id = ?',
-            [$active ? 'active' : $status, $validUntil, time(), $plan, $maxPages, $configId],
+            'UPDATE tl_openai_config SET premium_license_status = ?, premium_license_valid_until = ?, premium_license_checked_at = ?, premium_license_plan = ?, premium_license_max_pages = ?, premium_license_cancel_at_period_end = ? WHERE id = ?',
+            [$status, $validUntil, time(), $plan, $maxPages, $cancelAtPeriodEnd ? 1 : 0, $configId],
         );
 
         return $active || ('error' === $status && $this->wasRecentlyActive($previous));
+    }
+
+    /**
+     * Force an immediate remote revalidation, bypassing the cache. Used by the
+     * dashboard "Refresh license status" button so plan changes (upgrades/downgrades)
+     * are reflected instantly without the admin re-entering their key.
+     */
+    public function forceRevalidate(int $configId): bool
+    {
+        $encrypted = $this->connection->fetchOne(
+            'SELECT premium_license_key FROM tl_openai_config WHERE id = ?',
+            [$configId],
+        );
+
+        if (empty($encrypted)) {
+            return false;
+        }
+
+        $plainKey = $this->encryption->decryptLicenseKey((string) $encrypted);
+        if (null === $plainKey) {
+            return false;
+        }
+
+        return $this->revalidate($configId, $plainKey);
     }
 
     /**
@@ -161,7 +198,7 @@ class LicenseValidationService
                     // Pre-save "check key" button: send the key + domain, but no install id, so
                     // the server records no seat for a key that may not yet be saved/owned.
                     'headers' => $this->buildValidationHeaders($key, null),
-                    'timeout' => 10,
+                    'timeout' => 5,
                 ],
             );
 
@@ -297,7 +334,7 @@ class LicenseValidationService
      */
     private function isActiveStatus(string $status, array $config): bool
     {
-        if ('active' === $status) {
+        if ($this->isEntitledStatus($status)) {
             return true;
         }
 
@@ -314,14 +351,27 @@ class LicenseValidationService
             return false;
         }
 
+        $status = (string) ($config['premium_license_status'] ?? '');
+
+        // Accept entitled statuses (normal path) and 'error' (grace already triggered once:
+        // revalidate() writes 'error' to the DB when grace fires, so subsequent cache-hit
+        // calls within CACHE_TTL_ERROR must still honour the grace window — REV-01).
+        if (!$this->isEntitledStatus($status) && 'error' !== $status) {
+            return false;
+        }
+
         $checkedAt = (int) ($config['premium_license_checked_at'] ?? 0);
         $validUntil = (int) ($config['premium_license_valid_until'] ?? 0);
 
-        return 'active' === ($config['premium_license_status'] ?? '')
-            && $checkedAt > 0
+        return $checkedAt > 0
             && (
                 time() - $checkedAt < self::GRACE_PERIOD
                 || ($validUntil > 0 && time() < $validUntil)
             );
+    }
+
+    private function isEntitledStatus(string $status): bool
+    {
+        return \in_array($status, ['active', 'trialing', 'past_due', 'complimentary'], true);
     }
 }

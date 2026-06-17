@@ -369,6 +369,11 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         'premium_license_max_pages' => [
             'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
+        // True when the subscription is scheduled to cancel at the end of the current
+        // billing period. Displayed as an amber "cancels on [date]" badge in the dashboard.
+        'premium_license_cancel_at_period_end' => [
+            'sql' => ['type' => 'boolean', 'default' => false],
+        ],
         // Stable, non-secret per-installation id generated on first license validation and
         // sent to the licensing server (header X-Install-Id) so it can tell apart legitimate
         // domain moves from one key being shared across several live installs. Spec §16.

@@ -151,6 +151,10 @@
                 <source>Partial</source>
                 <target>Teilweise</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_sync_skipped">
+                <source>Skipped</source>
+                <target>Übersprungen</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_cron_not_used">
                 <source>Not used (manual mode)</source>
                 <target>Nicht verwendet (manueller Modus)</target>
@@ -214,6 +218,78 @@
             <trans-unit id="MSC.vsau_refresh">
                 <source>Refresh</source>
                 <target>Aktualisieren</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_cancels">
+                <source>Cancels at period end</source>
+                <target>Kündigung zum Periodenende</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_cancels_on">
+                <source>Sync stops on</source>
+                <target>Synchronisierung endet am</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_sync_continues_until_then">
+                <source>Sync continues normally until then.</source>
+                <target>Die Synchronisierung läuft bis dahin normal weiter.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_trialing">
+                <source>Trial active</source>
+                <target>Testphase aktiv</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_trial_ends">
+                <source>Trial ends on</source>
+                <target>Testphase endet am</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_paused">
+                <source>Subscription paused</source>
+                <target>Abo pausiert</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_past_due">
+                <source>Payment issue</source>
+                <target>Zahlungsproblem</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_past_due_hint">
+                <source>Your license still works for now, but a payment needs attention.</source>
+                <target>Ihre Lizenz funktioniert vorerst weiter, aber eine Zahlung benötigt Ihre Aufmerksamkeit.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_manage_subscription">
+                <source>Manage subscription</source>
+                <target>Abo verwalten</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_refresh_license">
+                <source>Refresh license</source>
+                <target>Lizenz aktualisieren</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_refresh_license_title">
+                <source>Check for plan changes without re-entering your key</source>
+                <target>Planänderungen prüfen ohne Schlüssel neu einzugeben</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_refresh_license_confirm">
+                <source>License status refreshed successfully.</source>
+                <target>Lizenzstatus erfolgreich aktualisiert.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_refresh_license_inactive">
+                <source>License is not active. Enter a valid key in the OpenAI Configuration.</source>
+                <target>Lizenz ist nicht aktiv. Geben Sie einen gültigen Schlüssel in der OpenAI-Konfiguration ein.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_sync_skipped_license">
+                <source>Skipped: license inactive.</source>
+                <target>Übersprungen: Lizenz inaktiv.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_content_live">
+                <source>Your last synced content is still accessible in OpenAI but will no longer be updated automatically.</source>
+                <target>Ihre zuletzt synchronisierten Inhalte sind in OpenAI noch zugänglich, werden jedoch nicht mehr automatisch aktualisiert.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_resubscribe_hint">
+                <source>If you recently re-subscribed, a new license key was sent to your email. Enter it in the OpenAI Configuration to reactivate sync.</source>
+                <target>Wenn Sie sich kürzlich erneut angemeldet haben, wurde ein neuer Lizenzschlüssel an Ihre E-Mail-Adresse gesendet. Geben Sie ihn in der OpenAI-Konfiguration ein, um die Synchronisierung wieder zu aktivieren.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_setup_guide">
+                <source>View cron setup guide →</source>
+                <target>Cron-Einrichtungsanleitung anzeigen →</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_no_proc_open">
+                <source>Cannot dispatch sync: proc_open is disabled on this server. Run the sync via the command line instead: php vendor/bin/contao-console contao:openai-vector-sync [config-id]</source>
+                <target>Synchronisierung kann nicht gestartet werden: proc_open ist auf diesem Server deaktiviert. Führen Sie die Synchronisierung stattdessen über die Kommandozeile aus: php vendor/bin/contao-console contao:openai-vector-sync [config-id]</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_manage_log">
                 <source>Manage log</source>
