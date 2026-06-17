@@ -1158,16 +1158,22 @@ class OpenAiConfigListener
     {
         $licenseActive = $this->licenseValidation->isLicenseActive($configId);
 
+        if (!$licenseActive) {
+            $GLOBALS['TL_DCA']['tl_openai_config']['palettes']['default'] = (string) preg_replace(
+                '/;?\{auto_update_legend\}[^;]*/',
+                '',
+                $GLOBALS['TL_DCA']['tl_openai_config']['palettes']['default'],
+            );
+
+            return;
+        }
+
         foreach (self::AUTO_UPDATE_LICENSE_FIELDS as $field) {
             if (!isset($GLOBALS['TL_DCA']['tl_openai_config']['fields'][$field])) {
                 continue;
             }
 
-            if (!$licenseActive) {
-                $GLOBALS['TL_DCA']['tl_openai_config']['fields'][$field]['eval']['disabled'] = true;
-            } else {
-                unset($GLOBALS['TL_DCA']['tl_openai_config']['fields'][$field]['eval']['disabled']);
-            }
+            unset($GLOBALS['TL_DCA']['tl_openai_config']['fields'][$field]['eval']['disabled']);
         }
     }
 
