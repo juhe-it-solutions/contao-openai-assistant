@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - xx.xx.2026
+
+### Added
+- **Premium add-on: automatic vector-store updates:** Added licensed support for keeping an OpenAI vector store in sync with selected Contao pages, including manual or scheduled runs and a backend sync status dashboard.
+
 ## [2.0.1] - 2026-06-11
 
 ### Fixed

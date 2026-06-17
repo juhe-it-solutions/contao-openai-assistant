@@ -1,23 +1,12 @@
-# Development Documentation
+# Development Notes
 
-Welcome to the development documentation for the Contao OpenAI Assistant project. This section provides resources and guides for contributors and maintainers.
+This project is a Contao bundle. Development tooling is intentionally small:
 
-## 📚 Available Documentation
+- ECS checks code style from `ecs.php`.
+- PHPStan runs at level 5 from `phpstan.neon`.
+- Composer audit checks dependency advisories.
+- PHPUnit is available for focused service tests.
 
-- [CI/CD Pipeline](./ci-cd-pipeline.md):
-  - Full documentation of our automated quality checks and release process.
-- [CI/CD Quick Reference](./ci-cd-quick-reference.md):
-  - Essential commands, troubleshooting, and workflow summary for the CI/CD pipeline.
-- [Troubleshooting Guide](./troubleshooting.md):
-  - Solutions for common development and deployment issues.
+Run the local checks from [Local testing commands](local-testing-commands.md). CI and release workflows run the same quality tools.
 
-## 🛠️ Contribution Guidelines
-
-- Run all quality checks locally before pushing changes.
-- Follow the coding standards and best practices outlined in the documentation.
-- Update the [CHANGELOG.md](../../CHANGELOG.md) for every release.
-- For questions or support, check the documentation or contact the maintainers.
-
----
-
-*Last updated: December 19, 2024* 
+`composer.lock` is ignored because this repository is a reusable bundle, not a deployed Contao application.

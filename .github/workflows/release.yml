@@ -70,7 +70,6 @@ jobs:
           
           ### 🔗 Links
           - [Documentation](https://github.com/juhe-it-solutions/contao-openai-assistant/tree/main/docs)
-          - [Security Policy](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/SECURITY.md)
           - [Changelog](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/CHANGELOG.md)
         draft: false
         prerelease: false 

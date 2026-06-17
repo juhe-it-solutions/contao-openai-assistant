@@ -1,56 +1,35 @@
-# Contao OpenAI Assistant Bundle - Documentation
+# Documentation
 
-Welcome to the documentation for the Contao OpenAI Assistant Bundle. This bundle provides seamless integration between Contao 5 and OpenAI's **Responses API** and **Conversations API** (replacing the legacy Assistants API which is sunset on August 26, 2026).
+This directory documents the current Contao OpenAI Assistant 2.x codebase. The extension uses OpenAI's Responses API and Conversations API; the old Assistants API is used only once during the 1.x upgrade cleanup migration.
 
-## 📚 Documentation Index
+## Start Here
 
-### 🚀 Getting Started
-- [Installation Guide](installation.md) - How to install and set up the bundle
-- [Quick Start Guide](quick-start.md) - Get up and running in minutes
-- [Requirements](requirements.md) - System requirements and dependencies
+- [Requirements](requirements.md)
+- [Installation](installation.md)
+- [Quick start](quick-start.md)
 
-### 🔧 Configuration
-- [OpenAI Configuration](configuration/openai-setup.md) - Setting up OpenAI API keys and models
-- [Prompt Configuration](configuration/prompts.md) - Creating and managing prompts (replaces the legacy "Assistant Configuration")
-- [File Management](configuration/files.md) - Uploading and managing files for vector search
-- [Module Configuration](configuration/modules.md) - Frontend chatbot module setup
+## Configuration
 
-### 🎨 Frontend
-- [Chatbot Module](frontend/chatbot-module.md) - How to add the chatbot to your website
-- [Customization](frontend/customization.md) - Styling and theming options
-- [JavaScript API](frontend/javascript-api.md) - Frontend JavaScript integration
-- [Disclaimer Feature](features/disclaimer.md) - Configurable disclaimer with information icon
+- [OpenAI setup](configuration/openai-setup.md)
+- [Prompts](configuration/prompts.md)
+- [Model selection](technical/model-selection.md)
+- [API key management](security/api-key-management.md)
+- [Encryption](security/encryption.md)
 
-### 🔒 Security & Privacy
-- [API Key Management](security/api-key-management.md) - Secure API key storage with environment variables
-- [Encryption System](security/encryption.md) - How API keys are encrypted in database
-- [Security Overview](security/overview.md) - Security features and considerations
-- [Data Privacy](security/privacy.md) - Data handling and privacy compliance
+## Features And Operation
 
-### 🛠️ Development
-- [API Reference](development/api-reference.md) - Backend API endpoints
-- [Event System](development/events.md) - Available events and hooks
-- [Customization](development/customization.md) - Extending the bundle
-- [Troubleshooting](development/troubleshooting.md) - Common issues and solutions
+- [Disclaimer feature](features/disclaimer.md)
+- [HTTP/API reference](development/api-reference.md)
+- [Troubleshooting and upgrades](development/troubleshooting.md)
+- [Backend icon notes](backend-icon.md)
 
-### 📋 Technical Details
-- [Architecture](technical/architecture.md) - System architecture overview
-- [Database Schema](technical/database.md) - Database tables and relationships
-- [Model Selection](technical/model-selection.md) - AI model compatibility and selection
-- [Performance](technical/performance.md) - Performance considerations and optimization
+## Development
 
-## 🤝 Contributing
+- [Development notes](development/README.md)
+- [Local testing commands](development/local-testing-commands.md)
+- [CI/CD quick reference](development/ci-cd-quick-reference.md)
+- [CI/CD pipeline](development/ci-cd-pipeline.md)
 
-- [Contributing Guidelines](../CONTRIBUTING.md) - How to contribute to the project
-- [Code of Conduct](../CODE_OF_CONDUCT.md) - Community guidelines
-- [Development Setup](development/setup.md) - Setting up development environment
+## Premium Add-On
 
-## 📄 License
-
-This project is licensed under the LGPL-3.0-or-later License - see the [LICENSE](../LICENSE) file for details.
-
-## 🆘 Support
-
-- [FAQ](support/faq.md) - Frequently asked questions
-- [Known Issues](support/known-issues.md) - Known limitations and issues
-- [Getting Help](support/getting-help.md) - How to get support and report issues
+Automatic vector-store updates are documented only lightly in this repository. For setup, licensing and operating details, use the [premium add-on help pages](https://licenses.juhe-it-solutions.at/en/openai-assistant/help).

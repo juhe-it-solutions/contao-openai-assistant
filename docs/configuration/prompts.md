@@ -1,56 +1,24 @@
-# Prompt Configuration
+# Prompts
 
-This guide explains how to configure prompts in version 2.x of the extension.
+Prompts are stored locally in `tl_openai_prompts`. The extension does not create remote OpenAI Assistant objects in v2.x.
 
-## Overview
+## Local Prompt Mode
 
-In 2.x, prompts are stored locally in Contao (`tl_openai_prompts`) and used at runtime with the OpenAI Responses API.
+Create one active prompt under **AI-TOOLS -> OpenAI Dashboard -> Prompts** and set:
 
-- No remote Assistant object is created.
-- The extension sends prompt settings on each `POST /v1/responses` request.
-- Conversation state is managed via the Conversations API.
+- name
+- model or manual model name
+- system instructions
+- max tokens, temperature and `top_p`
 
-## Create a Prompt
+At runtime these values are sent with each `POST /v1/responses` call. `max_tokens` is mapped to OpenAI's `max_output_tokens`.
 
-1. Go to **AI-TOOLS → OpenAI Dashboard**.
-2. Open the **Prompts** child table for your configuration.
-3. Create one prompt record.
-4. Set:
-   - `name`
-   - `model` (or `model_manual`)
-   - `system_instructions`
-   - `temperature`
-   - `top_p`
-   - `max_tokens` (mapped to `max_output_tokens` for Responses API calls)
-5. Set status to `active`.
+## OpenAI Dashboard Prompt Mode
 
-## Optional: Use an OpenAI Dashboard Prompt
+If you manage a prompt in the OpenAI dashboard, paste its `prompt_id` into the Contao prompt record. `prompt_version` is optional.
 
-If you manage prompts in platform.openai.com, you can reference one from Contao:
+When `prompt_id` is set, the dashboard prompt replaces local system instructions. The Contao model and output settings are still sent with the request.
 
-- `prompt_id`: required for dashboard prompt usage
-- `prompt_version`: optional, pin to a specific version
+## Validation
 
-When `prompt_id` is set, it takes precedence over local `system_instructions`. Other request settings from Contao (model, max output tokens, temperature, top_p) are still sent at runtime.
-
-## Validation Behavior
-
-- Model compatibility is validated on save via a minimal `POST /v1/responses` ping.
-- Validation no longer uses the deprecated Assistants API.
-
-## Notes
-
-- One prompt record is allowed per config (enforced by listener redirect logic).
-- Prompt delete is local only; no remote OpenAI delete is performed.
-
-## Verify in OpenAI Dashboard
-
-After sending one chat message:
-
-- Check **Logs -> Responses** and **Logs -> Conversations**.
-- Open a response item and inspect effective runtime properties:
-  - model
-  - max output tokens
-  - temperature
-  - top_p
-  - instructions or prompt reference (`prompt_id`/version)
+Model compatibility is checked on save with a minimal Responses API ping. Prompt deletion is local only; no remote OpenAI object is deleted.

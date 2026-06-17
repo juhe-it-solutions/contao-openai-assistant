@@ -1,77 +1,38 @@
-# Installation Guide
+# Installation
 
-## Prerequisites
+## Requirements
 
-- Contao 5.0 or higher
-- PHP 8.2 or higher
-- OpenAI API key
+- Contao 5.3 or newer
+- PHP 8.2 or newer
 - Composer
+- OpenAI API key with access to Responses, Conversations, Files and Vector Stores
 
-## Installation
+## Install
 
-### 1. Install via Composer
+Use Contao Manager or Composer:
 
 ```bash
 composer require juhe-it-solutions/contao-openai-assistant
 ```
 
-### 2. Update Database
-
-Run the Contao install tool or use the command line:
+Run the database migration afterwards:
 
 ```bash
 php bin/console contao:migrate
 ```
 
-### 3. Configure Bundle
+Clear the cache if your deployment process does not already do this.
 
-1. Go to **System → Modules** in the Contao backend
-2. Find **KI-TOOLS** in the left navigation
-3. Click on **OpenAI Dashboard**
-4. Create your first OpenAI configuration
+## First Setup
 
-### 4. Set Up OpenAI
+1. Open **AI-TOOLS -> OpenAI Dashboard** in the Contao backend.
+2. Create the OpenAI configuration and validate the API key.
+3. Upload at least one knowledge-base file if the chatbot should use File Search.
+4. Create one active prompt.
+5. Create a frontend module of type **AI tools -> AI-Chatbot** and add it to your layout or page.
 
-1. **Create OpenAI Configuration**
-   - Enter your OpenAI API key
-   - Test the connection
-   - Save the configuration
+For production, prefer `OPENAI_API_KEY_{configId}` environment variables over storing the key only in the database. See [API key management](security/api-key-management.md).
 
-   **💡 Security Tip**: For production environments, consider using environment variables for API key storage. See [API Key Management](../security/api-key-management.md) for details.
+## Upgrade From 1.x
 
-2. **Upload Files** (Optional)
-   - Upload documents for vector search
-   - Files will be processed and added to OpenAI's vector store
-
-3. **Create Prompt**
-   - Configure your AI prompt
-   - Set system instructions
-   - Choose AI model
-   - (Optional) Set `prompt_id` / `prompt_version` to use a dashboard-managed OpenAI Prompt
-
-### 5. Add Chatbot to Frontend
-
-1. **Create Module**
-   - Go to **Layout → Modules**
-   - Create new module
-   - Select **KI-Chatbot** type
-   - Configure appearance and behavior
-
-2. **Add to Page**
-   - Go to **Layout → Pages**
-   - Edit your page
-   - Add the chatbot module to desired position
-
-## Verification
-
-After installation, you should see:
-- ✅ **KI-TOOLS** menu in backend navigation
-- ✅ **OpenAI Dashboard** accessible
-- ✅ Chatbot module available in module creation
-- ✅ No errors in Contao system log
-
-## Next Steps
-
-- [Quick Start Guide](quick-start.md) - Get your first prompt running
-- [Configuration Guide](configuration/openai-setup.md) - Detailed setup instructions
-- [Troubleshooting](development/troubleshooting.md) - If something goes wrong
+Version 2.0 migrates from OpenAI Assistants to local Contao prompts plus OpenAI Responses and Conversations. Read [Upgrading from 1.x](development/troubleshooting.md#upgrading-from-1x) before updating an existing installation.
