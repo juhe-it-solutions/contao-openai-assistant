@@ -85,25 +85,42 @@
         setAutoUpdateFieldsEnabled(window.contaoOpenAiAutoUpdate.licenseActive === true);
     }
 
-    function bindApiKeyButton(button) {
-        if (!button || button.dataset.apiKeyCheckBound === "1") {
+    // Reposition all API-key check wrappers below their input fields. Called on every
+    // init() tick; safe to run multiple times (placeWrapperBelowInput is idempotent).
+    function placeApiKeyWrappers() {
+        document.querySelectorAll(".api-key-check-button").forEach(function (button) {
+            var fieldName = button.dataset.apiKeyField || button.id.replace(/^apiKeyCheck_/, "");
+            var input = findInput(fieldName);
+            var wrapper = button.closest(".api-key-check-wrapper");
+            placeWrapperBelowInput(wrapper, input);
+        });
+    }
+
+    // Event delegation for the API-key check button. Bound once to the document so it
+    // survives Turbo morphdom patching (which reuses element nodes and preserves dataset,
+    // making per-element dataset guards unreliable).
+    var apiKeyDelegateSetup = false;
+
+    function setupApiKeyDelegate() {
+        if (apiKeyDelegateSetup) {
             return;
         }
+        apiKeyDelegateSetup = true;
 
-        var fieldName = button.dataset.apiKeyField || button.id.replace(/^apiKeyCheck_/, "");
-        var input = findInput(fieldName);
-        var resultId = "apiKeyResult_" + fieldName;
-        var resultSpan = document.getElementById(resultId);
-        var wrapper = button.closest(".api-key-check-wrapper");
+        document.addEventListener("click", function (e) {
+            var button = e.target.closest && e.target.closest(".api-key-check-button");
+            if (!button) {
+                return;
+            }
 
-        if (!input || !resultSpan || !wrapper) {
-            return;
-        }
+            var fieldName = button.dataset.apiKeyField || button.id.replace(/^apiKeyCheck_/, "");
+            var input = findInput(fieldName);
+            var resultSpan = document.getElementById("apiKeyResult_" + fieldName);
 
-        placeWrapperBelowInput(wrapper, input);
-        button.dataset.apiKeyCheckBound = "1";
+            if (!input || !resultSpan) {
+                return;
+            }
 
-        button.addEventListener("click", function () {
             var apiKey = input.value;
             if (!apiKey) {
                 resultSpan.innerHTML = '<span style="color:orange;">&#9888; Bitte geben Sie zuerst einen API-Schlüssel ein.</span>';
@@ -140,7 +157,7 @@
                         return;
                     }
 
-                    resultSpan.innerHTML = '<span style="color:red;">✗ API-Schlüssel ist ungültig. ' + (result.message || "") + '</span>';
+                    resultSpan.innerHTML = '<span style="color:red;">✗ API-Schlüssel ist ungültig! ' + (result.message || "") + '</span>';
                     input.style.backgroundColor = "lightcoral";
                     input.style.color = "#121212";
                 } catch (e) {
@@ -152,35 +169,42 @@
         });
     }
 
-    function bindLicenseKeyButton(button) {
-        if (!button || button.dataset.licenseKeyCheckBound === "1") {
+    // Event delegation for the license-key check button. Bound once to the
+    // document so it survives Turbo morphdom patching (which reuses element
+    // nodes and preserves dataset, making per-element guards unreliable).
+    var licenseKeyDelegateSetup = false;
+
+    function setupLicenseKeyDelegate() {
+        if (licenseKeyDelegateSetup) {
             return;
         }
+        licenseKeyDelegateSetup = true;
 
-        var fieldName = button.dataset.licenseKeyField || "premium_license_key";
-        var input = findInput(fieldName);
-        var resultId = "licenseKeyResult_" + fieldName;
-        var resultSpan = document.getElementById(resultId);
-        var wrapper = button.closest(".license-key-check-wrapper");
-        var globalLabels = (window.contaoOpenAiAutoUpdate && window.contaoOpenAiAutoUpdate.labels) || {};
-        var labels = {
-            noKey: button.dataset.noKeyLabel || globalLabels.noKey,
-            valid: button.dataset.validLabel || globalLabels.valid,
-            invalid: button.dataset.invalidLabel || globalLabels.invalid,
-            error: button.dataset.errorLabel || globalLabels.error,
-            check: button.dataset.checkLabel || globalLabels.check,
-            validating: button.dataset.validatingLabel || globalLabels.validating
-        };
-        var configId = button.dataset.configId || (window.contaoOpenAiAutoUpdate && window.contaoOpenAiAutoUpdate.configId) || "";
+        document.addEventListener("click", function (e) {
+            var button = e.target.closest && e.target.closest(".license-key-check-button");
+            if (!button) {
+                return;
+            }
 
-        if (!input || !resultSpan || !wrapper) {
-            return;
-        }
+            // Read everything fresh at click time — no stale closure references.
+            var fieldName = button.dataset.licenseKeyField || "premium_license_key";
+            var input = findInput(fieldName);
+            var resultSpan = document.getElementById("licenseKeyResult_" + fieldName);
+            var globalLabels = (window.contaoOpenAiAutoUpdate && window.contaoOpenAiAutoUpdate.labels) || {};
+            var labels = {
+                noKey: button.dataset.noKeyLabel || globalLabels.noKey,
+                valid: button.dataset.validLabel || globalLabels.valid,
+                invalid: button.dataset.invalidLabel || globalLabels.invalid,
+                error: button.dataset.errorLabel || globalLabels.error,
+                check: button.dataset.checkLabel || globalLabels.check,
+                validating: button.dataset.validatingLabel || globalLabels.validating
+            };
+            var configId = button.dataset.configId || (window.contaoOpenAiAutoUpdate && window.contaoOpenAiAutoUpdate.configId) || "";
 
-        placeWrapperBelowInput(wrapper, input);
-        button.dataset.licenseKeyCheckBound = "1";
+            if (!input || !resultSpan) {
+                return;
+            }
 
-        button.addEventListener("click", function () {
             var licenseKey = input.value;
             if (!licenseKey) {
                 resultSpan.innerHTML = '<span style="color:orange;">&#9888; ' + (labels.noKey || "Please enter a license key first.") + '</span>';
@@ -214,8 +238,6 @@
                         resultSpan.innerHTML = '<span style="color:green;">✓ ' + (labels.valid || "License key is valid!") + '</span>';
                         input.style.backgroundColor = "lightgreen";
                         input.style.color = "#121212";
-                        // UX only — fields unlock after a successful check. Server-side
-                        // enforcement still requires saving the key and an active license in DB.
                         setAutoUpdateFieldsEnabled(true);
                         if (window.contaoOpenAiAutoUpdate) {
                             window.contaoOpenAiAutoUpdate.licenseActive = true;
@@ -346,8 +368,9 @@
     }
 
     function init() {
-        document.querySelectorAll('button[id^="apiKeyCheck_"]').forEach(bindApiKeyButton);
-        document.querySelectorAll(".license-key-check-button").forEach(bindLicenseKeyButton);
+        placeApiKeyWrappers();
+        setupApiKeyDelegate();
+        setupLicenseKeyDelegate();
         bindPagePickerDelegates();
         ensurePagePickerCollapsed();
 

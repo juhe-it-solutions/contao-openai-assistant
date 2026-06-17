@@ -280,97 +280,17 @@ class OpenAiConfigListener
 
         return \sprintf(
             ' <span class="api-key-check-wrapper">
-            <button type="button" id="%1$s" class="tl_submit"
+            <button type="button" id="%1$s" class="tl_submit api-key-check-button"
                 data-api-key-field="%2$s"
                 data-validation-url="%3$s"
                 data-request-token="%4$s">Key prüfen</button>
             <span id="%5$s" class="api-key-result"></span>
-        </span>
-        <script>
-        (function () {
-            var button = document.getElementById(%6$s);
-            if (!button || button.dataset.apiKeyInlineBound === "1") {
-                return;
-            }
-
-            var fieldName = button.getAttribute("data-api-key-field") || "";
-            var input = document.getElementById("ctrl_" + fieldName)
-                || document.getElementById(fieldName)
-                || document.querySelector(\'input[name="\' + fieldName + \'"]\');
-            var resultSpan = document.getElementById(%7$s);
-            var wrapper = button.closest(".api-key-check-wrapper");
-
-            if (!input || !resultSpan || !wrapper) {
-                return;
-            }
-
-            var widget = input.closest(".widget");
-            if (widget) {
-                var help = widget.querySelector("p.tl_help");
-                if (help && help.parentNode === widget) {
-                    widget.insertBefore(wrapper, help);
-                } else if (input.parentNode) {
-                    input.parentNode.insertBefore(wrapper, input.nextSibling);
-                }
-            }
-
-            button.dataset.apiKeyInlineBound = "1";
-
-            button.addEventListener("click", function () {
-                var apiKey = input.value;
-                if (!apiKey) {
-                    alert("Bitte geben Sie zuerst einen API-Schlüssel ein.");
-                    return;
-                }
-
-                var url = button.getAttribute("data-validation-url") || "";
-                var requestToken = button.getAttribute("data-request-token") || "";
-
-                button.disabled = true;
-                button.innerHTML = \'<span class="processing-spinner"></span>Validiere...\';
-                resultSpan.innerHTML = "";
-
-                var xhr = new XMLHttpRequest();
-                xhr.open("POST", url, true);
-                xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState !== 4) {
-                        return;
-                    }
-
-                    button.disabled = false;
-                    button.textContent = "Key prüfen";
-
-                    try {
-                        var result = JSON.parse(xhr.responseText || "{}");
-                        if (result.valid) {
-                            resultSpan.innerHTML = \'<span style="color:green;">✓ API-Schlüssel ist gültig!</span>\';
-                            input.style.backgroundColor = "lightgreen";
-                            input.style.color = "#121212";
-                            return;
-                        }
-
-                        resultSpan.innerHTML = \'<span style="color:red;">✗ API-Schlüssel ist ungültig! \' + (result.message || "") + \'</span>\';
-                        input.style.backgroundColor = "lightcoral";
-                        input.style.color = "#121212";
-                    } catch (e) {
-                        resultSpan.innerHTML = \'<span style="color:red;">✗ Fehler bei der Validierung</span>\';
-                    }
-                };
-
-                xhr.send("action=validateApiKey&key=" + encodeURIComponent(apiKey) + "&REQUEST_TOKEN=" + encodeURIComponent(requestToken));
-            });
-        })();
-        </script>',
+        </span>',
             htmlspecialchars($buttonId, ENT_QUOTES),
             htmlspecialchars($fieldName, ENT_QUOTES),
             htmlspecialchars($postUrl, ENT_QUOTES),
             htmlspecialchars($csrfToken, ENT_QUOTES),
             htmlspecialchars($resultId, ENT_QUOTES),
-            json_encode($buttonId, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?: '""',
-            json_encode($resultId, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?: '""',
         );
     }
 
@@ -1265,7 +1185,7 @@ class OpenAiConfigListener
             [$configId],
         );
 
-        if (0 === $count) {
+        if (0 === $count && !$this->connection->fetchOne('SELECT vector_store_id FROM tl_openai_config WHERE id = ? AND vector_store_id IS NOT NULL AND vector_store_id != \'\'', [$configId])) {
             $text = htmlspecialchars($this->getTranslatedString(
                 'no_files_notice',
                 'No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform — without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.',

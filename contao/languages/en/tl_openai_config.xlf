@@ -196,8 +196,8 @@
                 <target>License key</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_key.1">
-                <source><![CDATA[Enter the license key you received after purchase at <a href="https://licenses.juhe-it-solutions.at/openai-assistant" target="_blank" rel="noopener noreferrer" class="oaa-license-url-link">https://licenses.juhe-it-solutions.at/openai-assistant</a>. Leave the masked value unchanged to keep the current key; clear the field to remove it.]]></source>
-                <target><![CDATA[Enter the license key you received after purchase at <a href="https://licenses.juhe-it-solutions.at/openai-assistant" target="_blank" rel="noopener noreferrer" class="oaa-license-url-link">https://licenses.juhe-it-solutions.at/openai-assistant</a>. Leave the masked value unchanged to keep the current key; clear the field to remove it.]]></target>
+                <source>Enter the license key you received after purchase at https://licenses.juhe-it-solutions.at/openai-assistant. Leave the masked value unchanged to keep the current key; clear the field to remove it.</source>
+                <target>Enter the license key you received after purchase at https://licenses.juhe-it-solutions.at/openai-assistant. Leave the masked value unchanged to keep the current key; clear the field to remove it.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.check_license_key">
                 <source>Check key</source>
