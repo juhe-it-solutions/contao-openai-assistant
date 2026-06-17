@@ -38,7 +38,9 @@
         var firstField = document.querySelector(".widget.auto-update-license-field");
         var fieldset = firstField ? firstField.closest("fieldset") : null;
         if (fieldset) {
-            fieldset.style.display = visible ? "" : "none";
+            // Use an explicit "block" rather than "" so the inline style overrides
+            // the #pal_auto_update_legend{display:none} rule injected from PHP.
+            fieldset.style.display = visible ? "block" : "none";
         }
     }
 

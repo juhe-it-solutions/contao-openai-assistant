@@ -353,6 +353,10 @@
                 <source>Your selection covers %1$s pages (including subpages), but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.</source>
                 <target>Ihre Auswahl umfasst %1$s Seiten, Ihr aktueller Tarif erlaubt jedoch höchstens %2$s. Reduzieren Sie die Auswahl oder führen Sie ein Upgrade durch; die vorherige Auswahl wurde beibehalten.</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_pages_none_selected_limit">
+                <source>No pages selected — all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.</source>
+                <target>Keine Seiten ausgewählt – alle %1$s Unterseiten des einzigen Webseiten-Startpunkts würden automatisch synchronisiert. Ihr aktueller Tarif erlaubt jedoch höchstens %2$s Seiten. Bitte wählen Sie gezielt Seiten aus oder führen Sie ein Upgrade durch.</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.0">
                 <source>System prompt for AI processing of the content</source>
                 <target>System-Prompt für KI-Aufbereitung der Inhalte</target>

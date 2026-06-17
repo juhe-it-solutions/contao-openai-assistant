@@ -850,10 +850,28 @@ class OpenAiConfigListener
             return $value; // unlimited (enterprise) or plan still unknown
         }
 
+        $selectedIds = VectorStoreAutoUpdateService::parseConfiguredPageIds($value);
         $count = $this->autoUpdateService->countScopePages($value);
 
         if ($count > $limit) {
-            throw new \InvalidArgumentException(\sprintf($this->getConfigLangString('auto_update_pages_over_limit', 'Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.'), $count, $limit));
+            if ([] === $selectedIds) {
+                // Empty selection with a single root: countScopePages counted the full subtree,
+                // which IS what would be synced. Explain the implicit all-pages behaviour.
+                throw new \InvalidArgumentException(\sprintf(
+                    $this->getConfigLangString(
+                        'auto_update_pages_none_selected_limit',
+                        'No pages selected — all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.',
+                    ),
+                    $count,
+                    $limit,
+                ));
+            }
+
+            throw new \InvalidArgumentException(\sprintf(
+                $this->getConfigLangString('auto_update_pages_over_limit', 'Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.'),
+                $count,
+                $limit,
+            ));
         }
 
         return $value;
@@ -1096,12 +1114,9 @@ class OpenAiConfigListener
         $licenseActive = $this->licenseValidation->isLicenseActive($configId);
 
         if (!$licenseActive) {
-            $GLOBALS['TL_DCA']['tl_openai_config']['palettes']['default'] = (string) preg_replace(
-                '/;?\{auto_update_legend\}[^;]*/',
-                '',
-                $GLOBALS['TL_DCA']['tl_openai_config']['palettes']['default'],
-            );
-
+            // Keep the palette section so JS can reveal it after a successful
+            // key check without a page reload. Fields stay disabled (server-side
+            // save guard); the block is hidden via a <style> injected in <head>.
             return;
         }
 
@@ -1161,6 +1176,12 @@ class OpenAiConfigListener
             $licenseActive ? 'true' : 'false',
             $labels,
         );
+
+        // Hide the auto-update fieldset before first paint when no license is active.
+        // JS overrides this with an inline style once the key is validated successfully.
+        if (!$licenseActive) {
+            $GLOBALS['TL_HEAD'][] = '<style>#pal_auto_update_legend{display:none}</style>';
+        }
     }
 
     private function loadConfigLang(): array
