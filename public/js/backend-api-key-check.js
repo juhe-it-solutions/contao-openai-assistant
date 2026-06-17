@@ -356,22 +356,24 @@
         }
     }
 
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", function () {
-            init();
-            syncAutoUpdateLicenseState();
-        });
-    } else {
-        init();
-        syncAutoUpdateLicenseState();
-    }
-
     var observer = new MutationObserver(function () {
         init();
         syncAutoUpdateLicenseState();
     });
 
-    if (document.body) {
+    function startObserver() {
         observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () {
+            init();
+            syncAutoUpdateLicenseState();
+            startObserver();
+        });
+    } else {
+        init();
+        syncAutoUpdateLicenseState();
+        startObserver();
     }
 })();
