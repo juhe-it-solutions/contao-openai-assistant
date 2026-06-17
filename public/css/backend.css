@@ -150,6 +150,10 @@ ul#sort_auto_update_site_root.oaa-picker-collapsed {
     border-color: #d7ff64;
     margin: 0 1rem 1rem 1rem;
 }
+.oaa-info-card--notice {
+    border-color: #f59e0b;
+    border-left-width: 4px;
+}
 .oaa-info-card--premium .oaa-info-card-heading {
     color: #d7ff64;
 }

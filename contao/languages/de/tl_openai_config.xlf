@@ -124,8 +124,8 @@
 
             <!-- No-files notice on dashboard -->
             <trans-unit id="tl_openai_config.no_files_notice">
-                <source>No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Go to «File upload» to add your first file.</source>
-                <target>Es wurden noch keine Dateien in den OpenAI Vector Store hochgeladen. Der Chatbot kann ohne Wissensdokumente keine Fragen beantworten. Gehen Sie zu «Datei-Upload», um Ihre erste Datei hinzuzufügen.</target>
+                <source>No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform — without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.</source>
+                <target>Es wurden noch keine Dateien in den OpenAI Vector Store hochgeladen. Der Chatbot kann ohne Wissensdokumente keine Fragen beantworten. Wichtig: Mindestens ein Datei-Upload ist erforderlich, damit der Vector Store auf der OpenAI-Plattform angelegt wird – ohne diesen funktioniert auch das Premium-Addon (automatische Synchronisierung) nicht. Gehen Sie zu «Datei-Upload», um Ihre erste Datei hinzuzufügen.</target>
             </trans-unit>
 
             <!-- Single Config Limitation Notice -->

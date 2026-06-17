@@ -1243,10 +1243,19 @@ class OpenAiConfigListener
         );
 
         if (0 === $count) {
-            Message::addInfo($this->getTranslatedString(
+            $text = htmlspecialchars($this->getTranslatedString(
                 'no_files_notice',
-                'No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Go to «File upload» to add your first file.',
-            ));
+                'No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform — without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.',
+            ), ENT_QUOTES);
+
+            Message::addRaw(
+                '<div class="oaa-info-card oaa-info-card--notice">'
+                .'<p style="margin:0;line-height:1.6;font-size:13px;">'
+                .'<span style="color:#f59e0b;font-weight:700;margin-right:6px;">!</span>'
+                .$text
+                .'</p>'
+                .'</div>',
+            );
         }
     }
 
