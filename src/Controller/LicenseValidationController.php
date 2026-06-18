@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace JuheItSolutions\ContaoOpenaiAssistant\Controller;
 
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
+use Contao\CoreBundle\Security\ContaoCorePermissions;
 use JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
@@ -21,6 +22,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 class LicenseValidationController
 {
@@ -28,6 +30,7 @@ class LicenseValidationController
         private readonly LicenseValidationService $licenseValidation,
         private readonly EncryptionService $encryption,
         private readonly ContaoCsrfTokenManager $csrfTokenManager,
+        private readonly AuthorizationCheckerInterface $authorizationChecker,
         private readonly string $csrfTokenName,
     ) {
     }
@@ -41,6 +44,13 @@ class LicenseValidationController
         if (!$this->csrfTokenManager->isTokenValid($token)) {
             return new JsonResponse(
                 ['valid' => false, 'message' => 'Invalid request token'],
+                Response::HTTP_FORBIDDEN,
+            );
+        }
+
+        if (!$this->authorizationChecker->isGranted(ContaoCorePermissions::USER_CAN_ACCESS_MODULE, 'openai_dashboard')) {
+            return new JsonResponse(
+                ['valid' => false, 'message' => 'access_denied'],
                 Response::HTTP_FORBIDDEN,
             );
         }

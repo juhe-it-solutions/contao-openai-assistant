@@ -13,7 +13,7 @@ OpenAI Responses API integration for Contao 5.3+. The extension adds a backend d
 
 It uses OpenAI's Responses API and Conversations API at runtime. Knowledge-base files are uploaded to OpenAI vector stores and attached through File Search.
 
-> **Upgrading from 1.x?** Version 2.0 is a breaking change: the extension no longer calls the OpenAI Assistants API (`/v1/assistants`, `/v1/threads`). Any OpenAI Assistants created by older versions are cleaned up from the OpenAI platform by a one-shot migration on upgrade. See the [CHANGELOG](CHANGELOG.md) and [Upgrading from 1.x](docs/development/troubleshooting.md#upgrading-from-1x).
+> **Upgrading from 1.x?** Version 2.0 is a breaking change: the extension no longer calls the OpenAI Assistants API (`/v1/assistants`, `/v1/threads`). Any OpenAI Assistants created by older versions are cleaned up from the OpenAI platform by a one-shot migration on upgrade. See the [CHANGELOG](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/CHANGELOG.md) and [Upgrading from 1.x](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/docs/development/troubleshooting.md#upgrading-from-1x).
 
 ## Requirements
 
@@ -29,7 +29,7 @@ Install with Contao Manager or Composer:
 composer require juhe-it-solutions/contao-openai-assistant
 ```
 
-Then run the Contao database migration. Detailed setup is documented in [`docs/installation.md`](docs/installation.md).
+Then run the Contao database migration. Detailed setup is documented in [`docs/installation.md`](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/docs/installation.md).
 
 ## Automatic Vector-Store Sync (Premium Add-On)
 
@@ -41,11 +41,11 @@ Then run the Contao database migration. Detailed setup is documented in [`docs/i
 
 ## Documentation
 
-- [`docs/README.md`](docs/README.md) - documentation index
-- [`docs/installation.md`](docs/installation.md) - installation and first setup
-- [`docs/configuration/openai-setup.md`](docs/configuration/openai-setup.md) - OpenAI configuration
-- [`docs/configuration/prompts.md`](docs/configuration/prompts.md) - prompt configuration
-- [`docs/development/troubleshooting.md`](docs/development/troubleshooting.md) - upgrade notes and common issues
+- [`docs/README.md`](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/docs/README.md) - documentation index
+- [`docs/installation.md`](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/docs/installation.md) - installation and first setup
+- [`docs/configuration/openai-setup.md`](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/docs/configuration/openai-setup.md) - OpenAI configuration
+- [`docs/configuration/prompts.md`](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/docs/configuration/prompts.md) - prompt configuration
+- [`docs/development/troubleshooting.md`](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/docs/development/troubleshooting.md) - upgrade notes and common issues
 
 ## License And Security
 

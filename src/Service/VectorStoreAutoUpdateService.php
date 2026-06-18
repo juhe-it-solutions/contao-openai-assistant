@@ -95,33 +95,35 @@ class VectorStoreAutoUpdateService
             throw new \InvalidArgumentException('Invalid configuration ID.');
         }
 
-        $config = $this->connection->fetchAssociative(
-            "SELECT auto_update_last_status, auto_update_last_run FROM tl_openai_config WHERE id = ? AND auto_update_enabled = '1'",
-            [$configId],
-        );
-
-        if (!$config) {
-            throw new \RuntimeException('MSC.vsau_err_sync_not_enabled');
-        }
-
         if (!$this->licenseValidation->isLicenseActive($configId)) {
             throw new \RuntimeException('MSC.vsau_err_no_license');
         }
 
-        $status = (string) ($config['auto_update_last_status'] ?? '');
-        $lastRun = (int) ($config['auto_update_last_run'] ?? 0);
+        $now = time();
+        $queued = $this->connection->executeStatement(
+            "UPDATE tl_openai_config
+                SET auto_update_last_run = ?, auto_update_last_status = 'queued', auto_update_last_message = ?
+                WHERE id = ?
+                    AND auto_update_enabled = '1'
+                    AND (
+                        COALESCE(auto_update_last_status, '') NOT IN ('running', 'queued')
+                        OR COALESCE(auto_update_last_run, 0) < ?
+                    )",
+            [$now, 'MSC.vsau_dispatched_manual', $configId, $now - self::STALE_RUN_SECONDS],
+        );
 
-        // Block only while a sync is genuinely in flight. A crashed run can otherwise leave a
-        // stale "running"/"queued" status forever - and in manual-only mode there is no cron
-        // to clear it - so treat a status older than the stale window as finished.
-        if (\in_array($status, ['running', 'queued'], true) && (time() - $lastRun) < self::STALE_RUN_SECONDS) {
+        if (0 === $queued) {
+            $config = $this->connection->fetchAssociative(
+                "SELECT auto_update_last_status, auto_update_last_run FROM tl_openai_config WHERE id = ? AND auto_update_enabled = '1'",
+                [$configId],
+            );
+
+            if (!$config) {
+                throw new \RuntimeException('MSC.vsau_err_sync_not_enabled');
+            }
+
             throw new \RuntimeException('MSC.vsau_err_sync_already_running');
         }
-
-        $this->connection->executeStatement(
-            "UPDATE tl_openai_config SET auto_update_last_run = ?, auto_update_last_status = 'queued', auto_update_last_message = ? WHERE id = ?",
-            [time(), 'MSC.vsau_dispatched_manual', $configId],
-        );
 
         try {
             $process = $this->processUtil->createSymfonyConsoleProcess(
@@ -149,7 +151,7 @@ class VectorStoreAutoUpdateService
      * Full sync flow for a single configuration record. Never throws - failures are
      * persisted as an "error" status + message in tl_openai_config / tl_openai_sync_log.
      */
-    public function run(int $configId, string $triggerSource = self::SOURCE_CLI): void
+    public function run(int $configId, string $triggerSource = self::SOURCE_CLI): string
     {
         if (!\in_array($triggerSource, self::SOURCES, true)) {
             $triggerSource = self::SOURCE_CLI;
@@ -160,13 +162,19 @@ class VectorStoreAutoUpdateService
         if (!$this->connection->createSchemaManager()->tablesExist(['tl_openai_config'])) {
             $this->logger->notice('VectorStoreAutoUpdate skipped for config '.$configId.': extension tables not yet created (run contao:migrate).');
 
-            return;
+            return 'skipped';
         }
 
         $start = time();
         $model = '';
 
         try {
+            if (!$this->acquireRunLock($configId, $triggerSource)) {
+                $this->logger->notice('VectorStoreAutoUpdate skipped for config '.$configId.': another sync is already running or queued.');
+
+                return 'skipped';
+            }
+
             // License gate — write a skipped log entry so the run-history table shows why
             // syncs stopped, rather than leaving an unexplained gap (UX-10).
             if (!$this->licenseValidation->isLicenseActive($configId)) {
@@ -186,7 +194,7 @@ class VectorStoreAutoUpdateService
                     [$start, $configId],
                 );
 
-                return;
+                return 'skipped';
             }
 
             $config = $this->connection->fetchAssociative('SELECT * FROM tl_openai_config WHERE id = ?', [$configId]);
@@ -209,7 +217,6 @@ class VectorStoreAutoUpdateService
             $promptTpl = $config['auto_update_prompt_template'] ?? null ?: null;
             $legacyFileId = (string) ($config['auto_update_file_id'] ?? '');
 
-            $this->markRunning($configId);
             $this->spawnCrawl($configId);
 
             // Plan-based page cap: enforce the subscription limit at runtime so a
@@ -266,6 +273,7 @@ class VectorStoreAutoUpdateService
                 $content = implode("\n\n", $page['contents']);
 
                 if (self::MODE_LLM_POLISH === $mode) {
+                    $this->heartbeat($configId);
                     $polished = $this->polishPage($apiKey, $model, $page['title'], $page['url'], $content, $promptTpl);
                     $tokensIn += $polished['tokens_in'];
                     $tokensOut += $polished['tokens_out'];
@@ -318,6 +326,8 @@ class VectorStoreAutoUpdateService
                 '',
                 $triggerSource,
             );
+
+            return $status;
         } catch (\Throwable $e) {
             $this->logger->error('VectorStoreAutoUpdate failed for config '.$configId.': '.$e->getMessage());
             $this->persistResult(
@@ -331,6 +341,8 @@ class VectorStoreAutoUpdateService
                 $e->getMessage(),
                 $triggerSource,
             );
+
+            return 'error';
         }
     }
 
@@ -409,15 +421,29 @@ class VectorStoreAutoUpdateService
         return self::MODE_FAITHFUL;
     }
 
-    private function markRunning(int $configId): void
+    private function acquireRunLock(int $configId, string $triggerSource): bool
     {
         $now = time();
-        $this->connection->executeStatement(
-            "UPDATE tl_openai_config SET auto_update_last_run = ?, auto_update_last_status = 'running', auto_update_last_message = NULL WHERE id = ?",
-            [$now, $configId],
+        $staleBefore = $now - self::STALE_RUN_SECONDS;
+        $statusPredicate = self::SOURCE_MANUAL === $triggerSource
+            ? "(auto_update_last_status = 'queued' OR COALESCE(auto_update_last_status, '') NOT IN ('running', 'queued') OR COALESCE(auto_update_last_run, 0) < ?)"
+            : "(COALESCE(auto_update_last_status, '') NOT IN ('running', 'queued') OR COALESCE(auto_update_last_run, 0) < ?)";
+
+        $updated = $this->connection->executeStatement(
+            "UPDATE tl_openai_config
+                SET auto_update_last_run = ?, auto_update_last_status = 'running', auto_update_last_message = NULL
+                WHERE id = ? AND ".$statusPredicate,
+            [$now, $configId, $staleBefore],
         );
+
+        if (0 === $updated) {
+            return false;
+        }
+
         // The lease was just written; the next refresh is not due for HEARTBEAT_INTERVAL.
         $this->lastHeartbeatAt = $now;
+
+        return true;
     }
 
     /**

@@ -64,8 +64,21 @@ class VectorStoreAutoUpdateCommand extends Command
             return Command::INVALID;
         }
 
-        $this->service->run($configId, (string) $input->getOption('source'));
-        $output->writeln('<info>Vector store auto-update finished for config '.$configId.'.</info>');
+        $status = $this->service->run($configId, (string) $input->getOption('source'));
+
+        if ('error' === $status) {
+            $output->writeln('<error>Vector store auto-update failed for config '.$configId.'. Check the sync log for details.</error>');
+
+            return Command::FAILURE;
+        }
+
+        if ('partial' === $status) {
+            $output->writeln('<comment>Vector store auto-update finished with partial failures for config '.$configId.'.</comment>');
+
+            return Command::SUCCESS;
+        }
+
+        $output->writeln('<info>Vector store auto-update finished with status "'.$status.'" for config '.$configId.'.</info>');
 
         return Command::SUCCESS;
     }
