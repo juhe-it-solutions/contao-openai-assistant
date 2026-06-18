@@ -176,8 +176,8 @@
                 <target>Enter your license key below and validate it with "Check key" before saving.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_hint_active">
-                <source>To force an immediate license check (e.g. after a plan change), clear this field, re-enter your key, and save.</source>
-                <target>To force an immediate license check (e.g. after a plan change), clear this field, re-enter your key, and save.</target>
+                <source>To switch to a different key: clear this field, enter the new key, and save. To remove the license entirely: use the "Remove license" button next to the key field.</source>
+                <target>To switch to a different key: clear this field, enter the new key, and save. To remove the license entirely: use the "Remove license" button next to the key field.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_validated">
                 <source>Premium license validated successfully.</source>
@@ -222,6 +222,14 @@
             <trans-unit id="tl_openai_config.license_key_error">
                 <source>Validation failed.</source>
                 <target>Validation failed.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.remove_license_key">
+                <source>Remove license</source>
+                <target>Remove license</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.remove_license_key_confirm">
+                <source>License key cleared. Save to remove the license.</source>
+                <target>License key cleared. Save to remove the license.</target>
             </trans-unit>
 
             <!-- Automatic vector store sync -->

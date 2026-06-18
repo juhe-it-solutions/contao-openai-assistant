@@ -264,6 +264,47 @@
         });
     }
 
+    // Event delegation for the license-key remove button. Clears the key field,
+    // hides the auto-update block, and shows a "Save to confirm" hint.
+    var licenseKeyRemoveDelegateSetup = false;
+
+    function setupLicenseKeyRemoveDelegate() {
+        if (licenseKeyRemoveDelegateSetup) {
+            return;
+        }
+        licenseKeyRemoveDelegateSetup = true;
+
+        document.addEventListener("click", function (e) {
+            var button = e.target.closest && e.target.closest(".license-key-remove-button");
+            if (!button) {
+                return;
+            }
+
+            var fieldName = button.dataset.licenseKeyField || "premium_license_key";
+            var input = findInput(fieldName);
+            var resultId = button.dataset.resultId || ("licenseKeyResult_" + fieldName);
+            var resultSpan = document.getElementById(resultId);
+
+            if (!input) {
+                return;
+            }
+
+            input.value = "";
+            input.style.backgroundColor = "";
+            input.style.color = "";
+
+            setAutoUpdateFieldsEnabled(false);
+            if (window.contaoOpenAiAutoUpdate) {
+                window.contaoOpenAiAutoUpdate.licenseActive = false;
+            }
+
+            if (resultSpan) {
+                var confirmLabel = button.dataset.confirmLabel || "License key cleared. Save to remove the license.";
+                resultSpan.innerHTML = '<span style="color: #f59e0b;">&#9888; ' + confirmLabel + "</span>";
+            }
+        });
+    }
+
     // Collapse the "pages to keep updated" page-tree picker into a count so configs
     // with hundreds of selected pages do not blow up the form. Scoped to the
     // auto_update_site_root field only; re-applies after the picker AJAX re-renders.
@@ -388,6 +429,7 @@
         placeApiKeyWrappers();
         setupApiKeyDelegate();
         setupLicenseKeyDelegate();
+        setupLicenseKeyRemoveDelegate();
         bindPagePickerDelegates();
         ensurePagePickerCollapsed();
 

@@ -157,7 +157,7 @@ class OpenAiConfigListener
 
             if ($hadState) {
                 $this->connection->executeStatement(
-                    'UPDATE tl_openai_config SET premium_license_status = ?, premium_license_valid_until = 0, premium_license_checked_at = 0 WHERE id = ?',
+                    'UPDATE tl_openai_config SET premium_license_status = ?, premium_license_valid_until = 0, premium_license_checked_at = 0, auto_update_enabled = 0 WHERE id = ?',
                     ['', (int) $dc->id],
                 );
             }
@@ -609,7 +609,7 @@ class OpenAiConfigListener
                 htmlspecialchars($helpUrl, ENT_QUOTES),
                 (string) ($lang['premium_license_info_docs'] ?? 'Guide & help'),
                 (string) ($lang['premium_license_info_hint_heading'] ?? 'Note'),
-                (string) ($lang['premium_license_info_hint_active'] ?? 'To force an immediate license check (e.g. after a plan change), clear this field, re-enter your key, and save.'),
+                (string) ($lang['premium_license_info_hint_active'] ?? 'To switch to a different key: clear this field, enter the new key, and save. To remove the license entirely: use the "Remove license" button next to the key field.'),
             );
         } else {
             $content = \sprintf(
@@ -675,6 +675,30 @@ class OpenAiConfigListener
         $invalidLabel = (string) ($lang['license_key_invalid'] ?? 'License key is invalid!');
         $errorLabel = (string) ($lang['license_key_error'] ?? 'Validation failed.');
 
+        $hasStoredKey = '' !== ($dc->activeRecord?->premium_license_key ?? '');
+
+        $removeButton = '';
+        if ($hasStoredKey) {
+            $removeLabel = htmlspecialchars(
+                (string) ($lang['remove_license_key'] ?? 'Remove license'),
+                ENT_QUOTES,
+            );
+            $confirmLabel = htmlspecialchars(
+                (string) ($lang['remove_license_key_confirm'] ?? 'License key cleared. Save to remove the license.'),
+                ENT_QUOTES,
+            );
+            $removeButton = \sprintf(
+                '<button type="button" class="tl_submit license-key-remove-button"
+                    data-license-key-field="%1$s"
+                    data-result-id="%2$s"
+                    data-confirm-label="%3$s">%4$s</button>',
+                htmlspecialchars($fieldName, ENT_QUOTES),
+                htmlspecialchars($resultId, ENT_QUOTES),
+                $confirmLabel,
+                $removeLabel,
+            );
+        }
+
         return \sprintf(
             ' <span class="license-key-check-wrapper api-key-check-wrapper">
             <button type="button" id="%1$s" class="tl_submit license-key-check-button"
@@ -688,6 +712,7 @@ class OpenAiConfigListener
                 data-valid-label="%9$s"
                 data-invalid-label="%10$s"
                 data-error-label="%11$s">%6$s</button>
+            %13$s
             <span id="%12$s" class="license-key-result api-key-result"></span>
         </span>',
             htmlspecialchars($buttonId, ENT_QUOTES),
@@ -702,6 +727,7 @@ class OpenAiConfigListener
             htmlspecialchars($invalidLabel, ENT_QUOTES),
             htmlspecialchars($errorLabel, ENT_QUOTES),
             htmlspecialchars($resultId, ENT_QUOTES),
+            $removeButton,
         );
     }
 
@@ -814,7 +840,27 @@ class OpenAiConfigListener
 
     public function guardAutoUpdateFieldWithoutLicense($value, DataContainer $dc)
     {
-        if (!$dc->id || !$dc->field || $this->licenseValidation->isLicenseActive((int) $dc->id)) {
+        if (!$dc->id || !$dc->field) {
+            return $value;
+        }
+
+        // A new valid-format key is being submitted in this same save request. The
+        // key hasn't been committed to the DB yet when save_callbacks run, so
+        // isLicenseActive() would incorrectly return false even for a valid key.
+        // Let the value through; validatePremiumLicenseOnSave (onsubmit) will
+        // enforce validity after the DB write.
+        if ($this->isNewValidKeyPosted()) {
+            return $value;
+        }
+
+        // The user is actively removing the license key. Let the 0/'' value through
+        // so the disabled checkbox is not preserved at 1. The onsubmit callback
+        // (validatePremiumLicenseOnSave) will also zero auto_update_enabled in DB.
+        if ($this->isKeyBeingRemoved()) {
+            return $value;
+        }
+
+        if ($this->licenseValidation->isLicenseActive((int) $dc->id)) {
             return $value;
         }
 
@@ -889,6 +935,15 @@ class OpenAiConfigListener
     public function saveAutoUpdateEnabled($value, DataContainer $dc): string
     {
         if (!$value || !$dc->id) {
+            return (string) $value;
+        }
+
+        // A new valid-format key is being submitted in this same save request.
+        // save_callbacks run before the DB write, so the new key is not yet
+        // persisted and isLicenseActive() would wrongly return false. Allow the
+        // checkbox through; if the key turns out to be inactive, validatePremiumLicenseOnSave
+        // (onsubmit) will report the error and sync will be blocked at runtime.
+        if ($this->isNewValidKeyPosted()) {
             return (string) $value;
         }
 
@@ -1235,6 +1290,37 @@ class OpenAiConfigListener
             $url = Controller::addToUrl('act=edit&id='.$existingConfig['id']);
             Controller::redirect($url);
         }
+    }
+
+    /**
+     * Returns true when a new, valid-format license key is present in the current
+     * POST request — i.e. neither the display mask nor empty.
+     *
+     * save_callbacks fire before the DB write, so any DB-backed license check would
+     * miss a key that is being saved for the first time in this same request. Callers
+     * use this to skip the isLicenseActive() guard and let the value through; the
+     * actual remote validation happens in validatePremiumLicenseOnSave (onsubmit),
+     * which runs after the DB write.
+     */
+    private function isNewValidKeyPosted(): bool
+    {
+        $posted = trim((string) ($_POST['premium_license_key'] ?? ''));
+
+        return '' !== $posted
+            && self::LICENSE_KEY_MASK !== $posted
+            && $this->encryption->isValidLicenseKeyFormat($posted);
+    }
+
+    /**
+     * Returns true when the license key field was explicitly cleared in the submitted
+     * form (posted as empty string, distinct from the unchanged-mask case).
+     */
+    private function isKeyBeingRemoved(): bool
+    {
+        // Default to the mask so a missing field (not submitted) is treated as unchanged.
+        $posted = trim((string) ($_POST['premium_license_key'] ?? self::LICENSE_KEY_MASK));
+
+        return '' === $posted;
     }
 
     /**
