@@ -272,8 +272,8 @@
                 <target>Refresh license</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_refresh_license_title">
-                <source>Check for plan changes without re-entering your key</source>
-                <target>Check for plan changes without re-entering your key</target>
+                <source>Check for plan changes without re-entering your license key.</source>
+                <target>Check for plan changes without re-entering your license key.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_refresh_license_confirm">
                 <source>License status refreshed successfully.</source>

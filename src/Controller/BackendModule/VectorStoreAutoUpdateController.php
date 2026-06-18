@@ -92,15 +92,16 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             }
 
             // Force a fresh remote revalidation without re-entering the key (UX-06).
+            // Result is passed as a query param so it renders inline next to the button
+            // rather than in Contao's session-message queue (which only surfaces on the
+            // backend dashboard, not on our own page).
             if ('refresh_license' === $request->request->get('action')) {
                 $active = $this->licenseValidation->forceRevalidate($configId);
-                if ($active) {
-                    Message::addConfirmation($this->translator->trans('MSC.vsau_refresh_license_confirm', [], 'contao_default'));
-                } else {
-                    Message::addInfo($this->translator->trans('MSC.vsau_refresh_license_inactive', [], 'contao_default'));
-                }
 
-                return $this->redirectToRoute('vector_store_auto_update');
+                return $this->redirectToRoute('vector_store_auto_update', [
+                    'refresh_result' => $active ? 'ok' : 'inactive',
+                    'refresh_config' => $configId,
+                ]);
             }
 
             if (!$this->licenseValidation->isLicenseActive($configId)) {
@@ -196,6 +197,13 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             // The "Run sync now" button spawns a CLI process via proc_open. Some shared hosts
             // disable it; warn up front so the user isn't surprised by a failed click.
             'process_spawning_available' => $this->processSpawningAvailable(),
+            // Session messages (stop confirmation, errors, queue result) rendered here
+            // so they appear on our own page rather than on the Contao backend dashboard.
+            'backend_messages' => Message::generate(),
+            // Inline result of "Lizenz aktualisieren" — passed as query params so it
+            // renders beside the button without going through the session-message queue.
+            'refresh_result' => $request->query->get('refresh_result'),
+            'refresh_config_id' => (int) $request->query->get('refresh_config', 0),
         ]);
     }
 

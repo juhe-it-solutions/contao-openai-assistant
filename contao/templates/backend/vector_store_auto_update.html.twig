@@ -3,6 +3,9 @@
 {% block main_content %}
     <style>
         .vsau-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #fff; vertical-align: middle; line-height: 1.4; }
+        .vsau-refresh-result { font-size: 12px; vertical-align: middle; margin-left: 8px; }
+        .vsau-refresh-result--ok { color: #43a047; font-weight: 600; }
+        .vsau-refresh-result--inactive { color: #e65100; }
         .vsau-badge.green  { background: #43a047; }
         .vsau-badge.red    { background: #e53935; }
         .vsau-badge.yellow { background: #f59e0b; color: #1a1a1a; }
@@ -220,6 +223,10 @@
         </a>
     </div>
 
+    {% if backend_messages %}
+        {{ backend_messages|raw }}
+    {% endif %}
+
     {% if configs is empty %}
         <div class="tl_message oaa-info-card oaa-info-card--premium" style="margin: 1rem;">
             <p class="tl_info" style="background: transparent url({{ asset('system/themes/flexible/icons/show.svg') }}) no-repeat 11px 12px;">
@@ -293,6 +300,13 @@
                         <input type="hidden" name="action" value="refresh_license">
                         <button type="submit" class="vsau-toolbar-btn" title="{{ 'MSC.vsau_refresh_license_title'|trans({}, 'contao_default') }}">{{ 'MSC.vsau_refresh_license'|trans({}, 'contao_default') }}</button>
                     </form>
+                    {% if refresh_result and refresh_config_id == config.id %}
+                        {% if refresh_result == 'ok' %}
+                            <span class="vsau-refresh-result vsau-refresh-result--ok">✓ {{ 'MSC.vsau_refresh_license_confirm'|trans({}, 'contao_default') }}</span>
+                        {% else %}
+                            <span class="vsau-refresh-result vsau-refresh-result--inactive">{{ 'MSC.vsau_refresh_license_inactive'|trans({}, 'contao_default') }}</span>
+                        {% endif %}
+                    {% endif %}
                 {% elseif config.premium_license_status == 'error' %}
                     <span class="vsau-badge yellow">{{ 'MSC.vsau_license_error_grace'|trans({}, 'contao_default') }}</span>
                     <span class="vsau-actions-hint">{{ 'MSC.vsau_license_grace_hint'|trans({}, 'contao_default') }}</span>
