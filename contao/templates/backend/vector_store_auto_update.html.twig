@@ -91,7 +91,9 @@
                 align-items: stretch;
             }
             .vsau-toolbar-btn {
+                display: flex;
                 width: 100%;
+                box-sizing: border-box;
             }
         }
 
@@ -161,6 +163,7 @@
         table.vsau-log th { font-weight: 700; background: rgba(0, 0, 0, 0.08); }
         table.vsau-log td.col-message .vsau-msg { display: block; max-width: 360px; overflow-wrap: anywhere; }
         table.vsau-log td.col-file code { overflow-wrap: anywhere; }
+        table.vsau-log td.col-file { vertical-align: middle; }
         .vsau-dl { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 11px; text-decoration: underline; white-space: nowrap; }
         .vsau-dl svg { width: 12px; height: 12px; fill: currentColor; }
 
@@ -503,12 +506,14 @@
             {% if log is empty %}
                 <p class="vsau-actions-hint">{{ 'MSC.vsau_no_runs'|trans({}, 'contao_default') }}</p>
             {% else %}
+                <div class="vsau-log-scroll">
                 <table class="vsau-log">
                     <thead>
                         <tr>
                             <th>{{ 'MSC.vsau_col_date'|trans({}, 'contao_default') }}</th>
                             <th>{{ 'MSC.vsau_col_status'|trans({}, 'contao_default') }}</th>
                             <th>{{ 'MSC.vsau_col_source'|trans({}, 'contao_default') }}</th>
+                            <th>{{ 'MSC.vsau_col_mode'|trans({}, 'contao_default') }}</th>
                             <th>{{ 'MSC.vsau_col_model'|trans({}, 'contao_default') }}</th>
                             <th>{{ 'MSC.vsau_col_pages'|trans({}, 'contao_default') }}</th>
                             <th>{{ 'MSC.vsau_col_tokens_in'|trans({}, 'contao_default') }}</th>
@@ -545,6 +550,13 @@
                                     {% endif %}
                                 </td>
                                 <td>{% if row.trigger_source %}{{ ('MSC.vsau_source_' ~ row.trigger_source)|trans({}, 'contao_default') }}{% else %}–{% endif %}</td>
+                                <td>
+                                    {% if row.model %}
+                                        <span class="vsau-badge amber">{{ 'MSC.vsau_mode_ai'|trans({}, 'contao_default') }}</span>
+                                    {% else %}
+                                        <span class="vsau-badge grey">{{ 'MSC.vsau_mode_original'|trans({}, 'contao_default') }}</span>
+                                    {% endif %}
+                                </td>
                                 <td>{{ row.model ?: '–' }}</td>
                                 <td>{{ row.pages }}</td>
                                 <td>{{ row.tokens_in }}</td>
@@ -559,11 +571,17 @@
                                         </a>
                                     {% endif %}
                                 </td>
-                                <td class="col-message"><span class="vsau-msg">{{ row.message }}</span></td>
+                                <td class="col-message">
+                                    {% if row.is_initial %}
+                                        <span class="vsau-badge blue" style="margin-bottom: 4px;">{{ 'MSC.vsau_initial_sync'|trans({}, 'contao_default') }}</span>
+                                    {% endif %}
+                                    <span class="vsau-msg">{{ row.message }}</span>
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+                </div>
             {% endif %}
         </div>
     {% endif %}

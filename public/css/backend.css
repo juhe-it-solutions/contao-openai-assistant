@@ -173,3 +173,24 @@ ul#sort_auto_update_site_root.oaa-picker-collapsed {
 .tip {
     max-width: 560px;
 }
+
+@media (max-width: 767px) {
+    /* Prevent select dropdowns from overflowing the viewport */
+    .tl_form select,
+    .widget select {
+        max-width: 100%;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Prevent the page-picker widget from overflowing horizontally */
+    .widget.oaa-picker-field {
+        overflow: hidden;
+    }
+}
+
+/* Horizontal scroll wrapper for the sync-log table on narrow screens */
+.vsau-log-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}

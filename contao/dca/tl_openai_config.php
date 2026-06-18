@@ -61,7 +61,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
                           '<br>' .
                           $GLOBALS['TL_LANG']['tl_openai_config']['welcome_message2'] .
                           '<br>' .
-                          '<span style="color: #f59e0b; line-height: 2">' . $GLOBALS['TL_LANG']['tl_openai_config']['navigation_message'] . '</span>' .
+                          '<span style="color: #f59e0b; line-height: 1.4; display: block; margin-top: 10px;">' . $GLOBALS['TL_LANG']['tl_openai_config']['navigation_message'] . '</span>' .
                           '</p>' .
                           '<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin: 8px 0 0 11px;">' .
                           '<strong>ℹ️ ' . ($GLOBALS['TL_LANG']['tl_openai_config']['single_config_heading'] ?? 'Single Configuration') . ':</strong> ' .

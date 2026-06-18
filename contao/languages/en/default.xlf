@@ -355,6 +355,22 @@
                 <source>Model</source>
                 <target>Model</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_col_mode">
+                <source>Mode</source>
+                <target>Mode</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_mode_ai">
+                <source>AI</source>
+                <target>AI</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_mode_original">
+                <source>Original</source>
+                <target>Original</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_initial_sync">
+                <source>Initial sync</source>
+                <target>Initial sync</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_download">
                 <source>Download</source>
                 <target>Download</target>

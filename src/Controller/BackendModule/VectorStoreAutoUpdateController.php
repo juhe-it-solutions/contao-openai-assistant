@@ -170,8 +170,16 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
              FROM tl_openai_sync_log ORDER BY run_at DESC LIMIT 20",
         );
 
+        // Determine which log rows are the first-ever sync for their config — no DB
+        // column needed; derive from MIN(id) per pid at render time.
+        $firstLogIds = array_map(
+            'intval',
+            $this->connection->fetchFirstColumn('SELECT MIN(id) FROM tl_openai_sync_log GROUP BY pid'),
+        );
+
         foreach ($log as &$row) {
             $row['message'] = $this->syncMessages->translate(isset($row['message']) ? (string) $row['message'] : null);
+            $row['is_initial'] = \in_array((int) $row['id'], $firstLogIds, true);
         }
         unset($row);
 
