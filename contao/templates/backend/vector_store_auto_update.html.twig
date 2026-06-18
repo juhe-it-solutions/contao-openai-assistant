@@ -306,7 +306,9 @@
                         <button type="submit" class="vsau-toolbar-btn" title="{{ 'MSC.vsau_refresh_license_title'|trans({}, 'contao_default') }}">{{ 'MSC.vsau_refresh_license'|trans({}, 'contao_default') }}</button>
                     </form>
                     {% if refresh_result and refresh_config_id == config.id %}
-                        {% if refresh_result == 'ok' %}
+                        {% if refresh_result == 'ok_changed' and refresh_plan %}
+                            <span class="vsau-refresh-result vsau-refresh-result--ok">✓ {{ 'MSC.vsau_refresh_license_confirm_changed'|trans({'%plan%': refresh_plan}, 'contao_default') }}</span>
+                        {% elseif refresh_result in ['ok_same', 'ok', 'ok_changed'] %}
                             <span class="vsau-refresh-result vsau-refresh-result--ok">✓ {{ 'MSC.vsau_refresh_license_confirm'|trans({}, 'contao_default') }}</span>
                         {% else %}
                             <span class="vsau-refresh-result vsau-refresh-result--inactive">{{ 'MSC.vsau_refresh_license_inactive'|trans({}, 'contao_default') }}</span>

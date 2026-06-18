@@ -96,11 +96,31 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             // rather than in Contao's session-message queue (which only surfaces on the
             // backend dashboard, not on our own page).
             if ('refresh_license' === $request->request->get('action')) {
-                $active = $this->licenseValidation->forceRevalidate($configId);
+                $refreshData = $this->licenseValidation->forceRevalidate($configId);
+
+                // Resolve a human-readable plan name server-side so the template stays
+                // free of dynamic translation key construction.
+                $planSlug = $refreshData['plan'];
+                $planName = '' !== $planSlug
+                    ? $this->translator->trans('MSC.vsau_plan_'.$planSlug, [], 'contao_default')
+                    : '';
+                // Fall back to the raw slug when no translation exists for it.
+                if ('' !== $planSlug && $planName === 'MSC.vsau_plan_'.$planSlug) {
+                    $planName = $planSlug;
+                }
+
+                if (!$refreshData['active']) {
+                    $refreshResult = 'inactive';
+                } elseif ($refreshData['plan_changed']) {
+                    $refreshResult = 'ok_changed';
+                } else {
+                    $refreshResult = 'ok_same';
+                }
 
                 return $this->redirectToRoute('vector_store_auto_update', [
-                    'refresh_result' => $active ? 'ok' : 'inactive',
+                    'refresh_result' => $refreshResult,
                     'refresh_config' => $configId,
+                    'refresh_plan' => $planName,
                 ]);
             }
 
@@ -204,6 +224,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             // renders beside the button without going through the session-message queue.
             'refresh_result' => $request->query->get('refresh_result'),
             'refresh_config_id' => (int) $request->query->get('refresh_config', 0),
+            'refresh_plan' => $request->query->get('refresh_plan', ''),
         ]);
     }
 

@@ -164,8 +164,13 @@ class LicenseValidationService
      * Force an immediate remote revalidation, bypassing the cache. Used by the
      * dashboard "Refresh license status" button so plan changes (upgrades/downgrades)
      * are reflected instantly without the admin re-entering their key.
+     *
+     * Returns an array with:
+     *   - active (bool)
+     *   - plan   (string) the current plan slug after revalidation
+     *   - plan_changed (bool) true when the plan slug or page limit changed
      */
-    public function forceRevalidate(int $configId): bool
+    public function forceRevalidate(int $configId): array
     {
         $encrypted = $this->connection->fetchOne(
             'SELECT premium_license_key FROM tl_openai_config WHERE id = ?',
@@ -173,15 +178,36 @@ class LicenseValidationService
         );
 
         if (empty($encrypted)) {
-            return false;
+            return ['active' => false, 'plan' => '', 'plan_changed' => false];
         }
 
         $plainKey = $this->encryption->decryptLicenseKey((string) $encrypted);
         if (null === $plainKey) {
-            return false;
+            return ['active' => false, 'plan' => '', 'plan_changed' => false];
         }
 
-        return $this->revalidate($configId, $plainKey);
+        $before = $this->connection->fetchAssociative(
+            'SELECT premium_license_plan, premium_license_max_pages FROM tl_openai_config WHERE id = ?',
+            [$configId],
+        );
+
+        $active = $this->revalidate($configId, $plainKey);
+
+        $after = $this->connection->fetchAssociative(
+            'SELECT premium_license_plan, premium_license_max_pages FROM tl_openai_config WHERE id = ?',
+            [$configId],
+        );
+
+        $planChanged = false !== $before && false !== $after && (
+            ((string) ($before['premium_license_plan'] ?? '')) !== ((string) ($after['premium_license_plan'] ?? ''))
+            || ((int) ($before['premium_license_max_pages'] ?? 0)) !== ((int) ($after['premium_license_max_pages'] ?? 0))
+        );
+
+        return [
+            'active' => $active,
+            'plan' => (string) (false !== $after ? ($after['premium_license_plan'] ?? '') : ''),
+            'plan_changed' => $planChanged,
+        ];
     }
 
     /**

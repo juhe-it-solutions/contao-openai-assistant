@@ -276,8 +276,12 @@
                 <target>Planänderungen prüfen, ohne den Lizenzschlüssel neu eingeben zu müssen.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_refresh_license_confirm">
-                <source>License status refreshed successfully.</source>
-                <target>Lizenzstatus erfolgreich aktualisiert.</target>
+                <source>License status refreshed – no plan change.</source>
+                <target>Lizenzstatus aktualisiert – keine Planänderung.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_refresh_license_confirm_changed">
+                <source>License updated – current plan: %plan%.</source>
+                <target>Lizenz aktualisiert – aktueller Tarif: %plan%.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_refresh_license_inactive">
                 <source>License is not active. Enter a valid key in the OpenAI Configuration.</source>
