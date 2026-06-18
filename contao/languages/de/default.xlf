@@ -111,6 +111,18 @@
                 <source>Your server cron may have stopped.</source>
                 <target>Ihr Server-Cron könnte gestoppt sein.</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_cron_no_cli_cron">
+                <source>Not configured</source>
+                <target>Nicht eingerichtet</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_no_cli_cron_hint">
+                <source>Contao cron jobs run via web visits only. The CLI cron job required for auto-sync is not configured.</source>
+                <target>Contao-Cron-Jobs laufen nur über Seitenaufrufe. Der CLI-Cron-Job für die automatische Synchronisierung ist nicht eingerichtet.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_no_cli_cron_warning">
+                <source>Contao is running cron jobs via website visits only. Scheduled syncs require a real CLI cron job. Add the following entry to your server cron:</source>
+                <target>Contao führt Cron-Jobs derzeit nur über Seitenaufrufe aus. Für geplante Synchronisierungen ist ein echter CLI-Cron-Job erforderlich. Fügen Sie folgenden Eintrag zu Ihrem Server-Cron hinzu:</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_cron_never_warning">
                 <source>The server cron has not run yet. Scheduled syncs only start once the cron job is set up. Add the following entry to your server cron:</source>
                 <target>Der Server-Cron wurde noch nicht ausgeführt. Geplante Synchronisierungen starten erst, wenn der Cron-Job eingerichtet ist. Fügen Sie folgenden Eintrag zu Ihrem Server-Cron hinzu:</target>

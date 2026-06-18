@@ -259,8 +259,16 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
     }
 
     /**
-     * Most recent contao:cron execution (heartbeat), read from Contao's tl_cron_job
-     * table. Returns 0 when the cron has never run (or the table is unavailable).
+     * Timestamp of the last CLI-scoped contao:cron execution, detected via
+     * Contao's own CLI marker job (updateMinutelyCliCron), which only runs in
+     * CLI scope and therefore proves a real server cron is configured.
+     *
+     * Returns:
+     *  >0  → Unix timestamp of the last CLI run
+     *   0  → tl_cron_job is empty or unavailable (cron has never run at all)
+     *  -1  → table has entries (web-triggered jobs exist) but the CLI marker is
+     *         absent, meaning contao:cron runs only via web visits, not a real
+     *         server cron job
      */
     private function heartbeatLastRun(): int
     {
@@ -268,29 +276,39 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             // Read the raw datetime and parse it in PHP (same timezone Doctrine used to
             // store the datetime_immutable). Avoids MySQL UNIX_TIMESTAMP() session-timezone
             // skew. tl_cron_job exists unchanged in Contao 5.3 and 5.7.
-            $raw = $this->connection->fetchOne('SELECT lastRun FROM tl_cron_job ORDER BY lastRun DESC LIMIT 1');
+            $raw = $this->connection->fetchOne(
+                "SELECT lastRun FROM tl_cron_job WHERE name = ? LIMIT 1",
+                ['Contao\\CoreBundle\\Cron\\Cron::updateMinutelyCliCron'],
+            );
 
-            if (empty($raw)) {
-                return 0;
+            if (!empty($raw)) {
+                return (new \DateTimeImmutable((string) $raw))->getTimestamp();
             }
 
-            return (new \DateTimeImmutable((string) $raw))->getTimestamp();
+            // CLI marker absent — distinguish "cron never ran" from "only web cron runs"
+            $hasAny = $this->connection->fetchOne('SELECT 1 FROM tl_cron_job LIMIT 1');
+
+            return $hasAny ? -1 : 0;
         } catch (\Throwable) {
             return 0;
         }
     }
 
     /**
-     * never | healthy | stale - see §10.5. contao:cron runs every minute, so two
-     * missed ticks (120 s) is a reliable "cron stopped" signal.
+     * never | no_cli_cron | healthy | stale
+     *
+     * contao:cron runs every minute in CLI scope, so two missed ticks (120 s) is
+     * a reliable "cron stopped" signal. The no_cli_cron state means Contao is
+     * running cron jobs via web visits only — the CLI marker job is absent.
      */
     private function cronStatus(int $lastRun): string
     {
-        if (0 === $lastRun) {
-            return 'never';
-        }
-
-        return time() - $lastRun < 120 ? 'healthy' : 'stale';
+        return match(true) {
+            0 === $lastRun  => 'never',
+            -1 === $lastRun => 'no_cli_cron',
+            time() - $lastRun < 120 => 'healthy',
+            default => 'stale',
+        };
     }
 
     /**

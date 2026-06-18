@@ -330,14 +330,18 @@
                 {% endif %}
 
                 {# Heartbeat (server cron) not running yet - needed for automatic runs only, not manual #}
-                {% if config.cron_status == 'never' and not config.manual_mode %}
+                {% if config.cron_status in ['never', 'no_cli_cron'] and not config.manual_mode %}
                     <div class="vsau-setup notice">
                         <h3>{{ 'MSC.vsau_cron_setup_heading'|trans({}, 'contao_default') }} <span class="vsau-badge yellow">{{ 'MSC.vsau_cron_action_required'|trans({}, 'contao_default') }}</span></h3>
                         <ul>
                             <li>
                                 <span class="vsau-mark warn">!</span>
                                 <span>
-                                    {{ 'MSC.vsau_cron_never_warning'|trans({}, 'contao_default') }}
+                                    {% if config.cron_status == 'no_cli_cron' %}
+                                        {{ 'MSC.vsau_cron_no_cli_cron_warning'|trans({}, 'contao_default') }}
+                                    {% else %}
+                                        {{ 'MSC.vsau_cron_never_warning'|trans({}, 'contao_default') }}
+                                    {% endif %}
                                     <span class="vsau-cron-cmd">
                                         <code id="vsau-cron-cmd-{{ config.id }}">* * * * * [php] [project]/vendor/bin/contao-console contao:cron</code>
                                         <button type="button" class="vsau-copy" data-copy-target="vsau-cron-cmd-{{ config.id }}"
@@ -367,6 +371,10 @@
                                 <span class="vsau-sub">{{ 'MSC.vsau_cron_not_used_hint'|trans({}, 'contao_default') }}</span>
                             {% elseif config.cron_status == 'never' %}
                                 <span class="vsau-badge red">{{ 'MSC.vsau_cron_never'|trans({}, 'contao_default') }}</span>
+                                <a href="{{ help_url }}" target="_blank" rel="noopener" class="vsau-sub vsau-link">{{ 'MSC.vsau_cron_setup_guide'|trans({}, 'contao_default') }}</a>
+                            {% elseif config.cron_status == 'no_cli_cron' %}
+                                <span class="vsau-badge yellow">{{ 'MSC.vsau_cron_no_cli_cron'|trans({}, 'contao_default') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_cron_no_cli_cron_hint'|trans({}, 'contao_default') }}</span>
                                 <a href="{{ help_url }}" target="_blank" rel="noopener" class="vsau-sub vsau-link">{{ 'MSC.vsau_cron_setup_guide'|trans({}, 'contao_default') }}</a>
                             {% elseif config.cron_status == 'healthy' %}
                                 <span class="vsau-badge green">{{ 'MSC.vsau_cron_healthy'|trans({}, 'contao_default') }}</span>
