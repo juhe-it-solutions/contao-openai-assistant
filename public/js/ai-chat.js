@@ -476,15 +476,18 @@ function initAiChat(wrapper) {
 
     // Make URLs clickable (only if they're not already in <a> tags).
     // Keep query strings/fragments intact, then peel off sentence punctuation.
+    // Models sometimes break long URLs with a newline at ?, &, /, = or #.
+    // After \n→<br> those become <br> inside the URL; allow them at those breakpoints
+    // and strip them from the href before building the link.
     // URLs mit http/https
     result = replaceOutsideAnchors(result, text => text.replace(
-      /https?:\/\/[^\s<>"']+/g,
-      url => buildExternalLink(url)
+      /https?:\/\/(?:[^\s<>"']|(?<=[?&\/=#])<br\s*\/?>)*/g,
+      url => buildExternalLink(url.replace(/<br\s*\/?>/gi, ''))
     ));
     // URLs mit www.
     result = replaceOutsideAnchors(result, text => text.replace(
-      /(^|[^\w/])((?:www\.)[^\s<>"']+)/g,
-      (_, prefix, url) => prefix + buildExternalLink(url, 'https://')
+      /(^|[^\w/])((?:www\.)(?:[^\s<>"']|(?<=[?&\/=#])<br\s*\/?>)+)/g,
+      (_, prefix, url) => prefix + buildExternalLink(url.replace(/<br\s*\/?>/gi, ''), 'https://')
     ));
 
     // Make phone numbers clickable, keeping optional "+" at the start
