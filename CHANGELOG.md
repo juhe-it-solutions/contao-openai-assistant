@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2026-07-01
+
+### Fixed
+- **Frontend chat links:** Models sometimes wrap long URLs with a newline at `?`, `&`, `/`, `=` or `#`; after the newline-to-`<br>` conversion these breakpoints landed inside the link text and broke auto-linking. `<br>` is now allowed at those breakpoints and stripped from the resulting `href`.
+
 ## [2.0.1] - 2026-06-11
 
 ### Fixed
