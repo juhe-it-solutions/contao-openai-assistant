@@ -21,8 +21,8 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Component\Security\Csrf\CsrfToken;
 
 class LicenseValidationController
 {
@@ -35,7 +35,7 @@ class LicenseValidationController
     ) {
     }
 
-    #[Route('/contao/license-key-validate', name: 'contao_license_key_validate', methods: ['POST'])]
+    #[Route('%contao.backend.route_prefix%/license-key-validate', name: 'contao_license_key_validate', methods: ['POST'])]
     public function validateLicenseKey(Request $request): JsonResponse
     {
         $submittedToken = $request->request->get('REQUEST_TOKEN');

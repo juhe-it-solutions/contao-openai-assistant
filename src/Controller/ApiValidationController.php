@@ -22,33 +22,28 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Controller;
 
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\CoreBundle\Monolog\ContaoContext;
+use Contao\CoreBundle\Security\ContaoCorePermissions;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class ApiValidationController
 {
-    private $httpClient;
-
-    private $logger;
-
-    private $csrfTokenManager;
-
-    private $csrfTokenName;
-
-    public function __construct(HttpClientInterface $httpClient, LoggerInterface $logger, ContaoCsrfTokenManager $csrfTokenManager, string $csrfTokenName = 'contao_csrf_token')
-    {
-        $this->httpClient = $httpClient;
-        $this->logger = $logger;
-        $this->csrfTokenManager = $csrfTokenManager;
-        $this->csrfTokenName = $csrfTokenName;
+    public function __construct(
+        private readonly HttpClientInterface $httpClient,
+        private readonly LoggerInterface $logger,
+        private readonly ContaoCsrfTokenManager $csrfTokenManager,
+        private readonly AuthorizationCheckerInterface $authorizationChecker,
+        private readonly string $csrfTokenName = 'contao_csrf_token',
+    ) {
     }
 
-    #[Route('/contao/api-key-validate', name: 'contao_api_key_validate', methods: ['POST'])]
+    #[Route('%contao.backend.route_prefix%/api-key-validate', name: 'contao_api_key_validate', methods: ['POST'])]
     public function validateApiKey(Request $request): JsonResponse
     {
         // Check CSRF token using Symfony's CSRF token manager
@@ -60,6 +55,18 @@ class ApiValidationController
                 [
                     'valid' => false,
                     'message' => 'Invalid request token',
+                ],
+                Response::HTTP_FORBIDDEN,
+            );
+        }
+
+        // Same module gate as the license-key endpoint: only users who may manage the
+        // OpenAI configuration can use this key-validation proxy.
+        if (!$this->authorizationChecker->isGranted(ContaoCorePermissions::USER_CAN_ACCESS_MODULE, 'openai_dashboard')) {
+            return new JsonResponse(
+                [
+                    'valid' => false,
+                    'message' => 'access_denied',
                 ],
                 Response::HTTP_FORBIDDEN,
             );

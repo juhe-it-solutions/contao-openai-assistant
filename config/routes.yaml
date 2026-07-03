@@ -7,8 +7,12 @@ vector_store_auto_update:
         _scope: backend
         _token_check: true
 
+# Both validation endpoints live under the configurable backend route prefix so they
+# always stay inside the backend firewall, even on installs that customise the prefix
+# (a literal /contao/ path would fall into the frontend firewall there and lose the
+# authentication requirement).
 contao_api_key_validate:
-    path: /contao/api-key-validate
+    path: '%contao.backend.route_prefix%/api-key-validate'
     controller: JuheItSolutions\ContaoOpenaiAssistant\Controller\ApiValidationController::validateApiKey
     methods: [POST]
     defaults:
@@ -16,7 +20,7 @@ contao_api_key_validate:
         _token_check: true
 
 contao_license_key_validate:
-    path: /contao/license-key-validate
+    path: '%contao.backend.route_prefix%/license-key-validate'
     controller: JuheItSolutions\ContaoOpenaiAssistant\Controller\LicenseValidationController::validateLicenseKey
     methods: [POST]
     defaults:
