@@ -51,10 +51,6 @@
                 <source>Enable it in AI Tools → OpenAI Configuration → Vector store sync.</source>
                 <target>Aktivieren Sie diese unter KI-Tools → OpenAI-Konfiguration → Vector-Store-Synchronisierung.</target>
             </trans-unit>
-            <trans-unit id="MSC.vsau_premium_license">
-                <source>Premium license</source>
-                <target>Premium-Lizenz</target>
-            </trans-unit>
             <trans-unit id="MSC.vsau_license_active">
                 <source>Active</source>
                 <target>Aktiv</target>

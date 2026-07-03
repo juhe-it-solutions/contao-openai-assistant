@@ -119,13 +119,24 @@
             var input = findInput(fieldName);
             var resultSpan = document.getElementById("apiKeyResult_" + fieldName);
 
+            // Labels are rendered by the PHP wizard from the language files so the
+            // button follows the backend locale; the literals are fallbacks only.
+            var labels = {
+                noKey: button.dataset.noKeyLabel || "Please enter an API key first.",
+                valid: button.dataset.validLabel || "API key is valid!",
+                invalid: button.dataset.invalidLabel || "API key is invalid!",
+                error: button.dataset.errorLabel || "Validation failed.",
+                check: button.dataset.checkLabel || "Check key",
+                validating: button.dataset.validatingLabel || "Validating..."
+            };
+
             if (!input || !resultSpan) {
                 return;
             }
 
             var apiKey = input.value;
             if (!apiKey) {
-                resultSpan.innerHTML = '<span style="color:orange;">&#9888; Bitte geben Sie zuerst einen API-Schlüssel ein.</span>';
+                resultSpan.innerHTML = '<span style="color:orange;">&#9888; ' + labels.noKey + '</span>';
                 return;
             }
 
@@ -133,7 +144,7 @@
             var requestToken = button.dataset.requestToken || "";
 
             button.disabled = true;
-            button.innerHTML = '<span class="processing-spinner"></span>Validiere...';
+            button.innerHTML = '<span class="processing-spinner"></span>' + labels.validating;
             resultSpan.innerHTML = "";
 
             var xhr = new XMLHttpRequest();
@@ -147,23 +158,23 @@
                 }
 
                 button.disabled = false;
-                button.textContent = "Key prüfen";
+                button.textContent = labels.check;
 
                 try {
                     var result = JSON.parse(xhr.responseText || "{}");
 
                     if (result.valid) {
-                        resultSpan.innerHTML = '<span style="color:green;">✓ API-Schlüssel ist gültig!</span>';
+                        resultSpan.innerHTML = '<span style="color:green;">✓ ' + labels.valid + '</span>';
                         input.style.backgroundColor = "lightgreen";
                         input.style.color = "#121212";
                         return;
                     }
 
-                    resultSpan.innerHTML = '<span style="color:red;">✗ API-Schlüssel ist ungültig! ' + (result.message || "") + '</span>';
+                    resultSpan.innerHTML = '<span style="color:red;">✗ ' + labels.invalid + ' ' + (result.message || "") + '</span>';
                     input.style.backgroundColor = "lightcoral";
                     input.style.color = "#121212";
                 } catch (e) {
-                    resultSpan.innerHTML = '<span style="color:red;">✗ Fehler bei der Validierung</span>';
+                    resultSpan.innerHTML = '<span style="color:red;">✗ ' + labels.error + '</span>';
                 }
             };
 
