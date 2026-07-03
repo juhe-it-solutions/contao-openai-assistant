@@ -89,14 +89,7 @@ class EncryptionService
      */
     public function encryptApiKey(string $apiKey): string
     {
-        $key = $this->getEncryptionKey();
-        $method = 'aes-256-cbc';
-        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length($method));
-
-        $encrypted = openssl_encrypt($apiKey, $method, $key, 0, $iv);
-
-        // Combine IV and encrypted data
-        return base64_encode($iv.$encrypted);
+        return $this->encryptValue($apiKey);
     }
 
     /**
@@ -142,9 +135,15 @@ class EncryptionService
     {
         $key = $this->getEncryptionKey();
         $method = 'aes-256-cbc';
-        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length($method));
+        $iv = random_bytes((int) openssl_cipher_iv_length($method));
 
         $encrypted = openssl_encrypt($plaintext, $method, $key, 0, $iv);
+
+        // Fail loudly instead of silently storing an IV-only garbage value that could
+        // never be decrypted again.
+        if (false === $encrypted) {
+            throw new \RuntimeException('Encryption failed: '.(string) openssl_error_string());
+        }
 
         return base64_encode($iv.$encrypted);
     }

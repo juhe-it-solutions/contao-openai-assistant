@@ -293,9 +293,9 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
      * CLI scope and therefore proves a real server cron is configured.
      *
      * Returns:
-     *  >0  → Unix timestamp of the last CLI run
-     *   0  → tl_cron_job is empty or unavailable (cron has never run at all)
-     *  -1  → table has entries (web-triggered jobs exist) but the CLI marker is
+     *  >0 → Unix timestamp of the last CLI run
+     *   0 → tl_cron_job is empty or unavailable (cron has never run at all)
+     *  -1 → table has entries (web-triggered jobs exist) but the CLI marker is
      *         absent, meaning contao:cron runs only via web visits, not a real
      *         server cron job
      */
@@ -306,7 +306,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             // store the datetime_immutable). Avoids MySQL UNIX_TIMESTAMP() session-timezone
             // skew. tl_cron_job exists unchanged in Contao 5.3 and 5.7.
             $raw = $this->connection->fetchOne(
-                "SELECT lastRun FROM tl_cron_job WHERE name = ? LIMIT 1",
+                'SELECT lastRun FROM tl_cron_job WHERE name = ? LIMIT 1',
                 ['Contao\\CoreBundle\\Cron\\Cron::updateMinutelyCliCron'],
             );
 
@@ -324,7 +324,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
     }
 
     /**
-     * never | no_cli_cron | healthy | stale
+     * never | no_cli_cron | healthy | stale.
      *
      * contao:cron runs every minute in CLI scope, so two missed ticks (120 s) is
      * a reliable "cron stopped" signal. The no_cli_cron state means Contao is
@@ -332,8 +332,8 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
      */
     private function cronStatus(int $lastRun): string
     {
-        return match(true) {
-            0 === $lastRun  => 'never',
+        return match (true) {
+            0 === $lastRun => 'never',
             -1 === $lastRun => 'no_cli_cron',
             time() - $lastRun < 120 => 'healthy',
             default => 'stale',
