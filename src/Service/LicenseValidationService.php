@@ -30,6 +30,17 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  */
 class LicenseValidationService
 {
+    /**
+     * Page limits per subscription plan. Fallback only - the licensing server's
+     * max_crawl_pages is authoritative whenever it was delivered. Shared by the
+     * save-time enforcement (OpenAiConfigListener) and the runtime cap
+     * (VectorStoreAutoUpdateService) so both always resolve the same limit.
+     */
+    public const PLAN_PAGE_LIMITS = [
+        'starter' => 30,
+        'business' => 100,
+    ];
+
     private const VALIDATION_URL = 'https://licenses.juhe-it-solutions.at/api/openai-assistant/validate';
 
     private const DEACTIVATE_URL = 'https://licenses.juhe-it-solutions.at/api/openai-assistant/deactivate';
@@ -56,7 +67,7 @@ class LicenseValidationService
     public function isLicenseActive(int $configId): bool
     {
         $config = $this->connection->fetchAssociative(
-            'SELECT premium_license_key, premium_license_status, premium_license_valid_until, premium_license_checked_at FROM tl_openai_config WHERE id = ?',
+            'SELECT premium_license_key, premium_license_status, premium_license_valid_until, premium_license_checked_at, premium_license_last_success FROM tl_openai_config WHERE id = ?',
             [$configId],
         );
 
@@ -66,10 +77,17 @@ class LicenseValidationService
 
         $checkedAt = (int) ($config['premium_license_checked_at'] ?? 0);
         $status = (string) ($config['premium_license_status'] ?? '');
+        $validUntil = (int) ($config['premium_license_valid_until'] ?? 0);
+
+        // An entitled status whose paid period has ended must not be served from the
+        // cache: the server may have renewed the subscription in the meantime (new
+        // current_period_end), so force a revalidation instead of reporting inactive
+        // - or, worse, active - from stale data.
+        $expiredEntitlement = $this->isEntitledStatus($status) && $validUntil > 0 && time() >= $validUntil;
 
         // Fresh cache hit: decide from the cached status alone — no decryption, no
         // network call. This is the common path on every cron tick.
-        if ($checkedAt > 0 && $this->isCacheFresh($status, $checkedAt)) {
+        if ($checkedAt > 0 && !$expiredEntitlement && $this->isCacheFresh($status, $checkedAt)) {
             // Even on a binary cache hit, refresh plan/max_pages hourly so plan
             // upgrades and downgrades propagate without waiting 7 days (BUG-05).
             if ($this->isEntitledStatus($status) && time() - $checkedAt > self::CACHE_TTL_PLAN) {
@@ -103,7 +121,7 @@ class LicenseValidationService
     public function revalidate(int $configId, string $key): bool
     {
         $previous = $this->connection->fetchAssociative(
-            'SELECT premium_license_status, premium_license_valid_until, premium_license_checked_at, premium_license_plan, premium_license_max_pages, premium_license_cancel_at_period_end FROM tl_openai_config WHERE id = ?',
+            'SELECT premium_license_status, premium_license_valid_until, premium_license_checked_at, premium_license_last_success, premium_license_plan, premium_license_max_pages, premium_license_cancel_at_period_end FROM tl_openai_config WHERE id = ?',
             [$configId],
         );
 
@@ -152,10 +170,22 @@ class LicenseValidationService
             $cancelAtPeriodEnd = (bool) ($previous['premium_license_cancel_at_period_end'] ?? false);
         }
 
+        $now = time();
         $this->connection->executeStatement(
             'UPDATE tl_openai_config SET premium_license_status = ?, premium_license_valid_until = ?, premium_license_checked_at = ?, premium_license_plan = ?, premium_license_max_pages = ?, premium_license_cancel_at_period_end = ? WHERE id = ?',
-            [$status, $validUntil, time(), $plan, $maxPages, $cancelAtPeriodEnd ? 1 : 0, $configId],
+            [$status, $validUntil, $now, $plan, $maxPages, $cancelAtPeriodEnd ? 1 : 0, $configId],
         );
+
+        // Anchor for the grace window: only a validation the SERVER confirmed as valid
+        // moves it. Failed or invalid checks must never refresh it, otherwise the grace
+        // period would re-anchor on itself and never expire while the endpoint is
+        // unreachable (permanent free premium by simply blocking the licensing domain).
+        if ($active) {
+            $this->connection->executeStatement(
+                'UPDATE tl_openai_config SET premium_license_last_success = ? WHERE id = ?',
+                [$now, $configId],
+            );
+        }
 
         return $active || ('error' === $status && $this->wasRecentlyActive($previous));
     }
@@ -167,7 +197,7 @@ class LicenseValidationService
      *
      * Returns an array with:
      *   - active (bool)
-     *   - plan   (string) the current plan slug after revalidation
+     *   - plan (string) the current plan slug after revalidation
      *   - plan_changed (bool) true when the plan slug or page limit changed
      */
     public function forceRevalidate(int $configId): array
@@ -199,8 +229,8 @@ class LicenseValidationService
         );
 
         $planChanged = false !== $before && false !== $after && (
-            ((string) ($before['premium_license_plan'] ?? '')) !== ((string) ($after['premium_license_plan'] ?? ''))
-            || ((int) ($before['premium_license_max_pages'] ?? 0)) !== ((int) ($after['premium_license_max_pages'] ?? 0))
+            (string) ($before['premium_license_plan'] ?? '') !== (string) ($after['premium_license_plan'] ?? '')
+            || ((int) ($before['premium_license_max_pages'] ?? 0)) !== (int) ($after['premium_license_max_pages'] ?? 0)
         );
 
         return [
@@ -270,6 +300,59 @@ class LicenseValidationService
         } catch (\Throwable) {
             // Best-effort only: the seat may remain claimed server-side until it expires.
         }
+    }
+
+    /**
+     * Cache-only entitlement check: decides from the persisted license state without
+     * ever decrypting the key or making a network call. Used on hot render paths
+     * (backend menu build, config form load) where a blocking HTTP request is not
+     * acceptable.
+     *
+     * Deliberately OPTIMISTIC: an entitled status whose valid_until has passed still
+     * counts, because the subscription may have renewed since the last check and only
+     * a remote revalidation can tell. Hiding the premium UI here would also hide the
+     * dashboard entry - the very place where the full check (and the "Refresh
+     * license" button) would heal the stale cache. Every enforcement path (save
+     * guards, manual dispatch, sync run, dashboard render) uses the strict
+     * isLicenseActive() instead.
+     */
+    public function isLicenseActiveCached(int $configId): bool
+    {
+        $config = $this->connection->fetchAssociative(
+            'SELECT premium_license_key, premium_license_status, premium_license_valid_until, premium_license_checked_at, premium_license_last_success FROM tl_openai_config WHERE id = ?',
+            [$configId],
+        );
+
+        if (!$config || empty($config['premium_license_key'])) {
+            return false;
+        }
+
+        $status = (string) ($config['premium_license_status'] ?? '');
+
+        if ($this->isEntitledStatus($status)) {
+            return true;
+        }
+
+        return 'error' === $status && $this->wasRecentlyActive($config);
+    }
+
+    /**
+     * Resolve the effective crawl-page limit for a plan. Returns null when no limit
+     * applies: empty plan (not yet validated) or "enterprise" (unlimited). Prefers the
+     * server-delivered max_crawl_pages; falls back to PLAN_PAGE_LIMITS so a missing
+     * value never silently grants an unlimited scope on a limited plan.
+     */
+    public static function resolvePageLimit(string $plan, int $maxPages): int|null
+    {
+        if ('' === $plan || 'enterprise' === $plan) {
+            return null;
+        }
+
+        if ($maxPages > 0) {
+            return $maxPages;
+        }
+
+        return self::PLAN_PAGE_LIMITS[$plan] ?? null;
     }
 
     /**
@@ -356,12 +439,20 @@ class LicenseValidationService
     }
 
     /**
+     * Mirrors the server-side entitlement rule (isLocationSubscriptionEntitled): an
+     * entitled status only counts while its paid period has not ended. Without the
+     * valid_until check, a cached "past_due"/"active" status would keep granting
+     * premium for up to CACHE_TTL_ACTIVE although the server already answered
+     * valid=false for it.
+     *
      * @param array<string, mixed> $config
      */
     private function isActiveStatus(string $status, array $config): bool
     {
         if ($this->isEntitledStatus($status)) {
-            return true;
+            $validUntil = (int) ($config['premium_license_valid_until'] ?? 0);
+
+            return 0 === $validUntil || time() < $validUntil;
         }
 
         // Cached error within grace period after a previously active license
@@ -386,12 +477,21 @@ class LicenseValidationService
             return false;
         }
 
+        $lastSuccess = (int) ($config['premium_license_last_success'] ?? 0);
         $checkedAt = (int) ($config['premium_license_checked_at'] ?? 0);
         $validUntil = (int) ($config['premium_license_valid_until'] ?? 0);
 
-        return $checkedAt > 0
+        // The grace window is anchored on the last SERVER-CONFIRMED validation, never on
+        // checked_at: the error path refreshes checked_at on every failed attempt, so
+        // anchoring on it would let the grace period re-extend itself indefinitely.
+        // For rows written before premium_license_last_success existed (value 0), an
+        // entitled status falls back to checked_at — under the old semantics that was
+        // the time of the last successful check. 'error' rows get no such fallback.
+        $anchor = max($lastSuccess, $this->isEntitledStatus($status) ? $checkedAt : 0);
+
+        return $anchor > 0
             && (
-                time() - $checkedAt < self::GRACE_PERIOD
+                time() - $anchor < self::GRACE_PERIOD
                 || ($validUntil > 0 && time() < $validUntil)
             );
     }

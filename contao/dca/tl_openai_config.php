@@ -312,11 +312,9 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'eval'      => ['tl_class' => 'w50 auto-update-field auto-update-license-field', 'chosen' => true],
             'sql'       => ['type' => 'string', 'length' => 100, 'default' => ''],
         ],
+        // Deprecated: content is never truncated since the per-page redesign. Column kept
+        // for backward compatibility; not editable and not read anywhere at runtime.
         'auto_update_max_content' => [
-            'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_max_content'],
-            'exclude'   => true,
-            'inputType' => 'text',
-            'eval'      => ['rgxp' => 'digit', 'tl_class' => 'w50 auto-update-field auto-update-license-field'],
             'sql'       => ['type' => 'integer', 'unsigned' => true, 'default' => 100000],
         ],
         'auto_update_site_root' => [
@@ -361,6 +359,12 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
         'premium_license_checked_at' => [
+            'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+        ],
+        // Timestamp of the last validation the licensing server confirmed as valid.
+        // Anchors the offline grace window; failed checks never update it (unlike
+        // premium_license_checked_at, which is refreshed on every attempt).
+        'premium_license_last_success' => [
             'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
         // Subscription plan + page limit from the last validation; drive crawl-page

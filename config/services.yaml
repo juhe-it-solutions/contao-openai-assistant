@@ -109,7 +109,6 @@ services:
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_schedule_weekday.save, method: guardAutoUpdateFieldWithoutLicense }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_schedule_day.save, method: guardAutoUpdateFieldWithoutLicense }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_mode.save, method: guardAutoUpdateFieldWithoutLicense }
-            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_max_content.save, method: saveAutoUpdateMaxContent }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_site_root.load, method: loadAutoUpdateSiteRoots }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_site_root.save, method: guardAutoUpdateFieldWithoutLicense }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_site_root.save, method: enforceCrawlPageLimit }

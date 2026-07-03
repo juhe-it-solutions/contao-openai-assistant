@@ -17,7 +17,6 @@ use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\CoreBundle\DependencyInjection\Attribute\AsCallback;
 use Contao\CoreBundle\Monolog\ContaoContext;
 use Contao\DataContainer;
-use Contao\Environment;
 use Contao\Message;
 use Contao\System;
 use Doctrine\DBAL\Connection;
@@ -31,6 +30,7 @@ use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreFileSync;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
+use Symfony\Component\Routing\RouterInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class OpenAiConfigListener
@@ -54,14 +54,6 @@ class OpenAiConfigListener
         'auto_update_prompt_template',
     ];
 
-    /**
-     * Page limits per subscription plan (mirror of the licensing server).
-     */
-    private const PLAN_PAGE_LIMITS = [
-        'starter' => 30,
-        'business' => 100,
-    ];
-
     public function __construct(
         private readonly HttpClientInterface $httpClient,
         private readonly LoggerInterface $logger,
@@ -75,6 +67,7 @@ class OpenAiConfigListener
         private readonly OpenAiModelCatalogService $modelCatalog,
         private readonly VectorStoreAutoUpdateService $autoUpdateService,
         private readonly VectorStoreFileSync $fileSync,
+        private readonly RouterInterface $router,
     ) {
     }
 
@@ -106,6 +99,13 @@ class OpenAiConfigListener
 
         // Cleared.
         if ('' === $posted) {
+            // Release this install's seat while the old key is still readable from the
+            // DB (save callbacks run before the row is written). Best-effort — a failed
+            // call never blocks removing the key locally.
+            if ('' !== $existing) {
+                $this->licenseValidation->deactivate((int) $dc->id);
+            }
+
             return '';
         }
 
@@ -117,6 +117,13 @@ class OpenAiConfigListener
             ));
 
             return $existing; // do not overwrite a good key with a malformed one
+        }
+
+        // Switching to a different key: release the seat held under the old key first,
+        // otherwise it stays claimed on the licensing server. Re-entering the same key
+        // is harmless — the next validation simply re-records the seat.
+        if ('' !== $existing) {
+            $this->licenseValidation->deactivate((int) $dc->id);
         }
 
         return $this->encryption->encryptLicenseKey($posted);
@@ -157,8 +164,8 @@ class OpenAiConfigListener
 
             if ($hadState) {
                 $this->connection->executeStatement(
-                    'UPDATE tl_openai_config SET premium_license_status = ?, premium_license_valid_until = 0, premium_license_checked_at = 0, auto_update_enabled = 0 WHERE id = ?',
-                    ['', (int) $dc->id],
+                    'UPDATE tl_openai_config SET premium_license_status = ?, premium_license_valid_until = 0, premium_license_checked_at = 0, premium_license_last_success = 0, premium_license_plan = ?, premium_license_max_pages = 0, premium_license_cancel_at_period_end = 0, auto_update_enabled = 0 WHERE id = ?',
+                    ['', '', (int) $dc->id],
                 );
             }
 
@@ -196,13 +203,19 @@ class OpenAiConfigListener
         }
 
         if (empty($apiKey)) {
-            Message::addError('API key is required and cannot be empty.');
+            Message::addError($this->getConfigLangString(
+                'api_key_required',
+                'API key is required and cannot be empty.',
+            ));
 
             return '';
         }
 
         if (!$this->encryption->isValidApiKeyFormat((string) $apiKey)) {
-            Message::addError('Invalid API key format. OpenAI API keys must start with "sk-".');
+            Message::addError($this->getConfigLangString(
+                'api_key_format_invalid',
+                'Invalid API key format. OpenAI API keys must start with "sk-".',
+            ));
 
             return '';
         }
@@ -221,7 +234,10 @@ class OpenAiConfigListener
             );
 
             if (200 !== $response->getStatusCode()) {
-                Message::addError('API key validation failed. Please check your API key.');
+                Message::addError($this->getConfigLangString(
+                    'api_key_check_failed',
+                    'API key validation failed. Please check your API key.',
+                ));
 
                 return '';
             }
@@ -242,7 +258,10 @@ class OpenAiConfigListener
                 ],
             );
 
-            Message::addError('Invalid API key. Please verify your OpenAI API key is correct and has proper permissions.');
+            Message::addError($this->getConfigLangString(
+                'api_key_invalid_save',
+                'Invalid API key. Please verify your OpenAI API key is correct and has proper permissions.',
+            ));
 
             return '';
         }
@@ -267,23 +286,34 @@ class OpenAiConfigListener
     }
 
     /**
-     * Add a "Key prüfen" button next to the API key field.
+     * Add a "Check key" button next to the API key field. All labels come from the
+     * language files so the button follows the backend locale.
      */
     public function apiKeyWizard(DataContainer $dc): string
     {
+        $lang = $this->loadConfigLang();
         $csrfToken = $this->csrfTokenManager->getToken($this->csrfTokenName)->getValue();
 
         $buttonId = 'apiKeyCheck_'.$dc->field;
         $resultId = 'apiKeyResult_'.$dc->field;
         $fieldName = $dc->field;
-        $postUrl = Environment::get('base').'contao/api-key-validate';
+        // Generated from the route so a customised backend route prefix is honoured.
+        $postUrl = $this->router->generate('contao_api_key_validate');
+
+        $checkLabel = (string) ($lang['check_api_key'] ?? 'Check key');
 
         return \sprintf(
             ' <span class="api-key-check-wrapper">
             <button type="button" id="%1$s" class="tl_submit api-key-check-button"
                 data-api-key-field="%2$s"
                 data-validation-url="%3$s"
-                data-request-token="%4$s">Key prüfen</button>
+                data-request-token="%4$s"
+                data-check-label="%6$s"
+                data-validating-label="%7$s"
+                data-no-key-label="%8$s"
+                data-valid-label="%9$s"
+                data-invalid-label="%10$s"
+                data-error-label="%11$s">%6$s</button>
             <span id="%5$s" class="api-key-result"></span>
         </span>',
             htmlspecialchars($buttonId, ENT_QUOTES),
@@ -291,6 +321,12 @@ class OpenAiConfigListener
             htmlspecialchars($postUrl, ENT_QUOTES),
             htmlspecialchars($csrfToken, ENT_QUOTES),
             htmlspecialchars($resultId, ENT_QUOTES),
+            htmlspecialchars($checkLabel, ENT_QUOTES),
+            htmlspecialchars((string) ($lang['api_key_validating'] ?? 'Validating...'), ENT_QUOTES),
+            htmlspecialchars((string) ($lang['no_api_key'] ?? 'Please enter an API key first.'), ENT_QUOTES),
+            htmlspecialchars((string) ($lang['api_key_valid'] ?? 'API key is valid!'), ENT_QUOTES),
+            htmlspecialchars((string) ($lang['api_key_invalid'] ?? 'API key is invalid!'), ENT_QUOTES),
+            htmlspecialchars((string) ($lang['api_key_error'] ?? 'Validation failed.'), ENT_QUOTES),
         );
     }
 
@@ -569,9 +605,12 @@ class OpenAiConfigListener
 
         if ($dc && $dc->id && 'edit' === ($request?->get('act') ?? '')) {
             $this->migrateScheduleFieldsOnLoad($dc);
-            $this->configureAutoUpdateFieldAccess((int) $dc->id);
+            // Render path: use the cache-only check so building the form never blocks
+            // on a licensing HTTP call. Save paths keep the authoritative check.
+            $licenseActive = $this->licenseValidation->isLicenseActiveCached((int) $dc->id);
+            $this->configureAutoUpdateFieldAccess($licenseActive);
             $this->configureAutoUpdateModelVisibility((int) $dc->id);
-            $this->injectAutoUpdateBackendScript((int) $dc->id, $this->licenseValidation->isLicenseActive((int) $dc->id));
+            $this->injectAutoUpdateBackendScript((int) $dc->id, $licenseActive);
             $this->addNoFilesNoticeIfNeeded((int) $dc->id);
         }
     }
@@ -589,7 +628,7 @@ class OpenAiConfigListener
         $manageUrl = $this->licensePortalUrls->getManageUrl();
         $logoUrl = '/bundles/contaoopenaiassistant/images/logo_juhe-licenses.svg';
 
-        $licenseActive = $dc->id && $this->licenseValidation->isLicenseActive((int) $dc->id);
+        $licenseActive = $dc->id && $this->licenseValidation->isLicenseActiveCached((int) $dc->id);
 
         if ($licenseActive) {
             // Active subscriber: replace the sales card with a neutral "about" note that
@@ -666,7 +705,8 @@ class OpenAiConfigListener
         $buttonId = 'licenseKeyCheck_'.$dc->field;
         $resultId = 'licenseKeyResult_'.$dc->field;
         $fieldName = $dc->field;
-        $postUrl = Environment::get('base').'contao/license-key-validate';
+        // Generated from the route so a customised backend route prefix is honoured.
+        $postUrl = $this->router->generate('contao_license_key_validate');
         $configId = (int) ($dc->id ?? 0);
         $checkLabel = (string) ($lang['check_license_key'] ?? 'Check key');
         $validatingLabel = (string) ($lang['license_key_validating'] ?? 'Validating...');
@@ -675,7 +715,7 @@ class OpenAiConfigListener
         $invalidLabel = (string) ($lang['license_key_invalid'] ?? 'License key is invalid!');
         $errorLabel = (string) ($lang['license_key_error'] ?? 'Validation failed.');
 
-        $hasStoredKey = '' !== ($dc->activeRecord?->premium_license_key ?? '');
+        $hasStoredKey = '' !== ($dc->activeRecord->premium_license_key ?? '');
 
         $removeButton = '';
         if ($hasStoredKey) {
@@ -746,8 +786,9 @@ class OpenAiConfigListener
 
         // Only fetch live models when the license is active AND auto-update is enabled.
         // This avoids unnecessary API calls and prevents "Unknown option" display when
-        // the feature is not yet configured.
-        if (!$this->licenseValidation->isLicenseActive((int) $dc->id)) {
+        // the feature is not yet configured. Cache-only check: this runs while the
+        // form is rendered and must not block on a licensing HTTP call.
+        if (!$this->licenseValidation->isLicenseActiveCached((int) $dc->id)) {
             return $options;
         }
 
@@ -829,15 +870,6 @@ class OpenAiConfigListener
         return '' === $value ? null : $value;
     }
 
-    public function saveAutoUpdateMaxContent($value, DataContainer $dc): int
-    {
-        if ($dc->id && !$this->licenseValidation->isLicenseActive((int) $dc->id)) {
-            return (int) ($dc->activeRecord->auto_update_max_content ?? 100000);
-        }
-
-        return max(1000, min(500000, (int) $value));
-    }
-
     public function guardAutoUpdateFieldWithoutLicense($value, DataContainer $dc)
     {
         if (!$dc->id || !$dc->field) {
@@ -903,21 +935,10 @@ class OpenAiConfigListener
             if ([] === $selectedIds) {
                 // Empty selection with a single root: countScopePages counted the full subtree,
                 // which IS what would be synced. Explain the implicit all-pages behaviour.
-                throw new \InvalidArgumentException(\sprintf(
-                    $this->getConfigLangString(
-                        'auto_update_pages_none_selected_limit',
-                        'No pages selected — all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.',
-                    ),
-                    $count,
-                    $limit,
-                ));
+                throw new \InvalidArgumentException(\sprintf($this->getConfigLangString('auto_update_pages_none_selected_limit', 'No pages selected — all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.'), $count, $limit));
             }
 
-            throw new \InvalidArgumentException(\sprintf(
-                $this->getConfigLangString('auto_update_pages_over_limit', 'Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.'),
-                $count,
-                $limit,
-            ));
+            throw new \InvalidArgumentException(\sprintf($this->getConfigLangString('auto_update_pages_over_limit', 'Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.'), $count, $limit));
         }
 
         return $value;
@@ -925,7 +946,7 @@ class OpenAiConfigListener
 
     public function loadAutoUpdateEnabled($value, DataContainer|null $dc = null): string
     {
-        if ($dc?->id && !$this->licenseValidation->isLicenseActive((int) $dc->id)) {
+        if ($dc?->id && !$this->licenseValidation->isLicenseActiveCached((int) $dc->id)) {
             return '';
         }
 
@@ -1052,19 +1073,12 @@ class OpenAiConfigListener
 
     /**
      * Resolve the effective page limit. Returns null when enforcement should be
-     * skipped: empty plan (not yet validated) or "enterprise" (unlimited).
+     * skipped: empty plan (not yet validated) or "enterprise" (unlimited). Shared
+     * with the runtime cap so save-time and sync-time limits never diverge.
      */
     private function resolvePageLimit(string $plan, int $maxPages): int|null
     {
-        if ('' === $plan || 'enterprise' === $plan) {
-            return null;
-        }
-
-        if ($maxPages > 0) {
-            return $maxPages;
-        }
-
-        return self::PLAN_PAGE_LIMITS[$plan] ?? null;
+        return LicenseValidationService::resolvePageLimit($plan, $maxPages);
     }
 
     /**
@@ -1164,10 +1178,8 @@ class OpenAiConfigListener
         return (string) max(0, min(23, (int) $value));
     }
 
-    private function configureAutoUpdateFieldAccess(int $configId): void
+    private function configureAutoUpdateFieldAccess(bool $licenseActive): void
     {
-        $licenseActive = $this->licenseValidation->isLicenseActive($configId);
-
         if (!$licenseActive) {
             // Keep the palette section so JS can reveal it after a successful
             // key check without a page reload. Fields stay disabled (server-side

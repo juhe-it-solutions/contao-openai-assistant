@@ -26,6 +26,7 @@ use Psr\Log\NullLogger;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Routing\RouterInterface;
 
 class OpenAiConfigListenerTest extends TestCase
 {
@@ -100,6 +101,7 @@ class OpenAiConfigListenerTest extends TestCase
             $this->createMock(OpenAiModelCatalogService::class),
             $this->createMock(VectorStoreAutoUpdateService::class),
             $fileSync,
+            $this->createMock(RouterInterface::class),
         );
 
         $dc = (object) [

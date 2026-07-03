@@ -89,12 +89,15 @@ class BackendMenuListener
                 return false;
             }
 
-            $configId = $this->connection->fetchOne('SELECT id FROM tl_openai_config LIMIT 1');
+            $configId = $this->connection->fetchOne('SELECT id FROM tl_openai_config ORDER BY id LIMIT 1');
             if (!$configId) {
                 return false;
             }
 
-            return $this->licenseValidation->isLicenseActive((int) $configId);
+            // Cache-only check: this listener runs on every backend request, so it must
+            // never trigger the (blocking) remote revalidation. The authoritative check
+            // still runs on the dashboard, on save and before every sync.
+            return $this->licenseValidation->isLicenseActiveCached((int) $configId);
         } catch (\Throwable) {
             return false;
         }
