@@ -346,7 +346,12 @@ class VectorStoreFileSync
         }
 
         try {
-            fwrite($handle, $content);
+            $written = fwrite($handle, $content);
+            if (\strlen($content) !== $written) {
+                // Disk full or quota hit: abort instead of uploading a silently
+                // truncated document.
+                throw new \RuntimeException('Could not write temp file for upload (disk full?).');
+            }
 
             // The stream is consumed on each send, so rewind it before every (re)try.
             $response = $this->request(
@@ -542,7 +547,9 @@ class VectorStoreFileSync
 
     private function isRetryable(int $status): bool
     {
-        return 429 === $status || 503 === $status;
+        // 429 rate limit plus the transient 5xx family (500/502/503/504) OpenAI is
+        // known to return intermittently. Other 4xx/5xx are permanent and not retried.
+        return \in_array($status, [429, 500, 502, 503, 504], true);
     }
 
     private function backoffDelay(int $attempt, ResponseInterface|null $response): int

@@ -221,8 +221,13 @@ class VectorStoreAutoUpdateService
 
             // Plan-based page cap: enforce the subscription limit at runtime so a
             // downgrade immediately shrinks the sync scope without requiring the admin to
-            // re-save their site-root selection (BUG-06).
-            $planPageLimit = (int) ($config['premium_license_max_pages'] ?? 0);
+            // re-save their site-root selection (BUG-06). Resolved through the same
+            // helper as the save-time enforcement, so a missing max_crawl_pages value
+            // falls back to the plan default instead of silently meaning "unlimited".
+            $planPageLimit = LicenseValidationService::resolvePageLimit(
+                (string) ($config['premium_license_plan'] ?? ''),
+                (int) ($config['premium_license_max_pages'] ?? 0),
+            ) ?? 0;
 
             $rows = $this->readAllPages($configId, $planPageLimit);
             if (0 === \count($rows)) {
@@ -333,7 +338,10 @@ class VectorStoreAutoUpdateService
             $this->persistResult(
                 $configId,
                 'error',
-                '',
+                // null = keep auto_update_file_id untouched: a run that failed before the
+                // file sync must not discard the legacy bulk-file id, or the old file
+                // could never be cleaned from the vector store by a later successful run.
+                null,
                 [
                     'duration' => time() - $start,
                     'model' => $model,
@@ -507,20 +515,33 @@ class VectorStoreAutoUpdateService
 
         if ([] !== $selectedPageIds) {
             // Exact selection - only the pages the admin picked, no subpages implied.
-            $pageIds = [];
+            // Pages deleted since the selection was saved are skipped (with a log
+            // notice) instead of failing the whole sync; only an entirely stale
+            // selection aborts the run.
+            $existingIds = array_map(
+                'intval',
+                $this->connection->fetchFirstColumn(
+                    'SELECT id FROM tl_page WHERE id IN (?)',
+                    [$selectedPageIds],
+                    [ArrayParameterType::INTEGER],
+                ),
+            );
 
-            foreach ($selectedPageIds as $selectedPageId) {
-                $page = $this->connection->fetchAssociative(
-                    'SELECT id FROM tl_page WHERE id = ?',
-                    [$selectedPageId],
-                );
-
-                if (!$page) {
-                    throw new \RuntimeException('MSC.vsau_err_invalid_page|'.$selectedPageId);
-                }
-
-                $pageIds[] = (int) $selectedPageId;
+            $missing = array_values(array_diff($selectedPageIds, $existingIds));
+            if ([] !== $missing) {
+                $this->logger->notice(\sprintf(
+                    'VectorStoreAutoUpdate: skipping %d deleted page(s) in the selection for config %d (IDs: %s). Update the page selection in the OpenAI configuration.',
+                    \count($missing),
+                    $configId,
+                    implode(', ', $missing),
+                ));
             }
+
+            if ([] === $existingIds) {
+                throw new \RuntimeException('MSC.vsau_err_invalid_page|'.(string) $missing[0]);
+            }
+
+            $pageIds = $existingIds;
         } else {
             // Empty selection - fall back to the whole website (single site root + subtree).
             $roots = $this->connection->fetchAllAssociative(
@@ -716,16 +737,18 @@ class VectorStoreAutoUpdateService
 
         $manifest = implode("\n", $lines);
 
-        // Hard cap so a large site cannot overflow the MEDIUMTEXT column (~16 MB) and abort
-        // the log insert. This document is only an inspection copy; the full content lives in
-        // the vector store regardless.
-        $maxChars = 8_000_000;
+        // Hard cap so a large site cannot overflow the MEDIUMTEXT column (16,777,215
+        // BYTES) and abort the log insert. Measured in bytes (strlen), not characters:
+        // multi-byte UTF-8 content would otherwise blow past the column limit long
+        // before the character count does. This document is only an inspection copy;
+        // the full content lives in the vector store regardless.
+        $maxBytes = 8_000_000;
 
         foreach ($pages as $page) {
             $title = '' !== trim($page['title']) ? $page['title'] : $page['url'];
             $block = '## '.$title."\nURL: ".$page['url']."\n\n".$page['content']."\n\n---\n\n";
 
-            if (mb_strlen($manifest) + mb_strlen($block) > $maxChars) {
+            if (\strlen($manifest) + \strlen($block) > $maxBytes) {
                 $manifest .= "\n_(Manifest truncated for storage; full content is in the vector store.)_\n";
                 break;
             }
@@ -737,16 +760,25 @@ class VectorStoreAutoUpdateService
     }
 
     /**
+     * @param string|null                                                                                                                                                                                                                        $fileId null = leave auto_update_file_id unchanged (failed runs must not
+     *                                                                                                                                                                                                                                                   discard a still-uncleaned legacy file id)
      * @param array{pages?: int, tokens_in?: int, tokens_out?: int, duration?: int, model?: string, document?: string, sync?: array{added: int, updated: int, removed: int, unchanged: int, files_uploaded: int, files_failed: int, bytes: int}} $stats
      */
-    private function persistResult(int $configId, string $status, string $fileId, array $stats, string $message = '', string $triggerSource = self::SOURCE_CLI): void
+    private function persistResult(int $configId, string $status, string|null $fileId, array $stats, string $message = '', string $triggerSource = self::SOURCE_CLI): void
     {
         $now = time();
 
-        $this->connection->executeStatement(
-            'UPDATE tl_openai_config SET auto_update_last_run = ?, auto_update_last_status = ?, auto_update_file_id = ?, auto_update_last_message = ? WHERE id = ?',
-            [$now, $status, $fileId, '' !== $message ? $message : null, $configId],
-        );
+        if (null === $fileId) {
+            $this->connection->executeStatement(
+                'UPDATE tl_openai_config SET auto_update_last_run = ?, auto_update_last_status = ?, auto_update_last_message = ? WHERE id = ?',
+                [$now, $status, '' !== $message ? $message : null, $configId],
+            );
+        } else {
+            $this->connection->executeStatement(
+                'UPDATE tl_openai_config SET auto_update_last_run = ?, auto_update_last_status = ?, auto_update_file_id = ?, auto_update_last_message = ? WHERE id = ?',
+                [$now, $status, $fileId, '' !== $message ? $message : null, $configId],
+            );
+        }
 
         $document = (string) ($stats['document'] ?? '');
         $sync = $stats['sync'] ?? ['added' => 0, 'updated' => 0, 'removed' => 0, 'unchanged' => 0, 'files_uploaded' => 0, 'files_failed' => 0, 'bytes' => 0];
@@ -761,7 +793,7 @@ class VectorStoreAutoUpdateService
             'pages' => $stats['pages'] ?? 0,
             'tokens_in' => $stats['tokens_in'] ?? 0,
             'tokens_out' => $stats['tokens_out'] ?? 0,
-            'file_id' => $fileId,
+            'file_id' => $fileId ?? '',
             'duration' => $stats['duration'] ?? 0,
             'pages_added' => $sync['added'],
             'pages_updated' => $sync['updated'],
