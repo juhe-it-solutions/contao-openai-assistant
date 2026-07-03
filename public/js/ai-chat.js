@@ -479,14 +479,17 @@ function initAiChat(wrapper) {
     // Models sometimes break long URLs with a newline at ?, &, /, = or #.
     // After \n→<br> those become <br> inside the URL; allow them at those breakpoints
     // and strip them from the href before building the link.
+    // No lookbehind here on purpose: (?<=...) is a PARSE-time syntax error on
+    // Safari/iOS < 16.4 and would kill this whole script. The breakpoint char and
+    // its <br> are consumed together instead - same accepted language.
     // URLs mit http/https
     result = replaceOutsideAnchors(result, text => text.replace(
-      /https?:\/\/(?:[^\s<>"']|(?<=[?&\/=#])<br\s*\/?>)*/g,
+      /https?:\/\/(?:[?&\/=#]<br\s*\/?>|[^\s<>"'])+/g,
       url => buildExternalLink(url.replace(/<br\s*\/?>/gi, ''))
     ));
     // URLs mit www.
     result = replaceOutsideAnchors(result, text => text.replace(
-      /(^|[^\w/])((?:www\.)(?:[^\s<>"']|(?<=[?&\/=#])<br\s*\/?>)+)/g,
+      /(^|[^\w/])((?:www\.)(?:[?&\/=#]<br\s*\/?>|[^\s<>"'])+)/g,
       (_, prefix, url) => prefix + buildExternalLink(url.replace(/<br\s*\/?>/gi, ''), 'https://')
     ));
 
