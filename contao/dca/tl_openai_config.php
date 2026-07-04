@@ -231,8 +231,8 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         ],
 
         // --- Auto-update settings ---
-        // Pure display field (no DB column): tells the user when the first sync will
-        // start after enabling. Rendered only while no sync has run yet.
+        // Pure display field (no DB column): tells the user to start the first sync
+        // manually. Rendered only while no sync has run yet.
         'auto_update_first_sync_hint' => [
             'label'   => [''],
             'exclude' => true,

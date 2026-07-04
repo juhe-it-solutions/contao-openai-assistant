@@ -223,6 +223,10 @@
                 <source>next:</source>
                 <target>nächster:</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_first_manual_hint">
+                <source>First sync: start manually with the button below; the schedule applies from the second run onward.</source>
+                <target>Erste Synchronisierung: manuell über die Schaltfläche unten starten; der Zeitplan gilt ab dem zweiten Lauf.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_run_now">
                 <source>Run manual sync now</source>
                 <target>Jetzt manuell synchronisieren</target>
@@ -602,6 +606,10 @@
             <trans-unit id="MSC.vsau_setup_ready_auto">
                 <source>Everything is ready - automatic synchronisation is active and runs on schedule. You can also start a manual sync any time below.</source>
                 <target>Alles bereit - die automatische Synchronisierung ist aktiv und läuft nach Zeitplan. Sie können zusätzlich jederzeit unten eine manuelle Synchronisierung starten.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_setup_ready_auto_first">
+                <source>Everything is ready - start the first sync with the button below. Later syncs run automatically on your schedule.</source>
+                <target>Alles bereit - starten Sie die erste Synchronisierung über die Schaltfläche unten. Weitere Läufe erfolgen automatisch gemäß Zeitplan.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_run_now_blocked_hint">
                 <source>Resolve the open items above first.</source>

@@ -61,6 +61,7 @@ Useful checks:
 - At least one file upload has created the OpenAI vector store.
 - The selected pages are indexable by Contao's search indexer.
 - Scheduled mode requires a real CLI cron running `contao:cron`; web-only cron (triggered by page visits) is not sufficient — the auto-sync job skips web scope. The dashboard shows "Not configured" if only web cron is detected. Manual mode uses the backend trigger.
+- The first sync is always manual (dashboard button or CLI command); scheduled cron runs apply from the second sync onward.
 - Hosts that disable `proc_open` cannot dispatch manual syncs from the backend; run the CLI command instead.
 
 ## Development Checks

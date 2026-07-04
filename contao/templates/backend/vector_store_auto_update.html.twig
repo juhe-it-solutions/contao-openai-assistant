@@ -345,10 +345,9 @@
                 {% else %}
                     <div class="vsau-setup ready">
                         <ul>
-                            {# Heartbeat healthy → automatic sync is genuinely running; say so
-                               instead of implying a manual action is still pending. Otherwise
-                               keep the "ready, can be run" wording (only manual works without cron). #}
-                            <li><span class="vsau-mark ok">✓</span><span>{{ (config.manual_mode ? 'MSC.vsau_setup_ready' : (config.cron_status == 'healthy' ? 'MSC.vsau_setup_ready_auto' : 'MSC.vsau_setup_ready'))|trans({}, 'contao_default') }}</span></li>
+                            {# Scheduled + never synced: first run is manual; after that cron
+                               takes over when healthy. Manual mode always uses vsau_setup_ready. #}
+                            <li><span class="vsau-mark ok">✓</span><span>{{ (config.manual_mode ? 'MSC.vsau_setup_ready' : (config.auto_update_last_run == 0 ? 'MSC.vsau_setup_ready_auto_first' : (config.cron_status == 'healthy' ? 'MSC.vsau_setup_ready_auto' : 'MSC.vsau_setup_ready')))|trans({}, 'contao_default') }}</span></li>
                         </ul>
                     </div>
                 {% endif %}
@@ -456,6 +455,8 @@
                                 {% endif %}
                                 {% if config.next_run %}
                                     <span class="vsau-sub">{{ 'MSC.vsau_next_run'|trans({}, 'contao_default') }} {{ config.next_run|date('d.m.Y H:i') }}</span>
+                                {% elseif config.auto_update_last_run == 0 %}
+                                    <span class="vsau-sub">{{ 'MSC.vsau_schedule_first_manual_hint'|trans({}, 'contao_default') }}</span>
                                 {% endif %}
                             {% endif %}
                         </div>

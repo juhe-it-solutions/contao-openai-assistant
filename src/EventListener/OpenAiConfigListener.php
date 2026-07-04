@@ -1111,14 +1111,12 @@ class OpenAiConfigListener
 
     /**
      * input_field_callback for auto_update_first_sync_hint: an inline info box inside
-     * the auto-update legend telling the user when the FIRST sync will actually start.
+     * the auto-update legend telling the user to start the FIRST sync manually.
      * Rendered only while sync is enabled and no run has happened yet
      * (auto_update_last_run = 0); disappears after the first run.
      *
-     * Cron-aware: with a healthy CLI cron, the first scheduled-mode sync fires within
-     * ~1 minute of enabling (the cron treats "never ran" as due immediately) — that
-     * surprises users unless stated explicitly. Without a CLI cron, or in manual
-     * trigger mode, the hint points to the Auto-Sync dashboard instead.
+     * Cron-aware: scheduled mode still needs a manual first sync; the hint mentions
+     * whether later syncs require a CLI cron job.
      */
     public function firstSyncHintField(DataContainer $dc, string $xlabel = ''): string
     {
@@ -1143,12 +1141,12 @@ class OpenAiConfigListener
         } elseif (CronHealthService::STATUS_HEALTHY === $this->cronHealth->status($this->cronHealth->heartbeatLastRun())) {
             $text = $this->getConfigLangString(
                 'first_sync_hint_cron',
-                'The first sync starts automatically within the next minute. You can follow its status in the Auto-Sync dashboard.',
+                'Start the first sync via the “Run sync now” button in the Auto-Sync dashboard. Later syncs run automatically on your schedule.',
             );
         } else {
             $text = $this->getConfigLangString(
                 'first_sync_hint_nocron',
-                'The first sync starts automatically as soon as the server cron job (contao:cron) is set up and running — or start it manually in the Auto-Sync dashboard.',
+                'Start the first sync via the “Run sync now” button in the Auto-Sync dashboard. Later syncs require a CLI cron job (contao:cron) on your server.',
             );
         }
 

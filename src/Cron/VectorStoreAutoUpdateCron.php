@@ -105,9 +105,10 @@ class VectorStoreAutoUpdateCron
             return false;
         }
 
-        // Never ran yet → run immediately.
+        // First sync is always manual (dashboard button or CLI). Cron only takes over
+        // after auto_update_last_run has been set by a completed or attempted run.
         if (0 === $lastRun) {
-            return true;
+            return false;
         }
 
         // A malformed schedule (or a cron-expression library version that does not
