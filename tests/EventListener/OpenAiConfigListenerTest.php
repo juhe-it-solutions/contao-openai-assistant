@@ -30,6 +30,65 @@ use Symfony\Component\Routing\RouterInterface;
 
 class OpenAiConfigListenerTest extends TestCase
 {
+    public function testConfigListAllowsCreatingFirstRecord(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->expects(self::once())
+            ->method('fetchOne')
+            ->with('SELECT COUNT(*) FROM tl_openai_config')
+            ->willReturn(0)
+        ;
+
+        $previousConfig = $GLOBALS['TL_DCA']['tl_openai_config']['config'] ?? null;
+        $GLOBALS['TL_DCA']['tl_openai_config']['config'] = ['notCreatable' => true];
+
+        try {
+            $this->createListener($connection)->onLoadCallback(null);
+
+            self::assertArrayNotHasKey(
+                'notCreatable',
+                $GLOBALS['TL_DCA']['tl_openai_config']['config'],
+                'A fresh installation must show Contao\'s "new" action for the first OpenAI config.',
+            );
+        } finally {
+            if (null === $previousConfig) {
+                unset($GLOBALS['TL_DCA']['tl_openai_config']['config']);
+            } else {
+                $GLOBALS['TL_DCA']['tl_openai_config']['config'] = $previousConfig;
+            }
+        }
+    }
+
+    public function testConfigListDisablesCreatingAdditionalRecords(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->expects(self::once())
+            ->method('fetchOne')
+            ->with('SELECT COUNT(*) FROM tl_openai_config')
+            ->willReturn(1)
+        ;
+
+        $previousConfig = $GLOBALS['TL_DCA']['tl_openai_config']['config'] ?? null;
+        $GLOBALS['TL_DCA']['tl_openai_config']['config'] = [];
+
+        try {
+            $this->createListener($connection)->onLoadCallback(null);
+
+            self::assertTrue(
+                $GLOBALS['TL_DCA']['tl_openai_config']['config']['notCreatable'],
+                'After the first OpenAI config exists, Contao must hide the "new" action.',
+            );
+        } finally {
+            if (null === $previousConfig) {
+                unset($GLOBALS['TL_DCA']['tl_openai_config']['config']);
+            } else {
+                $GLOBALS['TL_DCA']['tl_openai_config']['config'] = $previousConfig;
+            }
+        }
+    }
+
     public function testConfigDeletePurgesAutoSyncFilesBeforeRemovingLocalTrackingRows(): void
     {
         $executedStatements = [];
@@ -118,6 +177,25 @@ class OpenAiConfigListenerTest extends TestCase
         self::assertSame(
             ['DELETE FROM tl_openai_vector_file WHERE pid = ?', [7]],
             $executedStatements[array_key_last($executedStatements)],
+        );
+    }
+
+    private function createListener(Connection $connection): OpenAiConfigListener
+    {
+        return new OpenAiConfigListener(
+            new MockHttpClient(),
+            new NullLogger(),
+            $this->createMock(ContaoCsrfTokenManager::class),
+            'REQUEST_TOKEN',
+            new RequestStack(),
+            $connection,
+            $this->createMock(EncryptionService::class),
+            $this->createMock(LicensePortalUrlService::class),
+            $this->createMock(LicenseValidationService::class),
+            $this->createMock(OpenAiModelCatalogService::class),
+            $this->createMock(VectorStoreAutoUpdateService::class),
+            $this->createMock(VectorStoreFileSync::class),
+            $this->createMock(RouterInterface::class),
         );
     }
 }

@@ -50,7 +50,6 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         'dataContainer'    => DC_Table::class,
         'ctable'           => ['tl_openai_files', 'tl_openai_prompts'],
         'enableVersioning' => true,
-        'notCreatable'     => true,
         'notCopyable'      => true,
         'onload_callback'  => [
             function ($dc) {

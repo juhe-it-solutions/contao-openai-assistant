@@ -598,6 +598,8 @@ class OpenAiConfigListener
 
     public function onLoadCallback($dc): void
     {
+        $this->configureSingleRecordCreation();
+
         $request = $this->requestStack->getCurrentRequest();
         if ($request && ('create' === $request->get('act') || '' === $request->get('act'))) {
             $this->checkSingleRecordLimitation($dc);
@@ -1302,6 +1304,19 @@ class OpenAiConfigListener
             $url = Controller::addToUrl('act=edit&id='.$existingConfig['id']);
             Controller::redirect($url);
         }
+    }
+
+    private function configureSingleRecordCreation(): void
+    {
+        $hasExistingConfig = (int) $this->connection->fetchOne('SELECT COUNT(*) FROM tl_openai_config') > 0;
+
+        if ($hasExistingConfig) {
+            $GLOBALS['TL_DCA']['tl_openai_config']['config']['notCreatable'] = true;
+
+            return;
+        }
+
+        unset($GLOBALS['TL_DCA']['tl_openai_config']['config']['notCreatable']);
     }
 
     /**
