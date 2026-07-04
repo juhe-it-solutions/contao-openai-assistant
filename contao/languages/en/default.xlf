@@ -204,8 +204,8 @@
                 <target>refresh in a few minutes</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_status_last_activity">
-                <source>last activity %s min ago</source>
-                <target>last activity %s min ago</target>
+                <source>Last activity %s min ago</source>
+                <target>Last activity %s min ago</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_sync_never">
                 <source>never run</source>

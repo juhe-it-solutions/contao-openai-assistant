@@ -14,13 +14,16 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\EventListener;
 
 use Contao\CoreBundle\DependencyInjection\Attribute\AsCallback;
 use Contao\DataContainer;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreSyncMessageTranslator;
 
 /**
  * Presentation tweaks for the read-only "OpenAI Sync-Protokoll" listing
- * (tl_openai_sync_log). Renders the status column as a coloured badge and the
- * duration as hh:mm:ss so the page matches the "Letzte Synchronisierungen" block
- * on the vector-store-auto-update dashboard. The matching card/table styling is
- * loaded from a dedicated stylesheet that is only published on this page.
+ * (tl_openai_sync_log). Renders the status column as a coloured badge, the
+ * duration as hh:mm:ss and the message through the sync-message translator
+ * (messages are stored as MSC.vsau_* keys) so the page matches the "Letzte
+ * Synchronisierungen" block on the vector-store-auto-update dashboard. The
+ * matching card/table styling is loaded from a dedicated stylesheet that is
+ * only published on this page.
  */
 class OpenAiSyncLogListener
 {
@@ -29,6 +32,10 @@ class OpenAiSyncLogListener
         'partial' => 'amber',
         'error' => 'red',
     ];
+
+    public function __construct(private readonly VectorStoreSyncMessageTranslator $syncMessages)
+    {
+    }
 
     /**
      * Load the listing stylesheet only when this DCA is in play (i.e. on the sync-log
@@ -63,6 +70,13 @@ class OpenAiSyncLogListener
 
         if (isset($index['duration'])) {
             $args[$index['duration']] = $this->formatDuration((int) ($row['duration'] ?? 0));
+        }
+
+        if (isset($index['message']) && '' !== (string) ($row['message'] ?? '')) {
+            $translated = $this->syncMessages->translate((string) $row['message']) ?? (string) $row['message'];
+            // The callback output is rendered raw (see the status badge above), so the
+            // translated text must be escaped here.
+            $args[$index['message']] = htmlspecialchars($translated, ENT_QUOTES);
         }
 
         return $args;
