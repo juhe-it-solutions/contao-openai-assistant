@@ -605,23 +605,14 @@ class OpenAiConfigListener
             $this->checkSingleRecordLimitation($dc);
         }
 
-        $action = $request?->get('act') ?? '';
-
-        if ($dc && $dc->id && 'edit' === $action) {
+        if ($dc && $dc->id && 'edit' === ($request?->get('act') ?? '')) {
             $this->migrateScheduleFieldsOnLoad($dc);
             // Render path: use the cache-only check so building the form never blocks
             // on a licensing HTTP call. Save paths keep the authoritative check.
             $licenseActive = $this->licenseValidation->isLicenseActiveCached((int) $dc->id);
             $this->configureAutoUpdateFieldAccess($licenseActive);
             $this->configureAutoUpdateModelVisibility((int) $dc->id);
-            $this->injectAutoUpdateBackendScript((int) $dc->id, $licenseActive);
             $this->addNoFilesNoticeIfNeeded((int) $dc->id);
-
-            return;
-        }
-
-        if ('create' === $action) {
-            $this->injectInactiveAutoUpdateBackendState(0);
         }
     }
 
@@ -654,6 +645,7 @@ class OpenAiConfigListener
         $logoUrl = '/bundles/contaoopenaiassistant/images/logo_juhe-licenses.svg';
 
         $licenseActive = $dc->id && $this->licenseValidation->isLicenseActiveCached((int) $dc->id);
+        $stateMarkup = $this->renderAutoUpdateBackendState((int) ($dc->id ?? 0), $licenseActive);
 
         if ($licenseActive) {
             // Active subscriber: replace the sales card with a neutral "about" note that
@@ -707,7 +699,7 @@ class OpenAiConfigListener
             );
         }
 
-        return \sprintf(
+        return $stateMarkup.\sprintf(
             '<div class="widget clr premium-license-intro">'
             .'<style>'
             .'.premium-license-intro .openai-license-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}'
@@ -1245,42 +1237,33 @@ class OpenAiConfigListener
         }
     }
 
-    private function injectAutoUpdateBackendScript(int $configId, bool $licenseActive): void
+    /**
+     * Builds the inline state markup for the auto-update license gate. Rendered
+     * INSIDE the edit form (via the premium_license_intro field callback), not via
+     * $GLOBALS['TL_HEAD']/['TL_BODY'] — those globals are only processed by the
+     * FRONTEND page renderer (Controller::replaceDynamicScriptTags); the backend
+     * templates never output them, so anything pushed there is silently dropped.
+     *
+     * The state is a plain element with data attributes (not an inline <script>)
+     * so Turbo morph re-renders always reflect the latest server state. The
+     * premium_legend section precedes auto_update_legend in the palette, so the
+     * <style> hides #pal_auto_update_legend before it is painted (no flash). The
+     * license-check JS reveals the fieldset with an inline style after a successful
+     * key validation.
+     */
+    public function renderAutoUpdateBackendState(int $configId, bool $licenseActive): string
     {
-        $lang = $this->loadConfigLang();
-        $labels = json_encode(
-            [
-                'noKey' => $lang['no_license_key'] ?? 'Please enter a license key first.',
-                'valid' => $lang['license_key_valid'] ?? 'License key is valid!',
-                'invalid' => $lang['license_key_invalid'] ?? 'License key is invalid!',
-                'error' => $lang['license_key_error'] ?? 'Validation failed.',
-                'check' => $lang['check_license_key'] ?? 'Check key',
-                'validating' => $lang['license_key_validating'] ?? 'Validating...',
-            ],
-            JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP,
-        );
-
-        $GLOBALS['TL_BODY'][] = \sprintf(
-            '<script>window.contaoOpenAiAutoUpdate = { configId: %d, licenseActive: %s, labels: %s };</script>',
+        $markup = \sprintf(
+            '<div class="oaa-auto-update-state" data-config-id="%d" data-license-active="%s" hidden></div>',
             $configId,
-            $licenseActive ? 'true' : 'false',
-            $labels,
+            $licenseActive ? '1' : '0',
         );
 
-        // Hide the auto-update fieldset before first paint when no license is active.
-        // JS overrides this with an inline style once the key is validated successfully.
         if (!$licenseActive) {
-            $GLOBALS['TL_HEAD'][] = '<style>#pal_auto_update_legend{display:none}</style>';
+            $markup .= '<style>#pal_auto_update_legend{display:none}</style>';
         }
-    }
 
-    private function injectInactiveAutoUpdateBackendState(int $configId): void
-    {
-        $GLOBALS['TL_BODY'][] = \sprintf(
-            '<script>window.contaoOpenAiAutoUpdate = { configId: %d, licenseActive: false, labels: {} };</script>',
-            $configId,
-        );
-        $GLOBALS['TL_HEAD'][] = '<style>#pal_auto_update_legend{display:none}</style>';
+        return $markup;
     }
 
     private function loadConfigLang(): array

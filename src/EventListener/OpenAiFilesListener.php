@@ -19,6 +19,7 @@ use Contao\DataContainer;
 use Contao\FilesModel;
 use Contao\Message;
 use Contao\StringUtil;
+use Contao\System;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use Psr\Log\LoggerInterface;
@@ -513,71 +514,50 @@ class OpenAiFilesListener
      */
     public function onLoadCallback(DataContainer $dc): void
     {
-        // Add API status indicator to the page
-        $configId = null;
-
-        // Try to get parent config ID from different sources
-        if ($dc && $dc->pid) {
-            $configId = $dc->pid;
-        } elseif ($dc && $dc->activeRecord && $dc->activeRecord->pid) {
-            $configId = $dc->activeRecord->pid;
-        } elseif (isset($_GET['pid'])) {
-            $configId = (int) $_GET['pid'];
+        if ($this->resolveParentConfigId($dc)) {
+            return;
         }
 
-        // For creation screens, try to get config ID from URL or check for existing configs
-        if (!$configId) {
-            $request = $this->requestStack->getCurrentRequest();
-            if ($request && ('create' === $request->get('act') || '' === $request->get('act'))) {
-                // Try to get from URL parameters
-                $configId = $request->get('pid') ? (int) $request->get('pid') : null;
+        $language = $GLOBALS['TL_LANGUAGE'] ?? 'en';
+        System::loadLanguageFile('tl_openai_files', $language);
 
-                // If still no config ID, check if there's only one config available
-                if (!$configId) {
-                    $existingConfig = $this->connection->fetchAssociative(
-                        'SELECT id FROM tl_openai_config LIMIT 1',
-                    );
-                    if ($existingConfig) {
-                        $configId = (int) $existingConfig['id'];
-                    }
-                }
+        $lang = $GLOBALS['TL_LANG']['tl_openai_files'] ?? [];
+
+        Message::addError(
+            (string) ($lang['no_parent_config'] ?? 'No parent OpenAI configuration found. Please configure OpenAI first.'),
+        );
+    }
+
+    private function resolveParentConfigId(DataContainer|null $dc): int|null
+    {
+        if ($dc && $dc->pid) {
+            return (int) $dc->pid;
+        }
+
+        if ($dc && $dc->activeRecord && $dc->activeRecord->pid) {
+            return (int) $dc->activeRecord->pid;
+        }
+
+        if (isset($_GET['pid'])) {
+            return (int) $_GET['pid'];
+        }
+
+        $request = $this->requestStack->getCurrentRequest();
+        if ($request && ('create' === $request->get('act') || '' === $request->get('act'))) {
+            if ($request->get('pid')) {
+                return (int) $request->get('pid');
+            }
+
+            $existingConfig = $this->connection->fetchAssociative(
+                'SELECT id FROM tl_openai_config LIMIT 1',
+            );
+
+            if ($existingConfig) {
+                return (int) $existingConfig['id'];
             }
         }
 
-        if ($configId) {
-            // Show a neutral status indicator when no config exists yet
-            $neutralIndicator = '<div class="api-status-indicator unavailable fade-in">
-                <span class="status-icon">?</span>No parent configuration found
-            </div>';
-
-            $script = '<script>
-(function () {
-    function insertStatusIndicator() {
-        if (document.querySelector(".oaa-api-status-wrapper")) { return; }
-        var header = document.querySelector(".tl_header");
-        var title = document.querySelector(".tl_title");
-        var container = document.querySelector(".tl_content");
-        var targetElement = header || title || container;
-        if (targetElement) {
-            var statusWrapper = document.createElement("div");
-            statusWrapper.className = "oaa-api-status-wrapper";
-            statusWrapper.style.cssText = "margin: 10px 0; padding: 10px; border-radius: 4px;";
-            statusWrapper.innerHTML = \''.addslashes($neutralIndicator).'\';
-            targetElement.insertBefore(statusWrapper, targetElement.firstChild);
-        }
-    }
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", insertStatusIndicator);
-    } else {
-        insertStatusIndicator();
-    }
-    document.addEventListener("turbo:load", insertStatusIndicator);
-}());
-            </script>';
-
-            // Add the script to the page
-            $GLOBALS['TL_BODY'][] = $script;
-        }
+        return null;
     }
 
     /**

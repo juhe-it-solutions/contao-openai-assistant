@@ -25,7 +25,6 @@ use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\RouterInterface;
 
@@ -108,57 +107,30 @@ class OpenAiConfigListenerTest extends TestCase
         );
     }
 
-    public function testCreateFormHidesAutoUpdateBlockUntilLicenseIsValidated(): void
+    public function testAutoUpdateStateMarkupHidesBlockWithoutActiveLicense(): void
     {
-        $connection = $this->createMock(Connection::class);
-        $connection
-            ->method('fetchOne')
-            ->with('SELECT COUNT(*) FROM tl_openai_config')
-            ->willReturn(0)
-        ;
-        $connection
-            ->method('fetchAssociative')
-            ->with('SELECT id, title FROM tl_openai_config LIMIT 1')
-            ->willReturn(false)
-        ;
+        $listener = $this->createListener($this->createMock(Connection::class));
 
-        $requestStack = new RequestStack();
-        $requestStack->push(new Request(['act' => 'create']));
+        $markup = $listener->renderAutoUpdateBackendState(0, false);
 
-        $previousHead = $GLOBALS['TL_HEAD'] ?? null;
-        $previousBody = $GLOBALS['TL_BODY'] ?? null;
-        $GLOBALS['TL_HEAD'] = [];
-        $GLOBALS['TL_BODY'] = [];
+        self::assertStringContainsString('data-license-active="0"', $markup);
+        self::assertStringContainsString('data-config-id="0"', $markup);
+        self::assertStringContainsString(
+            '<style>#pal_auto_update_legend{display:none}</style>',
+            $markup,
+            'Without a validated license the Vector-Store-Synchronisierung fieldset must be hidden before first paint.',
+        );
+    }
 
-        try {
-            $this->createListener($connection, $requestStack)->onLoadCallback(null);
+    public function testAutoUpdateStateMarkupShowsBlockWithActiveLicense(): void
+    {
+        $listener = $this->createListener($this->createMock(Connection::class));
 
-            self::assertContains(
-                '<style>#pal_auto_update_legend{display:none}</style>',
-                $GLOBALS['TL_HEAD'],
-            );
-            $hasInactiveCreateState = false;
-            foreach ($GLOBALS['TL_BODY'] as $entry) {
-                if (str_contains($entry, 'configId: 0, licenseActive: false')) {
-                    $hasInactiveCreateState = true;
-                    break;
-                }
-            }
+        $markup = $listener->renderAutoUpdateBackendState(7, true);
 
-            self::assertTrue($hasInactiveCreateState);
-        } finally {
-            if (null === $previousHead) {
-                unset($GLOBALS['TL_HEAD']);
-            } else {
-                $GLOBALS['TL_HEAD'] = $previousHead;
-            }
-
-            if (null === $previousBody) {
-                unset($GLOBALS['TL_BODY']);
-            } else {
-                $GLOBALS['TL_BODY'] = $previousBody;
-            }
-        }
+        self::assertStringContainsString('data-license-active="1"', $markup);
+        self::assertStringContainsString('data-config-id="7"', $markup);
+        self::assertStringNotContainsString('#pal_auto_update_legend', $markup);
     }
 
     public function testConfigDeletePurgesAutoSyncFilesBeforeRemovingLocalTrackingRows(): void
@@ -252,14 +224,14 @@ class OpenAiConfigListenerTest extends TestCase
         );
     }
 
-    private function createListener(Connection $connection, RequestStack|null $requestStack = null): OpenAiConfigListener
+    private function createListener(Connection $connection): OpenAiConfigListener
     {
         return new OpenAiConfigListener(
             new MockHttpClient(),
             new NullLogger(),
             $this->createMock(ContaoCsrfTokenManager::class),
             'REQUEST_TOKEN',
-            $requestStack ?? new RequestStack(),
+            new RequestStack(),
             $connection,
             $this->createMock(EncryptionService::class),
             $this->createMock(LicensePortalUrlService::class),

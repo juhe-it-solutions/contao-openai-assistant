@@ -75,16 +75,35 @@
         });
     }
 
+    // Runtime override: set when a key is validated (or removed) in the open form,
+    // before the server state is re-rendered. Keyed to the state element instance so
+    // a fresh server render (Turbo/AJAX) resets it to the authoritative server state.
+    var licenseOverride = null;
+    var licenseOverrideStateEl = null;
+
+    function setLicenseOverride(active) {
+        licenseOverride = active;
+        licenseOverrideStateEl = document.querySelector(".oaa-auto-update-state");
+    }
+
     function syncAutoUpdateLicenseState() {
         if (!document.querySelector(".widget.auto-update-license-field")) {
             return;
         }
 
-        if (!window.contaoOpenAiAutoUpdate) {
+        var stateEl = document.querySelector(".oaa-auto-update-state");
+
+        if (licenseOverride !== null && stateEl === licenseOverrideStateEl) {
+            setAutoUpdateFieldsEnabled(licenseOverride);
             return;
         }
 
-        setAutoUpdateFieldsEnabled(window.contaoOpenAiAutoUpdate.licenseActive === true);
+        licenseOverride = null;
+        licenseOverrideStateEl = null;
+
+        // Fail safe: no state element means we cannot prove an active license,
+        // so the premium block stays hidden.
+        setAutoUpdateFieldsEnabled(!!stateEl && stateEl.dataset.licenseActive === "1");
     }
 
     // Reposition all API-key check wrappers below their input fields. Called on every
@@ -203,16 +222,16 @@
             var fieldName = button.dataset.licenseKeyField || "premium_license_key";
             var input = findInput(fieldName);
             var resultSpan = document.getElementById("licenseKeyResult_" + fieldName);
-            var globalLabels = (window.contaoOpenAiAutoUpdate && window.contaoOpenAiAutoUpdate.labels) || {};
             var labels = {
-                noKey: button.dataset.noKeyLabel || globalLabels.noKey,
-                valid: button.dataset.validLabel || globalLabels.valid,
-                invalid: button.dataset.invalidLabel || globalLabels.invalid,
-                error: button.dataset.errorLabel || globalLabels.error,
-                check: button.dataset.checkLabel || globalLabels.check,
-                validating: button.dataset.validatingLabel || globalLabels.validating
+                noKey: button.dataset.noKeyLabel,
+                valid: button.dataset.validLabel,
+                invalid: button.dataset.invalidLabel,
+                error: button.dataset.errorLabel,
+                check: button.dataset.checkLabel,
+                validating: button.dataset.validatingLabel
             };
-            var configId = button.dataset.configId || (window.contaoOpenAiAutoUpdate && window.contaoOpenAiAutoUpdate.configId) || "";
+            var stateEl = document.querySelector(".oaa-auto-update-state");
+            var configId = button.dataset.configId || (stateEl && stateEl.dataset.configId) || "";
 
             if (!input || !resultSpan) {
                 return;
@@ -251,16 +270,15 @@
                         resultSpan.innerHTML = '<span style="color:green;">✓ ' + (labels.valid || "License key is valid!") + '</span>';
                         input.style.backgroundColor = "lightgreen";
                         input.style.color = "#121212";
+                        setLicenseOverride(true);
                         setAutoUpdateFieldsEnabled(true);
-                        if (window.contaoOpenAiAutoUpdate) {
-                            window.contaoOpenAiAutoUpdate.licenseActive = true;
-                        }
                         return;
                     }
 
                     resultSpan.innerHTML = '<span style="color:red;">✗ ' + (labels.invalid || "License key is invalid!") + '</span>';
                     input.style.backgroundColor = "lightcoral";
                     input.style.color = "#121212";
+                    setLicenseOverride(false);
                     setAutoUpdateFieldsEnabled(false);
                 } catch (e) {
                     resultSpan.innerHTML = '<span style="color:red;">✗ ' + (labels.error || "Validation failed.") + '</span>';
@@ -304,10 +322,8 @@
             input.style.backgroundColor = "";
             input.style.color = "";
 
+            setLicenseOverride(false);
             setAutoUpdateFieldsEnabled(false);
-            if (window.contaoOpenAiAutoUpdate) {
-                window.contaoOpenAiAutoUpdate.licenseActive = false;
-            }
 
             if (resultSpan) {
                 var confirmLabel = button.dataset.confirmLabel || "License key cleared. Save to remove the license.";
@@ -383,6 +399,61 @@
         setPickerToggle(summary, list);
     }
 
+    // Prompt edit form: show/hide the custom model field when "Enter Custom Model" is selected.
+    var promptModelDelegateSetup = false;
+
+    function toggleManualModelField(select) {
+        if (!select) {
+            return;
+        }
+
+        var manualField = findInput("model_manual");
+        var manualWidget = manualField ? manualField.closest(".widget") : null;
+
+        if (select.value === "manual") {
+            if (manualWidget) {
+                manualWidget.style.display = "";
+            }
+            if (manualField) {
+                manualField.focus();
+                manualField.style.borderColor = "#007cba";
+                manualField.style.backgroundColor = "#f8f9fa";
+            }
+            return;
+        }
+
+        if (manualWidget) {
+            manualWidget.style.display = "none";
+        }
+        if (manualField) {
+            manualField.value = "";
+            manualField.style.borderColor = "";
+            manualField.style.backgroundColor = "";
+        }
+    }
+
+    function setupPromptModelDelegate() {
+        if (promptModelDelegateSetup) {
+            return;
+        }
+        promptModelDelegateSetup = true;
+
+        document.addEventListener("change", function (e) {
+            if (!e.target || e.target.name !== "model") {
+                return;
+            }
+            toggleManualModelField(e.target);
+        });
+    }
+
+    function initPromptModelToggle() {
+        var modelSelect = document.querySelector('select[name="model"]');
+        if (!modelSelect) {
+            return;
+        }
+        toggleManualModelField(modelSelect);
+    }
+
     // Bind the picker's document-level listeners exactly once. init() runs on every
     // MutationObserver tick, so per-instance binding here would stack up handlers.
     var pickerDelegatesBound = false;
@@ -441,12 +512,11 @@
         setupApiKeyDelegate();
         setupLicenseKeyDelegate();
         setupLicenseKeyRemoveDelegate();
+        setupPromptModelDelegate();
         bindPagePickerDelegates();
         ensurePagePickerCollapsed();
-
-        if (window.contaoOpenAiAutoUpdate) {
-            syncAutoUpdateLicenseState();
-        }
+        initPromptModelToggle();
+        syncAutoUpdateLicenseState();
 
         startObserver();
     }

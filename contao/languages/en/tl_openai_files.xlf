@@ -115,6 +115,10 @@
                 <source>Here you can upload files to your OpenAI vector store.</source>
                 <target>Here you can upload files to your OpenAI vector store.</target>
             </trans-unit>
+            <trans-unit id="tl_openai_files.no_parent_config">
+                <source>No parent OpenAI configuration found. Please configure OpenAI first.</source>
+                <target>No parent OpenAI configuration found. Please configure OpenAI first.</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>
