@@ -194,3 +194,13 @@ ul#sort_auto_update_site_root.oaa-picker-collapsed {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 }
+
+/* The "Token (Ausgabe)" column help tooltip sits in the table header, i.e.
+   the very top of the scrollable wrapper above. Its popup used to open
+   upward and got clipped by .vsau-log-scroll's (implicit) vertical
+   overflow, so it opens downward into the table body instead, which stays
+   within the scrollable area. */
+.vsau-log-scroll .vsau-info-pop {
+    bottom: auto;
+    top: calc(100% + 8px);
+}
