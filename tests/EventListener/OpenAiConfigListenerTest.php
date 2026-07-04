@@ -89,6 +89,24 @@ class OpenAiConfigListenerTest extends TestCase
         }
     }
 
+    public function testConfigFormRemovesCreateAndDuplicateButtons(): void
+    {
+        $listener = $this->createListener($this->createMock(Connection::class));
+
+        self::assertSame(
+            [
+                'save' => '<button>save</button>',
+                'saveNclose' => '<button>saveNclose</button>',
+            ],
+            $listener->removeSingleRecordCreateButtons([
+                'save' => '<button>save</button>',
+                'saveNclose' => '<button>saveNclose</button>',
+                'saveNcreate' => '<button>saveNcreate</button>',
+                'saveNduplicate' => '<button>saveNduplicate</button>',
+            ]),
+        );
+    }
+
     public function testConfigDeletePurgesAutoSyncFilesBeforeRemovingLocalTrackingRows(): void
     {
         $executedStatements = [];

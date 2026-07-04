@@ -89,6 +89,7 @@ services:
         public: true
         tags:
             - { name: contao.callback, table: tl_openai_config, target: config.onload, method: onLoadCallback }
+            - { name: contao.callback, table: tl_openai_config, target: edit.buttons, method: removeSingleRecordCreateButtons }
             - { name: contao.callback, table: tl_openai_config, target: fields.api_key.load, method: processApiKeyForDisplay }
             - { name: contao.callback, table: tl_openai_config, target: list.label, method: addIcon }
             - { name: contao.callback, table: tl_openai_config, target: list.header, method: addHeader }

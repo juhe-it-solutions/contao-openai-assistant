@@ -617,6 +617,21 @@ class OpenAiConfigListener
         }
     }
 
+    /**
+     * Keep the initial list-view "new" action available for clean installs, but
+     * never offer form buttons that would continue into a second config record.
+     *
+     * @param array<string, string> $buttons
+     *
+     * @return array<string, string>
+     */
+    public function removeSingleRecordCreateButtons(array $buttons): array
+    {
+        unset($buttons['saveNcreate'], $buttons['saveNduplicate']);
+
+        return $buttons;
+    }
+
     public function discardNonPersistedField($value, DataContainer $dc): string
     {
         return '';
