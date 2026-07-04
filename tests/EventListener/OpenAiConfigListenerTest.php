@@ -13,6 +13,8 @@ declare(strict_types=1);
 namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\EventListener;
 
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
+use Contao\DataContainer;
+use Contao\System;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\CronHealthService;
@@ -24,6 +26,7 @@ use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreFileSync;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
+use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -224,6 +227,94 @@ class OpenAiConfigListenerTest extends TestCase
             ['DELETE FROM tl_openai_vector_file WHERE pid = ?', [7]],
             $executedStatements[array_key_last($executedStatements)],
         );
+    }
+
+    public function testValidateAutoUpdateModelRejectsEmptySelectionWhenModelsWereAvailable(): void
+    {
+        $this->bootMinimalContaoContainer();
+
+        $listener = $this->createModelValidationListener(licenseActive: true, apiKey: 'sk-test');
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        $listener->validateAutoUpdateModel('', $this->createModelValidationDc(autoUpdateEnabled: true));
+    }
+
+    public function testValidateAutoUpdateModelKeepsLegacyEmptyValueWithoutActiveLicense(): void
+    {
+        $listener = $this->createModelValidationListener(licenseActive: false, apiKey: 'sk-test');
+
+        self::assertSame(
+            '',
+            $listener->validateAutoUpdateModel('', $this->createModelValidationDc(autoUpdateEnabled: true)),
+            'Without an active license the select never offered models, so the legacy empty value must stay saveable.',
+        );
+    }
+
+    public function testValidateAutoUpdateModelKeepsEmptyValueWhileAutoUpdateIsDisabled(): void
+    {
+        $listener = $this->createModelValidationListener(licenseActive: true, apiKey: 'sk-test');
+
+        self::assertSame(
+            '',
+            $listener->validateAutoUpdateModel('', $this->createModelValidationDc(autoUpdateEnabled: false)),
+            'While auto-update is disabled the select never offered models, so an empty value must stay saveable.',
+        );
+    }
+
+    private function createModelValidationListener(bool $licenseActive, string $apiKey): OpenAiConfigListener
+    {
+        $encryption = $this->createMock(EncryptionService::class);
+        $encryption->method('getApiKeyForConfig')->willReturn($apiKey);
+
+        $licenseValidation = $this->createMock(LicenseValidationService::class);
+        $licenseValidation->method('isLicenseActiveCached')->willReturn($licenseActive);
+
+        return new OpenAiConfigListener(
+            new MockHttpClient(),
+            new NullLogger(),
+            $this->createMock(ContaoCsrfTokenManager::class),
+            'REQUEST_TOKEN',
+            new RequestStack(),
+            $this->createMock(Connection::class),
+            $encryption,
+            $this->createMock(LicensePortalUrlService::class),
+            $licenseValidation,
+            $this->createMock(OpenAiModelCatalogService::class),
+            $this->createMock(VectorStoreAutoUpdateService::class),
+            $this->createMock(VectorStoreFileSync::class),
+            $this->createMock(RouterInterface::class),
+            $this->createMock(CronHealthService::class),
+        );
+    }
+
+    /**
+     * System::loadLanguageFile() (used to resolve the validation message) needs a
+     * container with kernel dirs. A pre-created cache file makes it skip the
+     * resource finder, so two parameters are all the container has to provide.
+     */
+    private function bootMinimalContaoContainer(): void
+    {
+        $cacheDir = sys_get_temp_dir().'/oaa-test-'.uniqid('', true);
+        mkdir($cacheDir.'/contao/languages/en', 0777, true);
+        file_put_contents($cacheDir.'/contao/languages/en/tl_openai_config.php', "<?php\n");
+
+        $container = new Container();
+        $container->setParameter('kernel.project_dir', $cacheDir);
+        $container->setParameter('kernel.cache_dir', $cacheDir);
+
+        System::setContainer($container);
+    }
+
+    private function createModelValidationDc(bool $autoUpdateEnabled): DataContainer
+    {
+        $dc = $this->createMock(DataContainer::class);
+        $dc->method('__get')->willReturnMap([
+            ['id', 7],
+            ['activeRecord', (object) ['auto_update_enabled' => $autoUpdateEnabled]],
+        ]);
+
+        return $dc;
     }
 
     private function createListener(Connection $connection): OpenAiConfigListener

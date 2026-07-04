@@ -831,7 +831,17 @@ class OpenAiConfigListener
     {
         $model = trim((string) $value);
         if ('' === $model) {
-            return ''; // stored as empty; VectorStoreAutoUpdateService falls back to gpt-4o-mini at runtime
+            // This field is only in the palette in "llm_polish" mode (see
+            // configureAutoUpdateModelVisibility()), so an empty submission means the
+            // placeholder was left selected. Reject it whenever the form actually
+            // offered models to pick (same gates as getAutoUpdateModelOptions());
+            // otherwise keep the legacy empty value, which the runtime resolves to
+            // gpt-4o-mini (see VectorStoreAutoUpdateService).
+            if ($this->couldSelectAutoUpdateModel($dc)) {
+                throw new \InvalidArgumentException($this->getConfigLangString('auto_update_model_required', 'Please select a generation model for the AI processing mode.'));
+            }
+
+            return '';
         }
 
         if (!$dc->id) {
@@ -852,6 +862,26 @@ class OpenAiConfigListener
         }
 
         return $model;
+    }
+
+    /**
+     * Mirrors the gates of getAutoUpdateModelOptions(): only when all of them pass
+     * did the rendered select contain real models, so only then is an empty value
+     * a deliberate non-selection worth rejecting. auto_update_enabled and
+     * auto_update_mode both use submitOnChange, so the persisted activeRecord
+     * matches the form the admin actually saw.
+     */
+    private function couldSelectAutoUpdateModel(DataContainer $dc): bool
+    {
+        if (!$dc->id || !$dc->activeRecord || !(bool) ($dc->activeRecord->auto_update_enabled ?? false)) {
+            return false;
+        }
+
+        if (!$this->licenseValidation->isLicenseActiveCached((int) $dc->id)) {
+            return false;
+        }
+
+        return (bool) $this->encryption->getApiKeyForConfig((int) $dc->id);
     }
 
     public function loadAutoUpdatePromptTemplate($value, DataContainer|null $dc = null): string

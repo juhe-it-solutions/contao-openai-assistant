@@ -389,6 +389,10 @@
                 <source>The model "%s" is not compatible with the OpenAI Responses API.</source>
                 <target>The model "%s" is not compatible with the OpenAI Responses API.</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model_required">
+                <source>Please select a generation model for the AI processing mode.</source>
+                <target>Please select a generation model for the AI processing mode.</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_site_root.0">
                 <source>Select the pages whose content should be updated automatically in the vector store</source>
                 <target>Select the pages whose content should be updated automatically in the vector store</target>
