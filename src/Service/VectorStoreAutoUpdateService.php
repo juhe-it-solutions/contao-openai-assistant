@@ -16,6 +16,7 @@ use Contao\CoreBundle\Util\ProcessUtil;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Process\Process;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
@@ -138,12 +139,29 @@ class VectorStoreAutoUpdateService
         }
 
         try {
-            $process = $this->processUtil->createSymfonyConsoleProcess(
+            // Fire-and-forget requires a plain Process, NOT ProcessUtil's PhpSubprocess:
+            // that one runs the child via a temporary php.ini which the PARENT deletes in
+            // a shutdown function — the web request ends right after this dispatch, so a
+            // child that has not booted yet would start with "-n" and no ini at all
+            // (no DB extension → instant crash, status stuck on "queued").
+            $process = new Process([
+                $this->processUtil->getPhpBinary(),
+                $this->processUtil->getConsolePath(),
                 'contao:openai-vector-sync',
                 (string) $configId,
                 '--source='.self::SOURCE_MANUAL,
                 '--no-interaction',
-            );
+            ]);
+
+            // Detach the child from this request: Process::__destruct() calls stop(0)
+            // (SIGKILL) unless create_new_console is set — and the destructor runs at
+            // request shutdown, killing the just-started sync. With output disabled,
+            // stdout/stderr point to /dev/null, so closing the remaining stdin pipe on
+            // destruct cannot hurt the child. Identical behavior on Symfony 6.4 (Contao
+            // 5.3) and 7.x (Contao 5.7).
+            $process->disableOutput();
+            $process->setOptions(['create_new_console' => true]);
+            $process->setTimeout(null);
             $process->start(); // non-blocking - do NOT call wait()
         } catch (\Throwable $e) {
             // Spawning a CLI process can fail on locked-down hosts (proc_open disabled) - the
