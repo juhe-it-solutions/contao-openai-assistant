@@ -19,6 +19,7 @@ use Contao\Message;
 use Cron\CronExpression;
 use Cron\FieldFactory;
 use Doctrine\DBAL\Connection;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\CronHealthService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\LicensePortalUrlService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
@@ -42,6 +43,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         private readonly LicenseValidationService $licenseValidation,
         private readonly LicensePortalUrlService $licensePortalUrls,
         private readonly VectorStoreSyncMessageTranslator $syncMessages,
+        private readonly CronHealthService $cronHealth,
         private readonly ContaoCsrfTokenManager $csrfTokenManager,
         private readonly string $csrfTokenName,
         private readonly TranslatorInterface $translator,
@@ -149,6 +151,11 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             return $this->redirectToRoute('vector_store_auto_update');
         }
 
+        // Persist dead runs ('queued'/'running' with a stale heartbeat lease) as errors
+        // before rendering — otherwise the badge and the disabled "Run sync now" button
+        // would be stuck on a run that will never report back.
+        $this->service->reconcileStaleRuns();
+
         $configs = $this->connection->fetchAllAssociative(
             "SELECT * FROM tl_openai_config WHERE auto_update_enabled = '1' ORDER BY id",
         );
@@ -157,7 +164,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         // cron job's lastRun in tl_cron_job, updated every minute. This reflects the
         // server cron liveness — unlike auto_update_last_run, which only changes on a
         // sync (daily). MAX(lastRun) is the most recent heartbeat tick.
-        $heartbeatLastRun = $this->heartbeatLastRun();
+        $heartbeatLastRun = $this->cronHealth->heartbeatLastRun();
 
         $hasActiveConfig = false;
 
@@ -166,7 +173,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             // Manual-only configs ignore the cron entirely, so the dashboard suppresses cron
             // health warnings for them and shows a "manual only" indicator instead.
             $config['manual_mode'] = 'manual' === (string) ($config['auto_update_trigger'] ?? 'scheduled');
-            $config['cron_status'] = $this->cronStatus($heartbeatLastRun);
+            $config['cron_status'] = $this->cronHealth->status($heartbeatLastRun);
             $config['heartbeat_last_run'] = $heartbeatLastRun;
             $config['next_run'] = $this->nextRun($config);
             $config['warnings'] = $this->prerequisiteWarnings($config);
@@ -179,6 +186,9 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             $config['auto_update_last_message'] = $this->syncMessages->translate(
                 isset($config['auto_update_last_message']) ? (string) $config['auto_update_last_message'] : null,
             );
+            // Age of an in-flight run in whole minutes, shown next to the queued/running
+            // badge so the user can tell a fresh dispatch from one that has been going a while.
+            $config['status_age_minutes'] = (int) floor(max(0, time() - (int) ($config['auto_update_last_run'] ?? 0)) / 60);
             $hasActiveConfig = $hasActiveConfig || $config['license_active'];
         }
         unset($config);
@@ -285,59 +295,6 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         }
 
         return $name.' ('.$limit.')';
-    }
-
-    /**
-     * Timestamp of the last CLI-scoped contao:cron execution, detected via
-     * Contao's own CLI marker job (updateMinutelyCliCron), which only runs in
-     * CLI scope and therefore proves a real server cron is configured.
-     *
-     * Returns:
-     *  >0 → Unix timestamp of the last CLI run
-     *   0 → tl_cron_job is empty or unavailable (cron has never run at all)
-     *  -1 → table has entries (web-triggered jobs exist) but the CLI marker is
-     *         absent, meaning contao:cron runs only via web visits, not a real
-     *         server cron job
-     */
-    private function heartbeatLastRun(): int
-    {
-        try {
-            // Read the raw datetime and parse it in PHP (same timezone Doctrine used to
-            // store the datetime_immutable). Avoids MySQL UNIX_TIMESTAMP() session-timezone
-            // skew. tl_cron_job exists unchanged in Contao 5.3 and 5.7.
-            $raw = $this->connection->fetchOne(
-                'SELECT lastRun FROM tl_cron_job WHERE name = ? LIMIT 1',
-                ['Contao\\CoreBundle\\Cron\\Cron::updateMinutelyCliCron'],
-            );
-
-            if (!empty($raw)) {
-                return (new \DateTimeImmutable((string) $raw))->getTimestamp();
-            }
-
-            // CLI marker absent — distinguish "cron never ran" from "only web cron runs"
-            $hasAny = $this->connection->fetchOne('SELECT 1 FROM tl_cron_job LIMIT 1');
-
-            return $hasAny ? -1 : 0;
-        } catch (\Throwable) {
-            return 0;
-        }
-    }
-
-    /**
-     * never | no_cli_cron | healthy | stale.
-     *
-     * contao:cron runs every minute in CLI scope, so two missed ticks (120 s) is
-     * a reliable "cron stopped" signal. The no_cli_cron state means Contao is
-     * running cron jobs via web visits only — the CLI marker job is absent.
-     */
-    private function cronStatus(int $lastRun): string
-    {
-        return match (true) {
-            0 === $lastRun => 'never',
-            -1 === $lastRun => 'no_cli_cron',
-            time() - $lastRun < 120 => 'healthy',
-            default => 'stale',
-        };
     }
 
     /**

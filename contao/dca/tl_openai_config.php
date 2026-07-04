@@ -128,7 +128,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         '__selector__' => ['auto_update_trigger'],
         'default' => '{title_legend},title,api_key;{config_legend},vector_store_id'
             . ';{premium_legend},premium_license_intro,premium_license_key'
-            . ';{auto_update_legend},auto_update_enabled,auto_update_trigger,auto_update_mode,auto_update_model,auto_update_site_root,auto_update_prompt_template',
+            . ';{auto_update_legend},auto_update_enabled,auto_update_first_sync_hint,auto_update_trigger,auto_update_mode,auto_update_model,auto_update_site_root,auto_update_prompt_template',
     ],
     'subpalettes' => [
         // Schedule fields only make sense for the automatic trigger; hidden in manual mode.
@@ -231,6 +231,16 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         ],
 
         // --- Auto-update settings ---
+        // Pure display field (no DB column): tells the user when the first sync will
+        // start after enabling. Rendered only while no sync has run yet.
+        'auto_update_first_sync_hint' => [
+            'label'   => [''],
+            'exclude' => true,
+            'input_field_callback' => [
+                'JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener',
+                'firstSyncHintField',
+            ],
+        ],
         'auto_update_enabled' => [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_enabled'],
             'exclude'   => true,

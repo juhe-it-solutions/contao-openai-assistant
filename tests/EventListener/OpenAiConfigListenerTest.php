@@ -15,6 +15,7 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\EventListener;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\CronHealthService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\LicensePortalUrlService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
@@ -205,6 +206,7 @@ class OpenAiConfigListenerTest extends TestCase
             $this->createMock(VectorStoreAutoUpdateService::class),
             $fileSync,
             $this->createMock(RouterInterface::class),
+            $this->createMock(CronHealthService::class),
         );
 
         $dc = (object) [
@@ -240,6 +242,7 @@ class OpenAiConfigListenerTest extends TestCase
             $this->createMock(VectorStoreAutoUpdateService::class),
             $this->createMock(VectorStoreFileSync::class),
             $this->createMock(RouterInterface::class),
+            $this->createMock(CronHealthService::class),
         );
     }
 }

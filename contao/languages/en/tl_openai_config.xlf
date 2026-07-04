@@ -277,6 +277,26 @@
                 <source>Automatic sync requires a valid premium license. Use “Check key” in the Premium License section.</source>
                 <target>Automatic sync requires a valid premium license. Use “Check key” in the Premium License section.</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.first_sync_hint_heading">
+                <source>First sync</source>
+                <target>First sync</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.first_sync_hint_cron">
+                <source>The first sync starts automatically within the next minute. You can follow its status in the Auto-Sync dashboard.</source>
+                <target>The first sync starts automatically within the next minute. You can follow its status in the Auto-Sync dashboard.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.first_sync_hint_nocron">
+                <source>The first sync starts automatically as soon as the server cron job (contao:cron) is set up and running — or start it manually in the Auto-Sync dashboard.</source>
+                <target>The first sync starts automatically as soon as the server cron job (contao:cron) is set up and running — or start it manually in the Auto-Sync dashboard.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.first_sync_hint_manual">
+                <source>Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard.</source>
+                <target>Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.first_sync_hint_dashboard">
+                <source>Open the Auto-Sync dashboard</source>
+                <target>Open the Auto-Sync dashboard</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_trigger.0">
                 <source>Synchronization trigger</source>
                 <target>Synchronization trigger</target>

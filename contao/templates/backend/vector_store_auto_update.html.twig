@@ -421,9 +421,10 @@
                                 <span class="vsau-badge red">{{ 'MSC.vsau_sync_error'|trans({}, 'contao_default') }}</span>
                             {% elseif st == 'running' %}
                                 <span class="vsau-badge blue"><span class="vsau-spinner" aria-hidden="true"></span>{{ 'MSC.vsau_sync_running'|trans({}, 'contao_default') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_status_last_activity'|trans([config.status_age_minutes], 'contao_default') }}</span>
                             {% elseif st == 'queued' %}
                                 <span class="vsau-badge blue">{{ 'MSC.vsau_sync_queued'|trans({}, 'contao_default') }}</span>
-                                <span class="vsau-sub">{{ 'MSC.vsau_sync_queued_hint'|trans({}, 'contao_default') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_status_last_activity'|trans([config.status_age_minutes], 'contao_default') }} — {{ 'MSC.vsau_sync_queued_hint'|trans({}, 'contao_default') }}</span>
                             {% elseif st == 'skipped' %}
                                 <span class="vsau-badge yellow">{{ 'MSC.vsau_sync_skipped'|trans({}, 'contao_default') }}</span>
                             {% else %}

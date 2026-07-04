@@ -56,6 +56,18 @@ class VectorStoreAutoUpdateService
      */
     public const STALE_RUN_SECONDS = 900;
 
+    /**
+     * Shorter lease for the "queued" state, used by reconcileStaleRuns() only. A queued
+     * run never heartbeats — dispatchRun() writes auto_update_last_run exactly once and
+     * the spawned process flips to "running" within seconds. If it is still "queued"
+     * after this window, the process died on startup; waiting the full STALE_RUN_SECONDS
+     * would keep the dashboard button disabled for no reason. Worst case (a host that
+     * takes longer than this to boot the CLI process): a transient spurious error row
+     * that the late-starting run overwrites, since acquireRunLock() still succeeds on
+     * an "error" status.
+     */
+    public const STALE_QUEUED_SECONDS = 180;
+
     private const OPENAI_BASE = 'https://api.openai.com/v1';
 
     /**
@@ -144,6 +156,62 @@ class VectorStoreAutoUpdateService
             $this->logger->error('Manual sync dispatch failed for config '.$configId.': '.$e->getMessage());
 
             throw new \RuntimeException('MSC.vsau_err_dispatch_failed');
+        }
+    }
+
+    /**
+     * Persist dead runs as errors. A "queued"/"running" status whose lease
+     * (auto_update_last_run) has gone stale means the process died without ever
+     * reporting back — e.g. it was killed, crashed on startup, or the CLI dispatch
+     * silently failed. Without this, the dashboard badge stays "queued" and the
+     * manual-sync button stays disabled forever (there is no cron takeover in
+     * manual trigger mode). Called by the dashboard on render.
+     *
+     * A healthy long run is never affected: it refreshes its lease every
+     * HEARTBEAT_INTERVAL seconds, so its timestamp is always fresh. The guarded
+     * UPDATE re-checks the stale predicate, so a run that finished (or
+     * heartbeated) between SELECT and UPDATE is left untouched.
+     */
+    public function reconcileStaleRuns(): void
+    {
+        $now = time();
+        // "running" heartbeats every HEARTBEAT_INTERVAL, so only a long gap means dead;
+        // "queued" never heartbeats, so a much shorter silence is already conclusive.
+        $staleRunning = $now - self::STALE_RUN_SECONDS;
+        $staleQueued = $now - self::STALE_QUEUED_SECONDS;
+
+        $stalePredicate = "(
+            (auto_update_last_status = 'running' AND COALESCE(auto_update_last_run, 0) < ?)
+            OR (auto_update_last_status = 'queued' AND COALESCE(auto_update_last_run, 0) < ?)
+        )";
+
+        $stale = $this->connection->fetchAllAssociative(
+            'SELECT id, auto_update_last_run FROM tl_openai_config WHERE '.$stalePredicate,
+            [$staleRunning, $staleQueued],
+        );
+
+        foreach ($stale as $row) {
+            $updated = $this->connection->executeStatement(
+                "UPDATE tl_openai_config
+                    SET auto_update_last_status = 'error', auto_update_last_message = ?
+                    WHERE id = ? AND ".$stalePredicate,
+                ['MSC.vsau_err_run_stale', (int) $row['id'], $staleRunning, $staleQueued],
+            );
+
+            if (0 === $updated) {
+                continue;
+            }
+
+            // Log the dead run so the history shows why it vanished instead of a gap.
+            // run_at = the last heartbeat, i.e. the last moment the run showed life.
+            $this->connection->insert('tl_openai_sync_log', [
+                'pid' => (int) $row['id'],
+                'tstamp' => $now,
+                'run_at' => (int) $row['auto_update_last_run'],
+                'status' => 'error',
+                'trigger_source' => '',
+                'message' => 'MSC.vsau_err_run_stale',
+            ]);
         }
     }
 

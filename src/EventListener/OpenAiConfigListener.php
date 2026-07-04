@@ -20,6 +20,7 @@ use Contao\DataContainer;
 use Contao\Message;
 use Contao\System;
 use Doctrine\DBAL\Connection;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\CronHealthService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\LicensePortalUrlService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
@@ -68,6 +69,7 @@ class OpenAiConfigListener
         private readonly VectorStoreAutoUpdateService $autoUpdateService,
         private readonly VectorStoreFileSync $fileSync,
         private readonly RouterInterface $router,
+        private readonly CronHealthService $cronHealth,
     ) {
     }
 
@@ -1075,6 +1077,62 @@ class OpenAiConfigListener
         }
 
         return $markup;
+    }
+
+    /**
+     * input_field_callback for auto_update_first_sync_hint: an inline info box inside
+     * the auto-update legend telling the user when the FIRST sync will actually start.
+     * Rendered only while sync is enabled and no run has happened yet
+     * (auto_update_last_run = 0); disappears after the first run.
+     *
+     * Cron-aware: with a healthy CLI cron, the first scheduled-mode sync fires within
+     * ~1 minute of enabling (the cron treats "never ran" as due immediately) — that
+     * surprises users unless stated explicitly. Without a CLI cron, or in manual
+     * trigger mode, the hint points to the Auto-Sync dashboard instead.
+     */
+    public function firstSyncHintField(DataContainer $dc, string $xlabel = ''): string
+    {
+        if (!$dc->id) {
+            return '';
+        }
+
+        $row = $this->connection->fetchAssociative(
+            'SELECT auto_update_enabled, auto_update_trigger, auto_update_last_run FROM tl_openai_config WHERE id = ?',
+            [(int) $dc->id],
+        );
+
+        if (!$row || !$row['auto_update_enabled'] || (int) $row['auto_update_last_run'] > 0) {
+            return '';
+        }
+
+        if ('manual' === (string) ($row['auto_update_trigger'] ?? 'scheduled')) {
+            $text = $this->getConfigLangString(
+                'first_sync_hint_manual',
+                'Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard.',
+            );
+        } elseif (CronHealthService::STATUS_HEALTHY === $this->cronHealth->status($this->cronHealth->heartbeatLastRun())) {
+            $text = $this->getConfigLangString(
+                'first_sync_hint_cron',
+                'The first sync starts automatically within the next minute. You can follow its status in the Auto-Sync dashboard.',
+            );
+        } else {
+            $text = $this->getConfigLangString(
+                'first_sync_hint_nocron',
+                'The first sync starts automatically as soon as the server cron job (contao:cron) is set up and running — or start it manually in the Auto-Sync dashboard.',
+            );
+        }
+
+        return \sprintf(
+            '<div class="widget clr">'
+            .'<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin: 8px 0 0 0;">'
+            .'<strong>ℹ️ %s:</strong> %s '
+            .'<a href="%s" style="white-space: nowrap;">%s</a>'
+            .'</div></div>',
+            htmlspecialchars($this->getConfigLangString('first_sync_hint_heading', 'First sync'), ENT_QUOTES),
+            htmlspecialchars($text, ENT_QUOTES),
+            htmlspecialchars($this->router->generate('vector_store_auto_update'), ENT_QUOTES),
+            htmlspecialchars($this->getConfigLangString('first_sync_hint_dashboard', 'Open the Auto-Sync dashboard'), ENT_QUOTES),
+        );
     }
 
     /**

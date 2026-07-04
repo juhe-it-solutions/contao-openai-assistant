@@ -203,6 +203,10 @@
                 <source>refresh in a few minutes</source>
                 <target>in einigen Minuten aktualisieren</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_status_last_activity">
+                <source>last activity %s min ago</source>
+                <target>letzte Aktivität vor %s Min.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_sync_never">
                 <source>never run</source>
                 <target>Noch nie ausgeführt</target>
@@ -312,8 +316,8 @@
                 <target>Letzte Synchronisierungen</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_recent_files_hint">
-                <source>The automatically synced files are written directly into the vector store and do not appear under File upload. The File upload screen is only for files you upload manually.</source>
-                <target>Die automatisch synchronisierten Dateien werden direkt in den Vector Store geschrieben und erscheinen nicht im Datei-Upload. Der Datei-Upload ist nur für Dateien gedacht, die Sie selbst manuell hochladen.</target>
+                <source>The automatically synced files are written directly into the vector store and do not appear under \"OpenAI Dashboard\" → \"File upload\". The File upload screen is only for files you upload manually.</source>
+                <target>Die automatisch synchronisierten Dateien werden direkt in den Vector Store geschrieben und erscheinen nicht unter \"OpenAI Dashboard\" → \"Datei-Upload\". Der Datei-Upload ist nur für Dateien gedacht, die Sie selbst manuell hochladen.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_no_runs">
                 <source>No sync has run yet.</source>
@@ -466,6 +470,10 @@
             <trans-unit id="MSC.vsau_err_dispatch_failed">
                 <source>Could not start the sync process. Your host may disable PHP process spawning (proc_open). Run it from the command line instead: vendor/bin/contao-console contao:openai-vector-sync &lt;id&gt;</source>
                 <target>Der Synchronisierungs-Prozess konnte nicht gestartet werden. Möglicherweise ist das Starten von PHP-Prozessen (proc_open) bei Ihrem Hoster deaktiviert. Führen Sie ihn stattdessen über die Kommandozeile aus: vendor/bin/contao-console contao:openai-vector-sync &lt;id&gt;</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_run_stale">
+                <source>The sync run stopped responding and was marked as failed (the process was probably terminated). You can start a new sync.</source>
+                <target>Der Synchronisierungslauf hat nicht mehr reagiert und wurde als fehlgeschlagen markiert (der Prozess wurde vermutlich beendet). Sie können eine neue Synchronisierung starten.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_config_not_found">
                 <source>OpenAI configuration %id% not found.</source>

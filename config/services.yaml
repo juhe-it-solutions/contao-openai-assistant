@@ -176,6 +176,11 @@ services:
             $http: '@http_client'
             $encryption: '@JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService'
 
+    # CronHealthService — CLI cron heartbeat detection (auto-sync dashboard + config-form hint)
+    JuheItSolutions\ContaoOpenaiAssistant\Service\CronHealthService:
+        arguments:
+            $connection: '@doctrine.dbal.default_connection'
+
     # VectorStoreFileSync — per-page upload/reconcile against the OpenAI vector store
     JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreFileSync:
         arguments:
