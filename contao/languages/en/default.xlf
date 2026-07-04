@@ -316,8 +316,8 @@
                 <target>Recent syncs</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_recent_files_hint">
-                <source>Note: The automatically synced files are written directly into the vector store and do not appear under "OpenAI Dashboard" → "File upload".<br>The File upload screen is only for files you upload manually.</source>
-                <target>Note: The automatically synced files are written directly into the vector store and do not appear under "OpenAI Dashboard" → "File upload".<br>The File upload screen is only for files you upload manually.</target>
+                <source><![CDATA[Note: The automatically synced files are written directly into the vector store and do not appear under "OpenAI Dashboard" → "File upload".<br>The File upload screen is only for files you upload manually.]]></source>
+                <target><![CDATA[Note: The automatically synced files are written directly into the vector store and do not appear under "OpenAI Dashboard" → "File upload".<br>The File upload screen is only for files you upload manually.]]></target>
             </trans-unit>
             <trans-unit id="MSC.vsau_no_runs">
                 <source>No sync has run yet.</source>
