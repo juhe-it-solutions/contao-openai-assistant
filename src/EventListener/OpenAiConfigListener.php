@@ -1049,6 +1049,35 @@ class OpenAiConfigListener
     }
 
     /**
+     * Builds the inline state markup for the auto-update license gate. Rendered
+     * INSIDE the edit form (via the premium_license_intro field callback), not via
+     * $GLOBALS['TL_HEAD']/['TL_BODY'] — those globals are only processed by the
+     * FRONTEND page renderer (Controller::replaceDynamicScriptTags); the backend
+     * templates never output them, so anything pushed there is silently dropped.
+     *
+     * The state is a plain element with data attributes (not an inline <script>)
+     * so Turbo morph re-renders always reflect the latest server state. The
+     * premium_legend section precedes auto_update_legend in the palette, so the
+     * <style> hides #pal_auto_update_legend before it is painted (no flash). The
+     * license-check JS reveals the fieldset with an inline style after a successful
+     * key validation.
+     */
+    public function renderAutoUpdateBackendState(int $configId, bool $licenseActive): string
+    {
+        $markup = \sprintf(
+            '<div class="oaa-auto-update-state" data-config-id="%d" data-license-active="%s" hidden></div>',
+            $configId,
+            $licenseActive ? '1' : '0',
+        );
+
+        if (!$licenseActive) {
+            $markup .= '<style>#pal_auto_update_legend{display:none}</style>';
+        }
+
+        return $markup;
+    }
+
+    /**
      * Remove Contao's automatic "password has been changed" confirmation
      * (added by DataContainer when a Password widget is saved). The api_key
      * field uses that widget, so the message would otherwise show on every
@@ -1235,35 +1264,6 @@ class OpenAiConfigListener
                 $GLOBALS['TL_DCA']['tl_openai_config']['palettes']['default'],
             );
         }
-    }
-
-    /**
-     * Builds the inline state markup for the auto-update license gate. Rendered
-     * INSIDE the edit form (via the premium_license_intro field callback), not via
-     * $GLOBALS['TL_HEAD']/['TL_BODY'] — those globals are only processed by the
-     * FRONTEND page renderer (Controller::replaceDynamicScriptTags); the backend
-     * templates never output them, so anything pushed there is silently dropped.
-     *
-     * The state is a plain element with data attributes (not an inline <script>)
-     * so Turbo morph re-renders always reflect the latest server state. The
-     * premium_legend section precedes auto_update_legend in the palette, so the
-     * <style> hides #pal_auto_update_legend before it is painted (no flash). The
-     * license-check JS reveals the fieldset with an inline style after a successful
-     * key validation.
-     */
-    public function renderAutoUpdateBackendState(int $configId, bool $licenseActive): string
-    {
-        $markup = \sprintf(
-            '<div class="oaa-auto-update-state" data-config-id="%d" data-license-active="%s" hidden></div>',
-            $configId,
-            $licenseActive ? '1' : '0',
-        );
-
-        if (!$licenseActive) {
-            $markup .= '<style>#pal_auto_update_legend{display:none}</style>';
-        }
-
-        return $markup;
     }
 
     private function loadConfigLang(): array

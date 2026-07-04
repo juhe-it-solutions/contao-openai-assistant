@@ -12,6 +12,5 @@ parameters:
         - '#Method [a-zA-Z0-9\\_]+::[a-zA-Z0-9_]+\(\) is unused#'
         - '#If condition is always true#'
         - '#Right side of \|\| is always false#'
-        - '#Left side of && is always true#'
         - '#Attribute class Contao\\CoreBundle\\DependencyInjection\\Attribute\\AsBackendModule does not exist#'
         - '#Access to an undefined property Contao\\ModuleModel::\$[a-zA-Z0-9_]+#'
