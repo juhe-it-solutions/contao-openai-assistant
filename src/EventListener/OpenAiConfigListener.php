@@ -605,7 +605,9 @@ class OpenAiConfigListener
             $this->checkSingleRecordLimitation($dc);
         }
 
-        if ($dc && $dc->id && 'edit' === ($request?->get('act') ?? '')) {
+        $action = $request?->get('act') ?? '';
+
+        if ($dc && $dc->id && 'edit' === $action) {
             $this->migrateScheduleFieldsOnLoad($dc);
             // Render path: use the cache-only check so building the form never blocks
             // on a licensing HTTP call. Save paths keep the authoritative check.
@@ -614,6 +616,12 @@ class OpenAiConfigListener
             $this->configureAutoUpdateModelVisibility((int) $dc->id);
             $this->injectAutoUpdateBackendScript((int) $dc->id, $licenseActive);
             $this->addNoFilesNoticeIfNeeded((int) $dc->id);
+
+            return;
+        }
+
+        if ('create' === $action) {
+            $this->injectInactiveAutoUpdateBackendState(0);
         }
     }
 
@@ -1264,6 +1272,15 @@ class OpenAiConfigListener
         if (!$licenseActive) {
             $GLOBALS['TL_HEAD'][] = '<style>#pal_auto_update_legend{display:none}</style>';
         }
+    }
+
+    private function injectInactiveAutoUpdateBackendState(int $configId): void
+    {
+        $GLOBALS['TL_BODY'][] = \sprintf(
+            '<script>window.contaoOpenAiAutoUpdate = { configId: %d, licenseActive: false, labels: {} };</script>',
+            $configId,
+        );
+        $GLOBALS['TL_HEAD'][] = '<style>#pal_auto_update_legend{display:none}</style>';
     }
 
     private function loadConfigLang(): array

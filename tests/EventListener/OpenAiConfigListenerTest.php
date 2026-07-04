@@ -25,6 +25,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\RouterInterface;
 
@@ -105,6 +106,59 @@ class OpenAiConfigListenerTest extends TestCase
                 'saveNduplicate' => '<button>saveNduplicate</button>',
             ]),
         );
+    }
+
+    public function testCreateFormHidesAutoUpdateBlockUntilLicenseIsValidated(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchOne')
+            ->with('SELECT COUNT(*) FROM tl_openai_config')
+            ->willReturn(0)
+        ;
+        $connection
+            ->method('fetchAssociative')
+            ->with('SELECT id, title FROM tl_openai_config LIMIT 1')
+            ->willReturn(false)
+        ;
+
+        $requestStack = new RequestStack();
+        $requestStack->push(new Request(['act' => 'create']));
+
+        $previousHead = $GLOBALS['TL_HEAD'] ?? null;
+        $previousBody = $GLOBALS['TL_BODY'] ?? null;
+        $GLOBALS['TL_HEAD'] = [];
+        $GLOBALS['TL_BODY'] = [];
+
+        try {
+            $this->createListener($connection, $requestStack)->onLoadCallback(null);
+
+            self::assertContains(
+                '<style>#pal_auto_update_legend{display:none}</style>',
+                $GLOBALS['TL_HEAD'],
+            );
+            $hasInactiveCreateState = false;
+            foreach ($GLOBALS['TL_BODY'] as $entry) {
+                if (str_contains($entry, 'configId: 0, licenseActive: false')) {
+                    $hasInactiveCreateState = true;
+                    break;
+                }
+            }
+
+            self::assertTrue($hasInactiveCreateState);
+        } finally {
+            if (null === $previousHead) {
+                unset($GLOBALS['TL_HEAD']);
+            } else {
+                $GLOBALS['TL_HEAD'] = $previousHead;
+            }
+
+            if (null === $previousBody) {
+                unset($GLOBALS['TL_BODY']);
+            } else {
+                $GLOBALS['TL_BODY'] = $previousBody;
+            }
+        }
     }
 
     public function testConfigDeletePurgesAutoSyncFilesBeforeRemovingLocalTrackingRows(): void
@@ -198,14 +252,14 @@ class OpenAiConfigListenerTest extends TestCase
         );
     }
 
-    private function createListener(Connection $connection): OpenAiConfigListener
+    private function createListener(Connection $connection, RequestStack|null $requestStack = null): OpenAiConfigListener
     {
         return new OpenAiConfigListener(
             new MockHttpClient(),
             new NullLogger(),
             $this->createMock(ContaoCsrfTokenManager::class),
             'REQUEST_TOKEN',
-            new RequestStack(),
+            $requestStack ?? new RequestStack(),
             $connection,
             $this->createMock(EncryptionService::class),
             $this->createMock(LicensePortalUrlService::class),
