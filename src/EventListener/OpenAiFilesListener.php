@@ -552,18 +552,16 @@ class OpenAiFilesListener
         }
 
         $request = $this->requestStack->getCurrentRequest();
-        if ($request && ('create' === $request->get('act') || '' === $request->get('act'))) {
-            if ($request->get('pid')) {
-                return (int) $request->get('pid');
-            }
+        if ($request && $request->get('pid')) {
+            return (int) $request->get('pid');
+        }
 
-            $existingConfig = $this->connection->fetchAssociative(
-                'SELECT id FROM tl_openai_config LIMIT 1',
-            );
+        $existingConfig = $this->connection->fetchAssociative(
+            'SELECT id FROM tl_openai_config LIMIT 1',
+        );
 
-            if ($existingConfig) {
-                return (int) $existingConfig['id'];
-            }
+        if ($existingConfig) {
+            return (int) $existingConfig['id'];
         }
 
         return null;
