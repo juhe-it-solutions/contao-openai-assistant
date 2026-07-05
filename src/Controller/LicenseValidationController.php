@@ -20,7 +20,6 @@ use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Csrf\CsrfToken;
 
@@ -35,7 +34,8 @@ class LicenseValidationController
     ) {
     }
 
-    #[Route('%contao.backend.route_prefix%/license-key-validate', name: 'contao_license_key_validate', methods: ['POST'])]
+    // Route defined in config/routes.yaml (contao_license_key_validate); this bundle does
+    // not import controller route attributes, so no #[Route] here.
     public function validateLicenseKey(Request $request): JsonResponse
     {
         $submittedToken = $request->request->get('REQUEST_TOKEN');

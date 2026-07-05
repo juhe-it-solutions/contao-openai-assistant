@@ -94,9 +94,7 @@ services:
             - { name: contao.callback, table: tl_openai_config, target: list.label, method: addIcon }
             - { name: contao.callback, table: tl_openai_config, target: list.header, method: addHeader }
             - { name: contao.callback, table: tl_openai_config, target: fields.api_key.save, method: processApiKeyForStorage }
-            - { name: contao.callback, table: tl_openai_config, target: config.onsubmit, method: createVectorStore }
             - { name: contao.callback, table: tl_openai_config, target: config.ondelete, method: deleteVectorStore }
-            - { name: contao.callback, table: tl_openai_config, target: config.oncopy, method: copyVectorStore }
             # Premium license + auto-update (registered ONLY here — not in the DCA arrays — to run once via DI)
             - { name: contao.callback, table: tl_openai_config, target: config.onsubmit, method: validatePremiumLicenseOnSave }
             - { name: contao.callback, table: tl_openai_config, target: config.onsubmit, method: compileAutoUpdateSchedule }

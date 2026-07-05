@@ -72,14 +72,14 @@ final class OpenAiDashboardVersionListener
 
     private function buildVersionBadge(string $label): string
     {
-        return sprintf(
+        return \sprintf(
             ' <small class="oaa-bundle-version" aria-label="%s">%s</small>',
             StringUtil::specialchars($this->translator->trans('MSC.oaa_bundle_version', [], 'contao_default')),
             StringUtil::specialchars($label),
         );
     }
 
-    private function getActiveModule(): ?string
+    private function getActiveModule(): string|null
     {
         $request = $this->requestStack->getCurrentRequest();
 

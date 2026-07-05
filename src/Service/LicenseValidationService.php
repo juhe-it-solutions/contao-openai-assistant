@@ -94,6 +94,19 @@ class LicenseValidationService
                 $plainKey = $this->encryption->decryptLicenseKey((string) $config['premium_license_key']);
                 if (null !== $plainKey) {
                     $this->revalidate($configId, $plainKey);
+
+                    // Re-read the row so the returned entitlement reflects the value the
+                    // revalidation just wrote — otherwise a plan/status change made during
+                    // this refresh is answered from the pre-refresh snapshot and only takes
+                    // effect on the next call.
+                    $refreshed = $this->connection->fetchAssociative(
+                        'SELECT premium_license_status, premium_license_valid_until, premium_license_checked_at, premium_license_last_success FROM tl_openai_config WHERE id = ?',
+                        [$configId],
+                    );
+                    if ($refreshed) {
+                        $config = $refreshed;
+                        $status = (string) ($refreshed['premium_license_status'] ?? '');
+                    }
                 }
             }
 

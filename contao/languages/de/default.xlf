@@ -491,6 +491,14 @@
                 <source>The sync run stopped responding and was marked as failed (the process was probably terminated). You can start a new sync.</source>
                 <target>Der Synchronisierungslauf hat nicht mehr reagiert und wurde als fehlgeschlagen markiert (der Prozess wurde vermutlich beendet). Sie können eine neue Synchronisierung starten.</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_plan_limit_truncated">
+                <source>Your plan allows at most %limit% pages, so %skipped% additional page(s) were not synced. Reduce the selected pages or upgrade your plan to include them.</source>
+                <target>Ihr Tarif erlaubt höchstens %limit% Seiten, daher wurden %skipped% weitere Seite(n) nicht synchronisiert. Reduzieren Sie die ausgewählten Seiten oder erweitern Sie Ihren Tarif, um sie einzuschließen.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_partial_files_failed">
+                <source>%failed% file upload(s) failed and will be retried on the next run.</source>
+                <target>%failed% Datei-Upload(s) sind fehlgeschlagen und werden beim nächsten Lauf erneut versucht.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_err_config_not_found">
                 <source>OpenAI configuration %id% not found.</source>
                 <target>OpenAI-Konfiguration %id% nicht gefunden.</target>

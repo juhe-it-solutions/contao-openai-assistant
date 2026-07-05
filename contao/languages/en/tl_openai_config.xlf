@@ -117,6 +117,10 @@
                 <source>Invalid API key. Please verify your OpenAI API key is correct and has proper permissions.</source>
                 <target>Invalid API key. Please verify your OpenAI API key is correct and has proper permissions.</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.api_key_check_unreachable">
+                <source>Could not reach OpenAI to validate the API key. The previously saved key was kept.</source>
+                <target>Could not reach OpenAI to validate the API key. The previously saved key was kept.</target>
+            </trans-unit>
 
             <!-- Create Operation -->
             <trans-unit id="tl_openai_config.new.0">
@@ -200,8 +204,8 @@
                 <target>Enter your license key below and validate it with "Check key" before saving.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_hint_active">
-                <source>To switch to a different key: clear this field, enter the new key, and save. To remove the license entirely: use the "Remove license" button next to the key field.</source>
-                <target>To switch to a different key: clear this field, enter the new key, and save. To remove the license entirely: use the "Remove license" button next to the key field.</target>
+                <source>To switch to a different key: clear this field, enter the new key, and save. To remove the license entirely: use the "Remove license" button next to the key field. Removing the license stops future automatic syncs; content already added to the vector store stays in place until you delete the configuration.</source>
+                <target>To switch to a different key: clear this field, enter the new key, and save. To remove the license entirely: use the "Remove license" button next to the key field. Removing the license stops future automatic syncs; content already added to the vector store stays in place until you delete the configuration.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_validated">
                 <source>Premium license validated successfully.</source>

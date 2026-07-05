@@ -103,6 +103,60 @@ class LicenseValidationServiceTest extends TestCase
         self::assertTrue($service->isLicenseActive(1));
     }
 
+    /**
+     * On a fresh cache hit whose plan data is older than the 1-hour plan TTL, the service
+     * revalidates inline. The returned entitlement must reflect the row the revalidation
+     * just wrote, not the pre-refresh snapshot — otherwise a plan/status change made during
+     * this very call is ignored until the next one.
+     */
+    public function testInlinePlanRefreshReflectsFreshStatusNotStaleSnapshot(): void
+    {
+        $active = $this->licenseRow([
+            'premium_license_status' => 'active',
+            'premium_license_checked_at' => time() - 4000, // fresh for "active" (7d) but > 1h plan TTL
+            'premium_license_last_success' => time() - 4000,
+            'premium_license_valid_until' => time() + 30 * 86400,
+        ]);
+        $canceled = $this->licenseRow([
+            'premium_license_status' => 'canceled',
+            'premium_license_checked_at' => time(),
+            'premium_license_last_success' => time() - 4000,
+            'premium_license_valid_until' => time() - 86400,
+        ]);
+
+        $connection = $this->createMock(Connection::class);
+        // 1: initial isLicenseActive SELECT, 2: revalidate() $previous SELECT, 3: re-read.
+        $connection
+            ->method('fetchAssociative')
+            ->willReturnOnConsecutiveCalls($active, $active, $canceled)
+        ;
+        $connection
+            ->method('fetchOne')
+            ->willReturnCallback(
+                static fn (string $sql) => str_contains($sql, 'premium_license_install_id') ? 'abc123' : false,
+            )
+        ;
+        $connection->method('executeStatement')->willReturn(1);
+
+        $http = new MockHttpClient(new MockResponse(json_encode([
+            'valid' => false,
+            'status' => 'canceled',
+            'expires_at' => date('c', time() - 86400),
+            'plan' => 'starter',
+            'max_crawl_pages' => 20,
+        ], JSON_THROW_ON_ERROR)));
+
+        $encryption = $this->createMock(EncryptionService::class);
+        $encryption->method('decryptLicenseKey')->willReturn('JUHE-AI-TESTKEY1');
+
+        $service = new LicenseValidationService($connection, $http, $encryption);
+
+        self::assertFalse(
+            $service->isLicenseActive(1),
+            'The freshly revalidated (now canceled) status must win over the stale active snapshot.',
+        );
+    }
+
     public function testResolvePageLimitFallsBackToPlanDefaults(): void
     {
         self::assertSame(20, LicenseValidationService::resolvePageLimit('starter', 0));

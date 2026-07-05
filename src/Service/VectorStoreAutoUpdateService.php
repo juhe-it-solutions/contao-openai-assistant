@@ -90,6 +90,14 @@ class VectorStoreAutoUpdateService
     private const PROGRESS_INTERVAL = 1;
 
     /**
+     * How many sync-log rows to keep per configuration. Each row can hold a multi-MB
+     * inspection manifest, so unbounded history would bloat the database; the dashboard
+     * only ever displays the newest 20. 30 ≈ one month of daily syncs. Pruned after every
+     * inserted log row (successful runs and stale-run bookkeeping alike).
+     */
+    private const SYNC_LOG_KEEP_ROWS = 30;
+
+    /**
      * Clears the live progress columns; appended to run-state UPDATEs when a run
      * starts or reaches a terminal state, so the dashboard never shows a stale counter.
      */
@@ -255,6 +263,8 @@ class VectorStoreAutoUpdateService
                 'trigger_source' => '',
                 'message' => 'MSC.vsau_err_run_stale',
             ]);
+
+            $this->pruneSyncLog((int) $row['id']);
         }
     }
 
@@ -343,12 +353,14 @@ class VectorStoreAutoUpdateService
             // re-save their site-root selection (BUG-06). Resolved through the same
             // helper as the save-time enforcement, so a missing max_crawl_pages value
             // falls back to the plan default instead of silently meaning "unlimited".
+            // The cap itself is applied below, on the actual content pages, not on the
+            // raw page-id list — so quota is spent on real indexed documents.
             $planPageLimit = LicenseValidationService::resolvePageLimit(
                 (string) ($config['premium_license_plan'] ?? ''),
                 (int) ($config['premium_license_max_pages'] ?? 0),
             ) ?? 0;
 
-            $rows = $this->readAllPages($configId, $planPageLimit);
+            $rows = $this->readAllPages($configId);
             if (0 === \count($rows)) {
                 throw new \RuntimeException('MSC.vsau_err_no_indexed_pages');
             }
@@ -387,6 +399,25 @@ class VectorStoreAutoUpdateService
 
                 $byPage[$pageId]['contents'][] = $content;
                 $byPage[$pageId]['checksums'][] = (string) ($row['checksum'] ?? '');
+            }
+
+            // Enforce the subscription page cap on the actual content pages (after
+            // boilerplate cleaning, so pages that collapsed to nothing are already gone).
+            // Deterministic by page id so the surviving set is stable from run to run;
+            // pages beyond the cap are dropped here AND their vector-store files are
+            // removed by the reconcile below, so the run is reported "partial" with the
+            // skipped count rather than a silent, arbitrary "success".
+            $planLimitSkipped = 0;
+            if ($planPageLimit > 0 && \count($byPage) > $planPageLimit) {
+                ksort($byPage);
+                $planLimitSkipped = \count($byPage) - $planPageLimit;
+                $byPage = \array_slice($byPage, 0, $planPageLimit, true);
+                $this->logger->notice(\sprintf(
+                    'VectorStoreAutoUpdate: plan page limit %d applied for config %d; %d content page(s) skipped.',
+                    $planPageLimit,
+                    $configId,
+                    $planLimitSkipped,
+                ));
             }
 
             $tokensIn = 0;
@@ -442,7 +473,23 @@ class VectorStoreAutoUpdateService
                 },
             );
 
-            $status = $syncStats['files_failed'] > 0 ? 'partial' : 'success';
+            // A run is "partial" when some files failed to upload OR the plan cap dropped
+            // pages the customer expected to be synced — both mean the store is not a
+            // complete mirror of the selected scope.
+            $status = $syncStats['files_failed'] > 0 || $planLimitSkipped > 0 ? 'partial' : 'success';
+
+            // Surface EVERY reason a run is partial, not just the first: a run can hit the
+            // plan cap AND have upload failures at once. Each note is a keyed message the
+            // translator expands; the notes are joined with the translator's compound
+            // separator so the dashboard/log show one line per reason.
+            $notes = [];
+            if ($planLimitSkipped > 0) {
+                $notes[] = 'MSC.vsau_plan_limit_truncated|'.$planLimitSkipped.'|'.$planPageLimit;
+            }
+            if ($syncStats['files_failed'] > 0) {
+                $notes[] = 'MSC.vsau_partial_files_failed|'.$syncStats['files_failed'];
+            }
+            $resultMessage = implode(VectorStoreSyncMessageTranslator::COMPOUND_SEPARATOR, $notes);
 
             $this->persistResult(
                 $configId,
@@ -458,7 +505,7 @@ class VectorStoreAutoUpdateService
                     'document' => $this->buildManifest($pages, $syncStats),
                     'sync' => $syncStats,
                 ],
-                '',
+                $resultMessage,
                 $triggerSource,
             );
 
@@ -497,7 +544,7 @@ class VectorStoreAutoUpdateService
         $selectedPageIds = self::parseConfiguredPageIds($configValue);
 
         if ([] !== $selectedPageIds) {
-            return \count($selectedPageIds);
+            return $this->countContentPages($selectedPageIds);
         }
 
         $roots = $this->connection->fetchAllAssociative(
@@ -508,7 +555,7 @@ class VectorStoreAutoUpdateService
             return 0;
         }
 
-        return \count(array_unique($this->collectPageSubtreeIds((int) $roots[0]['id'])));
+        return $this->countContentPages(array_unique($this->collectPageSubtreeIds((int) $roots[0]['id'])));
     }
 
     /**
@@ -536,6 +583,33 @@ class VectorStoreAutoUpdateService
         }
 
         return array_values(array_unique(array_filter(array_map(intval(...), explode(',', $raw)))));
+    }
+
+    /**
+     * Count only the pages that can actually produce an indexed document: published, and
+     * not one of the structural/utility page types (site root, forward, redirect, logout,
+     * error pages) that never carry standalone body content. This keeps the save-time plan
+     * limit aligned with what the sync really uploads, so a customer is not blocked by pages
+     * that would never become vector-store documents anyway.
+     *
+     * @param array<int, int> $pageIds
+     */
+    private function countContentPages(array $pageIds): int
+    {
+        $pageIds = array_values(array_filter(array_map(intval(...), $pageIds)));
+
+        if ([] === $pageIds) {
+            return 0;
+        }
+
+        return (int) $this->connection->fetchOne(
+            "SELECT COUNT(*) FROM tl_page
+             WHERE id IN (?)
+               AND published = '1'
+               AND type NOT IN ('root', 'forward', 'redirect', 'logout', 'error_401', 'error_403', 'error_404', 'error_503')",
+            [$pageIds],
+            [ArrayParameterType::INTEGER],
+        );
     }
 
     /**
@@ -662,7 +736,7 @@ class VectorStoreAutoUpdateService
      *
      * @return array<int, array<string, mixed>>
      */
-    private function readAllPages(int $configId, int $planPageLimit = 0): array
+    private function readAllPages(int $configId): array
     {
         $config = $this->connection->fetchAssociative(
             'SELECT auto_update_site_root FROM tl_openai_config WHERE id = ?',
@@ -720,17 +794,9 @@ class VectorStoreAutoUpdateService
             return [];
         }
 
-        // Apply the subscription plan page cap. A 0 limit means unlimited (enterprise).
-        if ($planPageLimit > 0 && \count($pageIds) > $planPageLimit) {
-            $this->logger->notice(\sprintf(
-                'VectorStoreAutoUpdate: plan page limit %d applied for config %d (scope was %d pages).',
-                $planPageLimit,
-                $configId,
-                \count($pageIds),
-            ));
-            $pageIds = \array_slice($pageIds, 0, $planPageLimit);
-        }
-
+        // The plan page cap is applied later in run(), on the actual content pages, not on
+        // this raw id list — so a non-content page (root/forward/redirect) never consumes
+        // a slot that a real indexed page should have.
         return $this->connection->fetchAllAssociative(
             'SELECT s.pid AS page_id, s.url, s.title, s.text, s.language, s.checksum
              FROM tl_search s
@@ -967,5 +1033,30 @@ class VectorStoreAutoUpdateService
             'document' => '' !== $document ? $document : null,
             'message' => '' !== $message ? $message : null,
         ]);
+
+        $this->pruneSyncLog($configId);
+    }
+
+    /**
+     * Trim tl_openai_sync_log to the newest SYNC_LOG_KEEP_ROWS rows for one config,
+     * deleting older rows (and their large manifest blobs). Uses a single OFFSET probe
+     * plus a bounded DELETE so it is cheap even on long histories; a no-op while the
+     * config has fewer rows than the cap.
+     */
+    private function pruneSyncLog(int $configId): void
+    {
+        $cutoffId = $this->connection->fetchOne(
+            'SELECT id FROM tl_openai_sync_log WHERE pid = ? ORDER BY id DESC LIMIT 1 OFFSET ?',
+            [$configId, self::SYNC_LOG_KEEP_ROWS],
+        );
+
+        if (false === $cutoffId || null === $cutoffId) {
+            return;
+        }
+
+        $this->connection->executeStatement(
+            'DELETE FROM tl_openai_sync_log WHERE pid = ? AND id <= ?',
+            [$configId, (int) $cutoffId],
+        );
     }
 }

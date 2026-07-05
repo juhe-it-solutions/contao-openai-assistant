@@ -491,6 +491,14 @@
                 <source>The sync run stopped responding and was marked as failed (the process was probably terminated). You can start a new sync.</source>
                 <target>The sync run stopped responding and was marked as failed (the process was probably terminated). You can start a new sync.</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_plan_limit_truncated">
+                <source>Your plan allows at most %limit% pages, so %skipped% additional page(s) were not synced. Reduce the selected pages or upgrade your plan to include them.</source>
+                <target>Your plan allows at most %limit% pages, so %skipped% additional page(s) were not synced. Reduce the selected pages or upgrade your plan to include them.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_partial_files_failed">
+                <source>%failed% file upload(s) failed and will be retried on the next run.</source>
+                <target>%failed% file upload(s) failed and will be retried on the next run.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_err_config_not_found">
                 <source>OpenAI configuration %id% not found.</source>
                 <target>OpenAI configuration %id% not found.</target>

@@ -21,7 +21,7 @@ class BundleVersionService
 {
     private const PACKAGE_NAME = 'juhe-it-solutions/contao-openai-assistant';
 
-    public function getVersion(): ?string
+    public function getVersion(): string|null
     {
         if (!class_exists(InstalledVersions::class)) {
             return null;
@@ -34,7 +34,7 @@ class BundleVersionService
         return InstalledVersions::getPrettyVersion(self::PACKAGE_NAME);
     }
 
-    public function getDisplayLabel(): ?string
+    public function getDisplayLabel(): string|null
     {
         $version = $this->getVersion();
 

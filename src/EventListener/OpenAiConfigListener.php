@@ -108,6 +108,12 @@ class OpenAiConfigListener
                 $this->licenseValidation->deactivate((int) $dc->id);
             }
 
+            // Deliberately NOT purging the synced vector-store files here: they live in the
+            // customer's own OpenAI account and also back the base chatbot, so removing the
+            // premium key stops FUTURE auto-syncs but leaves the already-indexed content in
+            // place (it simply stops being refreshed). Full purge happens only on config
+            // deletion (deleteVectorStore). The admin note in premiumLicenseIntroField spells
+            // this out for the user.
             return '';
         }
 
@@ -196,15 +202,22 @@ class OpenAiConfigListener
 
     public function processApiKeyForStorage($value, $dc): string
     {
-        // Get the raw API key from POST data first (user input)
-        $apiKey = $_POST['api_key'] ?? '';
+        // Already-stored ciphertext. Every failure/skip path returns THIS rather than
+        // an empty string, so a transient outage (or an untouched Password field) can
+        // never destroy a working key — the same guarantee processLicenseKeyForStorage
+        // gives. Returning '' is reserved for "there was no key to begin with".
+        $existing = (string) ($dc->activeRecord->api_key ?? '');
 
-        if (empty($apiKey) && $dc->activeRecord && $dc->activeRecord->api_key) {
-            // If we have an existing key, use it
-            $apiKey = $dc->activeRecord->api_key;
-        }
+        // Raw key from POST (user input). Contao's Password widget submits empty when the
+        // admin leaves the field untouched; that means "keep the stored key", not "clear it".
+        $apiKey = trim((string) ($_POST['api_key'] ?? ''));
 
-        if (empty($apiKey)) {
+        if ('' === $apiKey) {
+            if ('' !== $existing) {
+                // Field left blank on an existing config — keep the stored key silently.
+                return $existing;
+            }
+
             Message::addError($this->getConfigLangString(
                 'api_key_required',
                 'API key is required and cannot be empty.',
@@ -213,13 +226,14 @@ class OpenAiConfigListener
             return '';
         }
 
-        if (!$this->encryption->isValidApiKeyFormat((string) $apiKey)) {
+        if (!$this->encryption->isValidApiKeyFormat($apiKey)) {
             Message::addError($this->getConfigLangString(
                 'api_key_format_invalid',
                 'Invalid API key format. OpenAI API keys must start with "sk-".',
             ));
 
-            return '';
+            // Never overwrite a good stored key with a malformed entry.
+            return $existing;
         }
 
         try {
@@ -241,7 +255,8 @@ class OpenAiConfigListener
                     'API key validation failed. Please check your API key.',
                 ));
 
-                return '';
+                // Rejected key: keep the previously working one instead of wiping it.
+                return $existing;
             }
 
             $this->logger->info(
@@ -251,7 +266,7 @@ class OpenAiConfigListener
                 ],
             );
 
-            return $this->encryption->encryptApiKey(trim((string) $apiKey));
+            return $this->encryption->encryptApiKey($apiKey);
         } catch (\Exception $e) {
             $this->logger->error(
                 'API key validation failed during save: '.$e->getMessage(),
@@ -259,6 +274,18 @@ class OpenAiConfigListener
                     'contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR),
                 ],
             );
+
+            // Transport/network failure — the key may be perfectly valid, OpenAI was just
+            // unreachable. Preserve an existing key and tell the admin validation was skipped;
+            // only fail hard when there was nothing stored yet.
+            if ('' !== $existing) {
+                Message::addError($this->getConfigLangString(
+                    'api_key_check_unreachable',
+                    'Could not reach OpenAI to validate the API key. The previously saved key was kept.',
+                ));
+
+                return $existing;
+            }
 
             Message::addError($this->getConfigLangString(
                 'api_key_invalid_save',
@@ -329,19 +356,6 @@ class OpenAiConfigListener
             htmlspecialchars((string) ($lang['api_key_valid'] ?? 'API key is valid!'), ENT_QUOTES),
             htmlspecialchars((string) ($lang['api_key_invalid'] ?? 'API key is invalid!'), ENT_QUOTES),
             htmlspecialchars((string) ($lang['api_key_error'] ?? 'Validation failed.'), ENT_QUOTES),
-        );
-    }
-
-    /**
-     * Create vector store when submitting the form.
-     */
-    public function createVectorStore($dc): void
-    {
-        $this->logger->info(
-            'Vector store created for config ID '.$dc->id,
-            [
-                'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-            ],
         );
     }
 
@@ -546,50 +560,6 @@ class OpenAiConfigListener
     }
 
     /**
-     * Copy vector store when copying the config.
-     */
-    public function copyVectorStore($insertId, $dc): void
-    {
-        $this->logger->info(
-            'Vector store copied for config ID '.$insertId,
-            [
-                'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-            ],
-        );
-    }
-
-    /**
-     * Validate API key.
-     */
-    public function validateApiKey($value, DataContainer $dc)
-    {
-        if (!$value) {
-            return $value;
-        }
-
-        try {
-            $response = $this->httpClient->request(
-                'GET',
-                'https://api.openai.com/v1/models',
-                [
-                    'headers' => [
-                        'Authorization' => 'Bearer '.$value,
-                        'Content-Type' => 'application/json',
-                    ],
-                ],
-            );
-
-            if (200 !== $response->getStatusCode()) {
-                throw new \Exception('Invalid API key');
-            }
-
-            return $value;
-        } catch (\Exception $e) {
-            throw new \Exception('Invalid API key: '.$e->getMessage());
-        }
-    }
-
-    /**
      * Adds the header to the list view.
      */
     #[AsCallback(table: 'tl_openai_config', target: 'list.header')]
@@ -631,11 +601,6 @@ class OpenAiConfigListener
         unset($buttons['saveNcreate'], $buttons['saveNduplicate']);
 
         return $buttons;
-    }
-
-    public function discardNonPersistedField($value, DataContainer $dc): string
-    {
-        return '';
     }
 
     public function premiumLicenseIntroField(DataContainer $dc, string $xlabel = ''): string
@@ -864,26 +829,6 @@ class OpenAiConfigListener
         return $model;
     }
 
-    /**
-     * Mirrors the gates of getAutoUpdateModelOptions(): only when all of them pass
-     * did the rendered select contain real models, so only then is an empty value
-     * a deliberate non-selection worth rejecting. auto_update_enabled and
-     * auto_update_mode both use submitOnChange, so the persisted activeRecord
-     * matches the form the admin actually saw.
-     */
-    private function couldSelectAutoUpdateModel(DataContainer $dc): bool
-    {
-        if (!$dc->id || !$dc->activeRecord || !(bool) ($dc->activeRecord->auto_update_enabled ?? false)) {
-            return false;
-        }
-
-        if (!$this->licenseValidation->isLicenseActiveCached((int) $dc->id)) {
-            return false;
-        }
-
-        return (bool) $this->encryption->getApiKeyForConfig((int) $dc->id);
-    }
-
     public function loadAutoUpdatePromptTemplate($value, DataContainer|null $dc = null): string
     {
         $value = trim((string) $value);
@@ -1073,14 +1018,6 @@ class OpenAiConfigListener
     }
 
     /**
-     * @deprecated Since 2.0, use EncryptionService::decryptApiKey()
-     */
-    public function decryptApiKey(string $encryptedData): string|null
-    {
-        return $this->encryption->decryptApiKey($encryptedData);
-    }
-
-    /**
      * Builds the inline state markup for the auto-update license gate. Rendered
      * INSIDE the edit form (via the premium_license_intro field callback), not via
      * $GLOBALS['TL_HEAD']/['TL_BODY'] — those globals are only processed by the
@@ -1161,6 +1098,26 @@ class OpenAiConfigListener
             htmlspecialchars($this->router->generate('vector_store_auto_update'), ENT_QUOTES),
             htmlspecialchars($this->getConfigLangString('first_sync_hint_dashboard', 'Open the Auto-Sync dashboard'), ENT_QUOTES),
         );
+    }
+
+    /**
+     * Mirrors the gates of getAutoUpdateModelOptions(): only when all of them pass
+     * did the rendered select contain real models, so only then is an empty value
+     * a deliberate non-selection worth rejecting. auto_update_enabled and
+     * auto_update_mode both use submitOnChange, so the persisted activeRecord
+     * matches the form the admin actually saw.
+     */
+    private function couldSelectAutoUpdateModel(DataContainer $dc): bool
+    {
+        if (!$dc->id || !$dc->activeRecord || !(bool) ($dc->activeRecord->auto_update_enabled ?? false)) {
+            return false;
+        }
+
+        if (!$this->licenseValidation->isLicenseActiveCached((int) $dc->id)) {
+            return false;
+        }
+
+        return (bool) $this->encryption->getApiKeyForConfig((int) $dc->id);
     }
 
     /**

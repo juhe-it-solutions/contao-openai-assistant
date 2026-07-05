@@ -22,6 +22,14 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 class VectorStoreSyncMessageTranslator
 {
+    /**
+     * Separator used to join several keyed sub-messages into one stored value (e.g. a
+     * partial run that hit the plan cap AND had upload failures). ASCII Unit Separator:
+     * never appears in human text, error output or the MSC key/arg syntax, so it cannot
+     * collide with a real message. translate() splits on it and renders each part.
+     */
+    public const COMPOUND_SEPARATOR = "\x1F";
+
     private const DOMAIN = 'contao_default';
 
     private const LEGACY_KEYS = [
@@ -46,6 +54,17 @@ class VectorStoreSyncMessageTranslator
     {
         if (null === $message || '' === $message) {
             return $message;
+        }
+
+        // Compound message: translate each part and join the rendered lines. Checked
+        // before the MSC. routing so the leading part's prefix does not swallow the rest.
+        if (str_contains($message, self::COMPOUND_SEPARATOR)) {
+            $parts = array_filter(array_map(
+                fn (string $part): string => (string) $this->translate(trim($part)),
+                explode(self::COMPOUND_SEPARATOR, $message),
+            ), static fn (string $part): bool => '' !== $part);
+
+            return implode(' ', $parts);
         }
 
         if (str_starts_with($message, 'MSC.')) {
@@ -109,6 +128,28 @@ class VectorStoreSyncMessageTranslator
                 ['%details%' => substr($message, \strlen('MSC.vsau_err_crawl_failed|'))],
                 self::DOMAIN,
             );
+        }
+
+        if (str_starts_with($message, 'MSC.vsau_plan_limit_truncated|')) {
+            $rest = substr($message, \strlen('MSC.vsau_plan_limit_truncated|'));
+            if (preg_match('/^(\d+)\|(\d+)$/', $rest, $matches)) {
+                return $this->translator->trans(
+                    'MSC.vsau_plan_limit_truncated',
+                    ['%skipped%' => $matches[1], '%limit%' => $matches[2]],
+                    self::DOMAIN,
+                );
+            }
+        }
+
+        if (str_starts_with($message, 'MSC.vsau_partial_files_failed|')) {
+            $rest = substr($message, \strlen('MSC.vsau_partial_files_failed|'));
+            if (preg_match('/^(\d+)$/', $rest, $matches)) {
+                return $this->translator->trans(
+                    'MSC.vsau_partial_files_failed',
+                    ['%failed%' => $matches[1]],
+                    self::DOMAIN,
+                );
+            }
         }
 
         $parts = explode('|', $message, 3);

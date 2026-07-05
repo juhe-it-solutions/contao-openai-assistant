@@ -93,6 +93,32 @@ class OpenAiConfigListenerTest extends TestCase
         }
     }
 
+    public function testApiKeySaveKeepsStoredKeyWhenFieldLeftBlank(): void
+    {
+        // The exact scenario an admin hits when saving an existing config without
+        // re-typing the secret: the Password widget submits empty, and the callback
+        // must return the already-stored ciphertext rather than wiping it to ''.
+        $listener = $this->createListener($this->createMock(Connection::class));
+
+        $dc = (object) [
+            'id' => 7,
+            'activeRecord' => (object) ['api_key' => 'STORED_CIPHERTEXT'],
+        ];
+
+        $previousPost = $_POST;
+        $_POST['api_key'] = '';
+
+        try {
+            self::assertSame(
+                'STORED_CIPHERTEXT',
+                $listener->processApiKeyForStorage(null, $dc),
+                'Leaving the API key field blank on an existing config must preserve the stored key.',
+            );
+        } finally {
+            $_POST = $previousPost;
+        }
+    }
+
     public function testConfigFormRemovesCreateAndDuplicateButtons(): void
     {
         $listener = $this->createListener($this->createMock(Connection::class));

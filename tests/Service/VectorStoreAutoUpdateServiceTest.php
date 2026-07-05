@@ -97,6 +97,68 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
         $this->createService($connection)->reconcileStaleRuns();
     }
 
+    public function testReconcileStaleRunsPrunesOldLogRowsForTheConfig(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchAllAssociative')
+            ->willReturn([['id' => 7, 'auto_update_last_run' => time() - 1200]])
+        ;
+
+        // pruneSyncLog probes for the cutoff row id via fetchOne(... OFFSET ...).
+        $connection
+            ->method('fetchOne')
+            ->willReturn(42)
+        ;
+
+        $executed = [];
+        $connection
+            ->method('executeStatement')
+            ->willReturnCallback(
+                static function (string $sql, array $params = []) use (&$executed): int {
+                    $executed[] = [$sql, $params];
+
+                    return 1;
+                },
+            )
+        ;
+        $connection->method('insert')->willReturn(1);
+
+        $this->createService($connection)->reconcileStaleRuns();
+
+        self::assertContains(
+            ['DELETE FROM tl_openai_sync_log WHERE pid = ? AND id <= ?', [7, 42]],
+            $executed,
+            'A logged stale run must trigger retention pruning of older sync-log rows for that config.',
+        );
+    }
+
+    public function testCountScopePagesCountsOnlyPublishedContentPages(): void
+    {
+        $connection = $this->createMock(Connection::class);
+
+        $captured = null;
+        $connection
+            ->method('fetchOne')
+            ->willReturnCallback(
+                static function (string $sql, array $params = []) use (&$captured): int {
+                    $captured = [$sql, $params];
+
+                    return 2;
+                },
+            )
+        ;
+
+        $count = $this->createService($connection)->countScopePages([1, 2, 3]);
+
+        self::assertSame(2, $count);
+        self::assertNotNull($captured);
+        [$sql, $params] = $captured;
+        self::assertStringContainsString("published = '1'", $sql);
+        self::assertStringContainsString('type NOT IN', $sql);
+        self::assertSame([[1, 2, 3]], $params);
+    }
+
     public function testReconcileStaleRunsDoesNothingWithoutStaleRows(): void
     {
         $connection = $this->createMock(Connection::class);

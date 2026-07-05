@@ -16,7 +16,6 @@ use Contao\CoreBundle\Event\ContaoCoreEvents;
 use Contao\CoreBundle\Event\MenuEvent;
 use Contao\CoreBundle\Security\ContaoCorePermissions;
 use Doctrine\DBAL\Connection;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Routing\RouterInterface;
@@ -30,8 +29,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * the MenuEvent. The entry is hidden for users without module access (the entry
  * is also enforced server-side in the controller).
  *
- * Both this entry and the "openai_sync_log" entry are hidden entirely when no
- * valid premium license is active — they are meaningless without it.
+ * Both this entry and the "openai_sync_log" entry are hidden entirely only when no
+ * license key has ever been stored — they are meaningless then. Once a key exists they
+ * stay visible even if the subscription has lapsed, because the dashboard is where the
+ * "Refresh license status" button and the "why did sync stop" explanation live; hiding
+ * them would strip a paying-but-lapsed customer of the very path back to an active state.
  */
 #[AsEventListener(ContaoCoreEvents::BACKEND_MENU_BUILD, priority: -255)]
 class BackendMenuListener
@@ -41,7 +43,6 @@ class BackendMenuListener
         private readonly Security $security,
         private readonly TranslatorInterface $translator,
         private readonly Connection $connection,
-        private readonly LicenseValidationService $licenseValidation,
     ) {
     }
 
@@ -58,7 +59,7 @@ class BackendMenuListener
             return;
         }
 
-        if (!$this->hasAnyActiveLicense()) {
+        if (!$this->hasStoredLicenseKey()) {
             $categoryNode->removeChild('vector_store_auto_update');
             $categoryNode->removeChild('openai_sync_log');
 
@@ -81,7 +82,7 @@ class BackendMenuListener
         );
     }
 
-    private function hasAnyActiveLicense(): bool
+    private function hasStoredLicenseKey(): bool
     {
         try {
             $schemaManager = $this->connection->createSchemaManager();
@@ -89,15 +90,14 @@ class BackendMenuListener
                 return false;
             }
 
-            $configId = $this->connection->fetchOne('SELECT id FROM tl_openai_config ORDER BY id LIMIT 1');
-            if (!$configId) {
-                return false;
-            }
+            // A stored key (active OR lapsed) keeps the menu entries reachable. No remote
+            // call and no decryption — a non-empty ciphertext column is enough. The strict
+            // isLicenseActive() check still gates every action on the dashboard itself.
+            $key = $this->connection->fetchOne(
+                "SELECT premium_license_key FROM tl_openai_config WHERE premium_license_key <> '' ORDER BY id LIMIT 1",
+            );
 
-            // Cache-only check: this listener runs on every backend request, so it must
-            // never trigger the (blocking) remote revalidation. The authoritative check
-            // still runs on the dashboard, on save and before every sync.
-            return $this->licenseValidation->isLicenseActiveCached((int) $configId);
+            return \is_string($key) && '' !== $key;
         } catch (\Throwable) {
             return false;
         }
