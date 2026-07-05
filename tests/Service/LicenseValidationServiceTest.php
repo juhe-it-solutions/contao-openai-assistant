@@ -75,7 +75,7 @@ class LicenseValidationServiceTest extends TestCase
             'status' => 'past_due',
             'expires_at' => date('c', time() - 86400),
             'plan' => 'starter',
-            'max_crawl_pages' => 30,
+            'max_crawl_pages' => 20,
         ]);
 
         self::assertFalse($service->isLicenseActive(1));
@@ -105,7 +105,7 @@ class LicenseValidationServiceTest extends TestCase
 
     public function testResolvePageLimitFallsBackToPlanDefaults(): void
     {
-        self::assertSame(30, LicenseValidationService::resolvePageLimit('starter', 0));
+        self::assertSame(20, LicenseValidationService::resolvePageLimit('starter', 0));
         self::assertSame(100, LicenseValidationService::resolvePageLimit('business', 0));
         self::assertSame(250, LicenseValidationService::resolvePageLimit('business', 250));
         self::assertNull(LicenseValidationService::resolvePageLimit('enterprise', 0));

@@ -37,7 +37,7 @@ class LicenseValidationService
      * (VectorStoreAutoUpdateService) so both always resolve the same limit.
      */
     public const PLAN_PAGE_LIMITS = [
-        'starter' => 30,
+        'starter' => 20,
         'business' => 100,
     ];
 
