@@ -23,6 +23,8 @@
             border-radius: 50%;
             animation: vsau-spin 0.7s linear infinite;
         }
+        /* Explicit rule needed: the class display overrides the UA's [hidden] default. */
+        .vsau-spinner[hidden] { display: none; }
         @keyframes vsau-spin { to { transform: rotate(360deg); } }
         @media (prefers-reduced-motion: reduce) {
             .vsau-spinner { animation-duration: 2s; }
@@ -144,6 +146,7 @@
         .vsau-stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary, #9aa0ad); margin-bottom: 0.6rem; }
         .vsau-stat-value { font-size: 13px; line-height: 1.6; }
         .vsau-stat-value .vsau-sub { display: block; margin-top: 6px; color: var(--text-secondary, #9aa0ad); font-size: 12px; }
+        .vsau-stat-value .vsau-sub:empty { display: none; }
         .vsau-link { color: var(--active-bg, #c5eb52); text-decoration: underline; }
         .vsau-cron-mono { display: inline-block; margin-left: 6px; color: var(--text-secondary, #9aa0ad); font-size: 11px; }
 
@@ -410,34 +413,23 @@
                         </div>
                     </div>
 
-                    <div class="vsau-stat">
+                    {# All box content comes from the controller's statusView() — the same
+                       struct the JSON status endpoint serves — so the initial render and the
+                       poller can never disagree. The sub-spans are stable hooks for the poller
+                       (hidden via :empty when blank); the spinner is a permanent element
+                       toggled via the hidden attribute. #}
+                    <div class="vsau-stat" data-vsau-status="{{ config.id }}" data-vsau-active="{{ config.status_view.active ? '1' : '0' }}">
                         <div class="vsau-stat-label">{{ 'MSC.vsau_last_sync'|trans({}, 'contao_default') }}</div>
                         <div class="vsau-stat-hint">{{ 'MSC.vsau_last_sync_hint'|trans({}, 'contao_default') }}</div>
                         <div class="vsau-stat-value">
-                            {% set st = config.auto_update_last_status %}
-                            {% if st == 'success' %}
-                                <span class="vsau-badge green">{{ 'MSC.vsau_sync_success'|trans({}, 'contao_default') }}</span>
-                            {% elseif st == 'partial' %}
-                                <span class="vsau-badge amber">{{ 'MSC.vsau_sync_partial'|trans({}, 'contao_default') }}</span>
-                            {% elseif st == 'error' %}
-                                <span class="vsau-badge red">{{ 'MSC.vsau_sync_error'|trans({}, 'contao_default') }}</span>
-                            {% elseif st == 'running' %}
-                                <span class="vsau-badge blue"><span class="vsau-spinner" aria-hidden="true"></span>{{ 'MSC.vsau_sync_running'|trans({}, 'contao_default') }}</span>
-                                <span class="vsau-sub">{{ 'MSC.vsau_status_last_activity'|trans([config.status_age_minutes], 'contao_default') }}</span>
-                            {% elseif st == 'queued' %}
-                                <span class="vsau-badge blue">{{ 'MSC.vsau_sync_queued'|trans({}, 'contao_default') }}</span>
-                                <span class="vsau-sub">{{ 'MSC.vsau_status_last_activity'|trans([config.status_age_minutes], 'contao_default') }} — {{ 'MSC.vsau_sync_queued_hint'|trans({}, 'contao_default') }}</span>
-                            {% elseif st == 'skipped' %}
-                                <span class="vsau-badge yellow">{{ 'MSC.vsau_sync_skipped'|trans({}, 'contao_default') }}</span>
-                            {% else %}
-                                <span class="vsau-badge grey">{{ 'MSC.vsau_sync_never'|trans({}, 'contao_default') }}</span>
-                            {% endif %}
-                            {% if config.auto_update_last_run > 0 and st != 'queued' %}
-                                <span class="vsau-sub">{{ config.auto_update_last_run|date('d.m.Y H:i:s') }}</span>
-                            {% endif %}
-                            {% if config.auto_update_last_message %}
-                                <span class="vsau-sub">{{ config.auto_update_last_message }}</span>
-                            {% endif %}
+                            <span class="vsau-badge {{ config.status_view.badge_class }}" data-vsau-badge>
+                                <span class="vsau-spinner" aria-hidden="true" {% if not config.status_view.spinner %}hidden{% endif %}></span>
+                                <span data-vsau-badge-label>{{ config.status_view.badge_label }}</span>
+                            </span>
+                            <span class="vsau-sub" data-vsau-progress>{{ config.status_view.progress_text }}</span>
+                            <span class="vsau-sub" data-vsau-activity>{{ config.status_view.activity_text }}</span>
+                            <span class="vsau-sub" data-vsau-lastrun>{{ config.status_view.last_run_formatted }}</span>
+                            <span class="vsau-sub" data-vsau-message>{{ config.status_view.message }}</span>
                         </div>
                     </div>
 
@@ -495,8 +487,8 @@
                     <form method="post" action="{{ path('vector_store_auto_update') }}">
                         <input type="hidden" name="REQUEST_TOKEN" value="{{ request_token }}">
                         <input type="hidden" name="config_id" value="{{ config.id }}">
-                        <button type="submit" class="tl_submit"
-                                {% if config.blocking or not process_spawning_available or config.auto_update_last_status in ['running', 'queued'] %}disabled{% endif %}>
+                        <button type="submit" class="tl_submit" data-vsau-run-btn="{{ config.id }}"
+                                {% if config.blocking or not process_spawning_available or config.status_view.active %}disabled{% endif %}>
                             {{ 'MSC.vsau_run_now'|trans({}, 'contao_default') }}
                         </button>
                     </form>
@@ -669,6 +661,103 @@
                     document.body.removeChild(ta);
                 }
             });
+        })();
+
+        /* Live status: poll the JSON endpoint and update the "Last sync" box in place.
+           Fast interval while a run is queued/running, slow interval when idle (so a
+           scheduled cron run starting while the page is open is picked up too). When a
+           run reaches a terminal state, reload once so the log table, token counts and
+           next-run time re-render server-side. All updates use textContent only. */
+        (function () {
+            var boxes = document.querySelectorAll('[data-vsau-status]');
+            if (!boxes.length) { return; }
+
+            var url = '{{ status_url|e('js') }}';
+            var ACTIVE_INTERVAL = 5000;
+            var IDLE_INTERVAL = 30000;
+            var anyActive = false;
+            var wasActive = {};
+            var timer = null;
+
+            boxes.forEach(function (box) {
+                var id = box.getAttribute('data-vsau-status');
+                wasActive[id] = box.getAttribute('data-vsau-active') === '1';
+                anyActive = anyActive || wasActive[id];
+            });
+
+            function setText(box, selector, text) {
+                var el = box.querySelector(selector);
+                if (el) { el.textContent = text || ''; }
+            }
+
+            function apply(box, data) {
+                var badge = box.querySelector('[data-vsau-badge]');
+                if (badge) {
+                    badge.className = 'vsau-badge ' + data.badge_class;
+                    var spinner = badge.querySelector('.vsau-spinner');
+                    if (spinner) { spinner.hidden = !data.spinner; }
+                }
+                setText(box, '[data-vsau-badge-label]', data.badge_label);
+                setText(box, '[data-vsau-progress]', data.progress_text);
+                setText(box, '[data-vsau-activity]', data.activity_text);
+                setText(box, '[data-vsau-lastrun]', data.last_run_formatted);
+                setText(box, '[data-vsau-message]', data.message);
+            }
+
+            function schedule() {
+                clearTimeout(timer);
+                timer = setTimeout(poll, anyActive ? ACTIVE_INTERVAL : IDLE_INTERVAL);
+            }
+
+            function poll() {
+                if (document.hidden) { schedule(); return; }
+
+                fetch(url, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+                    .then(function (response) {
+                        if (!response.ok) { throw new Error('status ' + response.status); }
+                        return response.json();
+                    })
+                    .then(function (json) {
+                        var finished = false;
+                        anyActive = false;
+
+                        boxes.forEach(function (box) {
+                            var id = box.getAttribute('data-vsau-status');
+                            var data = json.configs && json.configs[id];
+                            if (!data) { return; }
+
+                            if (data.active) {
+                                anyActive = true;
+                                // A run started while the page was open (e.g. cron) —
+                                // disable the manual trigger; the completion reload re-enables it.
+                                var btn = document.querySelector('[data-vsau-run-btn="' + id + '"]');
+                                if (btn) { btn.disabled = true; }
+                            } else if (wasActive[id]) {
+                                finished = true;
+                            }
+
+                            wasActive[id] = data.active;
+                            apply(box, data);
+                        });
+
+                        if (finished) { location.reload(); return; }
+                        schedule();
+                    })
+                    .catch(function () {
+                        // Transient error (network, session expiry redirect, …): keep the
+                        // last rendered state and try again on the next tick.
+                        schedule();
+                    });
+            }
+
+            document.addEventListener('visibilitychange', function () {
+                if (!document.hidden) {
+                    clearTimeout(timer);
+                    poll();
+                }
+            });
+
+            schedule();
         })();
     </script>
 {% endblock %}

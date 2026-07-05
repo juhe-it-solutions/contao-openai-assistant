@@ -43,7 +43,7 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
                     $executed[] = [$sql, $params];
 
                     return 1; // guarded UPDATE matched → the run is confirmed dead
-                }
+                },
             )
         ;
 
@@ -56,7 +56,7 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
                     $inserted[] = [$table, $data];
 
                     return 1;
-                }
+                },
             )
         ;
 
@@ -83,10 +83,12 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
             ->method('fetchAllAssociative')
             ->willReturn([['id' => 7, 'auto_update_last_run' => time() - 1200]])
         ;
+
         $connection
             ->method('executeStatement')
             ->willReturn(0) // guarded UPDATE missed → run finished or heartbeated meanwhile
         ;
+
         $connection
             ->expects($this->never())
             ->method('insert')
@@ -102,10 +104,12 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
             ->method('fetchAllAssociative')
             ->willReturn([])
         ;
+
         $connection
             ->expects($this->never())
             ->method('executeStatement')
         ;
+
         $connection
             ->expects($this->never())
             ->method('insert')

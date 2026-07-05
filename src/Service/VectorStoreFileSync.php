@@ -65,11 +65,11 @@ class VectorStoreFileSync
 
     /**
      * @param list<array{page_id: int, url: string, title: string, language: string, content: string, search_checksum: string}> $pages
-     * @param (callable():void)|null                                                                                            $heartbeat called once per page so the orchestrator can refresh the run lease during a long sync
+     * @param (callable(int, int):void)|null                                                                                    $progress called with (pages done, pages total) once before the loop and after every processed page, so the orchestrator can publish live progress and refresh the run lease during a long sync
      *
      * @return array{added: int, updated: int, removed: int, unchanged: int, files_uploaded: int, files_failed: int, bytes: int}
      */
-    public function sync(string $apiKey, string $vectorStoreId, int $configId, array $pages, string $legacyFileId = '', callable|null $heartbeat = null): array
+    public function sync(string $apiKey, string $vectorStoreId, int $configId, array $pages, string $legacyFileId = '', callable|null $progress = null): array
     {
         // One-time cleanup: the old pipeline left a single bulk file. Remove it the first
         // time the per-page sync runs so the store does not keep a stale superset document.
@@ -90,12 +90,14 @@ class VectorStoreFileSync
         ];
 
         $seenPageIds = [];
+        $pagesTotal = \count($pages);
+        $pagesDone = 0;
+
+        if (null !== $progress) {
+            $progress(0, $pagesTotal);
+        }
 
         foreach ($pages as $page) {
-            if (null !== $heartbeat) {
-                $heartbeat();
-            }
-
             $pageId = $page['page_id'];
             $seenPageIds[$pageId] = true;
             $contentHash = hash('sha256', $page['content']);
@@ -105,6 +107,10 @@ class VectorStoreFileSync
             // Unchanged: same content already uploaded successfully -> skip (incremental).
             if (null !== $current && $current['content_hash'] === $contentHash && 'uploaded' === $current['status']) {
                 ++$stats['unchanged'];
+                ++$pagesDone;
+                if (null !== $progress) {
+                    $progress($pagesDone, $pagesTotal);
+                }
 
                 continue;
             }
@@ -166,6 +172,11 @@ class VectorStoreFileSync
                     $this->detachAndDelete($apiKey, $vectorStoreId, $replacementFileId);
                 }
             }
+
+            ++$pagesDone;
+            if (null !== $progress) {
+                $progress($pagesDone, $pagesTotal);
+            }
         }
 
         // Delete pages that dropped out of scope.
@@ -174,8 +185,9 @@ class VectorStoreFileSync
                 continue;
             }
 
-            if (null !== $heartbeat) {
-                $heartbeat();
+            // Counter stays at total during cleanup; the call still refreshes the run lease.
+            if (null !== $progress) {
+                $progress($pagesTotal, $pagesTotal);
             }
 
             foreach ($row['files'] as $fileId) {

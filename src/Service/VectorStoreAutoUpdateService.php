@@ -83,9 +83,32 @@ class VectorStoreAutoUpdateService
     private const HEARTBEAT_INTERVAL = 60;
 
     /**
+     * How often live progress (auto_update_progress_*) may be written, in seconds.
+     * Unchanged pages iterate without any HTTP call, so an unthrottled write per page
+     * could hammer the DB; a phase change always writes regardless.
+     */
+    private const PROGRESS_INTERVAL = 1;
+
+    /**
+     * Clears the live progress columns; appended to run-state UPDATEs when a run
+     * starts or reaches a terminal state, so the dashboard never shows a stale counter.
+     */
+    private const PROGRESS_RESET_SQL = "auto_update_progress_phase = '', auto_update_progress_current = 0, auto_update_progress_total = 0";
+
+    /**
      * Unix time of the last lease refresh in the current run; reset by markRunning().
      */
     private int $lastHeartbeatAt = 0;
+
+    /**
+     * Unix time of the last progress write in the current run.
+     */
+    private int $lastProgressAt = 0;
+
+    /**
+     * Phase written by the last progress() call, used to force a write on phase change.
+     */
+    private string $lastProgressPhase = '';
 
     public function __construct(
         private readonly Connection $connection,
@@ -209,6 +232,8 @@ class VectorStoreAutoUpdateService
         );
 
         foreach ($stale as $row) {
+            // No progress reset needed here: stale progress is only displayed while the
+            // status is 'running', and the next acquireRunLock() clears it anyway.
             $updated = $this->connection->executeStatement(
                 "UPDATE tl_openai_config
                     SET auto_update_last_status = 'error', auto_update_last_message = ?
@@ -244,9 +269,15 @@ class VectorStoreAutoUpdateService
         }
 
         // Guard against running before contao:migrate has created the extension tables
-        // (e.g. CLI command invoked on a fresh install before the install wizard finishes).
-        if (!$this->connection->createSchemaManager()->tablesExist(['tl_openai_config'])) {
-            $this->logger->notice('VectorStoreAutoUpdate skipped for config '.$configId.': extension tables not yet created (run contao:migrate).');
+        // (e.g. CLI command invoked on a fresh install before the install wizard finishes)
+        // or before it has added the progress columns after a bundle update — the run-state
+        // UPDATEs below reference them, and run() must never throw.
+        $schemaManager = $this->connection->createSchemaManager();
+        if (
+            !$schemaManager->tablesExist(['tl_openai_config'])
+            || !isset($schemaManager->listTableColumns('tl_openai_config')['auto_update_progress_phase'])
+        ) {
+            $this->logger->notice('VectorStoreAutoUpdate skipped for config '.$configId.': database schema not up to date (run contao:migrate).');
 
             return 'skipped';
         }
@@ -303,6 +334,8 @@ class VectorStoreAutoUpdateService
             $promptTpl = $config['auto_update_prompt_template'] ?? null ?: null;
             $legacyFileId = (string) ($config['auto_update_file_id'] ?? '');
 
+            // Crawling has no page total yet — phase-only progress ("crawling…").
+            $this->progress($configId, 'crawl', 0, 0);
             $this->spawnCrawl($configId);
 
             // Plan-based page cap: enforce the subscription limit at runtime so a
@@ -359,17 +392,27 @@ class VectorStoreAutoUpdateService
             $tokensIn = 0;
             $tokensOut = 0;
             $pages = [];
+            $polishTotal = \count($byPage);
+            $polishDone = 0;
+
+            // Announce the phase up front ("0 of N") so the dashboard switches away from
+            // "crawling" before the first — possibly slow — LLM call completes.
+            if (self::MODE_LLM_POLISH === $mode && $polishTotal > 0) {
+                $this->progress($configId, 'polish', 0, $polishTotal);
+            }
 
             foreach ($byPage as $page) {
                 $content = implode("\n\n", $page['contents']);
 
                 if (self::MODE_LLM_POLISH === $mode) {
-                    $this->heartbeat($configId);
                     $polished = $this->polishPage($apiKey, $model, $page['title'], $page['url'], $content, $promptTpl);
                     $tokensIn += $polished['tokens_in'];
                     $tokensOut += $polished['tokens_out'];
                     // Never drop a page: fall back to the faithful text if the LLM returns nothing.
                     $content = '' !== trim($polished['text']) ? $polished['text'] : $content;
+                    // Progress doubles as the lease refresh here (it writes the heartbeat too).
+                    ++$polishDone;
+                    $this->progress($configId, 'polish', $polishDone, $polishTotal);
                 }
 
                 $pages[] = [
@@ -393,8 +436,9 @@ class VectorStoreAutoUpdateService
                 $configId,
                 $pages,
                 $legacyFileId,
-                function () use ($configId): void {
-                    $this->heartbeat($configId);
+                function (int $done, int $total) use ($configId): void {
+                    // Live "X of Y pages" for the dashboard; also refreshes the run lease.
+                    $this->progress($configId, 'upload', $done, $total);
                 },
             );
 
@@ -525,8 +569,8 @@ class VectorStoreAutoUpdateService
 
         $updated = $this->connection->executeStatement(
             "UPDATE tl_openai_config
-                SET auto_update_last_run = ?, auto_update_last_status = 'running', auto_update_last_message = NULL
-                WHERE id = ? AND ".$statusPredicate,
+                SET auto_update_last_run = ?, auto_update_last_status = 'running', auto_update_last_message = NULL, ".self::PROGRESS_RESET_SQL.'
+                WHERE id = ? AND '.$statusPredicate,
             [$now, $configId, $staleBefore],
         );
 
@@ -536,6 +580,8 @@ class VectorStoreAutoUpdateService
 
         // The lease was just written; the next refresh is not due for HEARTBEAT_INTERVAL.
         $this->lastHeartbeatAt = $now;
+        $this->lastProgressAt = 0;
+        $this->lastProgressPhase = '';
 
         return true;
     }
@@ -556,6 +602,31 @@ class VectorStoreAutoUpdateService
         $this->connection->executeStatement(
             "UPDATE tl_openai_config SET auto_update_last_run = ? WHERE id = ? AND auto_update_last_status = 'running'",
             [$now, $configId],
+        );
+    }
+
+    /**
+     * Persist live progress of the running sync (polled by the dashboard status endpoint)
+     * and refresh the run lease in the same write. Throttled to PROGRESS_INTERVAL; only a
+     * phase change forces an immediate write (a possibly skipped final count is invisible
+     * anyway — the terminal state clears the progress right after). Scoped to
+     * status='running' like heartbeat(), so a finished/errored run is never resurrected.
+     */
+    private function progress(int $configId, string $phase, int $current, int $total): void
+    {
+        $now = time();
+        if ($phase === $this->lastProgressPhase && $now - $this->lastProgressAt < self::PROGRESS_INTERVAL) {
+            return;
+        }
+
+        $this->lastProgressAt = $now;
+        $this->lastProgressPhase = $phase;
+        $this->lastHeartbeatAt = $now;
+        $this->connection->executeStatement(
+            "UPDATE tl_openai_config
+                SET auto_update_last_run = ?, auto_update_progress_phase = ?, auto_update_progress_current = ?, auto_update_progress_total = ?
+                WHERE id = ? AND auto_update_last_status = 'running'",
+            [$now, $phase, $current, $total, $configId],
         );
     }
 
@@ -854,14 +925,16 @@ class VectorStoreAutoUpdateService
     {
         $now = time();
 
+        // Terminal state — clear the live progress so the dashboard never shows a stale
+        // counter next to a finished run.
         if (null === $fileId) {
             $this->connection->executeStatement(
-                'UPDATE tl_openai_config SET auto_update_last_run = ?, auto_update_last_status = ?, auto_update_last_message = ? WHERE id = ?',
+                'UPDATE tl_openai_config SET auto_update_last_run = ?, auto_update_last_status = ?, auto_update_last_message = ?, '.self::PROGRESS_RESET_SQL.' WHERE id = ?',
                 [$now, $status, '' !== $message ? $message : null, $configId],
             );
         } else {
             $this->connection->executeStatement(
-                'UPDATE tl_openai_config SET auto_update_last_run = ?, auto_update_last_status = ?, auto_update_file_id = ?, auto_update_last_message = ? WHERE id = ?',
+                'UPDATE tl_openai_config SET auto_update_last_run = ?, auto_update_last_status = ?, auto_update_file_id = ?, auto_update_last_message = ?, '.self::PROGRESS_RESET_SQL.' WHERE id = ?',
                 [$now, $status, $fileId, '' !== $message ? $message : null, $configId],
             );
         }

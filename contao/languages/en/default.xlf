@@ -203,9 +203,17 @@
                 <source>Queued</source>
                 <target>Queued</target>
             </trans-unit>
-            <trans-unit id="MSC.vsau_sync_queued_hint">
-                <source>refresh in a few minutes</source>
-                <target>refresh in a few minutes</target>
+            <trans-unit id="MSC.vsau_progress_crawl">
+                <source>Crawling and indexing the website …</source>
+                <target>Crawling and indexing the website …</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_progress_polish">
+                <source>AI processing: %s of %s pages</source>
+                <target>AI processing: %s of %s pages</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_progress_upload">
+                <source>Vector store sync: %s of %s pages</source>
+                <target>Vector store sync: %s of %s pages</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_status_last_activity">
                 <source>Last activity %s min ago</source>

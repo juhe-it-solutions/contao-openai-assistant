@@ -24,6 +24,7 @@ use JuheItSolutions\ContaoOpenaiAssistant\Service\LicensePortalUrlService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreSyncMessageTranslator;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -183,12 +184,9 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             $config['plan_label'] = $this->planLabel($config);
             $schedule = (string) ($config['auto_update_schedule'] ?? '') ?: '0 2 * * *';
             $config['schedule_label'] = $this->humanReadableSchedule($schedule);
-            $config['auto_update_last_message'] = $this->syncMessages->translate(
-                isset($config['auto_update_last_message']) ? (string) $config['auto_update_last_message'] : null,
-            );
-            // Age of an in-flight run in whole minutes, shown next to the queued/running
-            // badge so the user can tell a fresh dispatch from one that has been going a while.
-            $config['status_age_minutes'] = (int) floor(max(0, time() - (int) ($config['auto_update_last_run'] ?? 0)) / 60);
+            // Display-ready "Last sync" box fields; the same struct is served by the JSON
+            // status endpoint, so the initial render and the poller can never disagree.
+            $config['status_view'] = $this->statusView($config);
             $hasActiveConfig = $hasActiveConfig || $config['license_active'];
         }
         unset($config);
@@ -235,7 +233,121 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             'refresh_result' => $request->query->get('refresh_result'),
             'refresh_config_id' => (int) $request->query->get('refresh_config', 0),
             'refresh_plan' => $request->query->get('refresh_plan', ''),
+            // Polled by the inline status script for live badge/progress updates.
+            'status_url' => $this->generateUrl('vector_store_auto_update_status'),
         ]);
+    }
+
+    /**
+     * Lightweight JSON status for the dashboard poller. Returns display-ready translated
+     * strings per enabled config so the client script only ever assigns textContent —
+     * all translation and formatting stays server-side, and no secrets are exposed.
+     */
+    public function status(): JsonResponse
+    {
+        $this->initializeContaoFramework();
+
+        // Same gate as the dashboard page itself.
+        $this->denyAccessUnlessGranted(ContaoCorePermissions::USER_CAN_ACCESS_MODULE, 'vector_store_auto_update');
+
+        // Flip dead runs to "error" so the poller resolves them without a manual reload.
+        $this->service->reconcileStaleRuns();
+
+        // SELECT * (not the progress columns explicitly) so the endpoint keeps answering
+        // between a bundle update and contao:migrate; statusView() defaults missing fields.
+        $configs = $this->connection->fetchAllAssociative(
+            "SELECT * FROM tl_openai_config WHERE auto_update_enabled = '1' ORDER BY id",
+        );
+
+        $payload = [];
+
+        foreach ($configs as $config) {
+            $payload[(string) (int) $config['id']] = $this->statusView($config);
+        }
+
+        $response = new JsonResponse(['configs' => $payload]);
+        // Status must always be live — never let the browser or a proxy cache a poll.
+        $response->headers->set('Cache-Control', 'no-store');
+
+        return $response;
+    }
+
+    /**
+     * Display-ready view of one config's "Last sync" box, shared verbatim by the page
+     * render and the JSON status endpoint so the two can never disagree. All strings
+     * are translated and formatted here; consumers (Twig and the poller JS) only print.
+     *
+     * @param array<string, mixed> $config
+     *
+     * @return array{active: bool, badge_label: string, badge_class: string, spinner: bool, progress_text: string|null, activity_text: string|null, last_run_formatted: string|null, message: string|null}
+     */
+    private function statusView(array $config): array
+    {
+        $status = (string) ($config['auto_update_last_status'] ?? '');
+        $lastRun = (int) ($config['auto_update_last_run'] ?? 0);
+        $active = \in_array($status, ['queued', 'running'], true);
+        // Age of an in-flight run in whole minutes, shown next to the queued/running
+        // badge so the user can tell a fresh dispatch from one going a while.
+        $ageMinutes = (int) floor(max(0, time() - $lastRun) / 60);
+        [$badgeLabel, $badgeClass] = $this->statusBadge($status);
+
+        return [
+            'active' => $active,
+            'badge_label' => $badgeLabel,
+            'badge_class' => $badgeClass,
+            'spinner' => 'running' === $status,
+            'progress_text' => $this->progressText($config),
+            'activity_text' => $active ? $this->translator->trans('MSC.vsau_status_last_activity', [$ageMinutes], 'contao_default') : null,
+            // While running, auto_update_last_run is the heartbeat, not a completion time —
+            // still shown (matches the pre-live-update behavior), but hidden while queued.
+            'last_run_formatted' => $lastRun > 0 && 'queued' !== $status ? date('d.m.Y H:i:s', $lastRun) : null,
+            'message' => $this->syncMessages->translate(isset($config['auto_update_last_message']) ? (string) $config['auto_update_last_message'] : null),
+        ];
+    }
+
+    /**
+     * Translated badge label + color class for a sync status, matching the badge
+     * markup rendered by the template.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function statusBadge(string $status): array
+    {
+        [$key, $class] = match ($status) {
+            'success' => ['MSC.vsau_sync_success', 'green'],
+            'partial' => ['MSC.vsau_sync_partial', 'amber'],
+            'error' => ['MSC.vsau_sync_error', 'red'],
+            'running' => ['MSC.vsau_sync_running', 'blue'],
+            'queued' => ['MSC.vsau_sync_queued', 'blue'],
+            'skipped' => ['MSC.vsau_sync_skipped', 'yellow'],
+            default => ['MSC.vsau_sync_never', 'grey'],
+        };
+
+        return [$this->translator->trans($key, [], 'contao_default'), $class];
+    }
+
+    /**
+     * Human-readable live-progress line for a running sync ("Crawling…",
+     * "AI processing: X of Y pages"), or null when there is nothing to show.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function progressText(array $config): string|null
+    {
+        if ('running' !== (string) ($config['auto_update_last_status'] ?? '')) {
+            return null;
+        }
+
+        $phase = (string) ($config['auto_update_progress_phase'] ?? '');
+        $current = (int) ($config['auto_update_progress_current'] ?? 0);
+        $total = (int) ($config['auto_update_progress_total'] ?? 0);
+
+        return match (true) {
+            'crawl' === $phase => $this->translator->trans('MSC.vsau_progress_crawl', [], 'contao_default'),
+            'polish' === $phase && $total > 0 => $this->translator->trans('MSC.vsau_progress_polish', [$current, $total], 'contao_default'),
+            'upload' === $phase && $total > 0 => $this->translator->trans('MSC.vsau_progress_upload', [$current, $total], 'contao_default'),
+            default => null,
+        };
     }
 
     /**

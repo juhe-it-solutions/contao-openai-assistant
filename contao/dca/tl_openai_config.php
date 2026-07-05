@@ -361,6 +361,18 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         'auto_update_last_message' => [
             'sql' => ['type' => 'text', 'notnull' => false],
         ],
+        // Live progress of the currently running sync, polled by the dashboard status
+        // endpoint. phase: '' (idle) | 'crawl' | 'polish' | 'upload'; current/total count
+        // pages within the phase (0/0 while the total is not yet known, e.g. crawling).
+        'auto_update_progress_phase' => [
+            'sql' => ['type' => 'string', 'length' => 16, 'default' => ''],
+        ],
+        'auto_update_progress_current' => [
+            'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+        ],
+        'auto_update_progress_total' => [
+            'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+        ],
         'premium_license_status' => [
             'sql' => ['type' => 'string', 'length' => 20, 'default' => ''],
         ],
