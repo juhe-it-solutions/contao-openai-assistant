@@ -157,7 +157,7 @@ ul#sort_auto_update_site_root.oaa-picker-collapsed {
 .widget.oaa-picker-field > h3 {
     height: auto;
     min-height: 16px;
-    line-height: 1.4;
+    line-height: 1;
 }
 .widget.oaa-picker-field .selector_container > p:has(.tl_submit) {
     margin-top: 0.75rem;
