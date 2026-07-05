@@ -1,3 +1,21 @@
+/* OpenAI Dashboard bundle version badge (beside #main_headline) */
+.oaa-bundle-version {
+    font-size: 0.65em;
+    font-weight: 400;
+    color: var(--content-text, #737373);
+    margin-left: 0.35em;
+    vertical-align: baseline;
+    white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+    .oaa-bundle-version {
+        display: inline-block;
+        margin-left: 0;
+        margin-top: 0.15em;
+    }
+}
+
 /* AI Tools Backend Menu Icon */
 
 /* Core Contao approach - background image on group element */
