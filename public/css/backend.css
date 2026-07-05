@@ -127,8 +127,10 @@ a.openai-license-help-link:focus-visible {
 }
 /* Collapse the "pages to keep updated" picker into a count (auto_update_site_root) */
 .oaa-picker-summary {
+    display: block;
     margin: 4px 0 8px;
     font-size: 13px;
+    line-height: 1.4;
 }
 .oaa-picker-summary .oaa-picker-count {
     font-weight: 700;
@@ -148,6 +150,17 @@ ul#sort_auto_update_site_root.oaa-picker-collapsed {
 .widget.oaa-picker-field {
     padding-top: 1.5rem;
     margin-bottom: 1.5rem;
+}
+/* Core Contao caps legend-style field labels (.tl_tbox h3) at 16px height.
+   Our page-picker label is long and wraps on narrow screens, which caused the
+   summary line ("N pages selected") to overlap the label without this override. */
+.widget.oaa-picker-field > h3 {
+    height: auto;
+    min-height: 16px;
+    line-height: 1.4;
+}
+.widget.oaa-picker-field .selector_container > p:has(.tl_submit) {
+    margin-top: 0.75rem;
 }
 /* Italic prompt text in the "Instructions for the knowledge document" field */
 .widget.oaa-prompt-field textarea {
@@ -201,9 +214,28 @@ ul#sort_auto_update_site_root.oaa-picker-collapsed {
         box-sizing: border-box;
     }
 
+    .widget.oaa-picker-field > h3 {
+        padding-bottom: 0.5rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .widget.oaa-picker-field .oaa-picker-summary {
+        margin-top: 0.25rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .widget.oaa-picker-field .selector_container > p:has(.tl_submit) {
+        margin-top: 1rem;
+    }
+
+    .widget.oaa-picker-field > .tl_help {
+        margin-top: 0.5rem;
+    }
+
     /* Prevent the page-picker widget from overflowing horizontally */
     .widget.oaa-picker-field {
-        overflow: hidden;
+        overflow-x: auto;
+        overflow-y: visible;
     }
 }
 
