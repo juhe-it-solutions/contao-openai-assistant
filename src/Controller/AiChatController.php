@@ -23,6 +23,7 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Controller;
 use Contao\CoreBundle\Controller\AbstractController;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\CoreBundle\Framework\ContaoFramework;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\ChatRateLimiter;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiResponder;
 use Psr\Log\LoggerInterface;
@@ -39,6 +40,7 @@ class AiChatController extends AbstractController
         private readonly ContaoCsrfTokenManager $csrfTokenManager,
         private readonly string $csrfTokenName,
         private readonly LoggerInterface $logger,
+        private readonly ChatRateLimiter $rateLimiter,
     ) {
     }
 
@@ -93,6 +95,18 @@ class AiChatController extends AbstractController
             );
         }
 
+        // Per-IP rate limit: the endpoint is anonymous and spends the owner's OpenAI
+        // credits, so the session throttle below (bypassable by dropping the cookie) is
+        // backed by a cache-based IP limiter that survives cookie rotation.
+        if (!$this->rateLimiter->acceptClientIp((string) $request->getClientIp())) {
+            return new JsonResponse(
+                [
+                    'error' => $this->getErrorMessage('please_wait', $language),
+                ],
+                429,
+            );
+        }
+
         // Rate limiting check
         $session = $request->getSession();
         $lastRequest = $session->get('ai_chat_last_request', 0);
@@ -107,6 +121,23 @@ class AiChatController extends AbstractController
         }
 
         $session->set('ai_chat_last_request', $currentTime);
+
+        // Per-configuration daily ceiling: an absolute cap on completions one config can
+        // spend per day, bounding worst-case API cost even under a distributed attack.
+        // Read the active config here (the responder re-resolves it) so the cap is
+        // enforced before any paid call is made.
+        $activeConfig = $this->responder->getActiveConfig();
+        if ($activeConfig) {
+            $dailyLimit = (int) ($activeConfig['chat_daily_limit'] ?? 0);
+            if (!$this->rateLimiter->acceptConfigDaily((int) $activeConfig['id'], $dailyLimit)) {
+                return new JsonResponse(
+                    [
+                        'error' => $this->getErrorMessage('daily_limit_reached', $language),
+                    ],
+                    429,
+                );
+            }
+        }
 
         try {
             // Send the message as-is without automatic language instructions The prompt
@@ -269,6 +300,7 @@ class AiChatController extends AbstractController
                 'please_wait' => 'Bitte warten Sie, bevor Sie eine weitere Nachricht senden',
                 'service_unavailable' => 'Service vorübergehend nicht verfügbar',
                 'token_requests_too_frequent' => 'Token-Anfragen zu häufig',
+                'daily_limit_reached' => 'Das tägliche Nachrichtenlimit für den Chatbot wurde erreicht. Bitte versuchen Sie es morgen erneut.',
             ],
             'en' => [
                 'invalid_request' => 'Invalid request',
@@ -278,6 +310,7 @@ class AiChatController extends AbstractController
                 'please_wait' => 'Please wait before sending another message',
                 'service_unavailable' => 'Service temporarily unavailable',
                 'token_requests_too_frequent' => 'Token requests too frequent',
+                'daily_limit_reached' => 'The chatbot has reached its daily message limit. Please try again tomorrow.',
             ],
         ];
 

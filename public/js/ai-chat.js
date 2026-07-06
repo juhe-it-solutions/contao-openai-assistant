@@ -398,8 +398,21 @@ function initAiChat(wrapper) {
     return false;
   };
 
+  // Escape HTML metacharacters so raw markup in a message (including model /
+  // knowledge-base output) is rendered as text, never executed. Runs BEFORE the
+  // markdown/link transforms below, which then re-introduce only the tags we
+  // generate ourselves and therefore match &lt;/&gt; where they mean a literal
+  // bracket. Ampersand first so we don't double-escape our own entities. Quotes
+  // stay literal: without "<" no tag or attribute context can open, and every URL
+  // pattern below already excludes them, so their handling is unchanged.
+  const escapeHtml = s => s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
   const fmt = c => {
-    let result = c.replace(/【[^】]*】/g, '')
+    let result = escapeHtml(c)
+      .replace(/【[^】]*】/g, '')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/`(.*?)`/g, '<code>$1</code>')
@@ -410,7 +423,9 @@ function initAiChat(wrapper) {
       .split(/(<a\b[^>]*>.*?<\/a>)/gi)
       .map(part => /^<a\b/i.test(part) ? part : replacer(part))
       .join('');
-    const sanitizeUrl = (url) => (url || '').replace(/[<>]/g, '');
+    // Strip literal brackets AND their escaped forms - the input is entity-escaped,
+    // so a bracket smuggled into a URL arrives as &lt;/&gt;.
+    const sanitizeUrl = (url) => (url || '').replace(/[<>]/g, '').replace(/&(?:lt|gt);/gi, '');
     const countChar = (value, char) => value.split(char).length - 1;
     const splitTrailingUrlPunctuation = (url) => {
       let clean = url;
@@ -444,20 +459,24 @@ function initAiChat(wrapper) {
 
     // Render explicit Markdown links before bare URL autolinking.
     // Supports [text](url), [text](<url>), optional titles, and balanced parentheses in URLs.
+    // The input is entity-escaped, so literal angle brackets appear as &lt;/&gt; -
+    // the angled-destination form matches those, and the (?!&lt;|&gt;) tempering makes
+    // an escaped bracket terminate a URL exactly like the literal bracket used to.
     result = replaceOutsideAnchors(result, text => text.replace(
-      /(^|[^!])\[([^\]]+)\]\(\s*(?:<((?:https?:\/\/|www\.|mailto:|tel:)[^<>\s]+)>|((?:https?:\/\/|www\.|mailto:|tel:)(?:[^\s()<>"']|\([^\s()]*\))+))\s*(?:"[^"]*"|'[^']*'|\([^)]*\))?\s*\)/gi,
+      /(^|[^!])\[([^\]]+)\]\(\s*(?:&lt;((?:https?:\/\/|www\.|mailto:|tel:)(?:(?!&lt;|&gt;)[^<>\s])+)&gt;|((?:https?:\/\/|www\.|mailto:|tel:)(?:(?!&lt;|&gt;)[^\s()<>"']|\([^\s()]*\))+))\s*(?:"[^"]*"|'[^']*'|\([^)]*\))?\s*\)/gi,
       (_, prefix, linkText, angledUrl, plainUrl) => prefix + buildMarkdownLink(linkText, angledUrl || plainUrl)
     ));
 
-    // URLs wrapped in angle brackets, e.g. <https://example.com>.
+    // URLs wrapped in angle brackets, e.g. <https://example.com> (escaped to
+    // &lt;https://example.com&gt; before this runs).
     result = replaceOutsideAnchors(result, text => text.replace(
-      /<((?:https?:\/\/|www\.)[^<>\s]+)>/gi,
+      /&lt;((?:https?:\/\/|www\.)(?:(?!&lt;|&gt;)[^<>\s])+)&gt;/gi,
       (_, url) => buildExternalLink(url, url.toLowerCase().startsWith('www.') ? 'https://' : '')
     ));
 
     // Explicit mailto/tel links before generic email/phone autolinking.
     result = replaceOutsideAnchors(result, text => text.replace(
-      /(^|[^\w"=])(mailto:[^\s<>"']+@[^\s<>"']+)/gi,
+      /(^|[^\w"=])(mailto:(?:(?!&lt;|&gt;)[^\s<>"'])+@(?:(?!&lt;|&gt;)[^\s<>"'])+)/gi,
       (_, prefix, href) => `${prefix}<a href="${sanitizeUrl(href)}">${sanitizeUrl(href.replace(/^mailto:/i, ''))}</a>`
     ));
     result = replaceOutsideAnchors(result, text => text.replace(
@@ -482,14 +501,15 @@ function initAiChat(wrapper) {
     // No lookbehind here on purpose: (?<=...) is a PARSE-time syntax error on
     // Safari/iOS < 16.4 and would kill this whole script. The breakpoint char and
     // its <br> are consumed together instead - same accepted language.
-    // URLs mit http/https
+    // URLs mit http/https. (?!&lt;|&gt;) stops the URL at an escaped bracket, the
+    // same place the literal bracket in [^<>] used to stop it before escaping.
     result = replaceOutsideAnchors(result, text => text.replace(
-      /https?:\/\/(?:[?&\/=#]<br\s*\/?>|[^\s<>"'])+/g,
+      /https?:\/\/(?:[?&\/=#]<br\s*\/?>|(?!&lt;|&gt;)[^\s<>"'])+/g,
       url => buildExternalLink(url.replace(/<br\s*\/?>/gi, ''))
     ));
     // URLs mit www.
     result = replaceOutsideAnchors(result, text => text.replace(
-      /(^|[^\w/])((?:www\.)(?:[?&\/=#]<br\s*\/?>|[^\s<>"'])+)/g,
+      /(^|[^\w/])((?:www\.)(?:[?&\/=#]<br\s*\/?>|(?!&lt;|&gt;)[^\s<>"'])+)/g,
       (_, prefix, url) => prefix + buildExternalLink(url.replace(/<br\s*\/?>/gi, ''), 'https://')
     ));
 
@@ -510,11 +530,18 @@ function initAiChat(wrapper) {
     // Make email addresses clickable
     result = replaceOutsideAnchors(result, text => text.replace(/([\w.-]+@[\w.-]+\.\w+)/g, '<a href="mailto:$1">$1</a>'));
 
-    // Sanitize href: strip < and > (all links, including from model)
-    result = result.replace(/href="([^"]*)"/g, (_, val) => 'href="' + (val || '').replace(/[<>]/g, '') + '"');
+    // Sanitize href: strip literal and escaped angle brackets, then decode &amp;
+    // back to & so the attribute carries the exact original URL. Decoding only &amp;
+    // (never &lt;/&gt;) is safe inside a double-quoted attribute and simply inverts
+    // the one escapeHtml pass for the characters a URL legitimately contains.
+    result = result.replace(/href="([^"]*)"/g, (_, val) => 'href="'
+      + (val || '').replace(/[<>]/g, '').replace(/&(?:lt|gt);/gi, '').replace(/&amp;/gi, '&')
+      + '"');
 
-    // Remove stray ">" immediately after </a> (e.g. from "https://example.com>" or angle-bracket notation like <https://example.com>)
-    result = result.replace(/<\/a>>/g, '</a>');
+    // Remove stray ">" immediately after </a> (e.g. from "https://example.com>" or
+    // angle-bracket notation like <https://example.com>). The bracket arrives
+    // entity-escaped now, so match both forms.
+    result = result.replace(/<\/a>(?:&gt;|>)/g, '</a>');
 
     // Remove exclamation mark + dot combinations
     result = result.replace(/!\./g, '!');

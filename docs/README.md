@@ -15,6 +15,7 @@ This directory documents the current Contao OpenAI Assistant 2.x codebase. The e
 - [Model selection](technical/model-selection.md)
 - [API key management](security/api-key-management.md)
 - [Encryption](security/encryption.md)
+- [Chat rate limiting and cost protection](security/rate-limiting.md)
 
 ## Features And Operation
 

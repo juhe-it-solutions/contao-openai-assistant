@@ -126,7 +126,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
     ],
     'palettes' => [
         '__selector__' => ['auto_update_trigger'],
-        'default' => '{title_legend},title,api_key;{config_legend},vector_store_id'
+        'default' => '{title_legend},title,api_key;{config_legend},vector_store_id,chat_daily_limit'
             . ';{premium_legend},premium_license_intro,premium_license_key'
             . ';{auto_update_legend},auto_update_enabled,auto_update_first_sync_hint,auto_update_trigger,auto_update_mode,auto_update_model,auto_update_site_root,auto_update_prompt_template',
     ],
@@ -198,6 +198,24 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
                 'type'    => 'string',
                 'length'  => 255,
                 'default' => '',
+            ],
+        ],
+        // Absolute daily ceiling on frontend chat completions for this config, enforced
+        // by ChatRateLimiter on the public /ai-chat/send endpoint. 0 = uncapped. Bounds
+        // worst-case OpenAI cost even under a distributed attack; raise it on busy sites.
+        'chat_daily_limit' => [
+            'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['chat_daily_limit'],
+            'exclude'   => true,
+            'inputType' => 'text',
+            'eval'      => [
+                'rgxp'      => 'natural',
+                'maxlength' => 9,
+                'tl_class'  => 'w50',
+            ],
+            'sql' => [
+                'type'     => 'integer',
+                'unsigned' => true,
+                'default'  => 1000,
             ],
         ],
 
@@ -320,11 +338,6 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'inputType' => 'select',
             'eval'      => ['tl_class' => 'w50 auto-update-field auto-update-license-field', 'chosen' => true],
             'sql'       => ['type' => 'string', 'length' => 100, 'default' => ''],
-        ],
-        // Deprecated: content is never truncated since the per-page redesign. Column kept
-        // for backward compatibility; not editable and not read anywhere at runtime.
-        'auto_update_max_content' => [
-            'sql'       => ['type' => 'integer', 'unsigned' => true, 'default' => 100000],
         ],
         'auto_update_site_root' => [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_site_root'],

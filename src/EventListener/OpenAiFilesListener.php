@@ -711,18 +711,4 @@ class OpenAiFilesListener
 
         return round($size, 2).' '.$units[$i];
     }
-
-    private function getStatusLabel(string $status): string
-    {
-        $statusLabels = [
-            'pending' => '<span style="color:#f90;">Pending</span>',
-            'processing' => '<span style="color:#0f0;">Processing</span>',
-            'uploaded' => '<span style="color:#0f0;">Uploaded</span>',
-            'completed' => '<span style="color:#0f0;">Completed</span>',
-            'failed' => '<span style="color:#f00;">Failed</span>',
-            'error' => '<span style="color:#f00;">Error</span>',
-        ];
-
-        return $statusLabels[$status] ?? $status;
-    }
 }

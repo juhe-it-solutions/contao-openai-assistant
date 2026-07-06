@@ -72,9 +72,18 @@ class ApiValidationController
             );
         }
 
-        $apiKey = $request->request->get('key');
+        $apiKey = trim((string) $request->request->get('key', ''));
         $valid = false;
         $message = '';
+
+        // Reject an empty key up front rather than sending "Bearer " to OpenAI; mirrors
+        // the format guard in LicenseValidationController.
+        if ('' === $apiKey) {
+            return new JsonResponse([
+                'valid' => false,
+                'message' => 'empty',
+            ]);
+        }
 
         try {
             // Make a request to the OpenAI API to validate the key

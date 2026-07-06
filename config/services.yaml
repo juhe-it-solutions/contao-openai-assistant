@@ -73,6 +73,12 @@ services:
             $httpClient: '@http_client'
             $logger: '@monolog.logger.contao'
 
+    # ChatRateLimiter — abuse protection for the public chat endpoint; backed by the
+    # shared application cache so limits hold across web workers and requests.
+    JuheItSolutions\ContaoOpenaiAssistant\Service\ChatRateLimiter:
+        arguments:
+            $cache: '@cache.app'
+
     # OpenAiConfigListener
     JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener:
         arguments:

@@ -22,6 +22,10 @@ The extension uses:
 
 Prompts are local Contao records by default. You can optionally reference an OpenAI dashboard prompt with `prompt_id` and `prompt_version`; when set, that dashboard prompt replaces local instructions at runtime.
 
+## Cost Protection
+
+The public chat endpoint is rate-limited per client IP and capped per day so abuse cannot run up an unbounded OpenAI bill. The daily cap is the **"Daily chat message limit"** field in the configuration (default 1000, `0` disables it). Details, tuning and the reverse-proxy note: [Chat rate limiting and cost protection](../security/rate-limiting.md).
+
 ## Verify
 
 After sending a frontend test message, check the OpenAI platform:

@@ -170,7 +170,11 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         $hasActiveConfig = false;
 
         foreach ($configs as &$config) {
-            $config['license_active'] = $this->licenseValidation->isLicenseActive((int) $config['id']);
+            // Cache-only check on render: never block the dashboard load on a licensing
+            // HTTP call. Every POST action above re-checks with the authoritative
+            // isLicenseActive() before doing anything, and the "Refresh license status"
+            // button forces a live revalidation on demand.
+            $config['license_active'] = $this->licenseValidation->isLicenseActiveCached((int) $config['id']);
             // Manual-only configs ignore the cron entirely, so the dashboard suppresses cron
             // health warnings for them and shows a "manual only" indicator instead.
             $config['manual_mode'] = 'manual' === (string) ($config['auto_update_trigger'] ?? 'scheduled');

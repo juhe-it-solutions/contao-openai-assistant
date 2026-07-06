@@ -49,6 +49,14 @@
                 <source>The OpenAI Vector Store ID (automatically generated).</source>
                 <target>Die OpenAI Vector Store ID (wird automatisch generiert).</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.chat_daily_limit.0">
+                <source>Daily chat message limit</source>
+                <target>Tägliches Chat-Nachrichtenlimit</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.chat_daily_limit.1">
+                <source>Maximum number of chatbot replies generated per day across all visitors. Bounds your OpenAI cost if the public chat is abused. Set to 0 to disable the cap.</source>
+                <target>Maximale Anzahl an Chatbot-Antworten pro Tag über alle Besucher hinweg. Begrenzt Ihre OpenAI-Kosten bei Missbrauch des öffentlichen Chats. Zum Deaktivieren auf 0 setzen.</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.max_tokens.0">
                 <source>Maximum Tokens</source>
                 <target>Maximale Tokens</target>
