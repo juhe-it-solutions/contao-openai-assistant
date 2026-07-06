@@ -11,6 +11,7 @@
 #main_headline a .oaa-bundle-version,
 #main_breadcrumb a .oaa-bundle-version {
     text-decoration: inherit;
+    display: inline-flex;
 }
 
 @media (max-width: 767px) {
