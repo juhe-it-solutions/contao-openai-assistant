@@ -1045,9 +1045,13 @@ class VectorStoreAutoUpdateService
      */
     private function pruneSyncLog(int $configId): void
     {
+        // OFFSET cannot use a bound parameter on MySQL/MariaDB (it is quoted as a string).
         $cutoffId = $this->connection->fetchOne(
-            'SELECT id FROM tl_openai_sync_log WHERE pid = ? ORDER BY id DESC LIMIT 1 OFFSET ?',
-            [$configId, self::SYNC_LOG_KEEP_ROWS],
+            \sprintf(
+                'SELECT id FROM tl_openai_sync_log WHERE pid = ? ORDER BY id DESC LIMIT 1 OFFSET %d',
+                self::SYNC_LOG_KEEP_ROWS,
+            ),
+            [$configId],
         );
 
         if (false === $cutoffId || null === $cutoffId) {
