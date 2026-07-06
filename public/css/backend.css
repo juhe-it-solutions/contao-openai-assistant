@@ -1,18 +1,16 @@
-/* OpenAI Dashboard bundle version badge (beside #main_headline) */
+/* OpenAI Dashboard bundle version (inline with module title in headline/breadcrumb) */
 .oaa-bundle-version {
-    font-size: 0.65em;
-    font-weight: 400;
-    color: var(--content-text, #737373);
-    margin-left: 0.35em;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+    margin-left: 0.5em;
     vertical-align: baseline;
     white-space: nowrap;
 }
 
 @media (max-width: 767px) {
     .oaa-bundle-version {
-        display: inline-block;
-        margin-left: 0;
-        margin-top: 0.15em;
+        margin-left: 0.35em;
     }
 }
 

@@ -19,6 +19,10 @@
                 <source>Vector store</source>
                 <target>Vector store</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.chat_protection_legend">
+                <source>Chat protection</source>
+                <target>Chat protection</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.settings_legend">
                 <source>Model settings</source>
                 <target>Model settings</target>

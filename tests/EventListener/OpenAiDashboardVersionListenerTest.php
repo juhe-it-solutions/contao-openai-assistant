@@ -29,9 +29,9 @@ class OpenAiDashboardVersionListenerTest extends TestCase
         $result = $listener($buffer, 'be_main');
 
         self::assertStringContainsString('class="oaa-bundle-version"', $result);
-        self::assertStringContainsString('>v2.1.0</small>', $result);
+        self::assertStringContainsString('>v2.1.0</span>', $result);
         self::assertMatchesRegularExpression(
-            '/<span><a href="[^"]+">OpenAI Dashboard<\/a><\/span> <small class="oaa-bundle-version"[^>]*>v2\.1\.0<\/small>/',
+            '/<span><a href="[^"]+">OpenAI Dashboard<\/a> <span class="oaa-bundle-version"[^>]*>v2\.1\.0<\/span><\/span>/',
             $result,
         );
     }
@@ -40,10 +40,13 @@ class OpenAiDashboardVersionListenerTest extends TestCase
     {
         $listener = $this->createListener('2.1.0', 'openai_dashboard');
 
-        $buffer = '<div class="content-top"><nav id="main_breadcrumb"><ol><li>OpenAI Dashboard</li></ol></nav></div>';
+        $buffer = '<div class="content-top"><nav id="main_breadcrumb"><ol><li><a href="/contao?do=openai_dashboard">OpenAI Dashboard</a></li><li>Edit</li></ol></nav></div>';
         $result = $listener($buffer, 'be_main');
 
-        self::assertStringContainsString('</nav> <small class="oaa-bundle-version"', $result);
+        self::assertStringContainsString(
+            '<a href="/contao?do=openai_dashboard">OpenAI Dashboard</a> <span class="oaa-bundle-version"',
+            $result,
+        );
     }
 
     public function testSkipsOtherBackendModules(): void

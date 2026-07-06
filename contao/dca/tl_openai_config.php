@@ -126,7 +126,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
     ],
     'palettes' => [
         '__selector__' => ['auto_update_trigger'],
-        'default' => '{title_legend},title,api_key;{config_legend},vector_store_id,chat_daily_limit,chat_ip_rate_limit'
+        'default' => '{title_legend},title,api_key;{chat_protection_legend},chat_daily_limit,chat_ip_rate_limit;{config_legend},vector_store_id'
             . ';{premium_legend},premium_license_intro,premium_license_key'
             . ';{auto_update_legend},auto_update_enabled,auto_update_first_sync_hint,auto_update_trigger,auto_update_mode,auto_update_model,auto_update_site_root,auto_update_prompt_template',
     ],

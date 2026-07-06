@@ -47,10 +47,11 @@ final class OpenAiDashboardVersionListener
 
         $badge = $this->buildVersionBadge($label);
 
-        // Contao builds the headline with a leading space and link spans (see Backend.php).
+        // Contao 5.7+: breadcrumb instead of h1 on DC_Table edit screens — keep the
+        // version inside the module title crumb so it reads "OpenAI Dashboard 2.0.1".
         $updated = preg_replace(
-            '/(<h1 id="main_headline">\s*)(<span>.*?<\/span>)/s',
-            '$1$2'.$badge,
+            '/(<nav id="main_breadcrumb">\s*<ol>\s*<li[^>]*>)(.*?)(<\/li>)/s',
+            '$1$2'.$badge.'$3',
             $buffer,
             1,
         );
@@ -59,21 +60,21 @@ final class OpenAiDashboardVersionListener
             return $updated;
         }
 
-        // Contao 5.7+ may render a breadcrumb nav instead of #main_headline on DC_Table screens.
+        // Contao 5.3 (and other layouts still using h1): append inside the module title span.
         $updated = preg_replace(
-            '/(<nav id="main_breadcrumb">.*?<\/nav>)/s',
-            '$1'.$badge,
+            '/(<h1 id="main_headline">\s*<span>)(.*?)(<\/span>)/s',
+            '$1$2'.$badge.'$3',
             $buffer,
             1,
         );
 
-        return \is_string($updated) ? $updated : $buffer;
+        return \is_string($updated) && str_contains($updated, 'oaa-bundle-version') ? $updated : $buffer;
     }
 
     private function buildVersionBadge(string $label): string
     {
         return \sprintf(
-            ' <small class="oaa-bundle-version" aria-label="%s">%s</small>',
+            ' <span class="oaa-bundle-version" aria-label="%s">%s</span>',
             StringUtil::specialchars($this->translator->trans('MSC.oaa_bundle_version', [], 'contao_default')),
             StringUtil::specialchars($label),
         );
