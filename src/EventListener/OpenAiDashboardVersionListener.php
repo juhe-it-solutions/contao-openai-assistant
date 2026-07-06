@@ -45,12 +45,21 @@ final class OpenAiDashboardVersionListener
             return $buffer;
         }
 
-        $badge = $this->buildVersionBadge($label);
+        return $this->injectVersionBadge($buffer, $this->buildVersionBadge($label));
+    }
 
-        // Contao 5.7+: breadcrumb instead of h1 on DC_Table edit screens — keep the
-        // version inside the module title crumb so it reads "OpenAI Dashboard 2.0.1".
+    /**
+     * Insert the version into the module title so it reads "OpenAI Dashboard 2.0.1".
+     *
+     * Contao 5.7 renders DC_Table screens with a KnpMenu breadcrumb (<ul><li>) instead
+     * of #main_headline. Contao 5.3 keeps the legacy h1 with flex-wrapped <span>s.
+     * Appending inside the module-title <a> keeps font metrics and baseline aligned.
+     */
+    private function injectVersionBadge(string $buffer, string $badge): string
+    {
+        // Contao 5.7+ DC_Table breadcrumb (KnpMenu renders <ul>, not <ol>).
         $updated = preg_replace(
-            '/(<nav id="main_breadcrumb">\s*<ol>\s*<li[^>]*>)(.*?)(<\/li>)/s',
+            '/(<nav id="main_breadcrumb">.*?<li[^>]*>\s*<a\b[^>]*>)(.*?)(<\/a>)/s',
             '$1$2'.$badge.'$3',
             $buffer,
             1,
@@ -60,9 +69,32 @@ final class OpenAiDashboardVersionListener
             return $updated;
         }
 
-        // Contao 5.3 (and other layouts still using h1): append inside the module title span.
+        // Legacy h1 headline (Contao 5.3 list/edit and other non-breadcrumb screens).
+        $updated = preg_replace(
+            '/(<h1 id="main_headline">\s*<span>\s*<a\b[^>]*>)(.*?)(<\/a>)/s',
+            '$1$2'.$badge.'$3',
+            $buffer,
+            1,
+        );
+
+        if (\is_string($updated) && str_contains($updated, 'oaa-bundle-version')) {
+            return $updated;
+        }
+
+        // Fallback when the module title is plain text without a link.
         $updated = preg_replace(
             '/(<h1 id="main_headline">\s*<span>)(.*?)(<\/span>)/s',
+            '$1$2'.$badge.'$3',
+            $buffer,
+            1,
+        );
+
+        if (\is_string($updated) && str_contains($updated, 'oaa-bundle-version')) {
+            return $updated;
+        }
+
+        $updated = preg_replace(
+            '/(<nav id="main_breadcrumb">.*?<li[^>]*>)(.*?)(<\/li>)/s',
             '$1$2'.$badge.'$3',
             $buffer,
             1,

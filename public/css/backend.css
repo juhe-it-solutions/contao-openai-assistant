@@ -1,11 +1,16 @@
 /* OpenAI Dashboard bundle version (inline with module title in headline/breadcrumb) */
 .oaa-bundle-version {
-    font-size: inherit;
-    font-weight: inherit;
-    color: inherit;
     margin-left: 0.5em;
-    vertical-align: baseline;
     white-space: nowrap;
+    font: inherit;
+    color: inherit;
+    line-height: inherit;
+    vertical-align: baseline;
+}
+
+#main_headline a .oaa-bundle-version,
+#main_breadcrumb a .oaa-bundle-version {
+    text-decoration: inherit;
 }
 
 @media (max-width: 767px) {

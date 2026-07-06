@@ -21,7 +21,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 class OpenAiDashboardVersionListenerTest extends TestCase
 {
-    public function testInsertsVersionBadgeBesideModuleHeadline(): void
+    public function testInsertsVersionBadgeInsideModuleTitleLinkOnLegacyHeadline(): void
     {
         $listener = $this->createListener('2.1.0', 'openai_dashboard');
 
@@ -31,20 +31,20 @@ class OpenAiDashboardVersionListenerTest extends TestCase
         self::assertStringContainsString('class="oaa-bundle-version"', $result);
         self::assertStringContainsString('>v2.1.0</span>', $result);
         self::assertMatchesRegularExpression(
-            '/<span><a href="[^"]+">OpenAI Dashboard<\/a> <span class="oaa-bundle-version"[^>]*>v2\.1\.0<\/span><\/span>/',
+            '/<a href="[^"]+">OpenAI Dashboard <span class="oaa-bundle-version"[^>]*>v2\.1\.0<\/span><\/a>/',
             $result,
         );
     }
 
-    public function testInsertsVersionBadgeAfterBreadcrumbOnContao57Layout(): void
+    public function testInsertsVersionBadgeInsideModuleTitleLinkOnContao57Breadcrumb(): void
     {
         $listener = $this->createListener('2.1.0', 'openai_dashboard');
 
-        $buffer = '<div class="content-top"><nav id="main_breadcrumb"><ol><li><a href="/contao?do=openai_dashboard">OpenAI Dashboard</a></li><li>Edit</li></ol></nav></div>';
+        $buffer = '<div class="content-top"><nav id="main_breadcrumb"><ul><li class="current"><a href="/contao?do=openai_dashboard">OpenAI Dashboard</a></li></ul></nav></div>';
         $result = $listener($buffer, 'be_main');
 
-        self::assertStringContainsString(
-            '<a href="/contao?do=openai_dashboard">OpenAI Dashboard</a> <span class="oaa-bundle-version"',
+        self::assertMatchesRegularExpression(
+            '/<a href="\/contao\?do=openai_dashboard">OpenAI Dashboard <span class="oaa-bundle-version"[^>]*>v2\.1\.0<\/span><\/a>/',
             $result,
         );
     }
