@@ -24,7 +24,7 @@ Prompts are local Contao records by default. You can optionally reference an Ope
 
 ## Cost Protection
 
-The public chat endpoint is rate-limited per client IP and capped per day so abuse cannot run up an unbounded OpenAI bill. The daily cap is the **"Daily chat message limit"** field in the configuration (default 1000, `0` disables it). Details, tuning and the reverse-proxy note: [Chat rate limiting and cost protection](../security/rate-limiting.md).
+The public chat endpoint is rate-limited per client IP and capped per day so abuse cannot run up an unbounded OpenAI bill. Both limits are configuration fields: **"Daily chat message limit"** (default 1000) and **"Chat messages per minute per IP address"** (default 10 — raise it or set `0` on intranets/NAT where many users share one IP); `0` disables either. Details, tuning and the reverse-proxy note: [Chat rate limiting and cost protection](../security/rate-limiting.md).
 
 ## Verify
 

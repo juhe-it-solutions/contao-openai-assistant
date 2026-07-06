@@ -54,6 +54,27 @@ class ChatRateLimiterTest extends TestCase
         $this->assertFalse($limiter->acceptClientIp(''));
     }
 
+    public function testConfiguredIpLimitIsRespected(): void
+    {
+        $limiter = new ChatRateLimiter(new ArrayAdapter());
+
+        // Intranet-style raised limit: more than the default 10 must pass.
+        for ($i = 0; $i < 25; ++$i) {
+            $this->assertTrue($limiter->acceptClientIp('203.0.113.7', 25), 'request '.$i.' should be accepted');
+        }
+
+        $this->assertFalse($limiter->acceptClientIp('203.0.113.7', 25));
+    }
+
+    public function testIpLimitOfZeroDisablesIpLimiting(): void
+    {
+        $limiter = new ChatRateLimiter(new ArrayAdapter());
+
+        for ($i = 0; $i < 50; ++$i) {
+            $this->assertTrue($limiter->acceptClientIp('203.0.113.7', 0));
+        }
+    }
+
     public function testConfigDailyLimitIsEnforcedPerConfig(): void
     {
         $limiter = new ChatRateLimiter(new ArrayAdapter());

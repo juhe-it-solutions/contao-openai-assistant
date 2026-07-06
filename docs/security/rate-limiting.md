@@ -6,11 +6,11 @@ The frontend chatbot endpoint (`POST /ai-chat/send`) is public and anonymous, an
 
 | Layer | Scope | Limit | Configurable |
 |---|---|---|---|
-| IP rate limit | per client IP | 10 messages per minute (sliding window) | No (code constant) |
+| IP rate limit | per client IP | 10 messages per minute (default, sliding window) | Yes, backend field (`0` = off) |
 | Session throttle | per visitor session | 1 message per 2 seconds | No |
-| Daily cap | per OpenAI configuration, all visitors combined | 1000 replies per day (default) | Yes, backend field |
+| Daily cap | per OpenAI configuration, all visitors combined | 1000 replies per day (default) | Yes, backend field (`0` = off) |
 
-1. **Per-IP rate limit.** A sliding window of 10 messages per minute per client IP. This is the primary defense against scripted abuse: unlike the session throttle, it cannot be bypassed by discarding the session cookie, because the counter is keyed on the IP and stored in the shared application cache (`cache.app`). Requests without a resolvable client IP share one common bucket instead of bypassing the limit. The limit is a code constant (`ChatRateLimiter::IP_LIMIT`); 10/minute is comfortable for a real conversation and only ever throttles machine-speed senders.
+1. **Per-IP rate limit.** A sliding window of messages per minute per client IP (default 10). This is the primary defense against scripted abuse: unlike the session throttle, it cannot be bypassed by discarding the session cookie, because the counter is keyed on the IP and stored in the shared application cache (`cache.app`). Requests without a resolvable client IP share one common bucket instead of bypassing the limit. 10/minute is comfortable for a real conversation and only ever throttles machine-speed senders — but it is a **shared budget when many users sit behind one egress IP**, so it is configurable (see below).
 
 2. **Per-session throttle.** One message per 2 seconds per visitor session. Cheap first-line pacing for normal users; kept in addition to the IP limit.
 
@@ -18,9 +18,11 @@ The frontend chatbot endpoint (`POST /ai-chat/send`) is public and anonymous, an
 
 The CSRF token endpoint (`GET /ai-chat/token`) additionally allows at most one token request per 10 seconds per session.
 
-## Configuring The Daily Cap
+## Configuring The Limits
 
-The cap is the **"Daily chat message limit"** field in the OpenAI configuration (backend → AI Tools → OpenAI Dashboard → edit configuration, next to the Vector Store ID).
+Both configurable limits live in the OpenAI configuration (backend → AI Tools → OpenAI Dashboard → edit configuration, next to the Vector Store ID).
+
+**"Daily chat message limit"** — the daily cap:
 
 - Default: **1000** replies per day.
 - Set a higher value for busy sites — the field is a plain integer, so size it to your expected traffic plus headroom.
@@ -28,10 +30,16 @@ The cap is the **"Daily chat message limit"** field in the OpenAI configuration 
 
 Rough cost intuition: the cap times your prompt/completion size is the most the chatbot can spend on OpenAI per day, no matter what happens.
 
+**"Chat messages per minute per IP address"** — the IP rate limit:
+
+- Default: **10** messages per minute per client IP.
+- **Corporate intranets, shared offices, NAT and proxy setups:** all users behind one egress IP share this budget collectively — ten colleagues chatting at once would throttle each other. Raise the value to match your concurrent-user expectation (e.g. 60–120), or set **0** to disable IP limiting entirely. With the IP limit off, the session throttle and the daily cap still bound abuse and cost.
+- Changing the value takes effect immediately, even mid-window — no cache clearing needed.
+
 ## Operational Notes
 
-- **Run `contao:migrate` after updating.** The cap is stored in a new `tl_openai_config.chat_daily_limit` column. Until the migration has added the column, the daily cap is inactive (the IP and session limits still apply); after the migration, existing configurations get the default of 1000.
-- **Behind a reverse proxy or load balancer, configure trusted proxies.** The IP limit keys on `Request::getClientIp()`. If Symfony does not trust your proxy, every visitor appears to come from the proxy's IP and shares a single 10/minute budget — legitimate users would be throttled collectively. Set the `TRUSTED_PROXIES` environment variable (standard Contao/Symfony setup) so the real client IP is resolved from `X-Forwarded-For`.
+- **Run `contao:migrate` after updating.** The limits are stored in new `tl_openai_config.chat_daily_limit` and `tl_openai_config.chat_ip_rate_limit` columns. Until the migration has added them, the daily cap is inactive and the IP limit runs at the built-in default of 10/minute; after the migration, existing configurations get the defaults (1000 / 10).
+- **Behind a reverse proxy or load balancer, configure trusted proxies.** The IP limit keys on `Request::getClientIp()`. If Symfony does not trust your proxy, every visitor appears to come from the proxy's IP and shares a single per-minute budget — legitimate users would be throttled collectively. Set the `TRUSTED_PROXIES` environment variable (standard Contao/Symfony setup) so the real client IP is resolved from `X-Forwarded-For`. If you cannot configure trusted proxies, raise the per-IP field or set it to `0` as a workaround.
 - **Counters live in the Symfony application cache** (`cache.app`). They survive requests and web workers, but clearing the application cache (e.g. a full `cache:clear` in some setups) resets them. That is acceptable for abuse limiting — it never blocks legitimate traffic, it only briefly forgets past abuse.
 - **The limits are purely local.** They are independent of the premium add-on and the licensing server; nothing is reported anywhere. They also do not replace the rate limits OpenAI applies to your API key.
 

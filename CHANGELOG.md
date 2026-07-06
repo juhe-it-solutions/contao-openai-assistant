@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Premium add-on: automatic vector-store updates:** Added licensed support for keeping an OpenAI vector store in sync with selected Contao pages, including manual or scheduled runs and a backend sync status dashboard.
-- **Chat cost protection:** The public chat endpoint is now rate-limited per client IP (10 messages/minute, cache-backed so it survives session-cookie rotation) and capped by a new configurable per-configuration daily message limit (`tl_openai_config.chat_daily_limit`, default 1000, `0` = uncapped). Bounds the worst-case OpenAI spend under abuse. Requires `contao:migrate` to add the new column; see [docs/security/rate-limiting.md](docs/security/rate-limiting.md).
+- **Chat cost protection:** The public chat endpoint is now rate-limited per client IP (cache-backed so it survives session-cookie rotation) and capped by a per-configuration daily message limit. Both limits are backend-configurable: `tl_openai_config.chat_ip_rate_limit` (default 10/minute, `0` = off — raise or disable on intranets/NAT where many users share one egress IP) and `tl_openai_config.chat_daily_limit` (default 1000/day, `0` = uncapped). Bounds the worst-case OpenAI spend under abuse. Requires `contao:migrate` to add the new columns; see [docs/security/rate-limiting.md](docs/security/rate-limiting.md).
 
 ### Security
 - **Frontend chat XSS hardening:** Chat messages are now HTML-entity-escaped before the Markdown/link formatting runs, so raw markup in a message (including model or knowledge-base output) renders as text instead of executing. All 41 documented URL-linkification cases still pass unchanged.

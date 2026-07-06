@@ -95,10 +95,20 @@ class AiChatController extends AbstractController
             );
         }
 
+        // Both abuse limits are configured on the active config row; read it once here
+        // (the responder re-resolves it later) so they are enforced before any paid
+        // call. Missing column (pre-migration) or missing config falls back to the
+        // hard default for the IP limit and "uncapped" for the daily ceiling.
+        $activeConfig = $this->responder->getActiveConfig();
+        $ipLimit = null !== $activeConfig && \array_key_exists('chat_ip_rate_limit', $activeConfig)
+            ? (int) $activeConfig['chat_ip_rate_limit']
+            : ChatRateLimiter::DEFAULT_IP_LIMIT;
+
         // Per-IP rate limit: the endpoint is anonymous and spends the owner's OpenAI
         // credits, so the session throttle below (bypassable by dropping the cookie) is
-        // backed by a cache-based IP limiter that survives cookie rotation.
-        if (!$this->rateLimiter->acceptClientIp((string) $request->getClientIp())) {
+        // backed by a cache-based IP limiter that survives cookie rotation. Configurable
+        // (0 = off) for installations where many users share one egress IP.
+        if (!$this->rateLimiter->acceptClientIp((string) $request->getClientIp(), $ipLimit)) {
             return new JsonResponse(
                 [
                     'error' => $this->getErrorMessage('please_wait', $language),
@@ -124,9 +134,6 @@ class AiChatController extends AbstractController
 
         // Per-configuration daily ceiling: an absolute cap on completions one config can
         // spend per day, bounding worst-case API cost even under a distributed attack.
-        // Read the active config here (the responder re-resolves it) so the cap is
-        // enforced before any paid call is made.
-        $activeConfig = $this->responder->getActiveConfig();
         if ($activeConfig) {
             $dailyLimit = (int) ($activeConfig['chat_daily_limit'] ?? 0);
             if (!$this->rateLimiter->acceptConfigDaily((int) $activeConfig['id'], $dailyLimit)) {

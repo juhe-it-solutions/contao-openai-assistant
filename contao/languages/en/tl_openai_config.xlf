@@ -57,6 +57,14 @@
                 <source>Maximum number of chatbot replies generated per day across all visitors. Bounds your OpenAI cost if the public chat is abused. Set to 0 to disable the cap.</source>
                 <target>Maximum number of chatbot replies generated per day across all visitors. Bounds your OpenAI cost if the public chat is abused. Set to 0 to disable the cap.</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.chat_ip_rate_limit.0">
+                <source>Chat messages per minute per IP address</source>
+                <target>Chat messages per minute per IP address</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.chat_ip_rate_limit.1">
+                <source>Rate limit against scripted abuse of the public chat. Raise it or set 0 (off) if many users share one IP address, e.g. on a corporate intranet or behind a proxy/NAT — otherwise they share this budget collectively.</source>
+                <target>Rate limit against scripted abuse of the public chat. Raise it or set 0 (off) if many users share one IP address, e.g. on a corporate intranet or behind a proxy/NAT — otherwise they share this budget collectively.</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.max_tokens.0">
                 <source>Maximum Tokens</source>
                 <target>Maximum Tokens</target>

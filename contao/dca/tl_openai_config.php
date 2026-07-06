@@ -126,7 +126,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
     ],
     'palettes' => [
         '__selector__' => ['auto_update_trigger'],
-        'default' => '{title_legend},title,api_key;{config_legend},vector_store_id,chat_daily_limit'
+        'default' => '{title_legend},title,api_key;{config_legend},vector_store_id,chat_daily_limit,chat_ip_rate_limit'
             . ';{premium_legend},premium_license_intro,premium_license_key'
             . ';{auto_update_legend},auto_update_enabled,auto_update_first_sync_hint,auto_update_trigger,auto_update_mode,auto_update_model,auto_update_site_root,auto_update_prompt_template',
     ],
@@ -216,6 +216,25 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
                 'type'     => 'integer',
                 'unsigned' => true,
                 'default'  => 1000,
+            ],
+        ],
+        // Per-IP messages/minute for the public chat endpoint (ChatRateLimiter).
+        // 0 = disable IP limiting - for corporate intranets / NAT / proxy setups where
+        // many legitimate users share a single egress IP and a per-IP budget would
+        // throttle them collectively. The session throttle and daily cap stay active.
+        'chat_ip_rate_limit' => [
+            'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['chat_ip_rate_limit'],
+            'exclude'   => true,
+            'inputType' => 'text',
+            'eval'      => [
+                'rgxp'      => 'natural',
+                'maxlength' => 5,
+                'tl_class'  => 'w50',
+            ],
+            'sql' => [
+                'type'     => 'integer',
+                'unsigned' => true,
+                'default'  => 10,
             ],
         ],
 
