@@ -129,7 +129,7 @@
         }
         .vsau-eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary, #9aa0ad); }
         .vsau-title { font-size: 19px; font-weight: 700; margin-right: auto; }
-        .vsau-chip { display: inline-block; padding: 3px 12px; border-radius: 999px; background: var(--active-bg); font-size: 12px; font-weight: 600; }
+        .vsau-chip { display: inline-block; padding: 3px 12px; border-radius: 999px; background: var(--active-bg); font-size: 12px; font-weight: 600; line-height: 1.4; vertical-align: middle; }
 
         .vsau-grid {
             display: grid;
@@ -291,7 +291,7 @@
                     {% elseif config.premium_license_status == 'trialing' %}
                         <span class="vsau-badge amber">{{ 'MSC.vsau_license_trialing'|trans({}, 'contao_default') }}</span>
                         {% if config.plan_label %}
-                            <span class="vsau-chip">{{ config.plan_label }}</span>
+                            <span class="vsau-chip">{{ 'MSC.vsau_plan_prefix'|trans({}, 'contao_default') }} {{ config.plan_label }}</span>
                         {% endif %}
                         {% if config.premium_license_valid_until > 0 %}
                             <span class="vsau-actions-hint">{{ 'MSC.vsau_license_trial_ends'|trans({}, 'contao_default') }} {{ config.premium_license_valid_until|date('d.m.Y') }}</span>
@@ -299,7 +299,7 @@
                     {% else %}
                         <span class="vsau-badge green">{{ 'MSC.vsau_license_active'|trans({}, 'contao_default') }}</span>
                         {% if config.plan_label %}
-                            <span class="vsau-chip">{{ config.plan_label }}</span>
+                            <span class="vsau-chip">{{ 'MSC.vsau_plan_prefix'|trans({}, 'contao_default') }} {{ config.plan_label }}</span>
                         {% endif %}
                         {% if config.premium_license_valid_until > 0 %}
                             <span class="vsau-actions-hint">{{ 'MSC.vsau_license_expires'|trans({}, 'contao_default') }} {{ config.premium_license_valid_until|date('d.m.Y') }}</span>
@@ -309,7 +309,7 @@
                         <input type="hidden" name="REQUEST_TOKEN" value="{{ request_token }}">
                         <input type="hidden" name="config_id" value="{{ config.id }}">
                         <input type="hidden" name="action" value="refresh_license">
-                        <button type="submit" class="vsau-toolbar-btn" title="{{ 'MSC.vsau_refresh_license_title'|trans({}, 'contao_default') }}">{{ 'MSC.vsau_refresh_license'|trans({}, 'contao_default') }}</button>
+                        <button type="submit" class="vsau-toolbar-btn vsau-toolbar-btn--refresh" title="{{ 'MSC.vsau_refresh_license_title'|trans({}, 'contao_default') }}">{{ 'MSC.vsau_refresh_license'|trans({}, 'contao_default') }}</button>
                     </form>
                     {% if refresh_result and refresh_config_id == config.id %}
                         {% if refresh_result == 'ok_changed' and refresh_plan %}

@@ -235,6 +235,10 @@
                 <source>next:</source>
                 <target>next:</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_plan_prefix">
+                <source>Plan:</source>
+                <target>Plan:</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_schedule_first_manual_hint">
                 <source>First sync: start manually with the button below; the schedule applies from the second run onward.</source>
                 <target>First sync: start manually with the button below; the schedule applies from the second run onward.</target>
