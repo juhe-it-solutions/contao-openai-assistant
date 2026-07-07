@@ -83,25 +83,25 @@ class VectorStoreSyncMessageTranslator
         }
 
         if (preg_match('/^OpenAI configuration (\d+) not found\.$/', $message, $matches)) {
-            return $this->translator->trans('MSC.vsau_err_config_not_found', ['%id%' => $matches[1]], self::DOMAIN);
+            return $this->translator->trans('MSC.vsau_err_config_not_found', [$matches[1]], self::DOMAIN);
         }
 
         if (preg_match('/^No usable OpenAI API key for configuration (\d+)\.$/', $message, $matches)) {
-            return $this->translator->trans('MSC.vsau_err_no_api_key', ['%id%' => $matches[1]], self::DOMAIN);
+            return $this->translator->trans('MSC.vsau_err_no_api_key', [$matches[1]], self::DOMAIN);
         }
 
         if (preg_match('/^Invalid page selected for auto-update \(ID (\d+)\)\.$/', $message, $matches)) {
-            return $this->translator->trans('MSC.vsau_err_invalid_page', ['%id%' => $matches[1]], self::DOMAIN);
+            return $this->translator->trans('MSC.vsau_err_invalid_page', [$matches[1]], self::DOMAIN);
         }
 
         if (preg_match('/^contao:crawl failed: (.*)$/s', $message, $matches)) {
-            return $this->translator->trans('MSC.vsau_err_crawl_failed', ['%details%' => $matches[1]], self::DOMAIN);
+            return $this->translator->trans('MSC.vsau_err_crawl_failed', [$matches[1]], self::DOMAIN);
         }
 
         if (preg_match('/^OpenAI chat completion failed \(HTTP (\d+)\): (.*)$/s', $message, $matches)) {
             return $this->translator->trans(
                 'MSC.vsau_err_openai_chat',
-                ['%status%' => $matches[1], '%details%' => $matches[2]],
+                [$matches[1], $matches[2]],
                 self::DOMAIN,
             );
         }
@@ -116,7 +116,7 @@ class VectorStoreSyncMessageTranslator
             if (preg_match('/^(\d+)\|(.*)$/s', $rest, $matches)) {
                 return $this->translator->trans(
                     'MSC.vsau_err_openai_chat',
-                    ['%status%' => $matches[1], '%details%' => $matches[2]],
+                    [$matches[1], $matches[2]],
                     self::DOMAIN,
                 );
             }
@@ -125,7 +125,7 @@ class VectorStoreSyncMessageTranslator
         if (str_starts_with($message, 'MSC.vsau_err_crawl_failed|')) {
             return $this->translator->trans(
                 'MSC.vsau_err_crawl_failed',
-                ['%details%' => substr($message, \strlen('MSC.vsau_err_crawl_failed|'))],
+                [substr($message, \strlen('MSC.vsau_err_crawl_failed|'))],
                 self::DOMAIN,
             );
         }
@@ -135,7 +135,7 @@ class VectorStoreSyncMessageTranslator
             if (preg_match('/^(\d+)\|(\d+)$/', $rest, $matches)) {
                 return $this->translator->trans(
                     'MSC.vsau_plan_limit_truncated',
-                    ['%skipped%' => $matches[1], '%limit%' => $matches[2]],
+                    [$matches[2], $matches[1]],
                     self::DOMAIN,
                 );
             }
@@ -146,7 +146,7 @@ class VectorStoreSyncMessageTranslator
             if (preg_match('/^(\d+)$/', $rest, $matches)) {
                 return $this->translator->trans(
                     'MSC.vsau_partial_files_failed',
-                    ['%failed%' => $matches[1]],
+                    [$matches[1]],
                     self::DOMAIN,
                 );
             }
@@ -156,9 +156,9 @@ class VectorStoreSyncMessageTranslator
         $key = $parts[0];
 
         return match ($key) {
-            'MSC.vsau_err_config_not_found' => $this->translator->trans($key, ['%id%' => $parts[1] ?? ''], self::DOMAIN),
-            'MSC.vsau_err_no_api_key' => $this->translator->trans($key, ['%id%' => $parts[1] ?? ''], self::DOMAIN),
-            'MSC.vsau_err_invalid_page' => $this->translator->trans($key, ['%id%' => $parts[1] ?? ''], self::DOMAIN),
+            'MSC.vsau_err_config_not_found' => $this->translator->trans($key, [$parts[1] ?? ''], self::DOMAIN),
+            'MSC.vsau_err_no_api_key' => $this->translator->trans($key, [$parts[1] ?? ''], self::DOMAIN),
+            'MSC.vsau_err_invalid_page' => $this->translator->trans($key, [$parts[1] ?? ''], self::DOMAIN),
             default => $this->translator->trans($key, [], self::DOMAIN),
         };
     }

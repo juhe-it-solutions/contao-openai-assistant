@@ -313,7 +313,7 @@
                     </form>
                     {% if refresh_result and refresh_config_id == config.id %}
                         {% if refresh_result == 'ok_changed' and refresh_plan %}
-                            <span class="vsau-refresh-result vsau-refresh-result--ok">✓ {{ 'MSC.vsau_refresh_license_confirm_changed'|trans({'%plan%': refresh_plan}, 'contao_default') }}</span>
+                            <span class="vsau-refresh-result vsau-refresh-result--ok">✓ {{ 'MSC.vsau_refresh_license_confirm_changed'|trans({}, 'contao_default') }} {{ refresh_plan }}</span>
                         {% elseif refresh_result in ['ok_same', 'ok', 'ok_changed'] %}
                             <span class="vsau-refresh-result vsau-refresh-result--ok">✓ {{ 'MSC.vsau_refresh_license_confirm'|trans({}, 'contao_default') }}</span>
                         {% else %}

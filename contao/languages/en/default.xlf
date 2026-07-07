@@ -300,8 +300,8 @@
                 <target>License status refreshed – no plan change.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_refresh_license_confirm_changed">
-                <source>License updated – current plan: %plan%.</source>
-                <target>License updated – current plan: %plan%.</target>
+                <source>License updated – current plan:</source>
+                <target>License updated – current plan:</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_refresh_license_inactive">
                 <source>License is not active. Enter a valid key in the OpenAI Configuration.</source>
@@ -496,32 +496,32 @@
                 <target>The sync run stopped responding and was marked as failed (the process was probably terminated). You can start a new sync.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_plan_limit_truncated">
-                <source>Your plan allows at most %limit% pages, so %skipped% additional page(s) were not synced. Reduce the selected pages or upgrade your plan to include them.</source>
-                <target>Your plan allows at most %limit% pages, so %skipped% additional page(s) were not synced. Reduce the selected pages or upgrade your plan to include them.</target>
+                <source>Your plan allows at most %1$s pages, so %2$s additional page(s) were not synced. Reduce the selected pages or upgrade your plan to include them.</source>
+                <target>Your plan allows at most %1$s pages, so %2$s additional page(s) were not synced. Reduce the selected pages or upgrade your plan to include them.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_partial_files_failed">
-                <source>%failed% file upload(s) failed and will be retried on the next run.</source>
-                <target>%failed% file upload(s) failed and will be retried on the next run.</target>
+                <source>%1$s file upload(s) failed and will be retried on the next run.</source>
+                <target>%1$s file upload(s) failed and will be retried on the next run.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_config_not_found">
-                <source>OpenAI configuration %id% not found.</source>
-                <target>OpenAI configuration %id% not found.</target>
+                <source>OpenAI configuration %1$s not found.</source>
+                <target>OpenAI configuration %1$s not found.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_no_api_key">
-                <source>No usable OpenAI API key for configuration %id%.</source>
-                <target>No usable OpenAI API key for configuration %id%.</target>
+                <source>No usable OpenAI API key for configuration %1$s.</source>
+                <target>No usable OpenAI API key for configuration %1$s.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_invalid_page">
-                <source>Invalid page selected for auto-update (ID %id%).</source>
-                <target>Invalid page selected for auto-update (ID %id%).</target>
+                <source>Invalid page selected for auto-update (ID %1$s).</source>
+                <target>Invalid page selected for auto-update (ID %1$s).</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_crawl_failed">
-                <source>contao:crawl failed: %details%</source>
-                <target>contao:crawl failed: %details%</target>
+                <source>contao:crawl failed: %1$s</source>
+                <target>contao:crawl failed: %1$s</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_openai_chat">
-                <source>OpenAI chat completion failed (HTTP %status%): %details%</source>
-                <target>OpenAI chat completion failed (HTTP %status%): %details%</target>
+                <source>OpenAI chat completion failed (HTTP %1$s): %2$s</source>
+                <target>OpenAI chat completion failed (HTTP %1$s): %2$s</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_vector_store">
                 <source>No vector store exists yet. Upload one document once via AI Tools → OpenAI Dashboard → File upload; this automatically creates the vector store.</source>

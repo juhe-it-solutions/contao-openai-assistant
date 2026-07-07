@@ -26,7 +26,7 @@ class VectorStoreSyncMessageTranslatorTest extends TestCase
             ->method('trans')
             ->with(
                 'MSC.vsau_plan_limit_truncated',
-                ['%skipped%' => '5', '%limit%' => '20'],
+                ['20', '5'],
                 'contao_default',
             )
             ->willReturn('5 pages were not synced (limit 20).')
@@ -48,10 +48,10 @@ class VectorStoreSyncMessageTranslatorTest extends TestCase
             ->willReturnCallback(
                 static function (string $id, array $params): string {
                     if ('MSC.vsau_plan_limit_truncated' === $id) {
-                        return 'Plan limit: '.$params['%skipped%'].' of over '.$params['%limit%'].' skipped.';
+                        return 'Plan limit: '.$params[1].' of over '.$params[0].' skipped.';
                     }
 
-                    return $params['%failed%'].' uploads failed.';
+                    return $params[0].' uploads failed.';
                 },
             )
         ;
