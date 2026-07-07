@@ -603,6 +603,15 @@ class OpenAiConfigListener
         return $buttons;
     }
 
+    /**
+     * Inserts a line break after each sentence-ending punctuation mark so hint text
+     * doesn't run on as a single dense paragraph.
+     */
+    private function breakSentences(string $text): string
+    {
+        return (string) preg_replace('/(?<=[.!?])\s+(?=\S)/u', '<br>', $text);
+    }
+
     public function premiumLicenseIntroField(DataContainer $dc, string $xlabel = ''): string
     {
         $lang = $this->loadConfigLang();
@@ -618,21 +627,29 @@ class OpenAiConfigListener
             // Active subscriber: replace the sales card with a neutral "about" note that
             // links to manage/help without any purchase CTAs.
             $content = \sprintf(
-                '<strong class="oaa-info-card-heading" style="display: block; font-size: 22px; position: relative; top: -5px;">%s</strong>'
+                '<span style="display: flex; gap: 16px; align-items: center;">'
+                .'<a href="%s" target="_blank" rel="noopener noreferrer" style="flex-shrink: 0;">'
+                .'<img src="%s" alt="JUHE Licenses" width="90" height="90" style="display: block; width: 90px; height: 90px;"></a>'
+                .'<span>'
+                .'<strong class="oaa-info-card-heading" style="display: block; font-size: 22px;">%s</strong>'
                 .'<span class="openai-license-actions" style="margin-top: 10px;">'
                 .'<a class="openai-license-help-link" href="%s" target="_blank" rel="noopener noreferrer">%s</a>'
                 .'<a class="openai-license-help-link" href="%s" target="_blank" rel="noopener noreferrer">%s</a>'
                 .'</span>'
+                .'</span>'
+                .'</span>'
                 .'<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin-top: 8px; margin-left: 11px;">'
                 .'<strong>ℹ️ %s:</strong> %s'
                 .'</div>',
+                htmlspecialchars($manageUrl, ENT_QUOTES),
+                htmlspecialchars($logoUrl, ENT_QUOTES),
                 (string) ($lang['premium_license_info_heading'] ?? 'Premium: automatic vector store sync'),
                 htmlspecialchars($manageUrl, ENT_QUOTES),
                 (string) ($lang['premium_license_info_manage'] ?? 'Manage subscription'),
                 htmlspecialchars($helpUrl, ENT_QUOTES),
                 (string) ($lang['premium_license_info_docs'] ?? 'Guide & help'),
                 (string) ($lang['premium_license_info_hint_heading'] ?? 'Note'),
-                (string) ($lang['premium_license_info_hint_active'] ?? 'To switch to a different key: clear this field, enter the new key, and save. To remove the license entirely: use the "Remove license" button next to the key field.'),
+                $this->breakSentences((string) ($lang['premium_license_info_hint_active'] ?? 'To switch to a different key: clear this field, enter the new key, and save. To remove the license entirely: use the "Remove license" button next to the key field.')),
             );
         } else {
             $content = \sprintf(
@@ -662,7 +679,7 @@ class OpenAiConfigListener
                 htmlspecialchars($helpUrl, ENT_QUOTES),
                 (string) ($lang['premium_license_info_docs'] ?? 'Guide & help'),
                 (string) ($lang['premium_license_info_hint_heading'] ?? 'Note'),
-                (string) ($lang['premium_license_info_hint'] ?? 'Enter your license key below and validate it with "Check key" before saving.'),
+                $this->breakSentences((string) ($lang['premium_license_info_hint'] ?? 'Enter your license key below and validate it with "Check key" before saving.')),
             );
         }
 
