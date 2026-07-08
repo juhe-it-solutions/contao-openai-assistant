@@ -200,7 +200,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         $log = $this->connection->fetchAllAssociative(
             "SELECT id, pid, run_at, status, trigger_source, model, pages, tokens_in, tokens_out, file_id, duration, message,
                     (document IS NOT NULL AND document <> '') AS has_document
-             FROM tl_openai_sync_log ORDER BY run_at DESC LIMIT 20",
+             FROM tl_openai_sync_log ORDER BY run_at DESC LIMIT 10",
         );
 
         // Determine which log rows are the first-ever sync for their config — no DB

@@ -328,8 +328,8 @@
                 <target>Synchronisierung kann nicht gestartet werden: proc_open ist auf diesem Server deaktiviert. Führen Sie die Synchronisierung stattdessen über die Kommandozeile aus: php vendor/bin/contao-console contao:openai-vector-sync [config-id]</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_manage_log">
-                <source>Manage log</source>
-                <target>Protokoll verwalten</target>
+                <source>Detailed history</source>
+                <target>Detaillierte Historie</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_recent_runs">
                 <source>Recent syncs</source>

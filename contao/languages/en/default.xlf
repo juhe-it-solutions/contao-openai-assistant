@@ -328,8 +328,8 @@
                 <target>Cannot dispatch sync: proc_open is disabled on this server. Run the sync via the command line instead: php vendor/bin/contao-console contao:openai-vector-sync [config-id]</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_manage_log">
-                <source>Manage log</source>
-                <target>Manage log</target>
+                <source>Detailed history</source>
+                <target>Detailed history</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_recent_runs">
                 <source>Recent syncs</source>
