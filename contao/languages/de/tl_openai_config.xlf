@@ -200,8 +200,8 @@
                 <target>Premium-Addon: Auto-Update Vector Store</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_text">
-                <source>With our premium add-on, your integrated chatbot stays up to date. Updated website content is automatically incorporated into the chatbot.</source>
-                <target>Mit unserem Premium-Addon halten Sie Ihren integrierten Chatbot stets aktuell. Aktualisierte Webseiten-Inhalte werden automatisch in die Wissensdatenbank des Chatbots übernommen. 14 Tage kostenlos testen, dann monatliche Abrechnung.</target>
+                <source>With our premium add-on, your integrated chatbot stays up to date. Updated website content is automatically incorporated into the chatbot's knowledge base. 14-day free trial, then billed monthly per domain.</source>
+                <target>Mit unserem Premium-Addon halten Sie Ihren integrierten Chatbot stets aktuell. Aktualisierte Webseiten-Inhalte werden automatisch in die Wissensdatenbank des Chatbots übernommen. 14 Tage kostenlos testen, dann monatliche Abrechnung pro Domain.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_purchase">
                 <source>Get a license at</source>
