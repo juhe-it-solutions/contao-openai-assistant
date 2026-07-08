@@ -382,16 +382,16 @@
                 <target>Indexierungsmodus</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_mode.1">
-                <source><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen – ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung.</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite; die Einstellungen „Generierungsmodell“ und „Anweisungen“ gelten nur in diesem Modus.]]></source>
-                <target><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen – ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung.</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite; die Einstellungen „Generierungsmodell“ und „Anweisungen“ gelten nur in diesem Modus.]]></target>
+                <source><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen – ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung.</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite.]]></source>
+                <target><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen – ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung.</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite.]]></target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_mode_ref.faithful">
                 <source>Faithful — upload full page content (recommended)</source>
                 <target>Originalgetreu – vollständigen Seiteninhalt hochladen (empfohlen)</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_mode_ref.llm_polish">
-                <source>AI polish — rewrite each page with an AI model (premium)</source>
-                <target>KI-Aufbereitung – jede Seite mit einem KI-Modell umschreiben</target>
+                <source>AI polish — rewrite each page with an AI model</source>
+                <target>KI-Aufbereitung – jede Seite mit einem KI-Modell optimieren</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_model.0">
                 <source>Generation model</source>
