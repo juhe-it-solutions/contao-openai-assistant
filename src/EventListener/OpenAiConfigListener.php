@@ -637,10 +637,7 @@ class OpenAiConfigListener
                 .'<a class="openai-license-help-link" href="%s" target="_blank" rel="noopener noreferrer">%s</a>'
                 .'</span>'
                 .'</span>'
-                .'</span>'
-                .'<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin-top: 8px; margin-left: 11px;">'
-                .'<strong>ℹ️ %s:</strong> %s'
-                .'</div>',
+                .'</span>',
                 htmlspecialchars($manageUrl, ENT_QUOTES),
                 htmlspecialchars($logoUrl, ENT_QUOTES),
                 (string) ($lang['premium_license_info_heading'] ?? 'Premium: automatic vector store sync'),
@@ -648,9 +645,8 @@ class OpenAiConfigListener
                 (string) ($lang['premium_license_info_manage'] ?? 'Manage subscription'),
                 htmlspecialchars($helpUrl, ENT_QUOTES),
                 (string) ($lang['premium_license_info_docs'] ?? 'Guide & help'),
-                (string) ($lang['premium_license_info_hint_heading'] ?? 'Note'),
-                $this->breakSentences((string) ($lang['premium_license_info_hint_active'] ?? 'To switch to a different key: clear this field, enter the new key, and save. To remove the license entirely: use the "Remove license" button next to the key field.')),
             );
+            $hintText = $this->breakSentences((string) ($lang['premium_license_info_hint_active'] ?? 'To switch to a different key: clear this field, enter the new key, and save. To remove the license entirely: use the "Remove license" button next to the key field.'));
         } else {
             $content = \sprintf(
                 '<strong class="oaa-info-card-heading" style="display: block; font-size: 22px; position: relative; top: -5px;">%s</strong>'
@@ -663,10 +659,7 @@ class OpenAiConfigListener
                 .'<a class="openai-license-help-link" href="%s" target="_blank" rel="noopener noreferrer">%s</a>'
                 .'<a class="openai-license-help-link" href="%s" target="_blank" rel="noopener noreferrer">%s</a>'
                 .'</span>'
-                .'</span></span>'
-                .'<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin-top: 8px; margin-left: 11px;">'
-                .'<strong>ℹ️ %s:</strong> %s'
-                .'</div>',
+                .'</span></span>',
                 (string) ($lang['premium_license_info_heading'] ?? 'Premium: automatic vector store sync'),
                 htmlspecialchars($licenseUrl, ENT_QUOTES),
                 htmlspecialchars($logoUrl, ENT_QUOTES),
@@ -678,10 +671,20 @@ class OpenAiConfigListener
                 (string) ($lang['premium_license_info_manage'] ?? 'Manage subscription'),
                 htmlspecialchars($helpUrl, ENT_QUOTES),
                 (string) ($lang['premium_license_info_docs'] ?? 'Guide & help'),
-                (string) ($lang['premium_license_info_hint_heading'] ?? 'Note'),
-                $this->breakSentences((string) ($lang['premium_license_info_hint'] ?? 'Enter your license key below and validate it with "Check key" before saving.')),
             );
+            $hintText = $this->breakSentences((string) ($lang['premium_license_info_hint'] ?? 'Enter your license key below and validate it with "Check key" before saving.'));
         }
+
+        // The hint box must be a sibling of the <p class="tl_info">, not a child:
+        // a <div> inside <p> is invalid HTML and browsers auto-close the paragraph,
+        // leaving a stray empty <p></p> in the DOM.
+        $hintMarkup = \sprintf(
+            '<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin-top: 8px; margin-left: 11px; line-height: 1.3;">'
+            .'<strong>ℹ️ %s:</strong><br>%s'
+            .'</div>',
+            (string) ($lang['premium_license_info_hint_heading'] ?? 'Notes'),
+            $hintText,
+        );
 
         return $stateMarkup.\sprintf(
             '<div class="widget clr premium-license-intro">'
@@ -693,9 +696,11 @@ class OpenAiConfigListener
             .'</style>'
             .'<div class="tl_message oaa-info-card oaa-info-card--premium">'
             .'<p class="tl_info" style="background: transparent url(system/themes/flexible/icons/show.svg) no-repeat 11px 12px;">%s</p>'
+            .'%s'
             .'</div>'
             .'</div>',
             $content,
+            $hintMarkup,
         );
     }
 

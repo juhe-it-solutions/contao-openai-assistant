@@ -216,8 +216,8 @@
                 <target>Abo verwalten</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_hint_heading">
-                <source>Note</source>
-                <target>Hinweis</target>
+                <source>Notes</source>
+                <target>Hinweise</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_hint">
                 <source>Enter your license key below and validate it with “Check key” before saving.</source>
