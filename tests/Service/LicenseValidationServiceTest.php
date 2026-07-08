@@ -160,7 +160,7 @@ class LicenseValidationServiceTest extends TestCase
     public function testResolvePageLimitFallsBackToPlanDefaults(): void
     {
         self::assertSame(20, LicenseValidationService::resolvePageLimit('starter', 0));
-        self::assertSame(100, LicenseValidationService::resolvePageLimit('business', 0));
+        self::assertSame(50, LicenseValidationService::resolvePageLimit('business', 0));
         self::assertSame(250, LicenseValidationService::resolvePageLimit('business', 250));
         self::assertNull(LicenseValidationService::resolvePageLimit('enterprise', 0));
         self::assertNull(LicenseValidationService::resolvePageLimit('', 0));

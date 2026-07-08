@@ -38,7 +38,7 @@ class LicenseValidationService
      */
     public const PLAN_PAGE_LIMITS = [
         'starter' => 20,
-        'business' => 100,
+        'business' => 50,
     ];
 
     private const VALIDATION_URL = 'https://licenses.juhe-it-solutions.at/api/openai-assistant/validate';

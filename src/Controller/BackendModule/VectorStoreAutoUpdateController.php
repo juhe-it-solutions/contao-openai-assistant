@@ -388,7 +388,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
     }
 
     /**
-     * Human-readable subscription label, e.g. "Business (up to 100 pages)" or
+     * Human-readable subscription label, e.g. "Business (up to 50 pages)" or
      * "Enterprise (unlimited)". Empty when no plan was stored yet.
      *
      * @param array<string, mixed> $config
