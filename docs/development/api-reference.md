@@ -5,9 +5,9 @@
 - `POST /ai-chat/send`: sends one frontend chat message. Requires AJAX and CSRF token. Rate-limited: messages per minute per client IP (default 10, backend-configurable, `0` = off), 1 per 2 seconds per session, and a per-configuration daily cap (default 1000, backend-configurable, `0` = off); over-limit requests return HTTP `429`. See [Chat rate limiting and cost protection](../security/rate-limiting.md).
 - `GET /ai-chat/history`: returns the current OpenAI conversation history for the visitor session. Requires AJAX.
 - `GET /ai-chat/token`: returns a CSRF token for frontend requests. Rate-limited to 1 request per 10 seconds per session.
-- `POST /contao/api-key-validate`: backend API key validation helper.
-- `POST /contao/license-key-validate`: backend premium license validation helper.
-- `%contao.backend.route_prefix%/vector-store-auto-update`: premium add-on status and manual sync dashboard.
+- `POST %contao.backend.route_prefix%/api-key-validate`: backend API key validation helper.
+- `POST %contao.backend.route_prefix%/license-key-validate`: backend premium license validation helper.
+- `%contao.backend.route_prefix%/vector-store-auto-update`: premium add-on status and manual sync dashboard (`GET`/`POST`); `GET %contao.backend.route_prefix%/vector-store-auto-update/status` returns the running sync status as JSON.
 
 ## OpenAI APIs Used
 
