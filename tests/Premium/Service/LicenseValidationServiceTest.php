@@ -3,18 +3,19 @@
 declare(strict_types=1);
 
 /*
- * This file is part of Contao Open Source CMS.
+ * This file is part of the JUHE Contao OpenAI Assistant premium add-on.
  *
  * (c) JUHE IT-solutions
  *
- * @license LGPL-3.0-or-later
+ * @license Proprietary - see LICENSE-PREMIUM. Usage of the premium add-on
+ *          requires a valid premium subscription from JUHE IT-solutions.
  */
 
-namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Service;
+namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Service;
 
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicenseValidationService;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpClient\Exception\TransportException;
 use Symfony\Component\HttpClient\MockHttpClient;

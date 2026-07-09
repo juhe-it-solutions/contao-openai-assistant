@@ -1,7 +1,7 @@
 # config/routes.yaml
 vector_store_auto_update:
     path: '%contao.backend.route_prefix%/vector-store-auto-update'
-    controller: JuheItSolutions\ContaoOpenaiAssistant\Controller\BackendModule\VectorStoreAutoUpdateController
+    controller: JuheItSolutions\ContaoOpenaiAssistant\Premium\Controller\BackendModule\VectorStoreAutoUpdateController
     methods: [GET, POST]
     defaults:
         _scope: backend
@@ -12,7 +12,7 @@ vector_store_auto_update:
 # the module permission. GET only, so no CSRF token is involved.
 vector_store_auto_update_status:
     path: '%contao.backend.route_prefix%/vector-store-auto-update/status'
-    controller: JuheItSolutions\ContaoOpenaiAssistant\Controller\BackendModule\VectorStoreAutoUpdateController::status
+    controller: JuheItSolutions\ContaoOpenaiAssistant\Premium\Controller\BackendModule\VectorStoreAutoUpdateController::status
     methods: [GET]
     defaults:
         _scope: backend
@@ -31,7 +31,7 @@ contao_api_key_validate:
 
 contao_license_key_validate:
     path: '%contao.backend.route_prefix%/license-key-validate'
-    controller: JuheItSolutions\ContaoOpenaiAssistant\Controller\LicenseValidationController::validateLicenseKey
+    controller: JuheItSolutions\ContaoOpenaiAssistant\Premium\Controller\LicenseValidationController::validateLicenseKey
     methods: [POST]
     defaults:
         _scope: backend

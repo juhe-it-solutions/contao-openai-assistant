@@ -1,11 +1,11 @@
 <?php
 
 /*
- * This file is part of Contao Open Source CMS.
- *  *
- *  * (c) JUHE IT-solutions
- *  *
- *  * @license LGPL-3.0-or-later
+ * This file is part of the JUHE Contao OpenAI Assistant bundle.
+ *
+ * (c) JUHE IT-solutions
+ *
+ * @license LGPL-3.0-or-later
  */
 
 // Category (used for module group in module creation)

@@ -1,0 +1,72 @@
+JUHE CONTAO OPENAI ASSISTANT — PREMIUM ADD-ON LICENSE
+=======================================================
+
+*** DRAFT — SUBJECT TO LEGAL REVIEW ***
+
+Copyright (C) 2024-2026 JUHE IT-solutions, Austria
+Contact: office@juhe-it-solutions.at
+License portal: https://licenses.juhe-it-solutions.at
+
+1. SCOPE
+--------
+This license applies ONLY to the files listed in section 7 ("Covered
+Files") of this document. All other files in this package are licensed
+under the GNU Lesser General Public License v3.0 or later; see the
+LICENSE file.
+
+2. GRANT
+--------
+Subject to a valid, active premium subscription purchased from
+JUHE IT-solutions, you are granted a non-exclusive, non-transferable
+license to install and use the Covered Files as part of the
+juhe-it-solutions/contao-openai-assistant package on the domain(s)
+covered by your subscription.
+
+3. RESTRICTIONS
+---------------
+You may NOT, except to the extent permitted by mandatory statutory law:
+  a) use the Covered Files without a valid premium subscription;
+  b) redistribute, sublicense, sell, rent, or otherwise make the
+     Covered Files available to third parties as a standalone work;
+  c) remove, disable, or circumvent the license validation contained
+     in the Covered Files;
+  d) use the Covered Files on domains not covered by your subscription.
+
+Installing this package via Composer/Packagist and receiving the
+Covered Files as part of it does NOT itself grant a right of use;
+usage of the premium features requires a subscription per section 2.
+
+4. TERM
+-------
+The right of use ends when the subscription expires or is terminated.
+Content already indexed before expiry is not deleted by the software;
+scheduled and manual premium sync runs stop.
+
+5. NO WARRANTY
+--------------
+THE COVERED FILES ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE, EXCEPT WHERE
+SUCH DISCLAIMER IS INVALID UNDER MANDATORY STATUTORY LAW. LIABILITY
+FOR INTENT AND GROSS NEGLIGENCE REMAINS UNAFFECTED.
+
+6. RELATION TO THE LGPL PART
+----------------------------
+The LGPL-licensed part of this package references interfaces of the
+Covered Files in a small number of integration points (e.g. cleanup
+of vector store data when a configuration is deleted). This does not
+place the Covered Files under the LGPL, nor does it restrict your
+rights under the LGPL for the files covered by the LICENSE file.
+
+7. COVERED FILES
+----------------
+  All files below the following directories:
+    src/Premium/
+    tests/Premium/
+  and additionally:
+    contao/templates/backend/vector_store_auto_update.html.twig
+
+All files NOT listed above are licensed under LGPL-3.0-or-later
+(see LICENSE). Versions of this package tagged before the first
+release containing this file are licensed entirely under
+LGPL-3.0-or-later.

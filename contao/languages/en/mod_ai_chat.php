@@ -1,7 +1,7 @@
 <?php
 
 /*
- * This file is part of Contao Open Source CMS.
+ * This file is part of the JUHE Contao OpenAI Assistant bundle.
  *
  * (c) JUHE IT-solutions
  *

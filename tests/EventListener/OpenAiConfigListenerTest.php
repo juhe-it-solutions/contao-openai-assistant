@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * This file is part of Contao Open Source CMS.
+ * This file is part of the JUHE Contao OpenAI Assistant bundle.
  *
  * (c) JUHE IT-solutions
  *
@@ -17,13 +17,13 @@ use Contao\DataContainer;
 use Contao\System;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\CronHealthService;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\CronHealthService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\LicensePortalUrlService;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicensePortalUrlService;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicenseValidationService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiModelCatalogService;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreFileSync;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreAutoUpdateService;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreFileSync;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\DependencyInjection\Container;

@@ -1,11 +1,11 @@
 <?php
 
 /*
- * This file is part of Contao Open Source CMS.
- *  *
- *  * (c) JUHE IT-solutions
- *  *
- *  * @license LGPL-3.0-or-later
+ * This file is part of the JUHE Contao OpenAI Assistant bundle.
+ *
+ * (c) JUHE IT-solutions
+ *
+ * @license LGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -20,14 +20,14 @@ use Contao\DataContainer;
 use Contao\Message;
 use Contao\System;
 use Doctrine\DBAL\Connection;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\CronHealthService;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\CronHealthService;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicensePortalUrlService;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicenseValidationService;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreAutoUpdateService;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreDocumentPrompt;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreFileSync;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\LicensePortalUrlService;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiModelCatalogService;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreDocumentPrompt;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreFileSync;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
@@ -603,15 +603,6 @@ class OpenAiConfigListener
         return $buttons;
     }
 
-    /**
-     * Inserts a line break after each sentence-ending punctuation mark so hint text
-     * doesn't run on as a single dense paragraph.
-     */
-    private function breakSentences(string $text): string
-    {
-        return (string) preg_replace('/(?<=[.!?])\s+(?=\S)/u', '<br>', $text);
-    }
-
     public function premiumLicenseIntroField(DataContainer $dc, string $xlabel = ''): string
     {
         $lang = $this->loadConfigLang();
@@ -1120,6 +1111,15 @@ class OpenAiConfigListener
             htmlspecialchars($this->router->generate('vector_store_auto_update'), ENT_QUOTES),
             htmlspecialchars($this->getConfigLangString('first_sync_hint_dashboard', 'Open the Auto-Sync dashboard'), ENT_QUOTES),
         );
+    }
+
+    /**
+     * Inserts a line break after each sentence-ending punctuation mark so hint text
+     * doesn't run on as a single dense paragraph.
+     */
+    private function breakSentences(string $text): string
+    {
+        return (string) preg_replace('/(?<=[.!?])\s+(?=\S)/u', '<br>', $text);
     }
 
     /**

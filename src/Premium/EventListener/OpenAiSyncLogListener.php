@@ -3,18 +3,19 @@
 declare(strict_types=1);
 
 /*
- * This file is part of Contao Open Source CMS.
+ * This file is part of the JUHE Contao OpenAI Assistant premium add-on.
  *
  * (c) JUHE IT-solutions
  *
- * @license LGPL-3.0-or-later
+ * @license Proprietary - see LICENSE-PREMIUM. Usage of the premium add-on
+ *          requires a valid premium subscription from JUHE IT-solutions.
  */
 
-namespace JuheItSolutions\ContaoOpenaiAssistant\EventListener;
+namespace JuheItSolutions\ContaoOpenaiAssistant\Premium\EventListener;
 
 use Contao\CoreBundle\DependencyInjection\Attribute\AsCallback;
 use Contao\DataContainer;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreSyncMessageTranslator;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreSyncMessageTranslator;
 
 /**
  * Presentation tweaks for the read-only "OpenAI Sync-Protokoll" listing

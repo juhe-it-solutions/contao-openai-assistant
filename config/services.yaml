@@ -27,7 +27,7 @@ services:
             $csrfTokenName: '%contao.csrf_token_name%'
         public: true
 
-    JuheItSolutions\ContaoOpenaiAssistant\Controller\LicenseValidationController:
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Controller\LicenseValidationController:
         arguments:
             $csrfTokenManager: '@contao.csrf.token_manager'
             $csrfTokenName: '%contao.csrf_token_name%'
@@ -89,9 +89,9 @@ services:
             $requestStack: '@request_stack'
             $connection: '@doctrine.dbal.default_connection'
             $encryption: '@JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService'
-            $licenseValidation: '@JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService'
-            $autoUpdateService: '@JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService'
-            $fileSync: '@JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreFileSync'
+            $licenseValidation: '@JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicenseValidationService'
+            $autoUpdateService: '@JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreAutoUpdateService'
+            $fileSync: '@JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreFileSync'
         public: true
         tags:
             - { name: contao.callback, table: tl_openai_config, target: config.onload, method: onLoadCallback }
@@ -174,19 +174,19 @@ services:
 
     # LicenseValidationService — $http needs explicit wiring; $encryption decrypts the
     # stored key before remote validation
-    JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService:
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicenseValidationService:
         arguments:
             $connection: '@doctrine.dbal.default_connection'
             $http: '@http_client'
             $encryption: '@JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService'
 
     # CronHealthService — CLI cron heartbeat detection (auto-sync dashboard + config-form hint)
-    JuheItSolutions\ContaoOpenaiAssistant\Service\CronHealthService:
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\CronHealthService:
         arguments:
             $connection: '@doctrine.dbal.default_connection'
 
     # VectorStoreFileSync — per-page upload/reconcile against the OpenAI vector store
-    JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreFileSync:
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreFileSync:
         arguments:
             $connection: '@doctrine.dbal.default_connection'
             $http: '@http_client'
@@ -194,20 +194,20 @@ services:
 
     # VectorStoreAutoUpdateService — orchestration; ProcessUtil + EncryptionService +
     # LicenseValidationService + BoilerplateFilter + VectorStoreFileSync autowire by type
-    JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService:
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreAutoUpdateService:
         arguments:
             $connection: '@doctrine.dbal.default_connection'
             $http: '@http_client'
             $logger: '@monolog.logger.contao'
 
     # VectorStoreAutoUpdateCron — #[AsCronJob] handles registration; only $connection overridden
-    JuheItSolutions\ContaoOpenaiAssistant\Cron\VectorStoreAutoUpdateCron:
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Cron\VectorStoreAutoUpdateCron:
         arguments:
             $connection: '@doctrine.dbal.default_connection'
             $logger: '@monolog.logger.contao'
 
     # VectorStoreAutoUpdateController — public for routing; $connection + CSRF wired explicitly
-    JuheItSolutions\ContaoOpenaiAssistant\Controller\BackendModule\VectorStoreAutoUpdateController:
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Controller\BackendModule\VectorStoreAutoUpdateController:
         arguments:
             $connection: '@doctrine.dbal.default_connection'
             $csrfTokenManager: '@contao.csrf.token_manager'

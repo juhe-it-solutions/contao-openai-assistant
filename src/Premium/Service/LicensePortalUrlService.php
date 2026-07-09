@@ -1,24 +1,26 @@
 <?php
 
 /*
- * This file is part of Contao Open Source CMS.
- *  *
- *  * (c) JUHE IT-solutions
- *  *
- *  * @license LGPL-3.0-or-later
+ * This file is part of the JUHE Contao OpenAI Assistant premium add-on.
+ *
+ * (c) JUHE IT-solutions
+ *
+ * @license Proprietary - see LICENSE-PREMIUM. Usage of the premium add-on
+ *          requires a valid premium subscription from JUHE IT-solutions.
  */
 
 declare(strict_types=1);
 
 /*
- * This file is part of Contao Open Source CMS.
+ * This file is part of the JUHE Contao OpenAI Assistant premium add-on.
  *
  * (c) JUHE IT-solutions
  *
- * @license LGPL-3.0-or-later
+ * @license Proprietary - see LICENSE-PREMIUM. Usage of the premium add-on
+ *          requires a valid premium subscription from JUHE IT-solutions.
  */
 
-namespace JuheItSolutions\ContaoOpenaiAssistant\Service;
+namespace JuheItSolutions\ContaoOpenaiAssistant\Premium\Service;
 
 use Symfony\Contracts\Translation\TranslatorInterface;
 

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * This file is part of Contao Open Source CMS.
+ * This file is part of the JUHE Contao OpenAI Assistant bundle.
  *
  * (c) JUHE IT-solutions
  *
@@ -31,9 +31,14 @@ return ECSConfig::configure()
         // annotations are kept because they aid PHPStan. Re-enable once the upstream
         // fixer bug is fixed.
         CommentLengthFixer::class,
+        // Premium add-on files carry a proprietary header (see LICENSE-PREMIUM);
+        // the HeaderCommentFixer would overwrite it with the LGPL header.
+        HeaderCommentFixer::class => [
+            __DIR__.'/src/Premium/*',
+        ],
     ])
     ->withConfiguredRule(HeaderCommentFixer::class, [
-        'header' => "This file is part of Contao Open Source CMS.\n\n(c) JUHE IT-solutions\n\n@license LGPL-3.0-or-later",
+        'header' => "This file is part of the JUHE Contao OpenAI Assistant bundle.\n\n(c) JUHE IT-solutions\n\n@license LGPL-3.0-or-later",
     ])
     ->withParallel()
     ->withCache(sys_get_temp_dir().'/ecs/ecs')

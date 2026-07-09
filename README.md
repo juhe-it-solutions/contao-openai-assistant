@@ -4,7 +4,7 @@
   <img src="public/images/logo_juhe-licenses.svg" alt="JUHE Licenses" width="180">
 </p>
 
-[![License: LGPL-3.0-or-later](https://img.shields.io/badge/License-LGPL%203.0--or--later-blue.svg)](LICENSE)
+[![License: LGPL-3.0-or-later AND Proprietary](https://img.shields.io/badge/License-LGPL%203.0--or--later%20AND%20Proprietary-blue.svg)](LICENSE)
 [![Contao](https://img.shields.io/badge/Contao-5.3+-green.svg)](https://contao.org)
 [![PHP](https://img.shields.io/badge/PHP-8.2+-purple.svg)](https://php.net)
 [![Packagist](https://img.shields.io/packagist/v/juhe-it-solutions/contao-openai-assistant.svg)](https://packagist.org/packages/juhe-it-solutions/contao-openai-assistant)
@@ -49,6 +49,11 @@ Then run the Contao database migration. Detailed setup is documented in [`docs/i
 
 ## License And Security
 
-This extension is licensed under LGPL-3.0-or-later. See [`LICENSE`](LICENSE).
+This extension is dual-licensed:
+
+- **Core extension** (backend dashboard, prompts, knowledge-base files, frontend chatbot): LGPL-3.0-or-later, see [`LICENSE`](LICENSE).
+- **Premium add-on** (automatic vector-store sync and license validation; the files listed in [`LICENSE-PREMIUM`](LICENSE-PREMIUM)): proprietary. The files ship with the package, but using the premium features requires a valid [premium subscription](https://licenses.juhe-it-solutions.at).
+
+Versions tagged before the introduction of `LICENSE-PREMIUM` remain entirely under LGPL-3.0-or-later.
 
 Please report security issues privately to office@juhe-it-solutions.at.

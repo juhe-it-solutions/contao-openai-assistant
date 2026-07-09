@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.1.0] - xx.xx.2026
 
+### Changed
+- **Licensing: dual license from this release onwards.** The core extension remains LGPL-3.0-or-later ([`LICENSE`](LICENSE)). The premium add-on files (automatic vector-store sync and license validation) are proprietary; using the premium features requires a valid premium subscription (see the new [`LICENSE-PREMIUM`](LICENSE-PREMIUM)). `composer.json` now declares `LGPL-3.0-or-later AND proprietary`. All versions tagged before this release remain entirely under LGPL-3.0-or-later. File headers were corrected accordingly (they previously claimed the files were part of Contao Open Source CMS).
+- **Premium code moved to a dedicated namespace.** All proprietary classes now live under `src/Premium/` (`JuheItSolutions\ContaoOpenaiAssistant\Premium\...`, tests under `tests/Premium/`), making the license boundary directory-based. Route names, the CLI command name and all backend behavior are unchanged; since the premium feature first ships in this release, this is not a breaking change.
+
 ### Added
 - **Premium add-on: automatic vector-store updates:** Added licensed support for keeping an OpenAI vector store in sync with selected Contao pages, including manual or scheduled runs and a backend sync status dashboard.
 - **Chat cost protection:** The public chat endpoint is now rate-limited per client IP (cache-backed so it survives session-cookie rotation) and capped by a per-configuration daily message limit. Both limits are backend-configurable: `tl_openai_config.chat_ip_rate_limit` (default 10/minute, `0` = off — raise or disable on intranets/NAT where many users share one egress IP) and `tl_openai_config.chat_daily_limit` (default 1000/day, `0` = uncapped). Bounds the worst-case OpenAI spend under abuse. Requires `contao:migrate` to add the new columns; see [docs/security/rate-limiting.md](docs/security/rate-limiting.md).

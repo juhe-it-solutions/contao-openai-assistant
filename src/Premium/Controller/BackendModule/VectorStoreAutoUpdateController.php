@@ -1,16 +1,17 @@
 <?php
 
 /*
- * This file is part of Contao Open Source CMS.
- *  *
- *  * (c) JUHE IT-solutions
- *  *
- *  * @license LGPL-3.0-or-later
+ * This file is part of the JUHE Contao OpenAI Assistant premium add-on.
+ *
+ * (c) JUHE IT-solutions
+ *
+ * @license Proprietary - see LICENSE-PREMIUM. Usage of the premium add-on
+ *          requires a valid premium subscription from JUHE IT-solutions.
  */
 
 declare(strict_types=1);
 
-namespace JuheItSolutions\ContaoOpenaiAssistant\Controller\BackendModule;
+namespace JuheItSolutions\ContaoOpenaiAssistant\Premium\Controller\BackendModule;
 
 use Contao\CoreBundle\Controller\AbstractBackendController;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
@@ -19,11 +20,11 @@ use Contao\Message;
 use Cron\CronExpression;
 use Cron\FieldFactory;
 use Doctrine\DBAL\Connection;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\CronHealthService;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\LicensePortalUrlService;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreSyncMessageTranslator;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\CronHealthService;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicensePortalUrlService;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicenseValidationService;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreAutoUpdateService;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreSyncMessageTranslator;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

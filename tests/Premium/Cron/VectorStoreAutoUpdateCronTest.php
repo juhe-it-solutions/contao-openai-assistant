@@ -2,16 +2,25 @@
 
 declare(strict_types=1);
 
-namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Cron;
+/*
+ * This file is part of the JUHE Contao OpenAI Assistant premium add-on.
+ *
+ * (c) JUHE IT-solutions
+ *
+ * @license Proprietary - see LICENSE-PREMIUM. Usage of the premium add-on
+ *          requires a valid premium subscription from JUHE IT-solutions.
+ */
+
+namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Cron;
 
 use Doctrine\DBAL\Connection;
-use JuheItSolutions\ContaoOpenaiAssistant\Cron\VectorStoreAutoUpdateCron;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\VectorStoreAutoUpdateService;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Cron\VectorStoreAutoUpdateCron;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreAutoUpdateService;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
 /**
- * @covers \JuheItSolutions\ContaoOpenaiAssistant\Cron\VectorStoreAutoUpdateCron
+ * @covers \JuheItSolutions\ContaoOpenaiAssistant\Premium\Cron\VectorStoreAutoUpdateCron
  */
 class VectorStoreAutoUpdateCronTest extends TestCase
 {

@@ -3,20 +3,21 @@
 declare(strict_types=1);
 
 /*
- * This file is part of Contao Open Source CMS.
+ * This file is part of the JUHE Contao OpenAI Assistant premium add-on.
  *
  * (c) JUHE IT-solutions
  *
- * @license LGPL-3.0-or-later
+ * @license Proprietary - see LICENSE-PREMIUM. Usage of the premium add-on
+ *          requires a valid premium subscription from JUHE IT-solutions.
  */
 
-namespace JuheItSolutions\ContaoOpenaiAssistant\Controller;
+namespace JuheItSolutions\ContaoOpenaiAssistant\Premium\Controller;
 
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\CoreBundle\Security\ContaoCorePermissions;
 use JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicenseValidationService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\LicenseValidationService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
