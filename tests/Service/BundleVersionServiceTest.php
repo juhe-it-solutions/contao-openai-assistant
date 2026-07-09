@@ -22,31 +22,31 @@ class BundleVersionServiceTest extends TestCase
         $service = new BundleVersionService();
         $version = $service->getVersion();
 
-        self::assertNotNull($version);
-        self::assertNotSame('', $version);
+        $this->assertNotNull($version);
+        $this->assertNotSame('', $version);
     }
 
     public function testGetDisplayLabelPrefixesNumericVersions(): void
     {
         $service = new class() extends BundleVersionService {
-            public function getVersion(): ?string
+            public function getVersion(): string|null
             {
                 return '2.4.1';
             }
         };
 
-        self::assertSame('v2.4.1', $service->getDisplayLabel());
+        $this->assertSame('v2.4.1', $service->getDisplayLabel());
     }
 
     public function testGetDisplayLabelLeavesDevVersionsUntouched(): void
     {
         $service = new class() extends BundleVersionService {
-            public function getVersion(): ?string
+            public function getVersion(): string|null
             {
                 return 'dev-main';
             }
         };
 
-        self::assertSame('dev-main', $service->getDisplayLabel());
+        $this->assertSame('dev-main', $service->getDisplayLabel());
     }
 }

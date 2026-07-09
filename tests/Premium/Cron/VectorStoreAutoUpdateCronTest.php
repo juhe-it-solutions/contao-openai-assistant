@@ -3,12 +3,11 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the JUHE Contao OpenAI Assistant premium add-on.
+ * This file is part of the JUHE Contao OpenAI Assistant bundle.
  *
  * (c) JUHE IT-solutions
  *
- * @license Proprietary - see LICENSE-PREMIUM. Usage of the premium add-on
- *          requires a valid premium subscription from JUHE IT-solutions.
+ * @license LGPL-3.0-or-later
  */
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Cron;
@@ -35,7 +34,7 @@ class VectorStoreAutoUpdateCronTest extends TestCase
         $method = new \ReflectionMethod(VectorStoreAutoUpdateCron::class, 'isDue');
         $method->setAccessible(true);
 
-        self::assertFalse($method->invoke($cron, [
+        $this->assertFalse($method->invoke($cron, [
             'auto_update_last_run' => 0,
             'auto_update_schedule' => '0 2 * * *',
             'auto_update_last_status' => '',
@@ -53,7 +52,7 @@ class VectorStoreAutoUpdateCronTest extends TestCase
         $method = new \ReflectionMethod(VectorStoreAutoUpdateCron::class, 'isDue');
         $method->setAccessible(true);
 
-        self::assertTrue($method->invoke($cron, [
+        $this->assertTrue($method->invoke($cron, [
             'auto_update_last_run' => time() - 86400 * 2,
             'auto_update_schedule' => '0 2 * * *',
             'auto_update_last_status' => 'success',
@@ -71,7 +70,7 @@ class VectorStoreAutoUpdateCronTest extends TestCase
         $method = new \ReflectionMethod(VectorStoreAutoUpdateCron::class, 'isDue');
         $method->setAccessible(true);
 
-        self::assertFalse($method->invoke($cron, [
+        $this->assertFalse($method->invoke($cron, [
             'auto_update_last_run' => time() - 60,
             'auto_update_schedule' => '* * * * *',
             'auto_update_last_status' => 'running',

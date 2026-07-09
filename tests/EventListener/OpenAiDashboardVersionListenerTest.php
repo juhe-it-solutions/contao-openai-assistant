@@ -28,9 +28,9 @@ class OpenAiDashboardVersionListenerTest extends TestCase
         $buffer = '<main id="main"><h1 id="main_headline"> <span><a href="/contao?do=openai_dashboard">OpenAI Dashboard</a></span> <span>Edit</span></h1></main>';
         $result = $listener($buffer, 'be_main');
 
-        self::assertStringContainsString('class="oaa-bundle-version"', $result);
-        self::assertStringContainsString('>v2.1.0</span>', $result);
-        self::assertMatchesRegularExpression(
+        $this->assertStringContainsString('class="oaa-bundle-version"', $result);
+        $this->assertStringContainsString('>v2.1.0</span>', $result);
+        $this->assertMatchesRegularExpression(
             '/<a href="[^"]+">OpenAI Dashboard <span class="oaa-bundle-version"[^>]*>v2\.1\.0<\/span><\/a>/',
             $result,
         );
@@ -43,7 +43,7 @@ class OpenAiDashboardVersionListenerTest extends TestCase
         $buffer = '<div class="content-top"><nav id="main_breadcrumb"><ul><li class="current"><a href="/contao?do=openai_dashboard">OpenAI Dashboard</a></li></ul></nav></div>';
         $result = $listener($buffer, 'be_main');
 
-        self::assertMatchesRegularExpression(
+        $this->assertMatchesRegularExpression(
             '/<a href="\/contao\?do=openai_dashboard">OpenAI Dashboard <span class="oaa-bundle-version"[^>]*>v2\.1\.0<\/span><\/a>/',
             $result,
         );
@@ -56,7 +56,7 @@ class OpenAiDashboardVersionListenerTest extends TestCase
         $buffer = '<h1 id="main_headline"><span>Articles</span></h1>';
         $result = $listener($buffer, 'be_main');
 
-        self::assertSame($buffer, $result);
+        $this->assertSame($buffer, $result);
     }
 
     public function testSkipsOtherTemplates(): void
@@ -66,7 +66,7 @@ class OpenAiDashboardVersionListenerTest extends TestCase
         $buffer = '<h1 id="main_headline"><span>OpenAI Dashboard</span></h1>';
         $result = $listener($buffer, 'be_login');
 
-        self::assertSame($buffer, $result);
+        $this->assertSame($buffer, $result);
     }
 
     public function testLeavesBufferUntouchedWhenVersionUnavailable(): void
@@ -76,17 +76,17 @@ class OpenAiDashboardVersionListenerTest extends TestCase
         $buffer = '<h1 id="main_headline"><span>OpenAI Dashboard</span></h1>';
         $result = $listener($buffer, 'be_main');
 
-        self::assertSame($buffer, $result);
+        $this->assertSame($buffer, $result);
     }
 
-    private function createListener(?string $version, string $module): OpenAiDashboardVersionListener
+    private function createListener(string|null $version, string $module): OpenAiDashboardVersionListener
     {
         $bundleVersion = new class($version) extends BundleVersionService {
-            public function __construct(private readonly ?string $version)
+            public function __construct(private readonly string|null $version)
             {
             }
 
-            public function getDisplayLabel(): ?string
+            public function getDisplayLabel(): string|null
             {
                 if (null === $this->version) {
                     return null;

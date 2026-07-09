@@ -1,8 +1,6 @@
 JUHE CONTAO OPENAI ASSISTANT — PREMIUM ADD-ON LICENSE
 =======================================================
 
-*** DRAFT — SUBJECT TO LEGAL REVIEW ***
-
 Copyright (C) 2024-2026 JUHE IT-solutions, Austria
 Contact: office@juhe-it-solutions.at
 License portal: https://licenses.juhe-it-solutions.at
@@ -57,6 +55,18 @@ Covered Files in a small number of integration points (e.g. cleanup
 of vector store data when a configuration is deleted). This does not
 place the Covered Files under the LGPL, nor does it restrict your
 rights under the LGPL for the files covered by the LICENSE file.
+
+For the avoidance of doubt, the following files contain integration
+wiring that references the Covered Files (service definitions, route
+definitions, DCA field definitions, and backend form handling) but
+are themselves NOT Covered Files and remain licensed under
+LGPL-3.0-or-later:
+    src/EventListener/OpenAiConfigListener.php
+    config/services.yaml
+    config/routes.yaml
+    contao/dca/tl_openai_config.php
+Such wiring does not grant any right to use the Covered Files without
+a subscription per section 2.
 
 7. COVERED FILES
 ----------------

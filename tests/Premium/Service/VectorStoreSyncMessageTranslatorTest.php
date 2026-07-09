@@ -3,12 +3,11 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the JUHE Contao OpenAI Assistant premium add-on.
+ * This file is part of the JUHE Contao OpenAI Assistant bundle.
  *
  * (c) JUHE IT-solutions
  *
- * @license Proprietary - see LICENSE-PREMIUM. Usage of the premium add-on
- *          requires a valid premium subscription from JUHE IT-solutions.
+ * @license LGPL-3.0-or-later
  */
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Service;
@@ -23,7 +22,7 @@ class VectorStoreSyncMessageTranslatorTest extends TestCase
     {
         $translator = $this->createMock(TranslatorInterface::class);
         $translator
-            ->expects(self::once())
+            ->expects($this->once())
             ->method('trans')
             ->with(
                 'MSC.vsau_plan_limit_truncated',
@@ -35,7 +34,7 @@ class VectorStoreSyncMessageTranslatorTest extends TestCase
 
         $service = new VectorStoreSyncMessageTranslator($translator);
 
-        self::assertSame(
+        $this->assertSame(
             '5 pages were not synced (limit 20).',
             $service->translate('MSC.vsau_plan_limit_truncated|5|20'),
         );
@@ -63,7 +62,7 @@ class VectorStoreSyncMessageTranslatorTest extends TestCase
             .VectorStoreSyncMessageTranslator::COMPOUND_SEPARATOR
             .'MSC.vsau_partial_files_failed|3';
 
-        self::assertSame(
+        $this->assertSame(
             'Plan limit: 5 of over 20 skipped. 3 uploads failed.',
             $service->translate($compound),
         );
@@ -72,8 +71,11 @@ class VectorStoreSyncMessageTranslatorTest extends TestCase
     public function testReturnsNullForNullMessage(): void
     {
         $translator = $this->createMock(TranslatorInterface::class);
-        $translator->expects(self::never())->method('trans');
+        $translator
+            ->expects($this->never())
+            ->method('trans')
+        ;
 
-        self::assertNull((new VectorStoreSyncMessageTranslator($translator))->translate(null));
+        $this->assertNull((new VectorStoreSyncMessageTranslator($translator))->translate(null));
     }
 }

@@ -18,12 +18,12 @@ use Contao\System;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\CronHealthService;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicensePortalUrlService;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicenseValidationService;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiModelCatalogService;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreAutoUpdateService;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreFileSync;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiModelCatalogService;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\DependencyInjection\Container;
@@ -38,7 +38,7 @@ class OpenAiConfigListenerTest extends TestCase
     {
         $connection = $this->createMock(Connection::class);
         $connection
-            ->expects(self::once())
+            ->expects($this->once())
             ->method('fetchOne')
             ->with('SELECT COUNT(*) FROM tl_openai_config')
             ->willReturn(0)
@@ -50,7 +50,7 @@ class OpenAiConfigListenerTest extends TestCase
         try {
             $this->createListener($connection)->onLoadCallback(null);
 
-            self::assertArrayNotHasKey(
+            $this->assertArrayNotHasKey(
                 'notCreatable',
                 $GLOBALS['TL_DCA']['tl_openai_config']['config'],
                 'A fresh installation must show Contao\'s "new" action for the first OpenAI config.',
@@ -68,7 +68,7 @@ class OpenAiConfigListenerTest extends TestCase
     {
         $connection = $this->createMock(Connection::class);
         $connection
-            ->expects(self::once())
+            ->expects($this->once())
             ->method('fetchOne')
             ->with('SELECT COUNT(*) FROM tl_openai_config')
             ->willReturn(1)
@@ -80,7 +80,7 @@ class OpenAiConfigListenerTest extends TestCase
         try {
             $this->createListener($connection)->onLoadCallback(null);
 
-            self::assertTrue(
+            $this->assertTrue(
                 $GLOBALS['TL_DCA']['tl_openai_config']['config']['notCreatable'],
                 'After the first OpenAI config exists, Contao must hide the "new" action.',
             );
@@ -109,7 +109,7 @@ class OpenAiConfigListenerTest extends TestCase
         $_POST['api_key'] = '';
 
         try {
-            self::assertSame(
+            $this->assertSame(
                 'STORED_CIPHERTEXT',
                 $listener->processApiKeyForStorage(null, $dc),
                 'Leaving the API key field blank on an existing config must preserve the stored key.',
@@ -123,7 +123,7 @@ class OpenAiConfigListenerTest extends TestCase
     {
         $listener = $this->createListener($this->createMock(Connection::class));
 
-        self::assertSame(
+        $this->assertSame(
             [
                 'save' => '<button>save</button>',
                 'saveNclose' => '<button>saveNclose</button>',
@@ -143,9 +143,9 @@ class OpenAiConfigListenerTest extends TestCase
 
         $markup = $listener->renderAutoUpdateBackendState(0, false);
 
-        self::assertStringContainsString('data-license-active="0"', $markup);
-        self::assertStringContainsString('data-config-id="0"', $markup);
-        self::assertStringContainsString(
+        $this->assertStringContainsString('data-license-active="0"', $markup);
+        $this->assertStringContainsString('data-config-id="0"', $markup);
+        $this->assertStringContainsString(
             '<style>#pal_auto_update_legend{display:none}</style>',
             $markup,
             'Without a validated license the Vector-Store-Synchronisierung fieldset must be hidden before first paint.',
@@ -158,9 +158,9 @@ class OpenAiConfigListenerTest extends TestCase
 
         $markup = $listener->renderAutoUpdateBackendState(7, true);
 
-        self::assertStringContainsString('data-license-active="1"', $markup);
-        self::assertStringContainsString('data-config-id="7"', $markup);
-        self::assertStringNotContainsString('#pal_auto_update_legend', $markup);
+        $this->assertStringContainsString('data-license-active="1"', $markup);
+        $this->assertStringContainsString('data-config-id="7"', $markup);
+        $this->assertStringNotContainsString('#pal_auto_update_legend', $markup);
     }
 
     public function testConfigDeletePurgesAutoSyncFilesBeforeRemovingLocalTrackingRows(): void
@@ -170,11 +170,13 @@ class OpenAiConfigListenerTest extends TestCase
         $connection = $this->createMock(Connection::class);
         $connection
             ->method('executeStatement')
-            ->willReturnCallback(static function (string $sql, array $params = []) use (&$executedStatements): int {
-                $executedStatements[] = [$sql, $params];
+            ->willReturnCallback(
+                static function (string $sql, array $params = []) use (&$executedStatements): int {
+                    $executedStatements[] = [$sql, $params];
 
-                return 1;
-            })
+                    return 1;
+                },
+            )
         ;
         $connection
             ->method('fetchAllAssociative')
@@ -191,35 +193,39 @@ class OpenAiConfigListenerTest extends TestCase
 
         $licenseValidation = $this->createMock(LicenseValidationService::class);
         $licenseValidation
-            ->expects(self::once())
+            ->expects($this->once())
             ->method('deactivate')
             ->with(7)
         ;
 
         $fileSync = $this->createMock(VectorStoreFileSync::class);
         $fileSync
-            ->expects(self::once())
+            ->expects($this->once())
             ->method('purge')
             ->with('sk-test', 'vs_123', 7)
-            ->willReturnCallback(static function () use (&$executedStatements): void {
-                self::assertNotContains(
-                    ['DELETE FROM tl_openai_vector_file WHERE pid = ?', [7]],
-                    $executedStatements,
-                    'Auto-sync file ids must still be available when remote purge runs.',
-                );
-            })
+            ->willReturnCallback(
+                static function () use (&$executedStatements): void {
+                    self::assertNotContains(
+                        ['DELETE FROM tl_openai_vector_file WHERE pid = ?', [7]],
+                        $executedStatements,
+                        'Auto-sync file ids must still be available when remote purge runs.',
+                    );
+                },
+            )
         ;
 
         $requests = [];
-        $httpClient = new MockHttpClient(static function (string $method, string $url) use (&$requests): MockResponse {
-            $requests[] = $method.' '.$url;
+        $httpClient = new MockHttpClient(
+            static function (string $method, string $url) use (&$requests): MockResponse {
+                $requests[] = $method.' '.$url;
 
-            if ('DELETE' === $method && 'https://api.openai.com/v1/vector_stores/vs_123' === $url) {
-                return new MockResponse('{}');
-            }
+                if ('DELETE' === $method && 'https://api.openai.com/v1/vector_stores/vs_123' === $url) {
+                    return new MockResponse('{}');
+                }
 
-            self::fail('Unexpected request: '.$method.' '.$url);
-        });
+                self::fail('Unexpected request: '.$method.' '.$url);
+            },
+        );
 
         $listener = new OpenAiConfigListener(
             $httpClient,
@@ -247,9 +253,9 @@ class OpenAiConfigListenerTest extends TestCase
 
         $listener->deleteVectorStore($dc);
 
-        self::assertContains('DELETE https://api.openai.com/v1/vector_stores/vs_123', $requests);
-        self::assertContains(['DELETE FROM tl_openai_sync_log WHERE pid = ?', [7]], $executedStatements);
-        self::assertSame(
+        $this->assertContains('DELETE https://api.openai.com/v1/vector_stores/vs_123', $requests);
+        $this->assertContains(['DELETE FROM tl_openai_sync_log WHERE pid = ?', [7]], $executedStatements);
+        $this->assertSame(
             ['DELETE FROM tl_openai_vector_file WHERE pid = ?', [7]],
             $executedStatements[array_key_last($executedStatements)],
         );
@@ -270,7 +276,7 @@ class OpenAiConfigListenerTest extends TestCase
     {
         $listener = $this->createModelValidationListener(licenseActive: false, apiKey: 'sk-test');
 
-        self::assertSame(
+        $this->assertSame(
             '',
             $listener->validateAutoUpdateModel('', $this->createModelValidationDc(autoUpdateEnabled: true)),
             'Without an active license the select never offered models, so the legacy empty value must stay saveable.',
@@ -281,7 +287,7 @@ class OpenAiConfigListenerTest extends TestCase
     {
         $listener = $this->createModelValidationListener(licenseActive: true, apiKey: 'sk-test');
 
-        self::assertSame(
+        $this->assertSame(
             '',
             $listener->validateAutoUpdateModel('', $this->createModelValidationDc(autoUpdateEnabled: false)),
             'While auto-update is disabled the select never offered models, so an empty value must stay saveable.',
@@ -291,10 +297,16 @@ class OpenAiConfigListenerTest extends TestCase
     private function createModelValidationListener(bool $licenseActive, string $apiKey): OpenAiConfigListener
     {
         $encryption = $this->createMock(EncryptionService::class);
-        $encryption->method('getApiKeyForConfig')->willReturn($apiKey);
+        $encryption
+            ->method('getApiKeyForConfig')
+            ->willReturn($apiKey)
+        ;
 
         $licenseValidation = $this->createMock(LicenseValidationService::class);
-        $licenseValidation->method('isLicenseActiveCached')->willReturn($licenseActive);
+        $licenseValidation
+            ->method('isLicenseActiveCached')
+            ->willReturn($licenseActive)
+        ;
 
         return new OpenAiConfigListener(
             new MockHttpClient(),
@@ -335,10 +347,13 @@ class OpenAiConfigListenerTest extends TestCase
     private function createModelValidationDc(bool $autoUpdateEnabled): DataContainer
     {
         $dc = $this->createMock(DataContainer::class);
-        $dc->method('__get')->willReturnMap([
-            ['id', 7],
-            ['activeRecord', (object) ['auto_update_enabled' => $autoUpdateEnabled]],
-        ]);
+        $dc
+            ->method('__get')
+            ->willReturnMap([
+                ['id', 7],
+                ['activeRecord', (object) ['auto_update_enabled' => $autoUpdateEnabled]],
+            ])
+        ;
 
         return $dc;
     }

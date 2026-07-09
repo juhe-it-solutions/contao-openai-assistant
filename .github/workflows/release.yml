@@ -39,8 +39,13 @@ jobs:
     - name: Run PHPStan analysis
       run: vendor/bin/phpstan analyse src/ --level=5
 
+    - name: Run PHPUnit
+      run: vendor/bin/phpunit
+
+    # Fatal on security advisories — a release must never ship with a known
+    # vulnerable dependency. Abandoned transitive packages are reported only.
     - name: Run security check
-      run: composer audit --format=json 2>/dev/null || echo "Security check skipped (composer audit not available)"
+      run: composer audit --abandoned=report
 
     - name: Derive release display name
       id: derive_release
@@ -60,6 +65,7 @@ jobs:
           - PHP syntax validation
           - Code style compliance (ECS)
           - Static analysis (PHPStan Level 5)
+          - PHPUnit test suite
           - Security vulnerability scan
           - Composer validation
           

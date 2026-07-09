@@ -3,12 +3,11 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the JUHE Contao OpenAI Assistant premium add-on.
+ * This file is part of the JUHE Contao OpenAI Assistant bundle.
  *
  * (c) JUHE IT-solutions
  *
- * @license Proprietary - see LICENSE-PREMIUM. Usage of the premium add-on
- *          requires a valid premium subscription from JUHE IT-solutions.
+ * @license LGPL-3.0-or-later
  */
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Service;
@@ -33,6 +32,7 @@ class BoilerplateFilterTest extends TestCase
         ];
 
         $pages = [];
+
         foreach ($bodies as $i => $body) {
             $pages[$i] = $nav."\n".$body."\n".$footer;
         }
@@ -40,13 +40,13 @@ class BoilerplateFilterTest extends TestCase
         $result = (new BoilerplateFilter())->clean($pages);
 
         // Unique content survives.
-        self::assertStringContainsString('Urlaubsregelung', $result['texts'][0]);
-        self::assertStringContainsString('Helix Cloud', $result['texts'][2]);
+        $this->assertStringContainsString('Urlaubsregelung', $result['texts'][0]);
+        $this->assertStringContainsString('Helix Cloud', $result['texts'][2]);
 
         // Repeated navigation and footer are stripped.
-        self::assertStringNotContainsString('Kontakt', $result['texts'][0]);
-        self::assertStringNotContainsString('Alle Rechte vorbehalten', $result['texts'][0]);
-        self::assertGreaterThan(0, $result['stats']['removed_segments']);
+        $this->assertStringNotContainsString('Kontakt', $result['texts'][0]);
+        $this->assertStringNotContainsString('Alle Rechte vorbehalten', $result['texts'][0]);
+        $this->assertGreaterThan(0, $result['stats']['removed_segments']);
     }
 
     public function testChromeOnlyPageCollapsesToEmpty(): void
@@ -63,7 +63,7 @@ class BoilerplateFilterTest extends TestCase
 
         $result = (new BoilerplateFilter())->clean($pages);
 
-        self::assertSame('', trim($result['texts'][4]));
+        $this->assertSame('', trim($result['texts'][4]));
     }
 
     public function testSmallCorpusIsLeftUntouched(): void
@@ -76,7 +76,7 @@ class BoilerplateFilterTest extends TestCase
 
         $result = (new BoilerplateFilter())->clean($pages);
 
-        self::assertSame($pages, $result['texts']);
-        self::assertSame(0, $result['stats']['removed_segments']);
+        $this->assertSame($pages, $result['texts']);
+        $this->assertSame(0, $result['stats']['removed_segments']);
     }
 }

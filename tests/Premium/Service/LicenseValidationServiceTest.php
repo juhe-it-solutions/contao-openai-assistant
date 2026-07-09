@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Service;
 
 use Doctrine\DBAL\Connection;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicenseValidationService;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpClient\Exception\TransportException;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -40,7 +40,7 @@ class LicenseValidationServiceTest extends TestCase
 
         $service = $this->createService($row, unreachable: true);
 
-        self::assertFalse($service->isLicenseActive(1));
+        $this->assertFalse($service->isLicenseActive(1));
     }
 
     public function testGraceAllowsSyncWhileLastSuccessIsRecent(): void
@@ -54,7 +54,7 @@ class LicenseValidationServiceTest extends TestCase
 
         $service = $this->createService($row, unreachable: true);
 
-        self::assertTrue($service->isLicenseActive(1));
+        $this->assertTrue($service->isLicenseActive(1));
     }
 
     /**
@@ -79,7 +79,7 @@ class LicenseValidationServiceTest extends TestCase
             'max_crawl_pages' => 20,
         ]);
 
-        self::assertFalse($service->isLicenseActive(1));
+        $this->assertFalse($service->isLicenseActive(1));
     }
 
     public function testFreshEntitledCacheIsAcceptedWithoutNetworkCall(): void
@@ -92,16 +92,21 @@ class LicenseValidationServiceTest extends TestCase
         ]);
 
         // Any HTTP request would fail the test.
-        $http = new MockHttpClient(static function (): MockResponse {
-            self::fail('No network call expected on a fresh cache hit.');
-        });
+        $http = new MockHttpClient(
+            static function (): MockResponse {
+                self::fail('No network call expected on a fresh cache hit.');
+            },
+        );
 
         $connection = $this->createMock(Connection::class);
-        $connection->method('fetchAssociative')->willReturn($row);
+        $connection
+            ->method('fetchAssociative')
+            ->willReturn($row)
+        ;
 
         $service = new LicenseValidationService($connection, $http, $this->createMock(EncryptionService::class));
 
-        self::assertTrue($service->isLicenseActive(1));
+        $this->assertTrue($service->isLicenseActive(1));
     }
 
     /**
@@ -126,18 +131,24 @@ class LicenseValidationServiceTest extends TestCase
         ]);
 
         $connection = $this->createMock(Connection::class);
+
         // 1: initial isLicenseActive SELECT, 2: revalidate() $previous SELECT, 3: re-read.
         $connection
             ->method('fetchAssociative')
             ->willReturnOnConsecutiveCalls($active, $active, $canceled)
         ;
+
         $connection
             ->method('fetchOne')
             ->willReturnCallback(
                 static fn (string $sql) => str_contains($sql, 'premium_license_install_id') ? 'abc123' : false,
             )
         ;
-        $connection->method('executeStatement')->willReturn(1);
+
+        $connection
+            ->method('executeStatement')
+            ->willReturn(1)
+        ;
 
         $http = new MockHttpClient(new MockResponse(json_encode([
             'valid' => false,
@@ -148,23 +159,109 @@ class LicenseValidationServiceTest extends TestCase
         ], JSON_THROW_ON_ERROR)));
 
         $encryption = $this->createMock(EncryptionService::class);
-        $encryption->method('decryptLicenseKey')->willReturn('JUHE-AI-TESTKEY1');
+        $encryption
+            ->method('decryptLicenseKey')
+            ->willReturn('JUHE-AI-TESTKEY1')
+        ;
 
         $service = new LicenseValidationService($connection, $http, $encryption);
 
-        self::assertFalse(
+        $this->assertFalse(
             $service->isLicenseActive(1),
             'The freshly revalidated (now canceled) status must win over the stale active snapshot.',
         );
     }
 
+    /**
+     * A 429 from the rate-limited /validate endpoint is a temporary server condition,
+     * not an entitlement verdict. It must flow into the grace handling instead of
+     * overwriting a valid cached license with "inactive" (the response body is JSON
+     * but carries no "valid" field, which used to be read as valid=false).
+     */
+    public function testRateLimited429KeepsLicenseActiveWithinGrace(): void
+    {
+        $service = $this->createService(
+            $this->staleActiveRowWithinGrace(),
+            rawResponse: new MockResponse('{"error":"rate_limited"}', ['http_code' => 429]),
+        );
+
+        $this->assertTrue($service->isLicenseActive(1));
+    }
+
+    public function testServerError500KeepsLicenseActiveWithinGrace(): void
+    {
+        $service = $this->createService(
+            $this->staleActiveRowWithinGrace(),
+            rawResponse: new MockResponse('{"statusCode":500,"error":"Internal Server Error"}', ['http_code' => 500]),
+        );
+
+        $this->assertTrue($service->isLicenseActive(1));
+    }
+
+    public function testMalformedResponseBodyKeepsLicenseActiveWithinGrace(): void
+    {
+        $service = $this->createService(
+            $this->staleActiveRowWithinGrace(),
+            rawResponse: new MockResponse('<html>502 Bad Gateway</html>', ['http_code' => 200]),
+        );
+
+        $this->assertTrue($service->isLicenseActive(1));
+    }
+
+    /**
+     * A 2xx response whose schema lacks the boolean "valid" field is a contract
+     * violation and must be treated as a server failure (grace), not as valid=false.
+     */
+    public function testSchemaWithoutValidFieldKeepsLicenseActiveWithinGrace(): void
+    {
+        $service = $this->createService(
+            $this->staleActiveRowWithinGrace(),
+            rawResponse: new MockResponse('{"status":"active"}', ['http_code' => 200]),
+        );
+
+        $this->assertTrue($service->isLicenseActive(1));
+    }
+
+    /**
+     * Grace only bridges server failures. An explicit 200 valid:false is a real
+     * entitlement verdict and must deactivate immediately, even within the window.
+     */
+    public function testExplicitValidFalseDeactivatesDespiteRecentSuccess(): void
+    {
+        $service = $this->createService($this->staleActiveRowWithinGrace(), serverResponse: [
+            'valid' => false,
+            'status' => 'canceled',
+            'plan' => 'starter',
+            'max_crawl_pages' => 20,
+        ]);
+
+        $this->assertFalse($service->isLicenseActive(1));
+    }
+
+    public function testRateLimited429DeniesWhenGraceWindowHasExpired(): void
+    {
+        $row = $this->licenseRow([
+            'premium_license_status' => 'active',
+            'premium_license_checked_at' => time() - 8 * 86400, // stale -> forces revalidation
+            'premium_license_last_success' => time() - 8 * 86400, // > 7-day grace
+            'premium_license_valid_until' => time() - 86400, // paid period also over
+        ]);
+
+        $service = $this->createService(
+            $row,
+            rawResponse: new MockResponse('{"error":"rate_limited"}', ['http_code' => 429]),
+        );
+
+        $this->assertFalse($service->isLicenseActive(1));
+    }
+
     public function testResolvePageLimitFallsBackToPlanDefaults(): void
     {
-        self::assertSame(20, LicenseValidationService::resolvePageLimit('starter', 0));
-        self::assertSame(50, LicenseValidationService::resolvePageLimit('business', 0));
-        self::assertSame(250, LicenseValidationService::resolvePageLimit('business', 250));
-        self::assertNull(LicenseValidationService::resolvePageLimit('enterprise', 0));
-        self::assertNull(LicenseValidationService::resolvePageLimit('', 0));
+        $this->assertSame(20, LicenseValidationService::resolvePageLimit('starter', 0));
+        $this->assertSame(50, LicenseValidationService::resolvePageLimit('business', 0));
+        $this->assertSame(250, LicenseValidationService::resolvePageLimit('business', 250));
+        $this->assertNull(LicenseValidationService::resolvePageLimit('enterprise', 0));
+        $this->assertNull(LicenseValidationService::resolvePageLimit('', 0));
     }
 
     /**
@@ -191,29 +288,63 @@ class LicenseValidationServiceTest extends TestCase
     }
 
     /**
-     * @param array<string, int|string>  $row
+     * A row whose "active" cache is stale (forces a revalidation call) but whose last
+     * server-confirmed success is recent enough for the 7-day grace window.
+     *
+     * @return array<string, int|string>
+     */
+    private function staleActiveRowWithinGrace(): array
+    {
+        return $this->licenseRow([
+            'premium_license_status' => 'active',
+            'premium_license_checked_at' => time() - 8 * 86400, // stale -> forces revalidation
+            'premium_license_last_success' => time() - 2 * 86400, // within 7-day grace
+            'premium_license_valid_until' => time() + 30 * 86400,
+        ]);
+    }
+
+    /**
+     * @param array<string, int|string> $row
      * @param array<string, mixed>|null $serverResponse
      */
-    private function createService(array $row, bool $unreachable = false, array|null $serverResponse = null): LicenseValidationService
+    private function createService(array $row, bool $unreachable = false, array|null $serverResponse = null, MockResponse|null $rawResponse = null): LicenseValidationService
     {
         $connection = $this->createMock(Connection::class);
-        $connection->method('fetchAssociative')->willReturn($row);
+        $connection
+            ->method('fetchAssociative')
+            ->willReturn($row)
+        ;
+
         // resolveInstallId / resolveSiteDomain lookups during header building
-        $connection->method('fetchOne')->willReturnCallback(
-            static fn (string $sql) => str_contains($sql, 'premium_license_install_id') ? (string) $row['premium_license_install_id'] : false,
-        );
-        $connection->method('executeStatement')->willReturn(1);
+        $connection
+            ->method('fetchOne')
+            ->willReturnCallback(
+                static fn (string $sql) => str_contains($sql, 'premium_license_install_id') ? (string) $row['premium_license_install_id'] : false,
+            )
+        ;
+
+        $connection
+            ->method('executeStatement')
+            ->willReturn(1)
+        ;
 
         if ($unreachable) {
-            $http = new MockHttpClient(static function (): MockResponse {
-                throw new TransportException('connection refused');
-            });
+            $http = new MockHttpClient(
+                static function (): MockResponse {
+                    throw new TransportException('connection refused');
+                },
+            );
+        } elseif (null !== $rawResponse) {
+            $http = new MockHttpClient($rawResponse);
         } else {
             $http = new MockHttpClient(new MockResponse(json_encode($serverResponse, JSON_THROW_ON_ERROR)));
         }
 
         $encryption = $this->createMock(EncryptionService::class);
-        $encryption->method('decryptLicenseKey')->willReturn('JUHE-AI-TESTKEY1');
+        $encryption
+            ->method('decryptLicenseKey')
+            ->willReturn('JUHE-AI-TESTKEY1')
+        ;
 
         return new LicenseValidationService($connection, $http, $encryption);
     }

@@ -154,8 +154,23 @@ class LicenseValidationService
                 ],
             );
 
-            $data = $response->toArray(false);
-            $active = ($data['valid'] ?? false) === true;
+            // Entitlement data is only trusted from a 2xx response carrying the expected
+            // schema (boolean "valid"). A 429 (the endpoint is rate-limited), a 5xx, or a
+            // malformed body must NOT be read as "license invalid": throwing here routes
+            // them into the same grace handling as an unreachable endpoint, instead of
+            // overwriting a valid cached license with "inactive".
+            $statusCode = $response->getStatusCode();
+            if ($statusCode < 200 || $statusCode >= 300) {
+                throw new \RuntimeException(\sprintf('Licensing server returned HTTP %d.', $statusCode));
+            }
+
+            $data = $response->toArray(false); // throws on malformed JSON
+
+            if (!\is_bool($data['valid'] ?? null)) {
+                throw new \RuntimeException('Licensing server response lacks a boolean "valid" field.');
+            }
+
+            $active = $data['valid'];
             $status = (string) ($data['status'] ?? ($active ? 'active' : 'inactive'));
             $validUntil = isset($data['expires_at'])
                 ? (new \DateTimeImmutable((string) $data['expires_at']))->getTimestamp()

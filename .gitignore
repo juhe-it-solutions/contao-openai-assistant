@@ -3,11 +3,13 @@
 composer.phar
 composer.lock
 
-# IDE
+# IDE / AI tooling (must never reach the public repo)
 .idea/
 .cursor/
 .cursorrules
+.claude/
 CLAUDE.md
+AGENTS.md
 .vscode/
 *.swp
 *.swo

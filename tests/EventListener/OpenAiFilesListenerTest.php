@@ -31,10 +31,11 @@ class OpenAiFilesListenerTest extends TestCase
         $dc = $this->getMockBuilder(DataContainer::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['getPalette', 'save'])
-            ->getMockForAbstractClass();
+            ->getMockForAbstractClass()
+        ;
         $dc->pid = 7;
 
-        self::assertSame(
+        $this->assertSame(
             7,
             $this->invokeResolveParentConfigId($this->createListener($this->createMock(Connection::class)), $dc),
         );
@@ -44,7 +45,7 @@ class OpenAiFilesListenerTest extends TestCase
     {
         $connection = $this->createMock(Connection::class);
         $connection
-            ->expects(self::once())
+            ->expects($this->once())
             ->method('fetchAssociative')
             ->with('SELECT id FROM tl_openai_config LIMIT 1')
             ->willReturn(['id' => 4])
@@ -53,7 +54,7 @@ class OpenAiFilesListenerTest extends TestCase
         $requestStack = new RequestStack();
         $requestStack->push(new Request(['act' => 'create']));
 
-        self::assertSame(
+        $this->assertSame(
             4,
             $this->invokeResolveParentConfigId($this->createListener($connection, $requestStack), null),
         );
@@ -64,7 +65,7 @@ class OpenAiFilesListenerTest extends TestCase
         $requestStack = new RequestStack();
         $requestStack->push(new Request(['act' => 'edit']));
 
-        self::assertNull(
+        $this->assertNull(
             $this->invokeResolveParentConfigId(
                 $this->createListener($this->createMock(Connection::class), $requestStack),
                 null,

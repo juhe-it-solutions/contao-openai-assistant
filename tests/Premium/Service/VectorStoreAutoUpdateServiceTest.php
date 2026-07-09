@@ -3,12 +3,11 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the JUHE Contao OpenAI Assistant premium add-on.
+ * This file is part of the JUHE Contao OpenAI Assistant bundle.
  *
  * (c) JUHE IT-solutions
  *
- * @license Proprietary - see LICENSE-PREMIUM. Usage of the premium add-on
- *          requires a valid premium subscription from JUHE IT-solutions.
+ * @license LGPL-3.0-or-later
  */
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Service;
@@ -16,10 +15,10 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Service;
 use Contao\CoreBundle\Util\ProcessUtil;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\BoilerplateFilter;
-use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicenseValidationService;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreAutoUpdateService;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreFileSync;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -123,11 +122,14 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
                 },
             )
         ;
-        $connection->method('insert')->willReturn(1);
+        $connection
+            ->method('insert')
+            ->willReturn(1)
+        ;
 
         $this->createService($connection)->reconcileStaleRuns();
 
-        self::assertContains(
+        $this->assertContains(
             ['DELETE FROM tl_openai_sync_log WHERE pid = ? AND id <= ?', [7, 42]],
             $executed,
             'A logged stale run must trigger retention pruning of older sync-log rows for that config.',
@@ -152,12 +154,12 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
 
         $count = $this->createService($connection)->countScopePages([1, 2, 3]);
 
-        self::assertSame(2, $count);
-        self::assertNotNull($captured);
+        $this->assertSame(2, $count);
+        $this->assertNotNull($captured);
         [$sql, $params] = $captured;
-        self::assertStringContainsString("published = '1'", $sql);
-        self::assertStringContainsString('type NOT IN', $sql);
-        self::assertSame([[1, 2, 3]], $params);
+        $this->assertStringContainsString("published = '1'", $sql);
+        $this->assertStringContainsString('type NOT IN', $sql);
+        $this->assertSame([[1, 2, 3]], $params);
     }
 
     public function testReconcileStaleRunsDoesNothingWithoutStaleRows(): void

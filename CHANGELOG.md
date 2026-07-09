@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.1.0] - xx.xx.2026
+## [2.1.0] - Unreleased
 
 ### Added
 - **Premium add-on: automatic vector-store updates.** Keeps the OpenAI vector store in sync with selected Contao pages (manual or scheduled runs, backend status dashboard). Requires a [premium subscription](https://licenses.juhe-it-solutions.at/en/openai-assistant/help).
@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 - Frontend chat messages are HTML-escaped before formatting (XSS hardening).
+- **License validation robustness:** rate-limit (429) and server-error (5xx) responses from the licensing server are now treated as temporary outages covered by the seven-day grace period instead of deactivating a valid license; entitlement data is only accepted from well-formed 2xx responses.
 
 ### Notes
 - Run `contao:migrate` after the update (new database columns).
