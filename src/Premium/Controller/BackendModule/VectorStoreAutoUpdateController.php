@@ -322,7 +322,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             'success' => ['MSC.vsau_sync_success', 'green'],
             'partial' => ['MSC.vsau_sync_partial', 'amber'],
             'error' => ['MSC.vsau_sync_error', 'red'],
-            'running' => ['MSC.vsau_sync_running', 'blue'],
+            'running' => ['MSC.vsau_sync_running', 'slate'],
             'queued' => ['MSC.vsau_sync_queued', 'blue'],
             'skipped' => ['MSC.vsau_sync_skipped', 'yellow'],
             default => ['MSC.vsau_sync_never', 'grey'],
