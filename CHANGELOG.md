@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Premium add-on: automatic vector-store updates.** Keeps the OpenAI vector store in sync with selected Contao pages (manual or scheduled runs, backend status dashboard). Requires a [premium subscription](https://licenses.juhe-it-solutions.at/en/openai-assistant/help).
-- **Chat rate limiting — on by default after upgrade.** Two new settings in the OpenAI configuration: per-IP limit (`chat_ip_rate_limit`, default 10/minute) and daily message cap (`chat_daily_limit`, default 1000/day); `0` disables. Raise or disable the IP limit on intranets/NAT where many users share one IP. See [docs/security/rate-limiting.md](docs/security/rate-limiting.md).
+- **Chat rate limiting - on by default after upgrade.** Two new settings in the OpenAI configuration: per-IP limit (`chat_ip_rate_limit`, default 10/minute) and daily message cap (`chat_daily_limit`, default 1000/day); `0` disables. Raise or disable the IP limit on intranets/NAT where many users share one IP. See [docs/security/rate-limiting.md](docs/security/rate-limiting.md).
 
 ### Changed
 - **Licensing:** the core extension remains LGPL-3.0-or-later; the new premium add-on files are proprietary (see [`LICENSE-PREMIUM`](LICENSE-PREMIUM)). All earlier releases remain entirely LGPL.
@@ -50,10 +50,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All runtime calls to the OpenAI Assistants API:
   - `POST /v1/assistants`
   - `POST /v1/assistants/{id}`
-  - `DELETE /v1/assistants/{id}` *(still used once by the cleanup migration — last allowed usage)*
+  - `DELETE /v1/assistants/{id}` *(still used once by the cleanup migration - last allowed usage)*
   - `POST /v1/threads`, `POST /v1/threads/{id}/messages`, `POST /v1/threads/{id}/runs`, `GET /v1/threads/{id}/messages`
 - `src/Service/OpenAiAssistant.php` is no longer the runtime implementation; a deprecated BC shim now forwards to `OpenAiResponder` to keep 1.x custom integrations working until 2.1.
-- The "Sync with OpenAI" button and related `createOrUpdateAssistant` / `deleteAssistant` DCA actions — prompts are local and do not need remote synchronisation.
+- The "Sync with OpenAI" button and related `createOrUpdateAssistant` / `deleteAssistant` DCA actions - prompts are local and do not need remote synchronisation.
 - `config.onsubmit` / `config.ondelete` DCA callbacks that previously created / deleted remote Assistants.
 
 ### Migrated
@@ -61,10 +61,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Database table rename + new columns (`Version20260416000000RenamePromptsTable`): idempotent, re-runnable safely.
 
 ### Notes
-- Users with active chat sessions at upgrade time will see a fresh, empty conversation on their next message — the legacy thread ids were session-scoped in v1.x anyway.
+- Users with active chat sessions at upgrade time will see a fresh, empty conversation on their next message - the legacy thread ids were session-scoped in v1.x anyway.
 - Runtime API key resolution prefers `OPENAI_API_KEY_{configId}` over DB-encrypted keys. (The one-time orphan cleanup migration reads the DB-stored key for 1.x compatibility.)
 - **Important for upgrades from 1.x:** The orphan-assistant cleanup runs in CLI context. If no valid API key can be resolved there (e.g. encrypted key cannot be decrypted in that environment), the migration still clears local legacy references but cannot remove the remote Assistant. In that case, any already existing "OpenAI assistant" must be deleted manually in the OpenAI platform dashboard.
-- No changes to files, vector stores, or uploaded documents — these continue to live on OpenAI's platform and keep working with the File Search tool.
+- No changes to files, vector stores, or uploaded documents - these continue to live on OpenAI's platform and keep working with the File Search tool.
 
 ## [1.1.3] - 2026-03-04
 
