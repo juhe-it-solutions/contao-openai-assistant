@@ -106,6 +106,14 @@
                 <source>20px - Extra Large</source>
                 <target>20px - Extra Large</target>
             </trans-unit>
+            <trans-unit id="tl_module.shorten_urls.0">
+                <source>Shorten plain URLs</source>
+                <target>Shorten plain URLs</target>
+            </trans-unit>
+            <trans-unit id="tl_module.shorten_urls.1">
+                <source>Render plain URLs in chat answers as short labels ("Download" / "Visit page") instead of the full URL. Markdown links always keep their own link text.</source>
+                <target>Render plain URLs in chat answers as short labels ("Download" / "Visit page") instead of the full URL. Markdown links always keep their own link text.</target>
+            </trans-unit>
             <trans-unit id="tl_module.colors_legend">
                 <source>Color Settings</source>
                 <target>Color Settings</target>

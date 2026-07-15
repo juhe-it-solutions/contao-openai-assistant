@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Premium add-on: automatic vector-store updates.** Keeps the OpenAI vector store in sync with selected Contao pages (manual or scheduled runs, backend status dashboard). Requires a [premium subscription](https://licenses.juhe-it-solutions.at/en/openai-assistant/help).
 - **Chat rate limiting - on by default after upgrade.** Two new settings in the OpenAI configuration: per-IP limit (`chat_ip_rate_limit`, default 10/minute) and daily message cap (`chat_daily_limit`, default 1000/day); `0` disables. Raise or disable the IP limit on intranets/NAT where many users share one IP. See [docs/security/rate-limiting.md](docs/security/rate-limiting.md).
+- **Link shortening - on by default after upgrade.** New AI-Chatbot module checkbox **Shorten plain URLs** (`tl_module.shorten_urls`, default on): plain URLs in bot answers are rendered as short localized labels ("Download" / "Seite aufrufen" / "Visit page") instead of the full URL. The complete URL stays in `href` and `title`; Markdown links keep their model-provided text. Disable the checkbox to restore full-URL rendering. See [docs/features/link-shortening.md](docs/features/link-shortening.md).
 
 ### Changed
 - **Licensing:** the core extension remains LGPL-3.0-or-later; the new premium add-on files are proprietary (see [`LICENSE-PREMIUM`](LICENSE-PREMIUM)). All earlier releases remain entirely LGPL.

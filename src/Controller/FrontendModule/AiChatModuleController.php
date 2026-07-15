@@ -66,6 +66,8 @@ class AiChatModuleController extends AbstractFrontendModuleController
         $template->set('welcome_message', $model->welcome_message ?: ($lang['welcome_message'] ?? 'How can I help you?'));
         $template->set('initial_bot_message', $model->initial_bot_message ?: ($lang['initial_bot_message'] ?? 'Hello! How can I help you?'));
         $template->set('initial_state', $model->initial_state ?? 'collapsed');
+        // Default ON: null (column not yet migrated) and '1' enable, '' disables
+        $template->set('shorten_urls', (bool) ($model->shorten_urls ?? '1'));
         $template->set('disclaimer_text', $model->disclaimer_text);
 
         // Default disclaimer from chat language file (translated)
@@ -92,6 +94,8 @@ class AiChatModuleController extends AbstractFrontendModuleController
             'initial_message_fallback' => $lang['js_initial_message_fallback'] ?? 'Hello! How can I help you?',
             'error_generic' => $lang['js_error_generic'] ?? 'An error occurred. Please try again.',
             'error_reload_page' => $lang['js_error_reload_page'] ?? 'Please reload the page and try again.',
+            'link_label_download' => $lang['js_link_label_download'] ?? 'Download',
+            'link_label_page' => $lang['js_link_label_page'] ?? 'Visit page',
         ];
         $template->set('i18n_json', json_encode($jsI18n, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
 

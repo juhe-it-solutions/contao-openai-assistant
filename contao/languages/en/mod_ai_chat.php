@@ -36,6 +36,8 @@ $GLOBALS['TL_LANG']['mod_ai_chat'] = [
     'js_initial_message_fallback' => 'Hello! How can I help you?',
     'js_error_generic'          => 'An error occurred. Please try again.',
     'js_error_reload_page'      => 'Please reload the page and try again.',
+    'js_link_label_download'    => 'Download',
+    'js_link_label_page'        => 'Visit page',
 
     // Long default disclaimer (when module has no custom disclaimer)
     'disclaimer_default'        => 'Our chatbot is a service offered by our company to facilitate communication and access to information. Responses are generated automatically and are for general information and support purposes only. Despite careful development, content may be incomplete, misleading or incorrect. We therefore do not guarantee the accuracy or completeness of the answers. Binding information, individual advice or legal recommendations are not provided by the chatbot. Please use the information provided as a guide and contact our team or a qualified professional directly for important matters.',

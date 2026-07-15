@@ -2,7 +2,9 @@
 // Regression harness for public/js/ai-chat.js fmt(): re-runs the 41 documented
 // linkification cases (XXX_DOCS_INTERN/20260610_url-linkification-test-suite.md)
 // plus XSS/escaping and newline-in-URL cases added for the escape-then-transform
-// change. Run from anywhere: node scripts/check-chat-linkification.js
+// change, plus the "shorten plain URLs" cases (module option shorten_urls,
+// default ON - the documented 41 cases run with shortening OFF, i.e. the
+// opt-out rendering). Run from anywhere: node scripts/check-chat-linkification.js
 
 const fs = require('fs');
 const path = require('path');
@@ -18,7 +20,19 @@ if (start < 0 || end < 0 || end <= start) {
   console.error('FATAL: could not locate escapeHtml/fmt block in ai-chat.js');
   process.exit(2);
 }
-const fmt = new Function(src.slice(start, end) + '; return fmt;')();
+// The block reads `wrapper` (data-shorten-urls) and `i18n` (link labels) from
+// the initAiChat closure - inject stubs as function parameters.
+const block = src.slice(start, end);
+const makeFmt = (wrapperStub, i18nStub) =>
+  new Function('wrapper', 'i18n', block + '; return fmt;')(wrapperStub, i18nStub);
+const I18N = { link_label_download: 'Download', link_label_page: 'Seite aufrufen' };
+// Shortening OFF (module opt-out): plain URLs keep the full URL as link text.
+// The documented 41-case suite asserts exactly this rendering.
+const fmt = makeFmt({ dataset: { shortenUrls: '0' } }, I18N);
+// Shortening ON (the default): plain URLs render as short labels.
+const fmtShort = makeFmt({ dataset: { shortenUrls: '1' } }, I18N);
+// No data attribute at all (older cached template) - must behave like ON.
+const fmtDefault = makeFmt({ dataset: {} }, I18N);
 
 // Decode the entities our pipeline can emit in element CONTENT, to compare the
 // rendered (DOM) text with the expected raw URL.
@@ -189,6 +203,77 @@ check('md-extra-10 punctuation', fmt(mdCases[9][0]).endsWith('</a>.'), fmt(mdCas
   // Percent encoding and umlauts survive untouched in href and text.
   out = fmt('https://example.com/download?file=100%25-rabatt.pdf&stadt=k%C3%B6ln');
   check('fmt-10 percent encoding', out.includes('href="https://example.com/download?file=100%25-rabatt.pdf&stadt=k%C3%B6ln"'), out);
+}
+
+// ------------------------- shortened plain URLs (shorten_urls ON, default) ---
+{
+  // Download extension in the path -> localized "Download" label; full URL
+  // stays in href and title, aria-label carries the target hostname.
+  let out = fmtShort('https://example.com/files/manual.pdf');
+  check('short-1 pdf label', anchorText(out) === 'Download', out);
+  check('short-1 href', out.includes('href="https://example.com/files/manual.pdf"'), out);
+  check('short-1 title', out.includes('title="https://example.com/files/manual.pdf"'), out);
+  check('short-1 aria', out.includes('aria-label="Download, example.com"'), out);
+
+  // No download extension -> localized page label.
+  out = fmtShort('https://example.com/kontakt');
+  check('short-2 page label', anchorText(out) === 'Seite aufrufen', out);
+  check('short-2 aria', out.includes('aria-label="Seite aufrufen, example.com"'), out);
+
+  // Extension detection uses the PATH only - ?file=x.pdf in the query does not
+  // make the link a download.
+  out = fmtShort('https://example.com/download-center?file=report.pdf');
+  check('short-3 query ext ignored', anchorText(out) === 'Seite aufrufen', out);
+  check('short-3 href intact', out.includes('href="https://example.com/download-center?file=report.pdf"'), out);
+
+  // Customer case: pptx path with query params.
+  out = fmtShort('https://sub.abc.tld/pfad/26-29-054_PowerPoint-Master-II_16-9_EN.pptx?cid=11402');
+  check('short-4 pptx label', anchorText(out) === 'Download', out);
+  check('short-4 href intact', out.includes('href="https://sub.abc.tld/pfad/26-29-054_PowerPoint-Master-II_16-9_EN.pptx?cid=11402"'), out);
+
+  // www URLs get the https:// prefix and are shortened too.
+  out = fmtShort('www.example.org/broschuere.pdf');
+  check('short-5 www', out.includes('href="https://www.example.org/broschuere.pdf"') && anchorText(out) === 'Download', out);
+
+  // Angle-bracket URLs.
+  out = fmtShort('<https://example.com/angle?x=1&y=2>');
+  check('short-6 angle', out.includes('href="https://example.com/angle?x=1&y=2"') && anchorText(out) === 'Seite aufrufen', out);
+
+  // Markdown links always keep their model-provided text, even when ON.
+  out = fmtShort('[Herunterladen](https://example.com/files/manual.pdf)');
+  check('short-7 md text wins', out.includes('>Herunterladen</a>') && !out.includes('>Download</a>'), out);
+
+  // Sentence punctuation stays outside the anchor.
+  out = fmtShort('Hier: https://example.com/files/manual.pdf.');
+  check('short-8 trailing dot', anchorText(out) === 'Download' && out.endsWith('</a>.'), out);
+  out = fmtShort('Siehe https://example.com/marke.');
+  check('short-9 page trailing dot', anchorText(out) === 'Seite aufrufen' && out.endsWith('</a>.'), out);
+
+  // A list of downloads with DIFFERENT targets must NOT be deduplicated even
+  // though all three visible labels read "Download" (dedup matches the whole
+  // anchor including href).
+  out = fmtShort('1. https://example.com/a.pdf\n2. https://example.com/b.pdf\n3. https://example.com/c.pdf');
+  check('short-10 list keeps all', (out.match(/<a /g) || []).length === 3, out);
+
+  // Missing data attribute (older cached template) defaults to ON.
+  out = fmtDefault('https://example.com/files/manual.pdf');
+  check('short-11 default on', anchorText(out) === 'Download', out);
+
+  // Empty i18n map falls back to built-in German labels.
+  const fmtNoI18n = makeFmt({ dataset: { shortenUrls: '1' } }, {});
+  out = fmtNoI18n('https://example.com/x.pdf');
+  check('short-12 i18n fallback download', anchorText(out) === 'Download', out);
+  out = fmtNoI18n('https://example.com/seite');
+  check('short-12 i18n fallback page', anchorText(out) === 'Seite aufrufen', out);
+
+  // href integrity for all documented bare URLs in ON mode: full URL in href,
+  // visible text is always one of the two labels.
+  bareUrls.forEach((url, i) => {
+    const o = fmtShort(url);
+    check(`short-bare-${i + 1} href`, o.includes(`href="${url}"`), o);
+    const t = anchorText(o);
+    check(`short-bare-${i + 1} label`, t === 'Download' || t === 'Seite aufrufen', o);
+  });
 }
 
 console.log(`PASS: ${pass}  FAIL: ${fail}`);

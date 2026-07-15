@@ -11,7 +11,7 @@
 declare(strict_types=1);
 
 // Add the module configuration
-$GLOBALS['TL_DCA']['tl_module']['palettes']['ai_chat'] = '{title_legend},name,type;{chat_legend},chatPosition,initial_state,chat_title,welcome_message,initial_bot_message,disclaimer_text,custom_css,theme,base_font_size;{colors_legend},dark_toggle_icon_color,dark_bg_primary,dark_bg_secondary,dark_text_primary,dark_text_secondary,color_separator,light_toggle_icon_color,light_bg_primary,light_bg_secondary,light_text_primary,light_text_secondary;{template_legend:hide},customTpl;{protected_legend:hide},protected;{expert_legend:hide},guests,cssID,space';
+$GLOBALS['TL_DCA']['tl_module']['palettes']['ai_chat'] = '{title_legend},name,type;{chat_legend},chatPosition,initial_state,chat_title,welcome_message,initial_bot_message,disclaimer_text,custom_css,theme,base_font_size,shorten_urls;{colors_legend},dark_toggle_icon_color,dark_bg_primary,dark_bg_secondary,dark_text_primary,dark_text_secondary,color_separator,light_toggle_icon_color,light_bg_primary,light_bg_secondary,light_text_primary,light_text_secondary;{template_legend:hide},customTpl;{protected_legend:hide},protected;{expert_legend:hide},guests,cssID,space';
 
 // Add the position field
 $GLOBALS['TL_DCA']['tl_module']['fields']['chatPosition'] = [
@@ -78,6 +78,22 @@ $GLOBALS['TL_DCA']['tl_module']['fields']['base_font_size'] = [
         'tl_class' => 'w50',
     ],
     'sql'       => "varchar(32) NOT NULL default '14px'",
+];
+
+// Add the "shorten plain URLs" field. Default ON: plain URLs emitted by the
+// model are rendered as short localized labels ("Download" / "Visit page")
+// instead of the full URL. Markdown links keep their model-provided text.
+// The SQL default '1' also backfills existing module rows on contao:migrate,
+// so no separate data migration is needed.
+$GLOBALS['TL_DCA']['tl_module']['fields']['shorten_urls'] = [
+    'label'     => &$GLOBALS['TL_LANG']['tl_module']['shorten_urls'],
+    'exclude'   => true,
+    'inputType' => 'checkbox',
+    'default'   => true,
+    'eval'      => [
+        'tl_class' => 'w50 m12',
+    ],
+    'sql'       => "char(1) NOT NULL default '1'",
 ];
 
 // Add the chat title field

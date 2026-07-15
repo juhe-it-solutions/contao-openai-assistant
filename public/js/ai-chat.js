@@ -52,7 +52,9 @@ function initAiChat(wrapper) {
       ai_chat_open: 'AI Chat öffnen',
       initial_message_fallback: 'Hallo! Wie kann ich dir helfen?',
       error_generic: 'Es ist ein Fehler aufgetreten. Bitte erneut versuchen.',
-      error_reload_page: 'Bitte lade die Seite neu und versuche es erneut.'
+      error_reload_page: 'Bitte lade die Seite neu und versuche es erneut.',
+      link_label_download: 'Download',
+      link_label_page: 'Seite aufrufen'
     };
   })();
 
@@ -410,6 +412,25 @@ function initAiChat(wrapper) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 
+  // Shorten plain URLs (module option "shorten_urls", default ON): plain URLs
+  // are rendered as a short localized label instead of the full URL. The full
+  // URL stays in href and title; Markdown links keep their model-provided text
+  // (buildMarkdownLink is untouched). Missing attribute (e.g. cached template
+  // without data-shorten-urls) defaults to ON, matching the DCA default.
+  const shortenPlainUrls = wrapper.dataset.shortenUrls !== '0';
+  const linkLabelDownload = i18n.link_label_download || 'Download';
+  const linkLabelPage = i18n.link_label_page || 'Seite aufrufen';
+  // File extensions labeled "Download" (checked against the URL path only,
+  // query/fragment stripped). Everything else gets the "visit page" label.
+  const downloadExtensionsRe = /\.(pdf|zip|rar|7z|tar|gz|tgz|doc|docx|xls|xlsx|ppt|pptx|pps|ppsx|csv|txt|rtf|odt|ods|odp|epub|ics|vcf|mp3|m4a|wav|mp4|mov|avi|webm|jpg|jpeg|png|gif|svg|webp)$/i;
+  const isDownloadUrl = (url) => downloadExtensionsRe.test(url.split(/[?#]/)[0]);
+  // Hostname for the aria-label so screen-reader users know the link target
+  // domain even though the visible text is only the generic label.
+  const hostnameOf = (url) => {
+    const m = url.match(/^(?:https?:\/\/)?([^\/?#]+)/i);
+    return m ? m[1] : url;
+  };
+
   const fmt = c => {
     let result = escapeHtml(c)
       .replace(/【[^】]*】/g, '')
@@ -447,7 +468,17 @@ function initAiChat(wrapper) {
     };
     const buildExternalLink = (url, hrefPrefix = '') => {
       const {clean, trailing} = splitTrailingUrlPunctuation(sanitizeUrl(url));
-      return clean ? `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener">${clean}</a>${trailing}` : url;
+      if (!clean) return url;
+      if (shortenPlainUrls) {
+        // Attribute values are safe unquoted-free: escapeHtml ran already and
+        // every URL pattern excludes double quotes, so `clean` cannot break out
+        // of the double-quoted attributes. title keeps &amp; entities - the
+        // browser decodes them for display; the href post-processing step below
+        // restores the literal & in href only.
+        const label = isDownloadUrl(clean) ? linkLabelDownload : linkLabelPage;
+        return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener" title="${hrefPrefix}${clean}" aria-label="${label}, ${hostnameOf(clean)}">${label}</a>${trailing}`;
+      }
+      return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener">${clean}</a>${trailing}`;
     };
     const buildMarkdownLink = (text, url) => {
       const clean = sanitizeUrl(url);
