@@ -441,6 +441,12 @@ function initAiChat(wrapper) {
     // re-emitted. Content stays line-local ([^*\n]) like the old ".*?".
     let result = escapeHtml(c)
       .replace(/【[^】]*】/g, '')
+      // Lone CJK brackets left over after citation stripping: models mix
+      // bracket styles when wrapping URLs (observed live: "[<url>】." - ASCII
+      // "[" opened, U+3011 "】" closed). Mapped to their ASCII counterparts so
+      // every bracket-peeling and wrapper-cleanup rule below applies to them.
+      .replace(/【/g, '[')
+      .replace(/】/g, ']')
       .replace(/(^|[\s([{"'])\*\*([^*\n]+?)\*\*/gm, '$1<strong>$2</strong>')
       .replace(/(^|[\s([{"'])\*([^*\n]+?)\*/gm, '$1<em>$2</em>')
       .replace(/(^|[\s([{"'])`([^`\n]+?)`/gm, '$1<code>$2</code>')

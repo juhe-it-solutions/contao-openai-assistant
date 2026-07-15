@@ -391,6 +391,20 @@ check('md-extra-10 punctuation', fmt(mdCases[9][0]).endsWith('</a>.'), fmt(mdCas
     check(`md-malformed-${i + 1} one anchor`, (o.match(/<a /g) || []).length === 1, o);
     check(`md-malformed-${i + 1} no wrapper`, !/[\][]/.test(o.replace(/&\w+;|\[&\]/g, '')), o);
   });
+  // The exact live model output captured 2026-07-15 23:24 on the Contao 5.7
+  // install (raw /ai-chat/send JSON): ASCII "[" opened, CJK U+3011 "】" closed.
+  // The lone CJK bracket must not leak into the href, and the ASCII "[" must
+  // not remain as visible text.
+  {
+    const o = fmtShort(`Die Firmenwebseite ist erreichbar unter: [${LONG_URL}】.`);
+    check('cjk-bracket-1 label', anchorText(o) === 'Download', o);
+    check('cjk-bracket-1 href exact', o.includes(`href="${LONG_URL}"`), o);
+    check('cjk-bracket-1 no brackets', !/[\][【】]/.test(o), o);
+    check('cjk-bracket-1 trailing dot', o.endsWith('</a>.'), o);
+  }
+  // Complete 【...】 citation markers are still stripped entirely.
+  check('cjk-bracket-2 citation strip', fmt('Siehe Quelle【4:0†source】.') === 'Siehe Quelle.', fmt('Siehe Quelle【4:0†source】.'));
+
   // Descriptive labels survive the cleanup (failed Markdown, newline in dest).
   {
     const o = fmtShort(`[Zum Formular](${LONG_URL.replace('&q=', '&\nq=')})`);
