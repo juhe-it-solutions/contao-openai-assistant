@@ -9,7 +9,7 @@ that is clickable and points to the complete, unmodified URL.
 ## Configure
 
 Edit the frontend module of type **AI tools -> AI-Chatbot** and use the
-checkbox **Shorten plain URLs** (German backend: **Nackte URLs kürzen**) in the
+checkbox **Shorten plain URLs** (German backend: **URLs kürzen**) in the
 chat settings.
 
 - **Enabled (default):** plain URLs are displayed as short labels.

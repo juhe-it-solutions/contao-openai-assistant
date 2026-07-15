@@ -108,11 +108,11 @@
             </trans-unit>
             <trans-unit id="tl_module.shorten_urls.0">
                 <source>Shorten plain URLs</source>
-                <target>Nackte URLs kürzen</target>
+                <target>URLs kürzen</target>
             </trans-unit>
             <trans-unit id="tl_module.shorten_urls.1">
                 <source>Render plain URLs in chat answers as short labels ("Download" / "Visit page") instead of the full URL. Markdown links always keep their own link text.</source>
-                <target>Nackte URLs in Chat-Antworten als kurze Hinweise („Download" / „Seite aufrufen") statt der vollen URL darstellen. Markdown-Links behalten immer ihren eigenen Linktext.</target>
+                <target>Unformatierte URLs in Chat-Antworten als kurze Hinweise („Download" / „Seite aufrufen") statt in voller Länge darstellen. Markdown-Links behalten immer ihren eigenen Linktext.</target>
             </trans-unit>
             <trans-unit id="tl_module.disclaimer_text.0">
                 <source>Disclaimer Text</source>
