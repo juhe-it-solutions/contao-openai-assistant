@@ -368,6 +368,36 @@ check('md-extra-10 punctuation', fmt(mdCases[9][0]).endsWith('</a>.'), fmt(mdCas
   out = fmt(LONG_URL_BE);
   check('basic-entity-2 off href', out.includes(`href="${LONG_URL_BE}"`), out);
 
+  // ---- Malformed Markdown echoes (observed on the Contao 5.7 test install,
+  // "[Download." with a stray "]" in the href): models re-emit vector-store
+  // links in broken shapes. Every variant must collapse to ONE clean anchor
+  // with the exact URL in href - no wrapper brackets, no bracket in the label,
+  // no "]"/")"/"." leaking into the href.
+  const malformed = [
+    `[Download](${LONG_URL}]).`,                          // stray ] inside dest
+    `[[Download](${LONG_URL})].`,                         // whole link double-wrapped
+    `[[Download](${LONG_URL}]).`,                         // double-wrap + stray ] (screenshot case)
+    `[${LONG_URL}](${LONG_URL}]).`,                       // url-as-text + stray ]
+    `[${LONG_URL}].`,                                     // bracket-wrapped bare URL
+    `[${LONG_URL}](${LONG_URL.replace('&q=', '&\nq=')}).`, // url-as-text, newline in dest (screenshot case)
+    `[Download](${LONG_URL.replace('&q=', '&\nq=')}).`,   // label + newline in dest
+    `[Download][${LONG_URL}].`,                           // reference-style
+    `[Download](${LONG_URL}.).`,                          // trailing dot inside dest
+  ];
+  malformed.forEach((input, i) => {
+    const o = fmtShort(`Erreichbar unter:\n${input}`);
+    check(`md-malformed-${i + 1} label`, anchorText(o) === 'Download', o);
+    check(`md-malformed-${i + 1} href exact`, o.includes(`href="${LONG_URL}"`), o);
+    check(`md-malformed-${i + 1} one anchor`, (o.match(/<a /g) || []).length === 1, o);
+    check(`md-malformed-${i + 1} no wrapper`, !/[\][]/.test(o.replace(/&\w+;|\[&\]/g, '')), o);
+  });
+  // Descriptive labels survive the cleanup (failed Markdown, newline in dest).
+  {
+    const o = fmtShort(`[Zum Formular](${LONG_URL.replace('&q=', '&\nq=')})`);
+    check('md-malformed-label kept', anchorText(o) === 'Zum Formular', o);
+    check('md-malformed-label href', o.includes(`href="${LONG_URL}"`), o);
+  }
+
   // Regular emphasis/strong/code at word boundaries keep working.
   out = fmt('Das ist **wichtig** und *kursiv* mit `code` dazu.');
   check('em-boundary-1 strong', out.includes('<strong>wichtig</strong>'), out);

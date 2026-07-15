@@ -488,7 +488,12 @@ function initAiChat(wrapper) {
       return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener">${clean}</a>${trailing}`;
     };
     const buildMarkdownLink = (text, url) => {
-      const clean = sanitizeUrl(url);
+      // Peel stray trailing "]"/")" and sentence punctuation from the explicit
+      // destination and DROP them: unlike a bare URL there is no surrounding
+      // sentence they could belong to - inside "(...)" they are model
+      // artifacts (observed: "[Download](<url>])"). Balanced brackets, e.g.
+      // ".../Function_(mathematics)", are untouched by the balance check.
+      const {clean} = splitTrailingUrlPunctuation(sanitizeUrl(url));
       if (!clean) return `[${text}](${url})`;
 
       const hrefPrefix = clean.toLowerCase().startsWith('www.') ? 'https://' : '';
@@ -496,10 +501,12 @@ function initAiChat(wrapper) {
       // e.g. when the vector-store document stores links that way). A URL used
       // as its own label carries no information a shortened label wouldn't, so
       // the shorten_urls option applies here too - real descriptive text is
-      // always kept as-is.
+      // always kept as-is. Leading "[" in the text (from "[[label](url)]"
+      // double-wraps) is ignored for the URL-likeness test; the anchor-label
+      // cleanup pass below strips it from the rendered label.
       if (shortenPlainUrls
           && /^(?:https?:\/\/|www\.)/i.test(clean)
-          && /^(?:https?:\/\/|www\.)\S+$/i.test(text.trim())) {
+          && /^(?:https?:\/\/|www\.)\S+$/i.test(text.replace(/^\[+/, '').trim())) {
         const label = isDownloadUrl(clean) ? linkLabelDownload : linkLabelPage;
         return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener" title="${hrefPrefix}${clean}" aria-label="${label}, ${hostnameOf(clean)}">${label}</a>`;
       }
@@ -554,15 +561,45 @@ function initAiChat(wrapper) {
     // same place the literal bracket in [^<>] used to stop it before escaping.
     // The breakpoint alternative also accepts &amp; - the input is entity-escaped,
     // so a literal & before a model-inserted newline arrives as "&amp;<br>".
+    // The (?!\]\() tempering stops a bare URL at a "](" boundary: when a
+    // Markdown link failed to parse (e.g. newline inside the destination),
+    // the text and destination URLs must become two separate anchors instead
+    // of one giant "url1](url2" href; the malformed-Markdown cleanup below
+    // then merges the leftover wrapper. Lone "["/"]" still pass through
+    // (unresolved Contao basic entities like "[&]" in old vector stores).
     result = replaceOutsideAnchors(result, text => text.replace(
-      /https?:\/\/(?:(?:[?&\/=#]|&amp;)<br\s*\/?>|(?!&lt;|&gt;)[^\s<>"'])+/g,
+      /https?:\/\/(?:(?:[?&\/=#]|&amp;)<br\s*\/?>|(?!&lt;|&gt;|\]\()[^\s<>"'])+/g,
       url => buildExternalLink(url.replace(/<br\s*\/?>/gi, ''))
     ));
     // URLs mit www.
     result = replaceOutsideAnchors(result, text => text.replace(
-      /(^|[^\w/])((?:www\.)(?:(?:[?&\/=#]|&amp;)<br\s*\/?>|(?!&lt;|&gt;)[^\s<>"'])+)/g,
+      /(^|[^\w/])((?:www\.)(?:(?:[?&\/=#]|&amp;)<br\s*\/?>|(?!&lt;|&gt;|\]\()[^\s<>"'])+)/g,
       (_, prefix, url) => prefix + buildExternalLink(url.replace(/<br\s*\/?>/gi, ''), 'https://')
     ));
+
+    // Malformed-Markdown cleanup. Models echo vector-store links in broken
+    // shapes ("[url](url)" with a newline-wrapped destination, "[[label](url)]"
+    // double-wraps, reference-style "[label][url]"). After the bare-URL pass
+    // those leave Markdown wrapper syntax around finished anchors or garbage
+    // brackets inside anchor labels - normalize them to one clean anchor.
+    const isUrlLike = (s) => /^(?:https?:\/\/|www\.)/i.test(s.trim());
+    const relabel = (anchor, label) => isUrlLike(label)
+      ? anchor
+      : anchor.replace(/>[^]*?<\/a>$/, `>${label}</a>`);
+    // "[<a>..</a>](<a>..</a>)" (both halves of a failed Markdown link got
+    // autolinked separately): keep the destination anchor.
+    result = result.replace(/\[<a\b[^>]*>[^]*?<\/a>\]\((<a\b[^>]*>[^]*?<\/a>)\)/g, '$1');
+    // "[label](<a>..</a>)" and reference-style "[label][<a>..</a>]": the
+    // destination anchor wins, descriptive label text becomes its label.
+    result = result.replace(/\[([^\][<>]+)\]\((<a\b[^>]*>[^]*?<\/a>)\)/g, (_, label, anchor) => relabel(anchor, label));
+    result = result.replace(/\[([^\][<>]+)\]\[(<a\b[^>]*>[^]*?<\/a>)\]/g, (_, label, anchor) => relabel(anchor, label));
+    // Square brackets wrapping an anchor (also covers ones formed by the
+    // bare-URL pass, which runs after the early bracket-strip step).
+    result = result.replace(/\[(<a\b[^>]*>[^]*?<\/a>)\]/g, '$1');
+    // Stray "[" at the start of an anchor label ("[[Download](url)]" leftovers):
+    // drop it together with a "]" right after the anchor, or alone.
+    result = result.replace(/(<a\b[^>]*>)\[([^<]*<\/a>)\]/g, '$1$2');
+    result = result.replace(/(<a\b[^>]*>)\[([^<\]]*<\/a>)/g, '$1$2');
 
     // Make phone numbers clickable, keeping optional "+" at the start
     result = replaceOutsideAnchors(result, text => text.replace(/(\+?[\d\s\(\)\-]{7,})/g, match => {
