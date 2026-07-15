@@ -416,7 +416,7 @@ class OpenAiFilesListener
     }
 
     /**
-     * @Hook("ondelete_callback")
+     * Registered as config.ondelete callback for tl_openai_files in config/services.yaml.
      */
     public function deleteFromOpenAI($dc): void
     {
