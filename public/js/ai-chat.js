@@ -534,13 +534,15 @@ function initAiChat(wrapper) {
     // its <br> are consumed together instead - same accepted language.
     // URLs mit http/https. (?!&lt;|&gt;) stops the URL at an escaped bracket, the
     // same place the literal bracket in [^<>] used to stop it before escaping.
+    // The breakpoint alternative also accepts &amp; - the input is entity-escaped,
+    // so a literal & before a model-inserted newline arrives as "&amp;<br>".
     result = replaceOutsideAnchors(result, text => text.replace(
-      /https?:\/\/(?:[?&\/=#]<br\s*\/?>|(?!&lt;|&gt;)[^\s<>"'])+/g,
+      /https?:\/\/(?:(?:[?&\/=#]|&amp;)<br\s*\/?>|(?!&lt;|&gt;)[^\s<>"'])+/g,
       url => buildExternalLink(url.replace(/<br\s*\/?>/gi, ''))
     ));
     // URLs mit www.
     result = replaceOutsideAnchors(result, text => text.replace(
-      /(^|[^\w/])((?:www\.)(?:[?&\/=#]<br\s*\/?>|(?!&lt;|&gt;)[^\s<>"'])+)/g,
+      /(^|[^\w/])((?:www\.)(?:(?:[?&\/=#]|&amp;)<br\s*\/?>|(?!&lt;|&gt;)[^\s<>"'])+)/g,
       (_, prefix, url) => prefix + buildExternalLink(url.replace(/<br\s*\/?>/gi, ''), 'https://')
     ));
 

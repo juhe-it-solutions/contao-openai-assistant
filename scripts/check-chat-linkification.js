@@ -186,6 +186,15 @@ check('md-extra-10 punctuation', fmt(mdCases[9][0]).endsWith('</a>.'), fmt(mdCas
   out = fmt('https://example.com/pfad?\nfoo=bar&baz=1');
   check('fmt-6 br repair in url', out.includes('href="https://example.com/pfad?foo=bar&baz=1"'), out);
 
+  // Newline after "&": the & arrives entity-escaped ("&amp;<br>"), which the
+  // breakpoint alternative must accept too (regressed with escape-then-transform).
+  out = fmt('https://example.com/p?foo=1&\nbar=2');
+  check('fmt-6b br repair after &', out.includes('href="https://example.com/p?foo=1&bar=2"'), out);
+  out = fmt('www.example.com/p?foo=1&\nbar=2');
+  check('fmt-6c br repair after & (www)', out.includes('href="https://www.example.com/p?foo=1&bar=2"'), out);
+  out = fmtShort('https://example.com/files/a.pdf?foo=1&\nbar=2');
+  check('fmt-6d br repair after & (shortened)', out.includes('href="https://example.com/files/a.pdf?foo=1&bar=2"') && anchorText(out) === 'Download', out);
+
   // Newlines around mailto/tel/www lines must NOT leak <br> into hrefs ("...br..." corruption).
   out = fmt('Kontakt:\nmailto:office@example.com\ntel:+43123456789\nwww.example.com/kontakt?ref=chat');
   check('fmt-7 multiline mailto', out.includes('href="mailto:office@example.com"'), out);
@@ -274,6 +283,43 @@ check('md-extra-10 punctuation', fmt(mdCases[9][0]).endsWith('</a>.'), fmt(mdCas
     const t = anchorText(o);
     check(`short-bare-${i + 1} label`, t === 'Download' || t === 'Seite aufrufen', o);
   });
+}
+
+// ------------------- long combined-special-characters URL (documented case 42)
+// One URL exercising every URL feature the formatter supports at once:
+// multi-level subdomains, two-part TLD, port, balanced parentheses in path/
+// query/fragment, ~ and , in path segments, percent-encoded slashes/umlauts/
+// spaces/%/+/comma, sub-delims (; ! $ * @ =), a fully encoded nested URL,
+// an empty parameter, and a .pptx path (-> Download label when shortening).
+{
+  const LONG_URL = 'https://ai-chat.download-center.kunden-portal.beispiel-firma.example.co.at:8443/de-AT/medien(2026)/praesentationen/ppt~master_v2.1,final/26-29-054_PowerPoint-Master-II_16-9_DE.pptx?file=files%2Fassets%2Fsprache%2FStyle-Guide_Language-(EN).pdf&cid=11402&version=2026-07%2Bfinal&utm_source=newsletter&utm_medium=email&utm_campaign=sommer_2026;special&preis=1.299%2C90&rabatt=15%25&stadt=k%C3%B6ln&stra%C3%9Fe=hauptstra%C3%9Fe&q=openai%20assistant%20contao&list=a,b,c&flags=x!y$z*w&redirect_uri=https%3A%2F%2Fapp.example.com%2Fde%2Fstart%3Fa%3D1%26b%3D2%23done&token=AbC123-_.~&session=xyz@host&sort=created_at-desc&page=42&empty=&debug=true#abschnitt-2.1_(technische-details)-ende';
+
+  // Bare, shortening OFF: full URL in href AND visible text.
+  let out = fmt(LONG_URL);
+  check('long-1 off href', out.includes(`href="${LONG_URL}"`), out);
+  check('long-1 off text', decode(anchorText(out) || '') === LONG_URL, out);
+
+  // Bare, shortening ON: full URL in href and title, Download label (.pptx path).
+  out = fmtShort('Hier: ' + LONG_URL + '.');
+  check('long-2 on href', out.includes(`href="${LONG_URL}"`), out);
+  check('long-2 on label', anchorText(out) === 'Download', out);
+  check('long-2 on title', out.includes('title="' + LONG_URL.replace(/&/g, '&amp;') + '"'), out);
+  check('long-2 on trailing dot', out.endsWith('</a>.'), out);
+
+  // Markdown: model text always wins.
+  out = fmtShort('[PowerPoint-Master (DE)](' + LONG_URL + ')');
+  check('long-3 md href', out.includes(`href="${LONG_URL}"`), out);
+  check('long-3 md text', out.includes('>PowerPoint-Master (DE)</a>'), out);
+
+  // Newline-wrapped at & (single and double wrap): href repaired to the exact URL.
+  out = fmtShort(LONG_URL.replace('&cid=11402', '&\ncid=11402'));
+  check('long-4 wrap at &', out.includes(`href="${LONG_URL}"`), out);
+  out = fmt(LONG_URL.replace('&stadt=', '&\nstadt=').replace('&page=', '&\npage='));
+  check('long-5 double wrap at &', out.includes(`href="${LONG_URL}"`), out);
+
+  // Ampersand + newline in plain text must never start or extend a link.
+  out = fmtShort('Fischer &\nSöhne GmbH');
+  check('long-6 plain text & newline', !out.includes('<a ') && out === 'Fischer &amp;<br>Söhne GmbH', out);
 }
 
 console.log(`PASS: ${pass}  FAIL: ${fail}`);
