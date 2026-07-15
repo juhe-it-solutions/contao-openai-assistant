@@ -371,7 +371,7 @@ class VectorStoreAutoUpdateService
             $texts = [];
 
             foreach ($rows as $i => $row) {
-                $texts[$i] = (string) $row['text'];
+                $texts[$i] = self::decodeBasicEntities((string) $row['text']);
             }
             $clean = $this->boilerplate->clean($texts);
 
@@ -728,6 +728,30 @@ class VectorStoreAutoUpdateService
         if (!$process->isSuccessful()) {
             throw new \RuntimeException('MSC.vsau_err_crawl_failed|'.$process->getErrorOutput());
         }
+    }
+
+    /**
+     * Decode Contao "basic entities" left unresolved in rendered page text.
+     *
+     * Since Contao 5.0, [&], [lt], [gt], [nbsp], [-] and [zwsp] are no longer
+     * converted automatically when a page is rendered (see UPGRADE.md), so they
+     * can reach tl_search - and thus the vector store - literally. Inside URLs
+     * a literal "[&]" makes the model truncate or bracket-mangle the link, so
+     * they are decoded to their plain-text equivalents before the LLM rewrite.
+     *
+     * Tag list mirrors StringUtil::restoreBasicEntities() of Contao 5.3 AND
+     * 5.7: both know [&], [&amp;], [lt], [gt], [nbsp], [-], [zwsp]; 5.7 added
+     * [lsqb]/[rsqb] (escaped square brackets), which are a no-op in 5.3
+     * content. The bracket tags are decoded LAST so their literal "["/"]"
+     * output can never combine with adjacent text into another tag.
+     */
+    private static function decodeBasicEntities(string $text): string
+    {
+        return str_replace(
+            ['[&]', '[&amp;]', '[lt]', '[gt]', '[nbsp]', '[-]', '[zwsp]', '[lsqb]', '[rsqb]'],
+            ['&', '&', '<', '>', ' ', '', '', '[', ']'],
+            $text,
+        );
     }
 
     /**

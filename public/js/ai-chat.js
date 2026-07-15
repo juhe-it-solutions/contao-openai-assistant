@@ -432,11 +432,18 @@ function initAiChat(wrapper) {
   };
 
   const fmt = c => {
+    // Emphasis/code delimiters must start at a word boundary (start of line,
+    // whitespace or an opening bracket/quote). Without this, a single "*" or
+    // "`" INSIDE a URL (e.g. "?flags=x!y$z*w") pairs up with one in a second
+    // URL later in the message and the <em>/<code> tags shred the URL - and
+    // any Markdown link around it - before the link transforms run. No
+    // lookbehind (Safari/iOS < 16.4): the boundary char is captured and
+    // re-emitted. Content stays line-local ([^*\n]) like the old ".*?".
     let result = escapeHtml(c)
       .replace(/【[^】]*】/g, '')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code>$1</code>')
+      .replace(/(^|[\s([{"'])\*\*([^*\n]+?)\*\*/gm, '$1<strong>$2</strong>')
+      .replace(/(^|[\s([{"'])\*([^*\n]+?)\*/gm, '$1<em>$2</em>')
+      .replace(/(^|[\s([{"'])`([^`\n]+?)`/gm, '$1<code>$2</code>')
       .replace(/\n/g, '<br>')
       .trim();
 
@@ -485,6 +492,17 @@ function initAiChat(wrapper) {
       if (!clean) return `[${text}](${url})`;
 
       const hrefPrefix = clean.toLowerCase().startsWith('www.') ? 'https://' : '';
+      // Models often echo the URL itself as the link text ("[<url>](<url>)",
+      // e.g. when the vector-store document stores links that way). A URL used
+      // as its own label carries no information a shortened label wouldn't, so
+      // the shorten_urls option applies here too - real descriptive text is
+      // always kept as-is.
+      if (shortenPlainUrls
+          && /^(?:https?:\/\/|www\.)/i.test(clean)
+          && /^(?:https?:\/\/|www\.)\S+$/i.test(text.trim())) {
+        const label = isDownloadUrl(clean) ? linkLabelDownload : linkLabelPage;
+        return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener" title="${hrefPrefix}${clean}" aria-label="${label}, ${hostnameOf(clean)}">${label}</a>`;
+      }
       return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener">${text}</a>`;
     };
 

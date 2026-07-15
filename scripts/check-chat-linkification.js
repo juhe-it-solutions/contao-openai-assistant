@@ -320,6 +320,62 @@ check('md-extra-10 punctuation', fmt(mdCases[9][0]).endsWith('</a>.'), fmt(mdCas
   // Ampersand + newline in plain text must never start or extend a link.
   out = fmtShort('Fischer &\nSöhne GmbH');
   check('long-6 plain text & newline', !out.includes('<a ') && out === 'Fischer &amp;<br>Söhne GmbH', out);
+
+  // ---- Markdown link whose TEXT is itself the URL ("[<url>](<url>)") - the
+  // form models echo when the vector-store document stores links that way
+  // (observed 2026-07-15). With shortening ON the generic label applies; real
+  // descriptive text (long-3 above) is never replaced.
+  out = fmtShort(`Die Firmen-Webseite ist erreichbar unter:\n[${LONG_URL}](${LONG_URL}).`);
+  check('url-as-text-1 on label', anchorText(out) === 'Download', out);
+  check('url-as-text-1 on href', out.includes(`href="${LONG_URL}"`), out);
+  check('url-as-text-1 on title', out.includes('title="' + LONG_URL.replace(/&/g, '&amp;') + '"'), out);
+  check('url-as-text-1 no wrapper', !out.includes('](') && !out.includes('[<a'), out);
+  check('url-as-text-1 trailing dot', out.endsWith('</a>.'), out);
+
+  // Shortening OFF keeps the model text (the full URL) as before.
+  out = fmt(`[${LONG_URL}](${LONG_URL})`);
+  check('url-as-text-2 off text', decode(anchorText(out) || '') === LONG_URL, out);
+  check('url-as-text-2 off href', out.includes(`href="${LONG_URL}"`), out);
+
+  // Page-style target gets the page label (customer helpline case).
+  const HELP_URL = 'https://www.dasisteintest.at/miteinersehrlangenurl?parameter1=33%parameter2=34';
+  out = fmtShort(`Die Helpline ist erreichbar unter:\n[${HELP_URL}](${HELP_URL}).`);
+  check('url-as-text-3 page label', anchorText(out) === 'Seite aufrufen', out);
+  check('url-as-text-3 href', out.includes(`href="${HELP_URL}"`), out);
+
+  // ---- Emphasis/code delimiters inside URLs: a single "*" in each of two
+  // URLs in one message ("?flags=x!y$z*w") must not pair up into <em> and
+  // shred the URLs before linkification (the "[Download<em>..." bug).
+  out = fmtShort(`Erste: ${LONG_URL}\nZweite: ${LONG_URL}`);
+  check('em-in-url-1 no em', !out.includes('<em>'), out);
+  check('em-in-url-1 two anchors', (out.match(/<a /g) || []).length === 2, out);
+  check('em-in-url-1 hrefs exact', out.split(`href="${LONG_URL}"`).length - 1 === 2, out);
+
+  // Mid-word asterisks in plain text stay literal too.
+  out = fmt('Rechnung: 5*3 und 7*2 Stück');
+  check('em-in-url-2 mid-word literal', !out.includes('<em>') && out.includes('5*3 und 7*2'), out);
+
+  // ---- Unresolved Contao basic entities ("[&]" instead of "&") inside a bare
+  // URL: Contao >= 5.0 no longer converts them at render time, so pages (and
+  // vector stores synced before the index-time decoding fix) can contain them
+  // literally. The whole URL must still be linkified as ONE token with the
+  // [&] sequences passed through to the href, and shortening must apply.
+  const LONG_URL_BE = LONG_URL.replace(/&/g, '[&]');
+  out = fmtShort(`Erreichbar unter: ${LONG_URL_BE}.`);
+  check('basic-entity-1 on label', anchorText(out) === 'Download', out);
+  check('basic-entity-1 on href', out.includes(`href="${LONG_URL_BE}"`), out);
+  check('basic-entity-1 trailing dot', out.endsWith('</a>.'), out);
+  out = fmt(LONG_URL_BE);
+  check('basic-entity-2 off href', out.includes(`href="${LONG_URL_BE}"`), out);
+
+  // Regular emphasis/strong/code at word boundaries keep working.
+  out = fmt('Das ist **wichtig** und *kursiv* mit `code` dazu.');
+  check('em-boundary-1 strong', out.includes('<strong>wichtig</strong>'), out);
+  check('em-boundary-1 em', out.includes('<em>kursiv</em>'), out);
+  check('em-boundary-1 code', out.includes('<code>code</code>'), out);
+  out = fmt('*Am Zeilenanfang* geht es auch (**auch in Klammern**).');
+  check('em-boundary-2 start', out.includes('<em>Am Zeilenanfang</em>'), out);
+  check('em-boundary-2 paren', out.includes('(<strong>auch in Klammern</strong>)'), out);
 }
 
 console.log(`PASS: ${pass}  FAIL: ${fail}`);
