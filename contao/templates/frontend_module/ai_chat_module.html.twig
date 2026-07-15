@@ -1,12 +1,14 @@
 {# AI Chat Module Template for Contao 5 with CSRF Protection #}
 
-{# Load CSS and JavaScript assets #}
+{# Load CSS and JavaScript assets. asset_version busts browser caches on every
+   deploy (file mtime, Composer version as fallback) - without it, browsers
+   keep serving a stale ai-chat.js after updates. #}
 {% add to head %}
-<link rel="stylesheet" href="/bundles/contaoopenaiassistant/css/ai-chat.css">
+<link rel="stylesheet" href="/bundles/contaoopenaiassistant/css/ai-chat.css{% if asset_version %}?v={{ asset_version }}{% endif %}">
 {% endadd %}
 
 {% add to body %}
-<script src="/bundles/contaoopenaiassistant/js/ai-chat.js"></script>
+<script src="/bundles/contaoopenaiassistant/js/ai-chat.js{% if asset_version %}?v={{ asset_version }}{% endif %}"></script>
 {% endadd %}
 
 <div class="{{ module_class }}{% if custom_css %} {{ custom_css }}{% endif %} theme-{{ theme }}" id="{{ module_id }}" data-position="{{ chat_position|default('bottom-right') }}" data-initial-message="{{ initial_bot_message|escape('html_attr') }}" data-initial-state="{{ initial_state|default('collapsed') }}" data-shorten-urls="{{ shorten_urls ? '1' : '0' }}" data-i18n="{{ i18n_json|escape('html_attr') }}" role="region" aria-label="{{ aria_label_region }}" style="--ai-chat-font-size-base: {{ base_font_size|default('14px') }};

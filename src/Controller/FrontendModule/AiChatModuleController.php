@@ -19,6 +19,8 @@ use Contao\CoreBundle\Framework\ContaoFramework;
 use Contao\CoreBundle\Twig\FragmentTemplate;
 use Contao\ModuleModel;
 use Contao\System;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\BundleVersionService;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,7 +37,29 @@ class AiChatModuleController extends AbstractFrontendModuleController
         private readonly ContaoCsrfTokenManager $csrfTokenManager,
         private readonly ContaoFramework $framework,
         private readonly RequestStack $requestStack,
+        private readonly BundleVersionService $bundleVersion,
+        #[Autowire('%contao.web_dir%')]
+        private readonly string $webDir,
     ) {
+    }
+
+    /**
+     * Cache-busting value for the module's CSS/JS assets. The deployed file's
+     * mtime is preferred over the Composer version: it changes on every deploy,
+     * including dev branches where the version string stays the same. Without
+     * this, browsers keep a stale ai-chat.js across releases (the script tag
+     * had no version parameter).
+     */
+    private function resolveAssetVersion(): string
+    {
+        $file = $this->webDir.'/bundles/contaoopenaiassistant/js/ai-chat.js';
+        $mtime = is_file($file) ? @filemtime($file) : false;
+
+        if (false !== $mtime) {
+            return (string) $mtime;
+        }
+
+        return $this->bundleVersion->getVersion() ?? '';
     }
 
     protected function getResponse(FragmentTemplate $template, ModuleModel $model, Request $request): Response
@@ -53,6 +77,7 @@ class AiChatModuleController extends AbstractFrontendModuleController
 
         $template->set('chat_endpoint', '/ai-chat/send');
         $template->set('token_endpoint', '/ai-chat/token');
+        $template->set('asset_version', $this->resolveAssetVersion());
         $template->set('csrf_token', $csrfToken);
         $template->set('module_id', 'ai-chat-'.$model->id);
         $template->set('module_class', 'mod_ai_chat');
