@@ -542,7 +542,14 @@ function initAiChat(wrapper) {
         const label = isDownloadUrl(clean) ? linkLabelDownload : linkLabelPage;
         return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener" title="${hrefPrefix}${displayUrlOf(clean)}" aria-label="${label}, ${hostnameOf(clean)}">${label}</a>`;
       }
-      return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener">${text}</a>`;
+      // Descriptive labels hide the destination, so expose the full URL as a
+      // hover tooltip - same as the shortened rendering. Only for http/www
+      // destinations: a tel:/mailto: tooltip adds nothing (and displayUrlOf
+      // would mangle a mailto address, whose "userinfo" IS the address).
+      const titleAttr = /^(?:https?:\/\/|www\.)/i.test(clean)
+        ? ` title="${hrefPrefix}${displayUrlOf(clean)}"`
+        : '';
+      return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener"${titleAttr}>${text}</a>`;
     };
 
     // Render explicit Markdown links before bare URL autolinking.

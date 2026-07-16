@@ -73,7 +73,9 @@ bareUrls.forEach((url, i) => {
 // ------------------------------------------------------- markdown mirrors (10)
 bareUrls.forEach((url, i) => {
   const out = fmt(`[Herunterladen](${url})`);
-  const expected = `<a href="${url}" target="_blank" rel="noopener">Herunterladen</a>`;
+  // title keeps &amp; entities - the browser decodes them for display; only
+  // the href post-processing restores the literal & (href must be exact).
+  const expected = `<a href="${url}" target="_blank" rel="noopener" title="${url.replace(/&/g, '&amp;')}">Herunterladen</a>`;
   check(`md-mirror-${i + 1}`, out === expected, out);
 });
 
@@ -492,6 +494,30 @@ check('md-extra-10 punctuation', fmt(mdCases[9][0]).endsWith('</a>.'), fmt(mdCas
     check('cred-1 title clean', /title="[^"]*"/.test(o) && !/title="[^"]*secret/.test(o), o);
     check('cred-1 aria clean', /aria-label="[^"]*"/.test(o) && !/aria-label="[^"]*secret/.test(o), o);
     check('cred-1 aria host', o.includes('aria-label="Download, example.com"'), o);
+  }
+
+  // Descriptive Markdown links carry the full URL as a hover tooltip (title),
+  // in both shortening modes; tel:/mailto: destinations get no title.
+  {
+    const url = 'https://www.example.at/hilfe?parameter1=33&parameter2=34';
+    const titleUrl = url.replace(/&/g, '&amp;');
+    const oOn = fmtShort(`[Helpline](${url})`);
+    const oOff = fmt(`[Helpline](${url})`);
+    check('md-title-1 on', oOn.includes(`title="${titleUrl}"`) && oOn.includes('>Helpline</a>'), oOn);
+    check('md-title-1 off', oOff.includes(`title="${titleUrl}"`) && oOff.includes('>Helpline</a>'), oOff);
+  }
+  {
+    const o = fmt('[Jetzt anrufen](tel:+43123456789)');
+    check('md-title-2 no tel title', !o.includes('title='), o);
+  }
+  {
+    const o = fmt('[Mail senden](mailto:office@example.com)');
+    check('md-title-3 no mailto title', !o.includes('title='), o);
+  }
+  // Credentials stay out of the Markdown tooltip too.
+  {
+    const o = fmt('[Portal](https://user:secret@example.com/x)');
+    check('md-title-4 cred clean', o.includes('title="https://example.com/x"'), o);
   }
 
   // P5: non-ASCII wrappers (corner brackets, fullwidth parens, ellipsis) must

@@ -83,6 +83,9 @@ language override.
   generic "Download" link leads.
 - Exception: URL credentials (`user:password@`) never appear in `title` or
   `aria-label`; only the `href` keeps the URL verbatim.
+- Markdown links with descriptive text also carry the full URL as a `title`
+  tooltip (in both modes, since their label hides the destination just like a
+  shortened link). `mailto:`/`tel:` links get no tooltip.
 - Trailing sentence punctuation stays outside the clickable link, and links
   keep `target="_blank" rel="noopener"` like all external chat links.
 

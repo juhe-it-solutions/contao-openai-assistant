@@ -111,8 +111,8 @@
                 <target>Shorten plain URLs</target>
             </trans-unit>
             <trans-unit id="tl_module.shorten_urls.1">
-                <source>Render plain URLs in chat answers as short labels ("Download" / "Visit page") instead of the full URL. Markdown links always keep their own link text.</source>
-                <target>Render plain URLs in chat answers as short labels ("Download" / "Visit page") instead of the full URL. Markdown links always keep their own link text.</target>
+                <source>Render plain URLs in chat answers as short labels ("Download" / "Visit page") instead of the full URL. Only affects URLs the model outputs as plain text or with the URL itself as link text - Markdown links with descriptive text keep it regardless of this option.</source>
+                <target>Render plain URLs in chat answers as short labels ("Download" / "Visit page") instead of the full URL. Only affects URLs the model outputs as plain text or with the URL itself as link text - Markdown links with descriptive text keep it regardless of this option.</target>
             </trans-unit>
             <trans-unit id="tl_module.colors_legend">
                 <source>Color Settings</source>

@@ -111,8 +111,8 @@
                 <target>URLs kürzen</target>
             </trans-unit>
             <trans-unit id="tl_module.shorten_urls.1">
-                <source>Render plain URLs in chat answers as short labels ("Download" / "Visit page") instead of the full URL. Markdown links always keep their own link text.</source>
-                <target>Unformatierte URLs in Chat-Antworten als kurze Hinweise („Download" / „Seite aufrufen") statt in voller Länge darstellen. Markdown-Links behalten immer ihren eigenen Linktext.</target>
+                <source>Render plain URLs in chat answers as short labels ("Download" / "Visit page") instead of the full URL. Only affects URLs the model outputs as plain text or with the URL itself as link text - Markdown links with descriptive text keep it regardless of this option.</source>
+                <target>URLs in Chat-Antworten als kurze Hinweise („Download" / „Seite aufrufen") statt in voller Länge darstellen. Wirkt nur auf URLs, die das Modell als reinen Text oder mit der URL selbst als Linktext ausgibt - Markdown-Links mit beschreibendem Linktext behalten diesen unabhängig von dieser Option.</target>
             </trans-unit>
             <trans-unit id="tl_module.disclaimer_text.0">
                 <source>Disclaimer Text</source>
