@@ -9,7 +9,7 @@
  */
 
 /**
- * Frontend AI Chat module – German
+ * Frontend AI Chat module - German
  */
 $GLOBALS['TL_LANG']['mod_ai_chat'] = [
     // Default content (when not overridden in module)
@@ -17,7 +17,7 @@ $GLOBALS['TL_LANG']['mod_ai_chat'] = [
     'welcome_message'           => 'Wie kann ich dir helfen?',
     'initial_bot_message'       => 'Hallo! Wie kann ich dir helfen?',
 
-    // Region and buttons – aria-labels and titles
+    // Region and buttons - aria-labels and titles
     'aria_label_region'         => 'AI Chat Module',
     'aria_label_disclaimer_show'=> 'Disclaimer anzeigen',
     'title_disclaimer'         => 'Disclaimer',

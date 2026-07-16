@@ -66,8 +66,8 @@
                 <target>Chat messages per minute per IP address</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.chat_ip_rate_limit.1">
-                <source>Rate limit against scripted abuse of the public chat. Raise it or set 0 (off) if many users share one IP address, e.g. on a corporate intranet or behind a proxy/NAT — otherwise they share this budget collectively.</source>
-                <target>Rate limit against scripted abuse of the public chat. Raise it or set 0 (off) if many users share one IP address, e.g. on a corporate intranet or behind a proxy/NAT — otherwise they share this budget collectively.</target>
+                <source>Rate limit against scripted abuse of the public chat. Raise it or set 0 (off) if many users share one IP address, e.g. on a corporate intranet or behind a proxy/NAT - otherwise they share this budget collectively.</source>
+                <target>Rate limit against scripted abuse of the public chat. Raise it or set 0 (off) if many users share one IP address, e.g. on a corporate intranet or behind a proxy/NAT - otherwise they share this budget collectively.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.max_tokens.0">
                 <source>Maximum Tokens</source>
@@ -172,8 +172,8 @@
 
             <!-- No-files notice on dashboard -->
             <trans-unit id="tl_openai_config.no_files_notice">
-                <source>No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform — without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.</source>
-                <target>No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform — without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.</target>
+                <source>No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform - without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.</source>
+                <target>No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform - without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.</target>
             </trans-unit>
 
             <!-- Single Config Limitation Notice -->
@@ -306,16 +306,16 @@
                 <target>First sync</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.first_sync_hint_cron">
-                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs run automatically on your schedule.</source>
-                <target>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs run automatically on your schedule.</target>
+                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs run automatically on your schedule.</source>
+                <target>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs run automatically on your schedule.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.first_sync_hint_nocron">
-                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs require a CLI cron job (contao:cron) on your server.</source>
-                <target>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs require a CLI cron job (contao:cron) on your server.</target>
+                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs require a CLI cron job (contao:cron) on your server.</source>
+                <target>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs require a CLI cron job (contao:cron) on your server.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.first_sync_hint_manual">
-                <source>Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met.</source>
-                <target>Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met.</target>
+                <source>Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met.</source>
+                <target>Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.first_sync_hint_dashboard">
                 <source>Open the Auto-Sync dashboard</source>
@@ -370,8 +370,8 @@
                 <target>Run on a specific calendar day, or every day. Requires a server cron running <code>contao:cron</code> every minute.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_raw_mode.0">
-                <source>Upload page content as-is (skip AI optimisation) — advanced</source>
-                <target>Upload page content as-is (skip AI optimisation) — advanced</target>
+                <source>Upload page content as-is (skip AI optimisation) - advanced</source>
+                <target>Upload page content as-is (skip AI optimisation) - advanced</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_raw_mode.1">
                 <source><![CDATA[<strong>What this does.</strong> By default (unchecked) the crawled page text is first rewritten by an AI model into one clean, compact knowledge document: navigation, menus, footers and cookie notices are stripped out, repeated content is merged, and everything is restructured so the chatbot can find answers reliably. Facts such as names, addresses, phone numbers, prices and dates are kept unchanged. This usually gives clearly better chatbot answers and costs only a fraction of a cent per synchronisation.<br><br><strong>If you tick this box</strong> the AI step is skipped and the raw extracted page text is uploaded to the vector store unchanged. <strong>Advantages:</strong> no AI cost and your text is never altered. <strong>Disadvantages:</strong> noticeably weaker chatbot answers, because navigation and repeated boilerplate are stored alongside the real content. In this mode the "Generation model" and "Instructions for the knowledge document" settings below are ignored. Leave this unchecked unless you know exactly why you want the raw text.]]></source>
@@ -386,12 +386,12 @@
                 <target><![CDATA[<strong>Faithful (recommended).</strong> Every selected page is uploaded as its own document with no character or page limit. Navigation, menus and footers that repeat across pages are removed automatically, but your real content is never altered or shortened. No AI cost.<br><br><strong>AI polish.</strong> Each page is additionally rewritten by an AI model into a denser knowledge document before upload. Because the model only ever sees one page at a time, it can never drop or confuse content from other pages. This can improve answers on messy sources but costs tokens per page.]]></target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_mode_ref.faithful">
-                <source>Faithful — upload full page content (recommended)</source>
-                <target>Faithful — upload full page content (recommended)</target>
+                <source>Faithful - upload full page content (recommended)</source>
+                <target>Faithful - upload full page content (recommended)</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_mode_ref.llm_polish">
-                <source>AI polish — rewrite each page with an AI model</source>
-                <target>AI polish — rewrite each page with an AI model</target>
+                <source>AI polish - rewrite each page with an AI model</source>
+                <target>AI polish - rewrite each page with an AI model</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_model.0">
                 <source>Generation model</source>
@@ -430,16 +430,16 @@
                 <target>Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_pages_none_selected_limit">
-                <source>No pages selected — all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.</source>
-                <target>No pages selected — all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.</target>
+                <source>No pages selected - all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.</source>
+                <target>No pages selected - all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.0">
                 <source>System prompt for AI processing of the content</source>
                 <target>System prompt for AI processing of the content</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.1">
-                <source>Defines how your website texts are turned into the chatbot knowledge file during automatic sync. The default works for most sites — change it only if you want a different focus, style, or structure.</source>
-                <target>Defines how your website texts are turned into the chatbot knowledge file during automatic sync. The default works for most sites — change it only if you want a different focus, style, or structure.</target>
+                <source>Defines how your website texts are turned into the chatbot knowledge file during automatic sync. The default works for most sites - change it only if you want a different focus, style, or structure.</source>
+                <target>Defines how your website texts are turned into the chatbot knowledge file during automatic sync. The default works for most sites - change it only if you want a different focus, style, or structure.</target>
             </trans-unit>
         </body>
     </file>

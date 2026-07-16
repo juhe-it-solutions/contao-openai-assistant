@@ -180,8 +180,8 @@
                 <target>Nur manuell</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_schedule_manual_hint">
-                <source>No automatic schedule — start each sync with the button below.</source>
-                <target>Kein automatischer Zeitplan – starten Sie jede Synchronisierung über die Schaltfläche unten.</target>
+                <source>No automatic schedule - start each sync with the button below.</source>
+                <target>Kein automatischer Zeitplan - starten Sie jede Synchronisierung über die Schaltfläche unten.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_no_proc_open_heading">
                 <source>Manual sync button unavailable on this server</source>
@@ -296,12 +296,12 @@
                 <target>Planänderungen prüfen, ohne den Lizenzschlüssel neu eingeben zu müssen.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_refresh_license_confirm">
-                <source>License status refreshed – no plan change.</source>
-                <target>Lizenzstatus aktualisiert – keine Planänderung.</target>
+                <source>License status refreshed - no plan change.</source>
+                <target>Lizenzstatus aktualisiert - keine Planänderung.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_refresh_license_confirm_changed">
-                <source>License updated – current plan:</source>
-                <target>Lizenz aktualisiert – aktueller Tarif:</target>
+                <source>License updated - current plan:</source>
+                <target>Lizenz aktualisiert - aktueller Tarif:</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_refresh_license_inactive">
                 <source>License is not active. Enter a valid key in the OpenAI Configuration.</source>
@@ -452,8 +452,8 @@
                 <target>Manuelle Synchronisierung an die CLI übergeben. Aktualisieren Sie diese Seite in einigen Minuten.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_no_indexed_pages">
-                <source>No indexed pages found for this site root (tl_search is empty). Run System → Maintenance → Rebuild search index. If pages are still missing, check whether they carry robots=noindex or Search indexer=Never index — set Search indexer=Always index on those page records to force-include them in both Contao search and the vector store.</source>
-                <target>Für diese Website wurden keine indexierten Seiten gefunden (tl_search ist leer). Aktualisieren Sie den Suchindex unter System → Wartung → „Suchindex aktualisieren“. Fehlen Seiten weiterhin, prüfen Sie robots=noindex oder Suchindexer=„Nie indexieren“ — setzen Sie auf den betroffenen Seiten Suchindexer=„Immer indexieren“, um sie in Contao-Suche und Vector Store aufzunehmen.</target>
+                <source>No indexed pages found for this site root (tl_search is empty). Run System → Maintenance → Rebuild search index. If pages are still missing, check whether they carry robots=noindex or Search indexer=Never index - set Search indexer=Always index on those page records to force-include them in both Contao search and the vector store.</source>
+                <target>Für diese Website wurden keine indexierten Seiten gefunden (tl_search ist leer). Aktualisieren Sie den Suchindex unter System → Wartung → „Suchindex aktualisieren“. Fehlen Seiten weiterhin, prüfen Sie robots=noindex oder Suchindexer=„Nie indexieren“ - setzen Sie auf den betroffenen Seiten Suchindexer=„Immer indexieren“, um sie in Contao-Suche und Vector Store aufzunehmen.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_empty_document_raw">
                 <source>No page content found to upload; aborting before replacing the existing file.</source>

@@ -66,8 +66,8 @@
                 <target>Chat-Nachrichten pro Minute pro IP-Adresse</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.chat_ip_rate_limit.1">
-                <source>Rate limit against scripted abuse of the public chat. Raise it or set 0 (off) if many users share one IP address, e.g. on a corporate intranet or behind a proxy/NAT — otherwise they share this budget collectively.</source>
-                <target>Ratenbegrenzung gegen skriptgesteuerten Missbrauch des öffentlichen Chats. Erhöhen Sie den Wert oder setzen Sie ihn auf 0 (aus), wenn viele Benutzer eine IP-Adresse teilen, z. B. im Firmen-Intranet oder hinter Proxy/NAT — sonst teilen sie sich dieses Kontingent gemeinsam.</target>
+                <source>Rate limit against scripted abuse of the public chat. Raise it or set 0 (off) if many users share one IP address, e.g. on a corporate intranet or behind a proxy/NAT - otherwise they share this budget collectively.</source>
+                <target>Ratenbegrenzung gegen skriptgesteuerten Missbrauch des öffentlichen Chats. Erhöhen Sie den Wert oder setzen Sie ihn auf 0 (aus), wenn viele Benutzer eine IP-Adresse teilen, z. B. im Firmen-Intranet oder hinter Proxy/NAT - sonst teilen sie sich dieses Kontingent gemeinsam.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.max_tokens.0">
                 <source>Maximum Tokens</source>
@@ -172,7 +172,7 @@
 
             <!-- No-files notice on dashboard -->
             <trans-unit id="tl_openai_config.no_files_notice">
-                <source>No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform — without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.</source>
+                <source>No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform - without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.</source>
                 <target>Es wurden noch keine Dateien in den OpenAI Vector Store hochgeladen. Der Chatbot kann ohne Wissensdokumente keine Fragen beantworten. Wichtig: Mindestens ein Datei-Upload ist erforderlich, damit der Vector Store auf der OpenAI-Plattform angelegt wird - ohne diesen funktioniert auch das Premium-Addon (automatische Synchronisierung) nicht. Gehen Sie zu «Datei-Upload», um Ihre erste Datei hinzuzufügen.</target>
             </trans-unit>
 
@@ -306,16 +306,16 @@
                 <target>Erste Synchronisierung</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.first_sync_hint_cron">
-                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs run automatically on your schedule.</source>
-                <target>Starten Sie die erste Synchronisierung über die Schaltfläche „Jetzt manuell synchronisieren“ im Auto-Sync-Dashboard – dort sehen Sie auch, ob alle Voraussetzungen (z. B. Suchindex, Seitenauswahl) erfüllt sind. Weitere Läufe erfolgen automatisch gemäß Ihrem Zeitplan.</target>
+                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs run automatically on your schedule.</source>
+                <target>Starten Sie die erste Synchronisierung über die Schaltfläche „Jetzt manuell synchronisieren“ im Auto-Sync-Dashboard - dort sehen Sie auch, ob alle Voraussetzungen (z. B. Suchindex, Seitenauswahl) erfüllt sind. Weitere Läufe erfolgen automatisch gemäß Ihrem Zeitplan.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.first_sync_hint_nocron">
-                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs require a CLI cron job (contao:cron) on your server.</source>
-                <target>Starten Sie die erste Synchronisierung über die Schaltfläche „Jetzt manuell synchronisieren“ im Auto-Sync-Dashboard – dort sehen Sie auch, ob alle Voraussetzungen (z. B. Suchindex, Seitenauswahl) erfüllt sind. Weitere Läufe erfordern einen CLI-Cronjob (contao:cron) auf Ihrem Server.</target>
+                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs require a CLI cron job (contao:cron) on your server.</source>
+                <target>Starten Sie die erste Synchronisierung über die Schaltfläche „Jetzt manuell synchronisieren“ im Auto-Sync-Dashboard - dort sehen Sie auch, ob alle Voraussetzungen (z. B. Suchindex, Seitenauswahl) erfüllt sind. Weitere Läufe erfordern einen CLI-Cronjob (contao:cron) auf Ihrem Server.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.first_sync_hint_manual">
-                <source>Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met.</source>
-                <target>Manueller Modus: Starten Sie die erste Synchronisierung über die Schaltfläche „Jetzt manuell synchronisieren“ im Auto-Sync-Dashboard – dort sehen Sie auch, ob alle Voraussetzungen (z. B. Suchindex, Seitenauswahl) erfüllt sind.</target>
+                <source>Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met.</source>
+                <target>Manueller Modus: Starten Sie die erste Synchronisierung über die Schaltfläche „Jetzt manuell synchronisieren“ im Auto-Sync-Dashboard - dort sehen Sie auch, ob alle Voraussetzungen (z. B. Suchindex, Seitenauswahl) erfüllt sind.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.first_sync_hint_dashboard">
                 <source>Open the Auto-Sync dashboard</source>
@@ -370,8 +370,8 @@
                 <target>An einem bestimmten Kalendertag oder täglich ausführen. Erfordert einen Server-Cron, der <code>contao:cron</code> jede Minute ausführt.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_raw_mode.0">
-                <source>Upload page content as-is (skip AI optimisation) — advanced</source>
-                <target>Seiteninhalte unverändert übernehmen (ohne KI-Optimierung) — für Fortgeschrittene</target>
+                <source>Upload page content as-is (skip AI optimisation) - advanced</source>
+                <target>Seiteninhalte unverändert übernehmen (ohne KI-Optimierung) - für Fortgeschrittene</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_raw_mode.1">
                 <source><![CDATA[<strong>What this does.</strong> By default (unchecked) the crawled page text is first rewritten by an AI model into one clean, compact knowledge document: navigation, menus, footers and cookie notices are stripped out, repeated content is merged, and everything is restructured so the chatbot can find answers reliably. Facts such as names, addresses, phone numbers, prices and dates are kept unchanged. This usually gives clearly better chatbot answers and costs only a fraction of a cent per synchronisation.<br><br><strong>If you tick this box</strong> the AI step is skipped and the raw extracted page text is uploaded to the vector store unchanged. <strong>Advantages:</strong> no AI cost and your text is never altered. <strong>Disadvantages:</strong> noticeably weaker chatbot answers, because navigation and repeated boilerplate are stored alongside the real content. In this mode the "Generation model" and "Instructions for the knowledge document" settings below are ignored. Leave this unchecked unless you know exactly why you want the raw text.]]></source>
@@ -382,16 +382,16 @@
                 <target>Indexierungsmodus</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_mode.1">
-                <source><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen – ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung.</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite.]]></source>
-                <target><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen – ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung.</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite.]]></target>
+                <source><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen - ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung.</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite.]]></source>
+                <target><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen - ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung.</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite.]]></target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_mode_ref.faithful">
-                <source>Faithful — upload full page content (recommended)</source>
-                <target>Originalgetreu – vollständigen Seiteninhalt hochladen (empfohlen)</target>
+                <source>Faithful - upload full page content (recommended)</source>
+                <target>Originalgetreu - vollständigen Seiteninhalt hochladen (empfohlen)</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_mode_ref.llm_polish">
-                <source>AI polish — rewrite each page with an AI model</source>
-                <target>KI-Aufbereitung – jede Seite mit einem KI-Modell optimieren</target>
+                <source>AI polish - rewrite each page with an AI model</source>
+                <target>KI-Aufbereitung - jede Seite mit einem KI-Modell optimieren</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_model.0">
                 <source>Generation model</source>
@@ -430,16 +430,16 @@
                 <target>Ihre Auswahl umfasst %1$s Seiten, Ihr aktueller Tarif erlaubt jedoch höchstens %2$s. Reduzieren Sie die Auswahl oder führen Sie ein Tarif-Upgrade durch; die vorherige Auswahl wurde beibehalten.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_pages_none_selected_limit">
-                <source>No pages selected — all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.</source>
-                <target>Keine Seiten ausgewählt – alle %1$s Unterseiten des einzigen Webseiten-Startpunkts würden automatisch synchronisiert. Ihr aktueller Tarif erlaubt jedoch höchstens %2$s Seiten. Bitte wählen Sie gezielt Seiten aus oder führen Sie ein Tarif-Upgrade durch.</target>
+                <source>No pages selected - all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.</source>
+                <target>Keine Seiten ausgewählt - alle %1$s Unterseiten des einzigen Webseiten-Startpunkts würden automatisch synchronisiert. Ihr aktueller Tarif erlaubt jedoch höchstens %2$s Seiten. Bitte wählen Sie gezielt Seiten aus oder führen Sie ein Tarif-Upgrade durch.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.0">
                 <source>System prompt for AI processing of the content</source>
                 <target>System-Prompt für KI-Aufbereitung der Inhalte</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.1">
-                <source>Defines how your website texts are turned into the chatbot knowledge file during automatic sync. The default works for most sites — change it only if you want a different focus, style, or structure.</source>
-                <target>Legt fest, wie aus den Texten Ihrer Website die Wissensdatei für den Chatbot erstellt wird. Die Voreinstellung passt in der Regel — ändern Sie sie nur, wenn Sie z. B. einen anderen Schwerpunkt, Stil oder Aufbau wünschen.</target>
+                <source>Defines how your website texts are turned into the chatbot knowledge file during automatic sync. The default works for most sites - change it only if you want a different focus, style, or structure.</source>
+                <target>Legt fest, wie aus den Texten Ihrer Website die Wissensdatei für den Chatbot erstellt wird. Die Voreinstellung passt in der Regel - ändern Sie sie nur, wenn Sie z. B. einen anderen Schwerpunkt, Stil oder Aufbau wünschen.</target>
             </trans-unit>
         </body>
     </file>
