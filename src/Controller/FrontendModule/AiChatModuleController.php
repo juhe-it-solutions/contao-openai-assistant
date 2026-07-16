@@ -43,25 +43,6 @@ class AiChatModuleController extends AbstractFrontendModuleController
     ) {
     }
 
-    /**
-     * Cache-busting value for the module's CSS/JS assets. The deployed file's
-     * mtime is preferred over the Composer version: it changes on every deploy,
-     * including dev branches where the version string stays the same. Without
-     * this, browsers keep a stale ai-chat.js across releases (the script tag
-     * had no version parameter).
-     */
-    private function resolveAssetVersion(): string
-    {
-        $file = $this->webDir.'/bundles/contaoopenaiassistant/js/ai-chat.js';
-        $mtime = is_file($file) ? @filemtime($file) : false;
-
-        if (false !== $mtime) {
-            return (string) $mtime;
-        }
-
-        return $this->bundleVersion->getVersion() ?? '';
-    }
-
     protected function getResponse(FragmentTemplate $template, ModuleModel $model, Request $request): Response
     {
         $this->framework->initialize();
@@ -139,6 +120,25 @@ class AiChatModuleController extends AbstractFrontendModuleController
         $template->set('light_accent', $model->light_accent ?? '007bff');
 
         return $template->getResponse();
+    }
+
+    /**
+     * Cache-busting value for the module's CSS/JS assets. The deployed file's
+     * mtime is preferred over the Composer version: it changes on every deploy,
+     * including dev branches where the version string stays the same. Without
+     * this, browsers keep a stale ai-chat.js across releases (the script tag
+     * had no version parameter).
+     */
+    private function resolveAssetVersion(): string
+    {
+        $file = $this->webDir.'/bundles/contaoopenaiassistant/js/ai-chat.js';
+        $mtime = is_file($file) ? @filemtime($file) : false;
+
+        if (false !== $mtime) {
+            return (string) $mtime;
+        }
+
+        return $this->bundleVersion->getVersion() ?? '';
     }
 
     /**
