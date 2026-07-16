@@ -446,34 +446,33 @@
 .ai-chat-log,
 .ai-chat-input,
 .ai-chat-disclaimer-body {
-    scrollbar-width: thin;
-    scrollbar-color: var(--ai-chat-input-border) transparent;
+    scrollbar-color: var(--ai-chat-text-primary) transparent !important;
+    scrollbar-width: thin !important;
 }
 
 /* Chrome, Edge, Safari (WebKit/Blink) */
 .ai-chat-log::-webkit-scrollbar,
 .ai-chat-input::-webkit-scrollbar,
 .ai-chat-disclaimer-body::-webkit-scrollbar {
-    width: 6px;
+    width: .5em;
 }
 
 .ai-chat-log::-webkit-scrollbar-track,
 .ai-chat-input::-webkit-scrollbar-track,
 .ai-chat-disclaimer-body::-webkit-scrollbar-track {
-    background: transparent;
+    box-shadow: inset 0 0 3px var(--ai-chat-shadow-color);
 }
 
 .ai-chat-log::-webkit-scrollbar-thumb,
 .ai-chat-input::-webkit-scrollbar-thumb,
 .ai-chat-disclaimer-body::-webkit-scrollbar-thumb {
-    background: var(--ai-chat-input-border);
-    border-radius: 3px;
+    background-color: var(--ai-chat-text-primary);
 }
 
 .ai-chat-log::-webkit-scrollbar-thumb:hover,
 .ai-chat-input::-webkit-scrollbar-thumb:hover,
 .ai-chat-disclaimer-body::-webkit-scrollbar-thumb:hover {
-    background: var(--ai-chat-text-primary);
+    background-color: var(--ai-chat-text-secondary);
 }
 
 .ai-chat-send {
