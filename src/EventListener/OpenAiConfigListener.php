@@ -1102,9 +1102,10 @@ class OpenAiConfigListener
 
         return \sprintf(
             '<div class="widget clr">'
+            .'<style>.oaa-first-sync-link:hover,.oaa-first-sync-link:focus-visible{background:#1976d2 !important;border-color:#1565c0 !important;color:#fff !important}</style>'
             .'<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin: 8px 0 0 0;">'
-            .'<strong>ℹ️ %s:</strong> %s '
-            .'<a href="%s" style="white-space: nowrap;">%s</a>'
+            .'<p style="margin: 0 0 8px 0;"><strong>ℹ️ %s:</strong> %s</p>'
+            .'<a href="%s" class="oaa-first-sync-link" style="display: inline-flex; align-items: center; justify-content: center; min-height: 26px; padding: 2px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; line-height: 1.25; background: #2196f3; border: 1px solid #1976d2; color: #fff; text-decoration: none; white-space: nowrap;">%s</a>'
             .'</div></div>',
             htmlspecialchars($this->getConfigLangString('first_sync_hint_heading', 'First sync'), ENT_QUOTES),
             htmlspecialchars($text, ENT_QUOTES),
