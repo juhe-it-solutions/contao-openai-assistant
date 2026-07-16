@@ -306,7 +306,7 @@ class OpenAiConfigListenerTest extends TestCase
         $previousDca = $GLOBALS['TL_DCA']['tl_openai_config'] ?? null;
         $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'palettes' => ['default' => '{auto_update_legend},auto_update_mode,auto_update_model,auto_update_prompt_template'],
-            'fields' => ['auto_update_prompt_template' => ['eval' => []]],
+            'fields' => ['auto_update_prompt_template' => ['eval' => ['tl_class' => 'clr auto-update-license-field']]],
         ];
 
         try {
@@ -321,6 +321,11 @@ class OpenAiConfigListenerTest extends TestCase
             $this->assertTrue(
                 $GLOBALS['TL_DCA']['tl_openai_config']['fields']['auto_update_prompt_template']['eval']['disabled'] ?? false,
                 'Faithful mode must disable the prompt template textarea.',
+            );
+            $this->assertSame(
+                'clr auto-update-license-field oaa-mode-locked',
+                $GLOBALS['TL_DCA']['tl_openai_config']['fields']['auto_update_prompt_template']['eval']['tl_class'],
+                'Faithful mode must mark the widget so the license JS keeps it disabled.',
             );
         } finally {
             if (null === $previousDca) {

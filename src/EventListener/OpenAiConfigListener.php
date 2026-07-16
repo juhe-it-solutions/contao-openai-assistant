@@ -1334,8 +1334,15 @@ class OpenAiConfigListener
             );
 
             // Disabled widgets skip submitInput(), so the stored prompt survives
-            // saves made while faithful mode is active.
-            $GLOBALS['TL_DCA']['tl_openai_config']['fields']['auto_update_prompt_template']['eval']['disabled'] = true;
+            // saves made while faithful mode is active. The oaa-mode-locked class
+            // tells the license JS to keep the field disabled when it re-enables
+            // the premium fields after a successful license check.
+            $eval = &$GLOBALS['TL_DCA']['tl_openai_config']['fields']['auto_update_prompt_template']['eval'];
+            $eval['disabled'] = true;
+
+            if (!str_contains($eval['tl_class'] ?? '', 'oaa-mode-locked')) {
+                $eval['tl_class'] = trim(($eval['tl_class'] ?? '').' oaa-mode-locked');
+            }
         }
     }
 

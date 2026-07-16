@@ -49,18 +49,23 @@
         setAutoUpdateBlockVisible(enabled);
 
         document.querySelectorAll(".widget.auto-update-license-field").forEach(function (widget) {
-            widget.classList.toggle("openai-auto-update-disabled", !enabled);
+            // Fields carrying oaa-mode-locked were disabled server-side for a
+            // functional reason (e.g. prompt template in faithful mode) and must
+            // stay disabled even when the license check re-enables the block.
+            var widgetEnabled = enabled && !widget.classList.contains("oaa-mode-locked");
+
+            widget.classList.toggle("openai-auto-update-disabled", !widgetEnabled);
 
             widget.querySelectorAll("input, select, textarea, button, a.tl_submit").forEach(function (element) {
                 if ("disabled" in element) {
-                    element.disabled = !enabled;
+                    element.disabled = !widgetEnabled;
                 }
 
                 if (!enabled && element.type === "checkbox" && element.name === "auto_update_enabled") {
                     element.checked = false;
                 }
 
-                if (!enabled) {
+                if (!widgetEnabled) {
                     element.setAttribute("aria-disabled", "true");
                     element.setAttribute("tabindex", "-1");
                 } else {
