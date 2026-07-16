@@ -27,6 +27,12 @@ services:
             $csrfTokenName: '%contao.csrf_token_name%'
         public: true
 
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Controller\LicenseValidationController:
+        arguments:
+            $csrfTokenManager: '@contao.csrf.token_manager'
+            $csrfTokenName: '%contao.csrf_token_name%'
+        public: true
+
     # BackendModule Controller
     JuheItSolutions\ContaoOpenaiAssistant\Controller\BackendModule\OpenAiDashboardController:
         public: true
@@ -59,7 +65,19 @@ services:
             $connection: '@doctrine.dbal.default_connection'
             $projectDir: '%kernel.project_dir%'
             $webDir: '%contao.web_dir%'
+            $appSecret: '%kernel.secret%'
         public: true
+
+    JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiModelCatalogService:
+        arguments:
+            $httpClient: '@http_client'
+            $logger: '@monolog.logger.contao'
+
+    # ChatRateLimiter — abuse protection for the public chat endpoint; backed by the
+    # shared application cache so limits hold across web workers and requests.
+    JuheItSolutions\ContaoOpenaiAssistant\Service\ChatRateLimiter:
+        arguments:
+            $cache: '@cache.app'
 
     # OpenAiConfigListener
     JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener:
@@ -71,16 +89,38 @@ services:
             $requestStack: '@request_stack'
             $connection: '@doctrine.dbal.default_connection'
             $encryption: '@JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService'
+            $licenseValidation: '@JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicenseValidationService'
+            $autoUpdateService: '@JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreAutoUpdateService'
+            $fileSync: '@JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreFileSync'
         public: true
         tags:
             - { name: contao.callback, table: tl_openai_config, target: config.onload, method: onLoadCallback }
+            - { name: contao.callback, table: tl_openai_config, target: edit.buttons, method: removeSingleRecordCreateButtons }
             - { name: contao.callback, table: tl_openai_config, target: fields.api_key.load, method: processApiKeyForDisplay }
             - { name: contao.callback, table: tl_openai_config, target: list.label, method: addIcon }
             - { name: contao.callback, table: tl_openai_config, target: list.header, method: addHeader }
             - { name: contao.callback, table: tl_openai_config, target: fields.api_key.save, method: processApiKeyForStorage }
-            - { name: contao.callback, table: tl_openai_config, target: config.onsubmit, method: createVectorStore }
             - { name: contao.callback, table: tl_openai_config, target: config.ondelete, method: deleteVectorStore }
-            - { name: contao.callback, table: tl_openai_config, target: config.oncopy, method: copyVectorStore }
+            # Premium license + auto-update (registered ONLY here — not in the DCA arrays — to run once via DI)
+            - { name: contao.callback, table: tl_openai_config, target: config.onsubmit, method: validatePremiumLicenseOnSave }
+            - { name: contao.callback, table: tl_openai_config, target: config.onsubmit, method: compileAutoUpdateSchedule }
+            - { name: contao.callback, table: tl_openai_config, target: fields.premium_license_key.load, method: processLicenseKeyForDisplay }
+            - { name: contao.callback, table: tl_openai_config, target: fields.premium_license_key.save, method: processLicenseKeyForStorage }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_enabled.load, method: loadAutoUpdateEnabled }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_enabled.save, method: saveAutoUpdateEnabled }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_trigger.save, method: guardAutoUpdateFieldWithoutLicense }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_schedule_hour.save, method: guardAutoUpdateFieldWithoutLicense }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_schedule_minute.save, method: guardAutoUpdateFieldWithoutLicense }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_schedule_weekday.save, method: guardAutoUpdateFieldWithoutLicense }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_schedule_day.save, method: guardAutoUpdateFieldWithoutLicense }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_mode.save, method: guardAutoUpdateFieldWithoutLicense }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_site_root.load, method: loadAutoUpdateSiteRoots }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_site_root.save, method: guardAutoUpdateFieldWithoutLicense }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_site_root.save, method: enforceCrawlPageLimit }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_model.options, method: getAutoUpdateModelOptions }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_model.save, method: validateAutoUpdateModel }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_prompt_template.load, method: loadAutoUpdatePromptTemplate }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_prompt_template.save, method: saveAutoUpdatePromptTemplate }
 
     # OpenAiFilesListener
     JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiFilesListener:
@@ -129,3 +169,50 @@ services:
     JuheItSolutions\ContaoOpenaiAssistant\Security\Voter\AiChatVoter:
         tags:
             - { name: security.voter }
+
+    # --- Automatic vector store updates ---
+
+    # LicenseValidationService — $http needs explicit wiring; $encryption decrypts the
+    # stored key before remote validation
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicenseValidationService:
+        arguments:
+            $connection: '@doctrine.dbal.default_connection'
+            $http: '@http_client'
+            $encryption: '@JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService'
+
+    # CronHealthService — CLI cron heartbeat detection (auto-sync dashboard + config-form hint)
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\CronHealthService:
+        arguments:
+            $connection: '@doctrine.dbal.default_connection'
+
+    # VectorStoreFileSync — per-page upload/reconcile against the OpenAI vector store
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreFileSync:
+        arguments:
+            $connection: '@doctrine.dbal.default_connection'
+            $http: '@http_client'
+            $logger: '@monolog.logger.contao'
+
+    # VectorStoreAutoUpdateService — orchestration; ProcessUtil + EncryptionService +
+    # LicenseValidationService + BoilerplateFilter + VectorStoreFileSync autowire by type
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreAutoUpdateService:
+        arguments:
+            $connection: '@doctrine.dbal.default_connection'
+            $http: '@http_client'
+            $logger: '@monolog.logger.contao'
+
+    # VectorStoreAutoUpdateCron — #[AsCronJob] handles registration; only $connection overridden
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Cron\VectorStoreAutoUpdateCron:
+        arguments:
+            $connection: '@doctrine.dbal.default_connection'
+            $logger: '@monolog.logger.contao'
+
+    # VectorStoreAutoUpdateController — public for routing; $connection + CSRF wired explicitly
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Controller\BackendModule\VectorStoreAutoUpdateController:
+        arguments:
+            $connection: '@doctrine.dbal.default_connection'
+            $csrfTokenManager: '@contao.csrf.token_manager'
+            $csrfTokenName: '%contao.csrf_token_name%'
+        public: true
+
+    # VectorStoreAutoUpdateCommand — autowired via #[AsCommand]; no explicit args needed.
+    # BackendMenuListener — autoconfigured via #[AsEventListener]; Router + Security autowire.

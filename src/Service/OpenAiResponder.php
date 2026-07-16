@@ -1,11 +1,11 @@
 <?php
 
 /*
- * This file is part of Contao Open Source CMS.
- *  *
- *  * (c) JUHE IT-solutions
- *  *
- *  * @license LGPL-3.0-or-later
+ * This file is part of the JUHE Contao OpenAI Assistant bundle.
+ *
+ * (c) JUHE IT-solutions
+ *
+ * @license LGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -41,7 +41,7 @@ class OpenAiResponder
         private readonly HttpClientInterface $http,
         private readonly LoggerInterface $logger,
         private readonly Connection $connection,
-        private readonly EncryptionService $encryption
+        private readonly EncryptionService $encryption,
     ) {
     }
 
@@ -51,25 +51,25 @@ class OpenAiResponder
     public function processMessage(string $message, SessionInterface $session): string
     {
         $config = $this->getActiveConfig();
-        if (! $config) {
+        if (!$config) {
             throw new \RuntimeException('No OpenAI configuration found');
         }
 
         $prompt = $this->getActivePrompt((int) $config['id']);
-        if (! $prompt) {
+        if (!$prompt) {
             throw new \RuntimeException('No prompt configured');
         }
 
         $apiKey = $this->encryption->getApiKeyForConfig((int) $config['id'])
             ?? $this->encryption->processApiKey((string) ($config['api_key'] ?? ''));
 
-        if (! $apiKey) {
+        if (!$apiKey) {
             throw new \RuntimeException('No valid API key available');
         }
 
         $this->dropLegacyThreadId($session);
         $conversationId = $this->ensureConversation($apiKey, $session, (int) $config['id']);
-        $vectorStoreId  = $config['vector_store_id'] ?? null;
+        $vectorStoreId = $config['vector_store_id'] ?? null;
 
         return $this->sendResponse($apiKey, $conversationId, $message, $prompt, $vectorStoreId);
     }
@@ -77,10 +77,10 @@ class OpenAiResponder
     /**
      * Get the active OpenAI configuration (most recent record).
      */
-    public function getActiveConfig(): ?array
+    public function getActiveConfig(): array|null
     {
         $result = $this->connection->fetchAssociative(
-            'SELECT * FROM tl_openai_config WHERE api_key IS NOT NULL ORDER BY tstamp DESC LIMIT 1'
+            'SELECT * FROM tl_openai_config WHERE api_key IS NOT NULL ORDER BY tstamp DESC LIMIT 1',
         );
 
         return $result ?: null;
@@ -89,11 +89,11 @@ class OpenAiResponder
     /**
      * Get the active prompt (formerly assistant) record for a given configuration.
      */
-    public function getActivePrompt(int $configId): ?array
+    public function getActivePrompt(int $configId): array|null
     {
         $result = $this->connection->fetchAssociative(
             'SELECT * FROM tl_openai_prompts WHERE pid = ? AND status = ? ORDER BY tstamp DESC LIMIT 1',
-            [$configId, 'active']
+            [$configId, 'active'],
         );
 
         return $result ?: null;
@@ -121,20 +121,20 @@ class OpenAiResponder
         try {
             $response = $this->http->request(
                 'GET',
-                sprintf('https://api.openai.com/v1/conversations/%s/items', $conversationId),
+                \sprintf('https://api.openai.com/v1/conversations/%s/items', $conversationId),
                 [
                     'query' => [
                         'order' => 'asc',
                         'limit' => 100,
                     ],
                     'headers' => [
-                        'Authorization' => 'Bearer ' . $apiKey,
+                        'Authorization' => 'Bearer '.$apiKey,
                     ],
                     'timeout' => 30,
-                ]
+                ],
             );
 
-            $data    = $response->toArray(false);
+            $data = $response->toArray(false);
             $history = [];
 
             foreach ($data['data'] ?? [] as $item) {
@@ -143,26 +143,26 @@ class OpenAiResponder
                 }
 
                 $role = $item['role'] ?? null;
-                if ($role !== 'user' && $role !== 'assistant') {
+                if ('user' !== $role && 'assistant' !== $role) {
                     continue;
                 }
 
                 $text = $this->extractTextFromContent($item['content'] ?? [], $role);
-                if ($text === '') {
+                if ('' === $text) {
                     continue;
                 }
 
                 $createdAt = $item['created_at'] ?? time();
                 $history[] = [
-                    'role'      => $role,
-                    'content'   => $text,
+                    'role' => $role,
+                    'content' => $text,
                     'timestamp' => date('Y-m-d H:i:s', (int) $createdAt),
                 ];
             }
 
             return $history;
         } catch (\Throwable $e) {
-            $this->logger->error('Failed to get conversation history: ' . $e->getMessage());
+            $this->logger->error('Failed to get conversation history: '.$e->getMessage());
 
             return [];
         }
@@ -182,136 +182,146 @@ class OpenAiResponder
     private function ensureConversation(string $apiKey, SessionInterface $session, int $configId): string
     {
         $conversationId = $session->get(self::SESSION_CONVERSATION_KEY);
-        if (is_string($conversationId) && $conversationId !== '') {
+        if (\is_string($conversationId) && '' !== $conversationId) {
             return $conversationId;
         }
 
         try {
-            $response = $this->http->request('POST', 'https://api.openai.com/v1/conversations', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $apiKey,
-                    'Content-Type'  => 'application/json',
-                ],
-                'json' => [
-                    'metadata' => [
-                        'source'    => 'contao-openai-assistant',
-                        'config_id' => (string) $configId,
+            $response = $this->http->request(
+                'POST',
+                'https://api.openai.com/v1/conversations',
+                [
+                    'headers' => [
+                        'Authorization' => 'Bearer '.$apiKey,
+                        'Content-Type' => 'application/json',
                     ],
+                    'json' => [
+                        'metadata' => [
+                            'source' => 'contao-openai-assistant',
+                            'config_id' => (string) $configId,
+                        ],
+                    ],
+                    'timeout' => 30,
                 ],
-                'timeout' => 30,
-            ]);
+            );
 
             $data = $response->toArray();
-            $id   = (string) ($data['id'] ?? '');
+            $id = (string) ($data['id'] ?? '');
 
-            if ($id === '') {
+            if ('' === $id) {
                 throw new \RuntimeException('OpenAI did not return a conversation id');
             }
 
             $session->set(self::SESSION_CONVERSATION_KEY, $id);
 
-            $this->logger->info('Created new OpenAI conversation', [
-                'conversation_id' => $id,
-                'config_id'       => $configId,
-            ]);
+            $this->logger->info(
+                'Created new OpenAI conversation',
+                [
+                    'conversation_id' => $id,
+                    'config_id' => $configId,
+                ],
+            );
 
             return $id;
         } catch (\Throwable $e) {
-            $this->logger->error('Failed to create OpenAI conversation: ' . $e->getMessage());
+            $this->logger->error('Failed to create OpenAI conversation: '.$e->getMessage());
 
-            throw new \RuntimeException('Failed to create conversation: ' . $e->getMessage());
+            throw new \RuntimeException('Failed to create conversation: '.$e->getMessage());
         }
     }
 
     /**
      * Perform the Responses API call and return the assistant's text reply.
      */
-    private function sendResponse(
-        string $apiKey,
-        string $conversationId,
-        string $message,
-        array $prompt,
-        ?string $vectorStoreId
-    ): string {
+    private function sendResponse(string $apiKey, string $conversationId, string $message, array $prompt, string|null $vectorStoreId): string
+    {
         $modelToUse = $this->resolveModel($prompt);
 
         $payload = [
-            'model'        => $modelToUse,
+            'model' => $modelToUse,
             'conversation' => $conversationId,
-            'input'        => $message,
-            'store'        => true,
+            'input' => $message,
+            'store' => true,
         ];
 
         $promptId = trim((string) ($prompt['prompt_id'] ?? ''));
-        if ($promptId !== '') {
+        if ('' !== $promptId) {
             $promptBlock = [
                 'prompt_id' => $promptId,
             ];
-            $version     = trim((string) ($prompt['prompt_version'] ?? ''));
-            if ($version !== '') {
+            $version = trim((string) ($prompt['prompt_version'] ?? ''));
+            if ('' !== $version) {
                 $promptBlock['version'] = $version;
             }
             $payload['prompt'] = $promptBlock;
         } else {
             $instructions = trim((string) ($prompt['system_instructions'] ?? ''));
-            if ($instructions !== '') {
+            if ('' !== $instructions) {
                 $payload['instructions'] = $instructions;
             }
         }
 
-        if (array_key_exists('temperature', $prompt) && $prompt['temperature'] !== null) {
+        if (\array_key_exists('temperature', $prompt) && null !== $prompt['temperature']) {
             $payload['temperature'] = (float) $prompt['temperature'];
         }
 
-        if (array_key_exists('top_p', $prompt) && $prompt['top_p'] !== null) {
+        if (\array_key_exists('top_p', $prompt) && null !== $prompt['top_p']) {
             $payload['top_p'] = (float) $prompt['top_p'];
         }
 
-        if (! empty($prompt['max_tokens']) && (int) $prompt['max_tokens'] > 0) {
+        if (!empty($prompt['max_tokens']) && (int) $prompt['max_tokens'] > 0) {
             $payload['max_output_tokens'] = (int) $prompt['max_tokens'];
         }
 
-        if (! empty($vectorStoreId)) {
+        if (!empty($vectorStoreId)) {
             $payload['tools'] = [
                 [
-                    'type'             => 'file_search',
+                    'type' => 'file_search',
                     'vector_store_ids' => [$vectorStoreId],
                 ],
             ];
         } else {
-            $this->logger->warning('No vector store ID available; sending Response without file_search tool', [
-                'conversation_id' => $conversationId,
-            ]);
+            $this->logger->warning(
+                'No vector store ID available; sending Response without file_search tool',
+                [
+                    'conversation_id' => $conversationId,
+                ],
+            );
         }
 
         try {
-            $response = $this->http->request('POST', 'https://api.openai.com/v1/responses', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $apiKey,
-                    'Content-Type'  => 'application/json',
+            $response = $this->http->request(
+                'POST',
+                'https://api.openai.com/v1/responses',
+                [
+                    'headers' => [
+                        'Authorization' => 'Bearer '.$apiKey,
+                        'Content-Type' => 'application/json',
+                    ],
+                    'json' => $payload,
+                    'timeout' => 180,
                 ],
-                'json'    => $payload,
-                'timeout' => 180,
-            ]);
+            );
 
             $data = $response->toArray(false);
 
-            if ($response->getStatusCode() !== 200) {
+            if (200 !== $response->getStatusCode()) {
                 $error = (string) ($data['error']['message'] ?? $response->getContent(false));
-                throw new \RuntimeException('Responses API returned HTTP '
-                    . $response->getStatusCode() . ': ' . $error);
+
+                throw new \RuntimeException('Responses API returned HTTP '.$response->getStatusCode().': '.$error);
             }
 
             $status = (string) ($data['status'] ?? 'unknown');
-            if ($status !== 'completed') {
+            if ('completed' !== $status) {
                 $reason = (string) ($data['incomplete_details']['reason']
                     ?? $data['error']['message']
                     ?? $status);
-                throw new \RuntimeException('Response did not complete (' . $status . '): ' . $reason);
+
+                throw new \RuntimeException('Response did not complete ('.$status.'): '.$reason);
             }
 
             $text = $this->extractAssistantText($data);
-            if ($text === '') {
+            if ('' === $text) {
                 throw new \RuntimeException('No assistant response found');
             }
 
@@ -319,11 +329,14 @@ class OpenAiResponder
         } catch (\RuntimeException $e) {
             throw $e;
         } catch (\Throwable $e) {
-            $this->logger->error('Failed to call Responses API: ' . $e->getMessage(), [
-                'conversation_id' => $conversationId,
-            ]);
+            $this->logger->error(
+                'Failed to call Responses API: '.$e->getMessage(),
+                [
+                    'conversation_id' => $conversationId,
+                ],
+            );
 
-            throw new \RuntimeException('Failed to process message: ' . $e->getMessage());
+            throw new \RuntimeException('Failed to process message: '.$e->getMessage());
         }
     }
 
@@ -341,13 +354,14 @@ class OpenAiResponder
             }
 
             $collected = '';
+
             foreach ($item['content'] ?? [] as $content) {
                 if (($content['type'] ?? null) === 'output_text' && isset($content['text'])) {
                     $collected .= (string) $content['text'];
                 }
             }
 
-            if ($collected !== '') {
+            if ('' !== $collected) {
                 return $collected;
             }
         }
@@ -362,8 +376,8 @@ class OpenAiResponder
      */
     private function extractTextFromContent(array $content, string $role): string
     {
-        $expectedType = $role === 'assistant' ? 'output_text' : 'input_text';
-        $text         = '';
+        $expectedType = 'assistant' === $role ? 'output_text' : 'input_text';
+        $text = '';
 
         foreach ($content as $entry) {
             $type = $entry['type'] ?? null;
@@ -381,7 +395,7 @@ class OpenAiResponder
     private function resolveModel(array $prompt): string
     {
         $model = (string) ($prompt['model'] ?? '');
-        if ($model === 'manual') {
+        if ('manual' === $model) {
             return (string) ($prompt['model_manual'] ?? '');
         }
 

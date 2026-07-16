@@ -1,0 +1,166 @@
+<?php
+
+/*
+ * This file is part of the JUHE Contao OpenAI Assistant premium add-on.
+ *
+ * (c) JUHE IT-solutions
+ *
+ * @license Proprietary - see LICENSE-PREMIUM. Usage of the premium add-on
+ *          requires a valid premium subscription from JUHE IT-solutions.
+ */
+
+declare(strict_types=1);
+
+namespace JuheItSolutions\ContaoOpenaiAssistant\Premium\Service;
+
+use Symfony\Contracts\Translation\TranslatorInterface;
+
+/**
+ * Resolves persisted vector-store sync status/log messages for the backend UI.
+ *
+ * Messages are stored as translation keys (MSC.vsau_*) or legacy English text from
+ * earlier runs; both are translated here using the active backend locale.
+ */
+class VectorStoreSyncMessageTranslator
+{
+    /**
+     * Separator used to join several keyed sub-messages into one stored value (e.g. a
+     * partial run that hit the plan cap AND had upload failures). ASCII Unit Separator:
+     * never appears in human text, error output or the MSC key/arg syntax, so it cannot
+     * collide with a real message. translate() splits on it and renders each part.
+     */
+    public const COMPOUND_SEPARATOR = "\x1F";
+
+    private const DOMAIN = 'contao_default';
+
+    private const LEGACY_KEYS = [
+        'Manual sync dispatched to CLI. Refresh this page in a few minutes.' => 'MSC.vsau_dispatched_manual',
+        'No indexed pages found for this site root (tl_search is empty). Run System → Maintenance → Rebuild search index. If pages are still missing, check whether they carry robots=noindex or Suchindexer=Never index — set Suchindexer=Always index on those page records to force-include them in both Contao search and the vector store.' => 'MSC.vsau_err_no_indexed_pages',
+        'No page content found to upload; aborting before replacing the existing file.' => 'MSC.vsau_err_empty_document_raw',
+        'The model returned an empty document; aborting before replacing the existing file.' => 'MSC.vsau_err_empty_document_llm',
+        'No vector store ID configured. Complete the file upload workflow or set a vector store ID first.' => 'MSC.vsau_err_no_vector_store_sync',
+        'Multiple site roots detected. Select the pages to keep updated in OpenAI Configuration → Automatic vector store sync.' => 'MSC.vsau_err_multiple_roots',
+        'Could not create a temporary file for the upload.' => 'MSC.vsau_err_temp_file',
+        'OpenAI Files upload did not return a file ID.' => 'MSC.vsau_err_upload_no_id',
+        'Automatic sync is not enabled for this configuration.' => 'MSC.vsau_err_sync_not_enabled',
+        'No active premium license.' => 'MSC.vsau_err_no_license',
+        'A sync is already queued or running for this configuration.' => 'MSC.vsau_err_sync_already_running',
+    ];
+
+    public function __construct(private readonly TranslatorInterface $translator)
+    {
+    }
+
+    public function translate(string|null $message): string|null
+    {
+        if (null === $message || '' === $message) {
+            return $message;
+        }
+
+        // Compound message: translate each part and join the rendered lines. Checked
+        // before the MSC. routing so the leading part's prefix does not swallow the rest.
+        if (str_contains($message, self::COMPOUND_SEPARATOR)) {
+            $parts = array_filter(array_map(
+                fn (string $part): string => (string) $this->translate(trim($part)),
+                explode(self::COMPOUND_SEPARATOR, $message),
+            ), static fn (string $part): bool => '' !== $part);
+
+            return implode(' ', $parts);
+        }
+
+        if (str_starts_with($message, 'MSC.')) {
+            if (str_contains($message, '|')) {
+                return $this->translateKeyedMessage($message);
+            }
+
+            $key = self::LEGACY_KEYS[$message] ?? $message;
+
+            return $this->translator->trans($key, [], self::DOMAIN);
+        }
+
+        $key = self::LEGACY_KEYS[$message] ?? null;
+        if (null !== $key) {
+            return $this->translator->trans($key, [], self::DOMAIN);
+        }
+
+        if (preg_match('/^OpenAI configuration (\d+) not found\.$/', $message, $matches)) {
+            return $this->translator->trans('MSC.vsau_err_config_not_found', [$matches[1]], self::DOMAIN);
+        }
+
+        if (preg_match('/^No usable OpenAI API key for configuration (\d+)\.$/', $message, $matches)) {
+            return $this->translator->trans('MSC.vsau_err_no_api_key', [$matches[1]], self::DOMAIN);
+        }
+
+        if (preg_match('/^Invalid page selected for auto-update \(ID (\d+)\)\.$/', $message, $matches)) {
+            return $this->translator->trans('MSC.vsau_err_invalid_page', [$matches[1]], self::DOMAIN);
+        }
+
+        if (preg_match('/^contao:crawl failed: (.*)$/s', $message, $matches)) {
+            return $this->translator->trans('MSC.vsau_err_crawl_failed', [$matches[1]], self::DOMAIN);
+        }
+
+        if (preg_match('/^OpenAI chat completion failed \(HTTP (\d+)\): (.*)$/s', $message, $matches)) {
+            return $this->translator->trans(
+                'MSC.vsau_err_openai_chat',
+                [$matches[1], $matches[2]],
+                self::DOMAIN,
+            );
+        }
+
+        return $message;
+    }
+
+    private function translateKeyedMessage(string $message): string
+    {
+        if (str_starts_with($message, 'MSC.vsau_err_openai_chat|')) {
+            $rest = substr($message, \strlen('MSC.vsau_err_openai_chat|'));
+            if (preg_match('/^(\d+)\|(.*)$/s', $rest, $matches)) {
+                return $this->translator->trans(
+                    'MSC.vsau_err_openai_chat',
+                    [$matches[1], $matches[2]],
+                    self::DOMAIN,
+                );
+            }
+        }
+
+        if (str_starts_with($message, 'MSC.vsau_err_crawl_failed|')) {
+            return $this->translator->trans(
+                'MSC.vsau_err_crawl_failed',
+                [substr($message, \strlen('MSC.vsau_err_crawl_failed|'))],
+                self::DOMAIN,
+            );
+        }
+
+        if (str_starts_with($message, 'MSC.vsau_plan_limit_truncated|')) {
+            $rest = substr($message, \strlen('MSC.vsau_plan_limit_truncated|'));
+            if (preg_match('/^(\d+)\|(\d+)$/', $rest, $matches)) {
+                return $this->translator->trans(
+                    'MSC.vsau_plan_limit_truncated',
+                    [$matches[2], $matches[1]],
+                    self::DOMAIN,
+                );
+            }
+        }
+
+        if (str_starts_with($message, 'MSC.vsau_partial_files_failed|')) {
+            $rest = substr($message, \strlen('MSC.vsau_partial_files_failed|'));
+            if (preg_match('/^(\d+)$/', $rest, $matches)) {
+                return $this->translator->trans(
+                    'MSC.vsau_partial_files_failed',
+                    [$matches[1]],
+                    self::DOMAIN,
+                );
+            }
+        }
+
+        $parts = explode('|', $message, 3);
+        $key = $parts[0];
+
+        return match ($key) {
+            'MSC.vsau_err_config_not_found' => $this->translator->trans($key, [$parts[1] ?? ''], self::DOMAIN),
+            'MSC.vsau_err_no_api_key' => $this->translator->trans($key, [$parts[1] ?? ''], self::DOMAIN),
+            'MSC.vsau_err_invalid_page' => $this->translator->trans($key, [$parts[1] ?? ''], self::DOMAIN),
+            default => $this->translator->trans($key, [], self::DOMAIN),
+        };
+    }
+}

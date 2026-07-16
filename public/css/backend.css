@@ -1,3 +1,25 @@
+/* OpenAI Dashboard bundle version (inline with module title in headline/breadcrumb) */
+.oaa-bundle-version {
+    margin-left: 0.5em;
+    white-space: nowrap;
+    font: inherit;
+    color: inherit;
+    line-height: inherit;
+    vertical-align: baseline;
+}
+
+#main_headline a .oaa-bundle-version,
+#main_breadcrumb a .oaa-bundle-version {
+    text-decoration: inherit;
+    display: inline-flex;
+}
+
+@media (max-width: 767px) {
+    .oaa-bundle-version {
+        margin-left: 0.35em;
+    }
+}
+
 /* AI Tools Backend Menu Icon */
 
 /* Core Contao approach - background image on group element */
@@ -6,14 +28,81 @@
     background-position: left;
 }
 
-/* Remove API Status Indicator Styles and related rules */ 
+.widget.openai-auto-update-disabled,
+.widget.openai-auto-update-disabled .selector,
+.widget.openai-auto-update-disabled .selector_container,
+.widget.openai-auto-update-disabled .choices,
+.widget.openai-auto-update-disabled input,
+.widget.openai-auto-update-disabled select,
+.widget.openai-auto-update-disabled textarea,
+.widget.openai-auto-update-disabled button,
+.widget.openai-auto-update-disabled a.tl_submit,
+.tl_select_wrapper.openai-auto-update-disabled,
+.tl_select_wrapper.openai-auto-update-disabled .choices {
+    opacity: 0.55;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.widget.auto-update-toggle {
+    margin-bottom: 4px;
+}
+
+.widget.auto-update-license-field + .widget.auto-update-license-field.w50 {
+    clear: none;
+}
+
+.widget.auto-update-toggle.openai-auto-update-disabled label,
+.widget.auto-update-toggle.openai-auto-update-disabled .tl_checkbox_container {
+    opacity: 0.55;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+@media (max-width: 767px) {
+    .widget.auto-update-license-field.w50 {
+        width: 100%;
+        float: none;
+        clear: both;
+    }
+}
+
+.premium-license-info-block a {
+    color: #1a1a1a;
+    text-decoration: underline;
+}
+
+/* License portal URL link, shown directly on the dark card background (not a
+   button) - needs a light, readable color in all interaction states (Contao
+   :visited overrides), unlike the dark-on-yellow button links below. */
+a.oaa-license-url-link,
+a.oaa-license-url-link:link,
+a.oaa-license-url-link:visited,
+a.oaa-license-url-link:hover,
+a.oaa-license-url-link:active,
+a.oaa-license-url-link:focus-visible {
+    color: #4ea1ff;
+    text-decoration: underline;
+}
+
+a.openai-license-help-link,
+a.openai-license-help-link:link,
+a.openai-license-help-link:visited,
+a.openai-license-help-link:hover,
+a.openai-license-help-link:active,
+a.openai-license-help-link:focus-visible {
+    color: #1a1a1a;
+}
+
+/* Remove API Status Indicator Styles and related rules */
 
 .api-key-check-wrapper {
     display: block;
     margin-top: 8px;
     margin-bottom: 4px;
     position: relative;
-    z-index: 3;
+    /* Stay below Contao sticky .jump-targets (z-index: 3) */
+    z-index: 1;
 }
 
 .api-key-check-wrapper .api-key-result {
@@ -39,4 +128,133 @@
     100% {
         transform: rotate(360deg);
     }
+}
+/* Collapse the "pages to keep updated" picker into a count (auto_update_site_root) */
+.oaa-picker-summary {
+    display: block;
+    margin: 4px 0 8px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+.oaa-picker-summary .oaa-picker-count {
+    font-weight: 700;
+}
+.oaa-picker-summary .oaa-picker-toggle {
+    margin-left: 8px;
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+}
+ul#sort_auto_update_site_root.oaa-picker-collapsed {
+    display: none;
+}
+/* Extra breathing room around the page-picker section.
+   Use padding-top so the spacing is not swallowed by margin collapsing
+   with the preceding widget. */
+.widget.oaa-picker-field {
+    padding-top: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+/* Core Contao caps legend-style field labels (.tl_tbox h3) at 16px height.
+   Our page-picker label is long and wraps on narrow screens, which caused the
+   summary line ("N pages selected") to overlap the label without this override. */
+.widget.oaa-picker-field > h3 {
+    height: auto;
+    min-height: 16px;
+    line-height: 1;
+}
+.widget.oaa-picker-field .selector_container > p:has(.tl_submit) {
+    margin-top: 0.75rem;
+}
+/* Italic prompt text in the "Instructions for the knowledge document" field */
+.widget.oaa-prompt-field textarea {
+    font-style: italic;
+}
+
+/* Shared "info card" styling for the onload welcome/info banners on the
+   OpenAI-Konfiguration, Datei-Upload and OpenAI-Prompt edit screens, plus
+   the Premium-Addon block - so the basic-config and premium areas read as
+   one visual system instead of a plain, unstyled Contao message. */
+.oaa-info-card {
+    padding: 1rem;
+    background: var(--info-bg);
+    border-radius: 1rem;
+    border: 1px solid var(--active-bg);
+}
+.oaa-info-card--premium {
+    border-color: #d7ff64;
+    margin: 0 1rem 1rem 1rem;
+}
+.oaa-info-card--notice {
+    border-color: #f59e0b;
+    border-left-width: 4px;
+}
+.oaa-info-card--premium .oaa-info-card-heading {
+    color: #d7ff64;
+}
+/* The onload welcome cards sit directly inside Contao's plain .tl_message
+   wrapper (no field/widget spacing applies there), so they touch the page
+   edges unless given the same horizontal inset as a regular .widget row.
+   The Premium-Addon box already gets that inset from its own .widget
+   wrapper, so this is scoped to the plain (non-card) .tl_message parent
+   to avoid doubling its margin. */
+.tl_message > .oaa-info-card {
+    margin: 15px 15px 10px 15px;
+}
+
+/* Widen Contao's backend help tooltip so long help texts stay short
+   instead of becoming a very tall column that is clipped at the bottom.
+   Contao core caps .tip at max-width:320px; we load after the theme. */
+.tip {
+    max-width: 560px;
+}
+
+@media (max-width: 767px) {
+    /* Prevent select dropdowns from overflowing the viewport */
+    .tl_form select,
+    .widget select {
+        max-width: 100%;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .widget.oaa-picker-field > h3 {
+        padding-bottom: 0.5rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .widget.oaa-picker-field .oaa-picker-summary {
+        margin-top: 0.25rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .widget.oaa-picker-field .selector_container > p:has(.tl_submit) {
+        margin-top: 1rem;
+    }
+
+    .widget.oaa-picker-field > .tl_help {
+        margin-top: 0.5rem;
+    }
+
+    /* Prevent the page-picker widget from overflowing horizontally */
+    .widget.oaa-picker-field {
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+}
+
+/* Horizontal scroll wrapper for the sync-log table on narrow screens */
+.vsau-log-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* The "Token (Ausgabe)" column help tooltip sits in the table header, i.e.
+   the very top of the scrollable wrapper above. Its popup used to open
+   upward and got clipped by .vsau-log-scroll's (implicit) vertical
+   overflow, so it opens downward into the table body instead, which stays
+   within the scrollable area. */
+.vsau-log-scroll .vsau-info-pop {
+    bottom: auto;
+    top: calc(100% + 8px);
 }

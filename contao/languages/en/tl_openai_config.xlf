@@ -19,6 +19,10 @@
                 <source>Vector store</source>
                 <target>Vector store</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.chat_protection_legend">
+                <source>Chat protection</source>
+                <target>Chat protection</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.settings_legend">
                 <source>Model settings</source>
                 <target>Model settings</target>
@@ -48,6 +52,22 @@
             <trans-unit id="tl_openai_config.vector_store_id.1">
                 <source>The OpenAI Vector Store ID (automatically generated).</source>
                 <target>The OpenAI Vector Store ID (automatically generated).</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.chat_daily_limit.0">
+                <source>Daily chat message limit</source>
+                <target>Daily chat message limit</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.chat_daily_limit.1">
+                <source>Maximum number of chatbot replies generated per day across all visitors. Bounds your OpenAI cost if the public chat is abused. Set to 0 to disable the cap.</source>
+                <target>Maximum number of chatbot replies generated per day across all visitors. Bounds your OpenAI cost if the public chat is abused. Set to 0 to disable the cap.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.chat_ip_rate_limit.0">
+                <source>Chat messages per minute per IP address</source>
+                <target>Chat messages per minute per IP address</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.chat_ip_rate_limit.1">
+                <source>Rate limit against scripted abuse of the public chat. Raise it or set 0 (off) if many users share one IP address, e.g. on a corporate intranet or behind a proxy/NAT — otherwise they share this budget collectively.</source>
+                <target>Rate limit against scripted abuse of the public chat. Raise it or set 0 (off) if many users share one IP address, e.g. on a corporate intranet or behind a proxy/NAT — otherwise they share this budget collectively.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.max_tokens.0">
                 <source>Maximum Tokens</source>
@@ -93,6 +113,34 @@
                 <source>API key is invalid!</source>
                 <target>API key is invalid!</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.api_key_validating">
+                <source>Validating...</source>
+                <target>Validating...</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.api_key_error">
+                <source>Validation failed.</source>
+                <target>Validation failed.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.api_key_required">
+                <source>API key is required and cannot be empty.</source>
+                <target>API key is required and cannot be empty.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.api_key_format_invalid">
+                <source>Invalid API key format. OpenAI API keys must start with "sk-".</source>
+                <target>Invalid API key format. OpenAI API keys must start with "sk-".</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.api_key_check_failed">
+                <source>API key validation failed. Please check your API key.</source>
+                <target>API key validation failed. Please check your API key.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.api_key_invalid_save">
+                <source>Invalid API key. Please verify your OpenAI API key is correct and has proper permissions.</source>
+                <target>Invalid API key. Please verify your OpenAI API key is correct and has proper permissions.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.api_key_check_unreachable">
+                <source>Could not reach OpenAI to validate the API key. The previously saved key was kept.</source>
+                <target>Could not reach OpenAI to validate the API key. The previously saved key was kept.</target>
+            </trans-unit>
 
             <!-- Create Operation -->
             <trans-unit id="tl_openai_config.new.0">
@@ -122,6 +170,12 @@
                 <target>Use the 2 icons on the right to access file upload and OpenAI prompt setup.</target>
             </trans-unit>
 
+            <!-- No-files notice on dashboard -->
+            <trans-unit id="tl_openai_config.no_files_notice">
+                <source>No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform — without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.</source>
+                <target>No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform — without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.</target>
+            </trans-unit>
+
             <!-- Single Config Limitation Notice -->
             <trans-unit id="tl_openai_config.single_config_heading">
                 <source>Single Configuration</source>
@@ -134,6 +188,258 @@
             <trans-unit id="tl_openai_config.single_config_redirect">
                 <source>Only one OpenAI configuration is allowed. You are being redirected to the existing configuration.</source>
                 <target>Only one OpenAI configuration is allowed. You are being redirected to the existing configuration.</target>
+            </trans-unit>
+
+            <!-- Premium license -->
+            <trans-unit id="tl_openai_config.premium_legend">
+                <source>Premium License</source>
+                <target>Premium License</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_heading">
+                <source>Premium add-on: Auto-Update Vector Store</source>
+                <target>Premium add-on: Auto-Update Vector Store</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_text">
+                <source>With our premium add-on, your integrated chatbot stays up to date. Updated website content is automatically incorporated into the chatbot's knowledge base. 14-day free trial, then billed monthly per domain.</source>
+                <target>With our premium add-on, your integrated chatbot stays up to date. Updated website content is automatically incorporated into the chatbot's knowledge base. 14-day free trial, then billed monthly per domain.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_purchase">
+                <source>Get a license at</source>
+                <target>Get a license at</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_docs">
+                <source>Guide &amp; help</source>
+                <target>Guide &amp; help</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_manage">
+                <source>Manage subscription</source>
+                <target>Manage subscription</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_hint_heading">
+                <source>Notes</source>
+                <target>Notes</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_hint">
+                <source>Enter your license key below and validate it with "Check key" before saving.</source>
+                <target>Enter your license key below and validate it with "Check key" before saving.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_hint_active">
+                <source>To switch to a different key: clear this field, enter the new key, and save. To remove the license entirely: use the "Remove license" button next to the key field. Removing the license stops future automatic syncs; content already added to the vector store stays in place until you delete the configuration.</source>
+                <target>To switch to a different key: clear this field, enter the new key, and save. To remove the license entirely: use the "Remove license" button next to the key field. Removing the license stops future automatic syncs; content already added to the vector store stays in place until you delete the configuration.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_validated">
+                <source>Premium license validated successfully.</source>
+                <target>Premium license validated successfully.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_invalid">
+                <source>Premium license key is invalid or inactive. Auto-update sync will not run until a valid key is entered.</source>
+                <target>Premium license key is invalid or inactive. Auto-update sync will not run until a valid key is entered.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_format_invalid">
+                <source>Invalid license key format. Expected "JUHE-AI-…". The previous key was kept.</source>
+                <target>Invalid license key format. Expected "JUHE-AI-…". The previous key was kept.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_prompt_too_long">
+                <source>The custom prompt must not exceed 32,000 characters.</source>
+                <target>The custom prompt must not exceed 32,000 characters.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_key.0">
+                <source>License key</source>
+                <target>License key</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_key.1">
+                <source>Enter the license key you received after purchase at https://licenses.juhe-it-solutions.at/openai-assistant. Leave the masked value unchanged to keep the current key; clear the field to remove it.</source>
+                <target>Enter the license key you received after purchase at https://licenses.juhe-it-solutions.at/openai-assistant. Leave the masked value unchanged to keep the current key; clear the field to remove it.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.check_license_key">
+                <source>Check key</source>
+                <target>Check key</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.license_key_validating">
+                <source>Validating...</source>
+                <target>Validating...</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.no_license_key">
+                <source>Please enter a license key first.</source>
+                <target>Please enter a license key first.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.license_key_valid">
+                <source>License key is valid!</source>
+                <target>License key is valid!</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.license_key_invalid">
+                <source>License key is invalid!</source>
+                <target>License key is invalid!</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.license_key_error">
+                <source>Validation failed.</source>
+                <target>Validation failed.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.remove_license_key">
+                <source>Remove license</source>
+                <target>Remove license</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.remove_license_key_confirm">
+                <source>License key cleared. Save to remove the license.</source>
+                <target>License key cleared. Save to remove the license.</target>
+            </trans-unit>
+
+            <!-- Automatic vector store sync -->
+            <trans-unit id="tl_openai_config.auto_update_legend">
+                <source>Vector store sync</source>
+                <target>Vector store sync</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_enabled.0">
+                <source>Enable sync</source>
+                <target>Enable sync</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_enabled.1">
+                <source>Crawl the website and update the vector store document. Requires a valid premium license (use &quot;Check key&quot; above). Only pages that Contao&apos;s search indexer is allowed to index are included: pages with robots=noindex or the page-level setting &quot;Search indexer: Never index&quot; are excluded. To include such pages in the chatbot knowledge base anyway, set their page-level &quot;Search indexer&quot; field to &quot;Always index&quot;.</source>
+                <target>Crawl the website and update the vector store document. Requires a valid premium license (use &quot;Check key&quot; above). Only pages that Contao&apos;s search indexer is allowed to index are included: pages with robots=noindex or the page-level setting &quot;Search indexer: Never index&quot; are excluded. To include such pages in the chatbot knowledge base anyway, set their page-level &quot;Search indexer&quot; field to &quot;Always index&quot;.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_requires_license">
+                <source>Automatic sync requires a valid premium license. Use “Check key” in the Premium License section.</source>
+                <target>Automatic sync requires a valid premium license. Use “Check key” in the Premium License section.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.first_sync_hint_heading">
+                <source>First sync</source>
+                <target>First sync</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.first_sync_hint_cron">
+                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard. Later syncs run automatically on your schedule.</source>
+                <target>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard. Later syncs run automatically on your schedule.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.first_sync_hint_nocron">
+                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard. Later syncs require a CLI cron job (contao:cron) on your server.</source>
+                <target>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard. Later syncs require a CLI cron job (contao:cron) on your server.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.first_sync_hint_manual">
+                <source>Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard.</source>
+                <target>Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.first_sync_hint_dashboard">
+                <source>Open the Auto-Sync dashboard</source>
+                <target>Open the Auto-Sync dashboard</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_trigger.0">
+                <source>Synchronization trigger</source>
+                <target>Synchronization trigger</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_trigger.1">
+                <source><![CDATA[<strong>Scheduled (default):</strong> start the first sync manually on the Vector Store Sync page; from the second run onward, sync follows the schedule below. Requires a working server cron (<code>contao:cron</code>).<br><br><strong>Manual only:</strong> the sync never runs automatically and needs no server cron at all - you start it yourself with the "Run sync now" button on the AI Tools -> Vector Store Sync page. Ideal for small sites that change rarely.]]></source>
+                <target><![CDATA[<strong>Scheduled (default):</strong> start the first sync manually on the Vector Store Sync page; from the second run onward, sync follows the schedule below. Requires a working server cron (<code>contao:cron</code>).<br><br><strong>Manual only:</strong> the sync never runs automatically and needs no server cron at all - you start it yourself with the "Run sync now" button on the AI Tools -> Vector Store Sync page. Ideal for small sites that change rarely.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_trigger_ref.scheduled">
+                <source>Scheduled (automatic, needs server cron)</source>
+                <target>Scheduled (automatic, needs server cron)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_trigger_ref.manual">
+                <source>Manual only (no cron, run via button)</source>
+                <target>Manual only (no cron, run via button)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_hour.0">
+                <source>Hour</source>
+                <target>Hour</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_hour.1">
+                <source>Hour of day when the sync should start (server time). Choose “Every hour” to run at the selected minute each hour.</source>
+                <target>Hour of day when the sync should start (server time). Choose “Every hour” to run at the selected minute each hour.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_minute.0">
+                <source>Minute</source>
+                <target>Minute</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_minute.1">
+                <source>Minute of the selected hour. Choose “Every minute” to run every minute (requires server cron every minute).</source>
+                <target>Minute of the selected hour. Choose “Every minute” to run every minute (requires server cron every minute).</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_weekday.0">
+                <source>Weekday</source>
+                <target>Weekday</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_weekday.1">
+                <source>Run on a specific weekday only, or every day.</source>
+                <target>Run on a specific weekday only, or every day.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_day.0">
+                <source>Day of month</source>
+                <target>Day of month</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_day.1">
+                <source>Run on a specific calendar day, or every day. Requires a server cron running <code>contao:cron</code> every minute.</source>
+                <target>Run on a specific calendar day, or every day. Requires a server cron running <code>contao:cron</code> every minute.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_raw_mode.0">
+                <source>Upload page content as-is (skip AI optimisation) — advanced</source>
+                <target>Upload page content as-is (skip AI optimisation) — advanced</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_raw_mode.1">
+                <source><![CDATA[<strong>What this does.</strong> By default (unchecked) the crawled page text is first rewritten by an AI model into one clean, compact knowledge document: navigation, menus, footers and cookie notices are stripped out, repeated content is merged, and everything is restructured so the chatbot can find answers reliably. Facts such as names, addresses, phone numbers, prices and dates are kept unchanged. This usually gives clearly better chatbot answers and costs only a fraction of a cent per synchronisation.<br><br><strong>If you tick this box</strong> the AI step is skipped and the raw extracted page text is uploaded to the vector store unchanged. <strong>Advantages:</strong> no AI cost and your text is never altered. <strong>Disadvantages:</strong> noticeably weaker chatbot answers, because navigation and repeated boilerplate are stored alongside the real content. In this mode the "Generation model" and "Instructions for the knowledge document" settings below are ignored. Leave this unchecked unless you know exactly why you want the raw text.]]></source>
+                <target><![CDATA[<strong>What this does.</strong> By default (unchecked) the crawled page text is first rewritten by an AI model into one clean, compact knowledge document: navigation, menus, footers and cookie notices are stripped out, repeated content is merged, and everything is restructured so the chatbot can find answers reliably. Facts such as names, addresses, phone numbers, prices and dates are kept unchanged. This usually gives clearly better chatbot answers and costs only a fraction of a cent per synchronisation.<br><br><strong>If you tick this box</strong> the AI step is skipped and the raw extracted page text is uploaded to the vector store unchanged. <strong>Advantages:</strong> no AI cost and your text is never altered. <strong>Disadvantages:</strong> noticeably weaker chatbot answers, because navigation and repeated boilerplate are stored alongside the real content. In this mode the "Generation model" and "Instructions for the knowledge document" settings below are ignored. Leave this unchecked unless you know exactly why you want the raw text.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_mode.0">
+                <source>Indexing mode</source>
+                <target>Indexing mode</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_mode.1">
+                <source><![CDATA[<strong>Faithful (recommended).</strong> Every selected page is uploaded as its own document with no character or page limit. Navigation, menus and footers that repeat across pages are removed automatically, but your real content is never altered or shortened. No AI cost.<br><br><strong>AI polish.</strong> Each page is additionally rewritten by an AI model into a denser knowledge document before upload. Because the model only ever sees one page at a time, it can never drop or confuse content from other pages. This can improve answers on messy sources but costs tokens per page.]]></source>
+                <target><![CDATA[<strong>Faithful (recommended).</strong> Every selected page is uploaded as its own document with no character or page limit. Navigation, menus and footers that repeat across pages are removed automatically, but your real content is never altered or shortened. No AI cost.<br><br><strong>AI polish.</strong> Each page is additionally rewritten by an AI model into a denser knowledge document before upload. Because the model only ever sees one page at a time, it can never drop or confuse content from other pages. This can improve answers on messy sources but costs tokens per page.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_mode_ref.faithful">
+                <source>Faithful — upload full page content (recommended)</source>
+                <target>Faithful — upload full page content (recommended)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_mode_ref.llm_polish">
+                <source>AI polish — rewrite each page with an AI model</source>
+                <target>AI polish — rewrite each page with an AI model</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model.0">
+                <source>Generation model</source>
+                <target>Generation model</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model.1">
+                <source>OpenAI model loaded live from your account. Compatibility is checked against the Responses API when you save.</source>
+                <target>OpenAI model loaded live from your account. Compatibility is checked against the Responses API when you save.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model_placeholder">
+                <source>-- Select model --</source>
+                <target>-- Select model --</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model_no_api_key">
+                <source>Please configure a valid OpenAI API key first.</source>
+                <target>Please configure a valid OpenAI API key first.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model_invalid">
+                <source>The model "%s" is not compatible with the OpenAI Responses API.</source>
+                <target>The model "%s" is not compatible with the OpenAI Responses API.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model_required">
+                <source>Please select a generation model for the AI processing mode.</source>
+                <target>Please select a generation model for the AI processing mode.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_site_root.0">
+                <source>Select the pages whose content should be updated automatically in the vector store</source>
+                <target>Select the pages whose content should be updated automatically in the vector store</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_site_root.1">
+                <source><![CDATA[Select the pages whose content should be synced into the chatbot's knowledge base.<br>The total number of selected pages must not exceed your subscription's page limit.<br>For installations with only one website root you can leave this field empty to use the entire website.]]></source>
+                <target><![CDATA[Select the pages whose content should be synced into the chatbot's knowledge base.<br>The total number of selected pages must not exceed your subscription's page limit.<br>For installations with only one website root you can leave this field empty to use the entire website.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_pages_over_limit">
+                <source>Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.</source>
+                <target>Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_pages_none_selected_limit">
+                <source>No pages selected — all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.</source>
+                <target>No pages selected — all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_prompt_template.0">
+                <source>System prompt for AI processing of the content</source>
+                <target>System prompt for AI processing of the content</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_prompt_template.1">
+                <source>Defines how your website texts are turned into the chatbot knowledge file during automatic sync. The default works for most sites — change it only if you want a different focus, style, or structure.</source>
+                <target>Defines how your website texts are turned into the chatbot knowledge file during automatic sync. The default works for most sites — change it only if you want a different focus, style, or structure.</target>
             </trans-unit>
         </body>
     </file>

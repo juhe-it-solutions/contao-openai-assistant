@@ -3,7 +3,7 @@
   "description": "OpenAI Responses API integration for Contao CMS",
   "type": "contao-bundle",
   "homepage": "https://www.juhe-it-solutions.at",
-  "license": "LGPL-3.0-or-later",
+  "license": "LGPL-3.0-or-later AND proprietary",
   "authors": [
     {
       "name": "JUHE IT-solutions",
@@ -15,16 +15,23 @@
   "require": {
     "php": "^8.2",
     "contao/core-bundle": "^5.3@dev",
-    "symfony/http-client": "^6.4 || ^7.0"
+    "symfony/http-client": "^6.4 || ^7.0",
+    "symfony/rate-limiter": "^6.4 || ^7.0"
   },
   "autoload": {
     "psr-4": {
       "JuheItSolutions\\ContaoOpenaiAssistant\\": "src/"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "JuheItSolutions\\ContaoOpenaiAssistant\\Tests\\": "tests/"
+    }
+  },
   "require-dev": {
     "contao/easy-coding-standard": "^6.13",
-    "phpstan/phpstan": "^2.0"
+    "phpstan/phpstan": "^2.0",
+    "phpunit/phpunit": "^10.5 || ^11.0"
   },
   "extra": {
     "contao-manager-plugin": "JuheItSolutions\\ContaoOpenaiAssistant\\ContaoManagerPlugin"

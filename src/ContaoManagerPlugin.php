@@ -1,11 +1,11 @@
 <?php
 
 /*
- * This file is part of Contao Open Source CMS.
- *  *
- *  * (c) JUHE IT-solutions
- *  *
- *  * @license LGPL-3.0-or-later
+ * This file is part of the JUHE Contao OpenAI Assistant bundle.
+ *
+ * (c) JUHE IT-solutions
+ *
+ * @license LGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -18,6 +18,7 @@ use Contao\ManagerPlugin\Bundle\Config\BundleConfig;
 use Contao\ManagerPlugin\Bundle\Parser\ParserInterface;
 use Contao\ManagerPlugin\Config\ConfigPluginInterface;
 use Contao\ManagerPlugin\Routing\RoutingPluginInterface;
+use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\Config\Loader\LoaderResolverInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Routing\RouteCollection;
@@ -33,16 +34,16 @@ class ContaoManagerPlugin implements BundlePluginInterface, ConfigPluginInterfac
         ];
     }
 
-    public function registerContainerConfiguration(\Symfony\Component\Config\Loader\LoaderInterface $loader, array $managerConfig): void
+    public function registerContainerConfiguration(LoaderInterface $loader, array $managerConfig): void
     {
         // Services are now loaded by the bundle class
     }
 
-    public function getRouteCollection(LoaderResolverInterface $resolver, KernelInterface $kernel): ?RouteCollection
+    public function getRouteCollection(LoaderResolverInterface $resolver, KernelInterface $kernel): RouteCollection|null
     {
         $file = '@ContaoOpenaiAssistantBundle/config/routes.yaml';
 
-        if (! $resolver->resolve($file)) {
+        if (!$resolver->resolve($file)) {
             return null;
         }
 

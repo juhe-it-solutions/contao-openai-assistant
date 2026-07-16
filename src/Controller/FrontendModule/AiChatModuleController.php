@@ -1,14 +1,14 @@
 <?php
 
-/*
- * This file is part of Contao Open Source CMS.
- *  *
- *  * (c) JUHE IT-solutions
- *  *
- *  * @license LGPL-3.0-or-later
- */
-
 declare(strict_types=1);
+
+/*
+ * This file is part of the JUHE Contao OpenAI Assistant bundle.
+ *
+ * (c) JUHE IT-solutions
+ *
+ * @license LGPL-3.0-or-later
+ */
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Controller\FrontendModule;
 
@@ -19,6 +19,8 @@ use Contao\CoreBundle\Framework\ContaoFramework;
 use Contao\CoreBundle\Twig\FragmentTemplate;
 use Contao\ModuleModel;
 use Contao\System;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\BundleVersionService;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,14 +29,17 @@ use Symfony\Component\HttpFoundation\Response;
     category: 'ai_tools',
     type: 'ai_chat',
     template: 'frontend_module/ai_chat_module',
-    name: 'AI-Chatbot'
+    name: 'AI-Chatbot',
 )]
 class AiChatModuleController extends AbstractFrontendModuleController
 {
     public function __construct(
         private readonly ContaoCsrfTokenManager $csrfTokenManager,
         private readonly ContaoFramework $framework,
-        private readonly RequestStack $requestStack
+        private readonly RequestStack $requestStack,
+        private readonly BundleVersionService $bundleVersion,
+        #[Autowire('%contao.web_dir%')]
+        private readonly string $webDir,
     ) {
     }
 
@@ -42,18 +47,20 @@ class AiChatModuleController extends AbstractFrontendModuleController
     {
         $this->framework->initialize();
 
-        // Detect frontend language from browser (Accept-Language), fallback to page language.
-        // Use main request so we see the real browser headers (fragment may be rendered in a sub-request).
+        // Detect frontend language from browser (Accept-Language), fallback to page
+        // language. Use main request so we see the real browser headers (fragment may be
+        // rendered in a sub-request).
         $language = $this->detectFrontendLanguage($request);
-        $lang     = $this->loadChatTranslations($language);
+        $lang = $this->loadChatTranslations($language);
 
         // Generate CSRF token for the template
         $csrfToken = $this->csrfTokenManager->getDefaultTokenValue();
 
         $template->set('chat_endpoint', '/ai-chat/send');
         $template->set('token_endpoint', '/ai-chat/token');
+        $template->set('asset_version', $this->resolveAssetVersion());
         $template->set('csrf_token', $csrfToken);
-        $template->set('module_id', 'ai-chat-' . $model->id);
+        $template->set('module_id', 'ai-chat-'.$model->id);
         $template->set('module_class', 'mod_ai_chat');
         $template->set('chat_position', $model->chatPosition ?? 'right-bottom');
         $template->set('custom_css', $model->custom_css ?? '');
@@ -65,6 +72,8 @@ class AiChatModuleController extends AbstractFrontendModuleController
         $template->set('welcome_message', $model->welcome_message ?: ($lang['welcome_message'] ?? 'How can I help you?'));
         $template->set('initial_bot_message', $model->initial_bot_message ?: ($lang['initial_bot_message'] ?? 'Hello! How can I help you?'));
         $template->set('initial_state', $model->initial_state ?? 'collapsed');
+        // Default ON: null (column not yet migrated) and '1' enable, '' disables
+        $template->set('shorten_urls', (bool) ($model->shorten_urls ?? '1'));
         $template->set('disclaimer_text', $model->disclaimer_text);
 
         // Default disclaimer from chat language file (translated)
@@ -87,10 +96,12 @@ class AiChatModuleController extends AbstractFrontendModuleController
 
         // JSON map for JavaScript (user-facing strings only)
         $jsI18n = [
-            'ai_chat_open'             => $lang['js_ai_chat_open'] ?? 'Open AI Chat',
+            'ai_chat_open' => $lang['js_ai_chat_open'] ?? 'Open AI Chat',
             'initial_message_fallback' => $lang['js_initial_message_fallback'] ?? 'Hello! How can I help you?',
-            'error_generic'            => $lang['js_error_generic'] ?? 'An error occurred. Please try again.',
-            'error_reload_page'        => $lang['js_error_reload_page'] ?? 'Please reload the page and try again.',
+            'error_generic' => $lang['js_error_generic'] ?? 'An error occurred. Please try again.',
+            'error_reload_page' => $lang['js_error_reload_page'] ?? 'Please reload the page and try again.',
+            'link_label_download' => $lang['js_link_label_download'] ?? 'Download',
+            'link_label_page' => $lang['js_link_label_page'] ?? 'Visit page',
         ];
         $template->set('i18n_json', json_encode($jsI18n, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
 
@@ -112,34 +123,57 @@ class AiChatModuleController extends AbstractFrontendModuleController
     }
 
     /**
-     * Detect frontend language from Accept-Language (main request), respecting order/priority.
-     * Header format is e.g. "en,de;q=0.9,nl;q=0.8" — first listed language has highest priority.
+     * Cache-busting value for the module's CSS/JS assets. The deployed file's
+     * mtime is preferred over the Composer version: it changes on every deploy,
+     * including dev branches where the version string stays the same. Without
+     * this, browsers keep a stale ai-chat.js across releases (the script tag
+     * had no version parameter).
+     */
+    private function resolveAssetVersion(): string
+    {
+        $file = $this->webDir.'/bundles/contaoopenaiassistant/js/ai-chat.js';
+        $mtime = is_file($file) ? @filemtime($file) : false;
+
+        if (false !== $mtime) {
+            return (string) $mtime;
+        }
+
+        return $this->bundleVersion->getVersion() ?? '';
+    }
+
+    /**
+     * Detect frontend language from Accept-Language (main request), respecting
+     * order/priority. Header format is e.g. "en,de;q=0.9,nl;q=0.8" — first listed
+     * language has highest priority.
      */
     private function detectFrontendLanguage(Request $request): string
     {
         $acceptLanguage = $this->getAcceptLanguageFromMainRequest($request);
-        if ($acceptLanguage !== '') {
+        if ('' !== $acceptLanguage) {
             $segments = array_map('trim', explode(',', $acceptLanguage));
+
             foreach ($segments as $segment) {
-                $lang    = strtolower((string) preg_replace('/;.*/', '', $segment));
+                $lang = strtolower((string) preg_replace('/;.*/', '', $segment));
                 $primary = str_contains($lang, '-') ? substr($lang, 0, (int) strpos($lang, '-')) : $lang;
-                if ($primary === 'de') {
+                if ('de' === $primary) {
                     return 'de';
                 }
-                if ($primary === 'en') {
+                if ('en' === $primary) {
                     return 'en';
                 }
             }
         }
+
         return $GLOBALS['TL_LANGUAGE'] ?? 'en';
     }
 
     /**
-     * Get Accept-Language from the main request (fragment may be rendered in a sub-request without browser headers).
+     * Get Accept-Language from the main request (fragment may be rendered in a
+     * sub-request without browser headers).
      */
     private function getAcceptLanguageFromMainRequest(Request $currentRequest): string
     {
-        $mainRequest  = $this->requestStack->getMainRequest();
+        $mainRequest = $this->requestStack->getMainRequest();
         $requestToUse = $mainRequest ?? $currentRequest;
 
         return $requestToUse->headers->get('Accept-Language', '');
@@ -152,10 +186,10 @@ class AiChatModuleController extends AbstractFrontendModuleController
      */
     private function loadChatTranslations(string $language): array
     {
-        $language = $language === 'de' ? 'de' : 'en';
+        $language = 'de' === $language ? 'de' : 'en';
         System::loadLanguageFile('mod_ai_chat', $language);
         $lang = $GLOBALS['TL_LANG']['mod_ai_chat'] ?? [];
 
-        return is_array($lang) ? $lang : [];
+        return \is_array($lang) ? $lang : [];
     }
 }

@@ -1,0 +1,157 @@
+{
+  "description": "Shared contract fixture for GET /api/openai-assistant/validate. Mirrored verbatim between juhe-reviews (tests/fixtures/openai-assistant-validate-contract.json) and contao-openai-assistant (tests/Premium/Fixtures/validate-contract.json) - keep both copies identical. The server test asserts these license rows produce these responses; the Contao test asserts LicenseValidationService grants/denies sync for these responses.",
+  "entitlement_cases": [
+    {
+      "name": "active_starter_within_period",
+      "status": "active",
+      "plan": "starter",
+      "max_crawl_pages": 20,
+      "cancel_at_period_end": false,
+      "current_period_end_days_from_now": 30,
+      "expected_valid": true
+    },
+    {
+      "name": "active_business_within_period",
+      "status": "active",
+      "plan": "business",
+      "max_crawl_pages": 50,
+      "cancel_at_period_end": false,
+      "current_period_end_days_from_now": 30,
+      "expected_valid": true
+    },
+    {
+      "name": "active_enterprise_unlimited",
+      "status": "active",
+      "plan": "enterprise",
+      "max_crawl_pages": null,
+      "cancel_at_period_end": false,
+      "current_period_end_days_from_now": 30,
+      "expected_valid": true
+    },
+    {
+      "name": "active_no_period_end",
+      "status": "active",
+      "plan": "business",
+      "max_crawl_pages": 50,
+      "cancel_at_period_end": false,
+      "current_period_end_days_from_now": null,
+      "expected_valid": true
+    },
+    {
+      "name": "active_cancel_at_period_end",
+      "status": "active",
+      "plan": "business",
+      "max_crawl_pages": 50,
+      "cancel_at_period_end": true,
+      "current_period_end_days_from_now": 10,
+      "expected_valid": true
+    },
+    {
+      "name": "trialing_starter",
+      "status": "trialing",
+      "plan": "starter",
+      "max_crawl_pages": 20,
+      "cancel_at_period_end": false,
+      "current_period_end_days_from_now": 14,
+      "expected_valid": true
+    },
+    {
+      "name": "past_due_within_period",
+      "status": "past_due",
+      "plan": "business",
+      "max_crawl_pages": 50,
+      "cancel_at_period_end": false,
+      "current_period_end_days_from_now": 5,
+      "expected_valid": true
+    },
+    {
+      "name": "past_due_period_expired",
+      "status": "past_due",
+      "plan": "business",
+      "max_crawl_pages": 50,
+      "cancel_at_period_end": false,
+      "current_period_end_days_from_now": -1,
+      "expected_valid": false
+    },
+    {
+      "name": "active_period_expired",
+      "status": "active",
+      "plan": "starter",
+      "max_crawl_pages": 20,
+      "cancel_at_period_end": false,
+      "current_period_end_days_from_now": -1,
+      "expected_valid": false
+    },
+    {
+      "name": "complimentary_enterprise",
+      "status": "complimentary",
+      "plan": "enterprise",
+      "max_crawl_pages": null,
+      "cancel_at_period_end": false,
+      "current_period_end_days_from_now": null,
+      "expected_valid": true
+    },
+    {
+      "name": "paused",
+      "status": "paused",
+      "plan": "business",
+      "max_crawl_pages": 50,
+      "cancel_at_period_end": false,
+      "current_period_end_days_from_now": 30,
+      "expected_valid": false
+    },
+    {
+      "name": "unpaid",
+      "status": "unpaid",
+      "plan": "starter",
+      "max_crawl_pages": 20,
+      "cancel_at_period_end": false,
+      "current_period_end_days_from_now": 30,
+      "expected_valid": false
+    },
+    {
+      "name": "canceled",
+      "status": "canceled",
+      "plan": "business",
+      "max_crawl_pages": 50,
+      "cancel_at_period_end": false,
+      "current_period_end_days_from_now": -30,
+      "expected_valid": false
+    },
+    {
+      "name": "incomplete_checkout_pending",
+      "status": "incomplete",
+      "plan": "starter",
+      "max_crawl_pages": 20,
+      "cancel_at_period_end": false,
+      "current_period_end_days_from_now": 30,
+      "expected_valid": false
+    }
+  ],
+  "server_failure_cases": [
+    {
+      "name": "rate_limited_429",
+      "http_status": 429,
+      "body": "{\"error\":\"rate_limited\"}",
+      "expected_client_behavior": "grace"
+    },
+    {
+      "name": "internal_error_500",
+      "http_status": 500,
+      "body": "{\"statusCode\":500,\"error\":\"Internal Server Error\"}",
+      "expected_client_behavior": "grace"
+    },
+    {
+      "name": "malformed_body",
+      "http_status": 200,
+      "body": "<html>502 Bad Gateway</html>",
+      "expected_client_behavior": "grace"
+    },
+    {
+      "name": "schema_without_valid",
+      "http_status": 200,
+      "body": "{\"status\":\"active\"}",
+      "expected_client_behavior": "grace"
+    }
+  ]
+}

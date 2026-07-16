@@ -1,11 +1,11 @@
 <?php
 
 /*
- * This file is part of Contao Open Source CMS.
- *  *
- *  * (c) JUHE IT-solutions
- *  *
- *  * @license LGPL-3.0-or-later
+ * This file is part of the JUHE Contao OpenAI Assistant bundle.
+ *
+ * (c) JUHE IT-solutions
+ *
+ * @license LGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -20,13 +20,17 @@ $GLOBALS['TL_DCA']['tl_openai_files'] = [
         'enableVersioning' => true,
         'onload_callback'  => [
             function ($dc) {
-                $message = '<strong style="display: block; font-size: 22px; position: relative; top: -5px;">' .
+                $message = '<div class="oaa-info-card">' .
+                          '<p class="tl_info" style="background: transparent url(system/themes/flexible/icons/show.svg) no-repeat 11px 12px;">' .
+                          '<strong class="oaa-info-card-heading" style="display: block; font-size: 22px; position: relative; top: -5px;">' .
                           $GLOBALS['TL_LANG']['tl_openai_files']['welcome_heading'] .
                           '</strong>' .
                           $GLOBALS['TL_LANG']['tl_openai_files']['welcome_message1'] .
                           '<br>' .
-                          $GLOBALS['TL_LANG']['tl_openai_files']['welcome_message2'];
-                Message::addInfo($message);
+                          $GLOBALS['TL_LANG']['tl_openai_files']['welcome_message2'] .
+                          '</p>' .
+                          '</div>';
+                Message::addRaw($message);
             },
             ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiFilesListener', 'onLoadCallback'],
         ],

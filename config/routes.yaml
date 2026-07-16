@@ -1,7 +1,37 @@
 # config/routes.yaml
+vector_store_auto_update:
+    path: '%contao.backend.route_prefix%/vector-store-auto-update'
+    controller: JuheItSolutions\ContaoOpenaiAssistant\Premium\Controller\BackendModule\VectorStoreAutoUpdateController
+    methods: [GET, POST]
+    defaults:
+        _scope: backend
+        _token_check: true
+
+# Read-only JSON status polled by the dashboard while a sync is running. Lives under the
+# backend route prefix (backend firewall => authenticated user); the controller re-checks
+# the module permission. GET only, so no CSRF token is involved.
+vector_store_auto_update_status:
+    path: '%contao.backend.route_prefix%/vector-store-auto-update/status'
+    controller: JuheItSolutions\ContaoOpenaiAssistant\Premium\Controller\BackendModule\VectorStoreAutoUpdateController::status
+    methods: [GET]
+    defaults:
+        _scope: backend
+
+# Both validation endpoints live under the configurable backend route prefix so they
+# always stay inside the backend firewall, even on installs that customise the prefix
+# (a literal /contao/ path would fall into the frontend firewall there and lose the
+# authentication requirement).
 contao_api_key_validate:
-    path: /contao/api-key-validate
+    path: '%contao.backend.route_prefix%/api-key-validate'
     controller: JuheItSolutions\ContaoOpenaiAssistant\Controller\ApiValidationController::validateApiKey
+    methods: [POST]
+    defaults:
+        _scope: backend
+        _token_check: true
+
+contao_license_key_validate:
+    path: '%contao.backend.route_prefix%/license-key-validate'
+    controller: JuheItSolutions\ContaoOpenaiAssistant\Premium\Controller\LicenseValidationController::validateLicenseKey
     methods: [POST]
     defaults:
         _scope: backend

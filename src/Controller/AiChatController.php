@@ -1,20 +1,21 @@
 <?php
 
-/*
- * This file is part of Contao Open Source CMS.
- *  *
- *  * (c) JUHE IT-solutions
- *  *
- *  * @license LGPL-3.0-or-later
- */
-
 declare(strict_types=1);
+
+/*
+ * This file is part of the JUHE Contao OpenAI Assistant bundle.
+ *
+ * (c) JUHE IT-solutions
+ *
+ * @license LGPL-3.0-or-later
+ */
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Controller;
 
 use Contao\CoreBundle\Controller\AbstractController;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\CoreBundle\Framework\ContaoFramework;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\ChatRateLimiter;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiResponder;
 use Psr\Log\LoggerInterface;
@@ -30,7 +31,8 @@ class AiChatController extends AbstractController
         private readonly ContaoFramework $framework,
         private readonly ContaoCsrfTokenManager $csrfTokenManager,
         private readonly string $csrfTokenName,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly ChatRateLimiter $rateLimiter,
     ) {
     }
 
@@ -42,68 +44,125 @@ class AiChatController extends AbstractController
         $language = $this->detectLanguage($request);
 
         // Validate AJAX request
-        if (! $request->isXmlHttpRequest()) {
-            return new JsonResponse([
-                'error' => $this->getErrorMessage('invalid_request', $language),
-            ], 400);
+        if (!$request->isXmlHttpRequest()) {
+            return new JsonResponse(
+                [
+                    'error' => $this->getErrorMessage('invalid_request', $language),
+                ],
+                400,
+            );
         }
 
         // CSRF Token Validation
         $submittedToken = $request->request->get('REQUEST_TOKEN') ??
                          $request->headers->get('X-CSRF-Token');
 
-        if (! $submittedToken) {
-            return new JsonResponse([
-                'error' => $this->getErrorMessage('csrf_token_missing', $language),
-            ], 400);
+        if (!$submittedToken) {
+            return new JsonResponse(
+                [
+                    'error' => $this->getErrorMessage('csrf_token_missing', $language),
+                ],
+                400,
+            );
         }
 
         $token = new CsrfToken($this->csrfTokenName, $submittedToken);
-        if (! $this->csrfTokenManager->isTokenValid($token)) {
-            return new JsonResponse([
-                'error' => $this->getErrorMessage('invalid_csrf_token', $language),
-            ], 403);
+        if (!$this->csrfTokenManager->isTokenValid($token)) {
+            return new JsonResponse(
+                [
+                    'error' => $this->getErrorMessage('invalid_csrf_token', $language),
+                ],
+                403,
+            );
         }
 
         // Get and validate message
         $message = trim($request->request->get('message', ''));
         if (empty($message)) {
-            return new JsonResponse([
-                'error' => $this->getErrorMessage('empty_message', $language),
-            ], 400);
+            return new JsonResponse(
+                [
+                    'error' => $this->getErrorMessage('empty_message', $language),
+                ],
+                400,
+            );
+        }
+
+        // Both abuse limits are configured on the active config row; read it once here
+        // (the responder re-resolves it later) so they are enforced before any paid
+        // call. Missing column (pre-migration) or missing config falls back to the
+        // hard default for the IP limit and "uncapped" for the daily ceiling.
+        $activeConfig = $this->responder->getActiveConfig();
+        $ipLimit = null !== $activeConfig && \array_key_exists('chat_ip_rate_limit', $activeConfig)
+            ? (int) $activeConfig['chat_ip_rate_limit']
+            : ChatRateLimiter::DEFAULT_IP_LIMIT;
+
+        // Per-IP rate limit: the endpoint is anonymous and spends the owner's OpenAI
+        // credits, so the session throttle below (bypassable by dropping the cookie) is
+        // backed by a cache-based IP limiter that survives cookie rotation. Configurable
+        // (0 = off) for installations where many users share one egress IP.
+        if (!$this->rateLimiter->acceptClientIp((string) $request->getClientIp(), $ipLimit)) {
+            return new JsonResponse(
+                [
+                    'error' => $this->getErrorMessage('please_wait', $language),
+                ],
+                429,
+            );
         }
 
         // Rate limiting check
-        $session     = $request->getSession();
+        $session = $request->getSession();
         $lastRequest = $session->get('ai_chat_last_request', 0);
         $currentTime = time();
-        if (($currentTime - $lastRequest) < 2) {
-            return new JsonResponse([
-                'error' => $this->getErrorMessage('please_wait', $language),
-            ], 429);
+        if ($currentTime - $lastRequest < 2) {
+            return new JsonResponse(
+                [
+                    'error' => $this->getErrorMessage('please_wait', $language),
+                ],
+                429,
+            );
         }
 
         $session->set('ai_chat_last_request', $currentTime);
 
+        // Per-configuration daily ceiling: an absolute cap on completions one config can
+        // spend per day, bounding worst-case API cost even under a distributed attack.
+        if ($activeConfig) {
+            $dailyLimit = (int) ($activeConfig['chat_daily_limit'] ?? 0);
+            if (!$this->rateLimiter->acceptConfigDaily((int) $activeConfig['id'], $dailyLimit)) {
+                return new JsonResponse(
+                    [
+                        'error' => $this->getErrorMessage('daily_limit_reached', $language),
+                    ],
+                    429,
+                );
+            }
+        }
+
         try {
-            // Send the message as-is without automatic language instructions
-            // The prompt should be configured with appropriate system instructions
+            // Send the message as-is without automatic language instructions The prompt
+            // should be configured with appropriate system instructions
             $reply = $this->responder->processMessage($message, $session);
 
             return new JsonResponse([
-                'reply'     => $reply,
+                'reply' => $reply,
                 'timestamp' => date('Y-m-d H:i:s'),
             ]);
         } catch (\Exception $e) {
-            $this->logger->error('Error processing chat message: ' . $e->getMessage(), [
-                'exception' => $e,
-                // Do not log message content to avoid persisting potentially sensitive user input.
-                'message_length' => mb_strlen($message),
-            ]);
+            $this->logger->error(
+                'Error processing chat message: '.$e->getMessage(),
+                [
+                    'exception' => $e,
+                    // Do not log message content to avoid persisting potentially sensitive user input.
+                    'message_length' => mb_strlen($message),
+                ],
+            );
 
-            return new JsonResponse([
-                'error' => $this->getErrorMessage('service_unavailable', $language),
-            ], 500);
+            return new JsonResponse(
+                [
+                    'error' => $this->getErrorMessage('service_unavailable', $language),
+                ],
+                500,
+            );
         }
     }
 
@@ -113,13 +172,16 @@ class AiChatController extends AbstractController
         $language = $this->detectLanguage($request);
 
         // Rate limiting for token requests (max 1 per 10 seconds)
-        $session          = $request->getSession();
+        $session = $request->getSession();
         $lastTokenRequest = $session->get('ai_chat_last_token_request', 0);
-        $currentTime      = time();
-        if (($currentTime - $lastTokenRequest) < 10) {
-            return new JsonResponse([
-                'error' => $this->getErrorMessage('token_requests_too_frequent', $language),
-            ], 429);
+        $currentTime = time();
+        if ($currentTime - $lastTokenRequest < 10) {
+            return new JsonResponse(
+                [
+                    'error' => $this->getErrorMessage('token_requests_too_frequent', $language),
+                ],
+                429,
+            );
         }
 
         $session->set('ai_chat_last_token_request', $currentTime);
@@ -139,10 +201,13 @@ class AiChatController extends AbstractController
         $language = $this->detectLanguage($request);
 
         // Validate AJAX request
-        if (! $request->isXmlHttpRequest()) {
-            return new JsonResponse([
-                'error' => $this->getErrorMessage('invalid_request', $language),
-            ], 400);
+        if (!$request->isXmlHttpRequest()) {
+            return new JsonResponse(
+                [
+                    'error' => $this->getErrorMessage('invalid_request', $language),
+                ],
+                400,
+            );
         }
 
         $session = $request->getSession();
@@ -154,7 +219,7 @@ class AiChatController extends AbstractController
 
         $conversationId = $session->get('openai_conversation_id');
 
-        if (! $conversationId) {
+        if (!$conversationId) {
             return new JsonResponse([
                 'history' => [],
             ]);
@@ -162,7 +227,7 @@ class AiChatController extends AbstractController
 
         try {
             $config = $this->responder->getActiveConfig();
-            if (! $config) {
+            if (!$config) {
                 return new JsonResponse([
                     'history' => [],
                 ]);
@@ -171,10 +236,13 @@ class AiChatController extends AbstractController
             $apiKey = $this->encryption->getApiKeyForConfig((int) $config['id'])
                 ?? $this->encryption->processApiKey((string) ($config['api_key'] ?? ''));
 
-            if (! $apiKey) {
-                $this->logger->error('No valid API key found for chat history', [
-                    'config_id' => $config['id'] ?? null,
-                ]);
+            if (!$apiKey) {
+                $this->logger->error(
+                    'No valid API key found for chat history',
+                    [
+                        'config_id' => $config['id'] ?? null,
+                    ],
+                );
 
                 return new JsonResponse([
                     'history' => [],
@@ -187,10 +255,13 @@ class AiChatController extends AbstractController
                 'history' => $history,
             ]);
         } catch (\Exception $e) {
-            $this->logger->error('Failed to get chat history: ' . $e->getMessage(), [
-                'exception'       => $e,
-                'conversation_id' => $conversationId,
-            ]);
+            $this->logger->error(
+                'Failed to get chat history: '.$e->getMessage(),
+                [
+                    'exception' => $e,
+                    'conversation_id' => $conversationId,
+                ],
+            );
 
             return new JsonResponse([
                 'history' => [],
@@ -199,7 +270,7 @@ class AiChatController extends AbstractController
     }
 
     /**
-     * Detect user language from Accept-Language header
+     * Detect user language from Accept-Language header.
      */
     private function detectLanguage(Request $request): string
     {
@@ -215,28 +286,30 @@ class AiChatController extends AbstractController
     }
 
     /**
-     * Get translated error message
+     * Get translated error message.
      */
     private function getErrorMessage(string $key, string $language): string
     {
         $messages = [
             'de' => [
-                'invalid_request'             => 'Ungültige Anfrage',
-                'csrf_token_missing'          => 'CSRF-Token fehlt',
-                'invalid_csrf_token'          => 'Ungültiger CSRF-Token. Bitte laden Sie die Seite neu und versuchen Sie es erneut.',
-                'empty_message'               => 'Leere Nachricht',
-                'please_wait'                 => 'Bitte warten Sie, bevor Sie eine weitere Nachricht senden',
-                'service_unavailable'         => 'Service vorübergehend nicht verfügbar',
+                'invalid_request' => 'Ungültige Anfrage',
+                'csrf_token_missing' => 'CSRF-Token fehlt',
+                'invalid_csrf_token' => 'Ungültiger CSRF-Token. Bitte laden Sie die Seite neu und versuchen Sie es erneut.',
+                'empty_message' => 'Leere Nachricht',
+                'please_wait' => 'Bitte warten Sie, bevor Sie eine weitere Nachricht senden',
+                'service_unavailable' => 'Service vorübergehend nicht verfügbar',
                 'token_requests_too_frequent' => 'Token-Anfragen zu häufig',
+                'daily_limit_reached' => 'Das tägliche Nachrichtenlimit für den Chatbot wurde erreicht. Bitte versuchen Sie es morgen erneut.',
             ],
             'en' => [
-                'invalid_request'             => 'Invalid request',
-                'csrf_token_missing'          => 'CSRF token missing',
-                'invalid_csrf_token'          => 'Invalid CSRF token. Please reload the page and try again.',
-                'empty_message'               => 'Empty message',
-                'please_wait'                 => 'Please wait before sending another message',
-                'service_unavailable'         => 'Service temporarily unavailable',
+                'invalid_request' => 'Invalid request',
+                'csrf_token_missing' => 'CSRF token missing',
+                'invalid_csrf_token' => 'Invalid CSRF token. Please reload the page and try again.',
+                'empty_message' => 'Empty message',
+                'please_wait' => 'Please wait before sending another message',
+                'service_unavailable' => 'Service temporarily unavailable',
                 'token_requests_too_frequent' => 'Token requests too frequent',
+                'daily_limit_reached' => 'The chatbot has reached its daily message limit. Please try again tomorrow.',
             ],
         ];
 

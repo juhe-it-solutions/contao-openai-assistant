@@ -1,7 +1,7 @@
 <?php
 
 /*
- * This file is part of Contao Open Source CMS.
+ * This file is part of the JUHE Contao OpenAI Assistant bundle.
  *
  * (c) JUHE IT-solutions
  *
@@ -36,6 +36,8 @@ $GLOBALS['TL_LANG']['mod_ai_chat'] = [
     'js_initial_message_fallback' => 'Hallo! Wie kann ich dir helfen?',
     'js_error_generic'         => 'Es ist ein Fehler aufgetreten. Bitte erneut versuchen.',
     'js_error_reload_page'     => 'Bitte lade die Seite neu und versuche es erneut.',
+    'js_link_label_download'   => 'Download',
+    'js_link_label_page'       => 'Seite aufrufen',
 
     // Long default disclaimer (when module has no custom disclaimer)
     'disclaimer_default'       => 'Unser Chatbot ist ein Serviceangebot unseres Unternehmens und soll die Kommunikation sowie den Informationszugang erleichtern. Die Antworten werden automatisch generiert und dienen ausschließlich allgemeinen Informations- und Unterstützungszwecken. Trotz sorgfältiger Entwicklung können Inhalte unvollständig, missverständlich oder fehlerhaft sein. Wir übernehmen daher keine Gewähr für die inhaltliche Richtigkeit oder Vollständigkeit der Antworten. Verbindliche Auskünfte, individuelle Beratung oder rechtliche Empfehlungen werden durch den Chatbot nicht erteilt. Bitte nutze die bereitgestellten Informationen als Orientierung und wende dich für wichtige Anliegen direkt an unser Team oder an eine entsprechend qualifizierte Fachperson.',

@@ -19,6 +19,10 @@
                 <source>Vector store</source>
                 <target>Vector Store</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.chat_protection_legend">
+                <source>Chat protection</source>
+                <target>Chat-Schutz</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.settings_legend">
                 <source>Model settings</source>
                 <target>Modelleinstellungen</target>
@@ -48,6 +52,22 @@
             <trans-unit id="tl_openai_config.vector_store_id.1">
                 <source>The OpenAI Vector Store ID (automatically generated).</source>
                 <target>Die OpenAI Vector Store ID (wird automatisch generiert).</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.chat_daily_limit.0">
+                <source>Daily chat message limit</source>
+                <target>Tägliches Chat-Nachrichtenlimit</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.chat_daily_limit.1">
+                <source>Maximum number of chatbot replies generated per day across all visitors. Bounds your OpenAI cost if the public chat is abused. Set to 0 to disable the cap.</source>
+                <target>Maximale Anzahl an Chatbot-Antworten pro Tag über alle Besucher hinweg. Begrenzt Ihre OpenAI-Kosten bei Missbrauch des öffentlichen Chats. Zum Deaktivieren auf 0 setzen.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.chat_ip_rate_limit.0">
+                <source>Chat messages per minute per IP address</source>
+                <target>Chat-Nachrichten pro Minute pro IP-Adresse</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.chat_ip_rate_limit.1">
+                <source>Rate limit against scripted abuse of the public chat. Raise it or set 0 (off) if many users share one IP address, e.g. on a corporate intranet or behind a proxy/NAT — otherwise they share this budget collectively.</source>
+                <target>Ratenbegrenzung gegen skriptgesteuerten Missbrauch des öffentlichen Chats. Erhöhen Sie den Wert oder setzen Sie ihn auf 0 (aus), wenn viele Benutzer eine IP-Adresse teilen, z. B. im Firmen-Intranet oder hinter Proxy/NAT — sonst teilen sie sich dieses Kontingent gemeinsam.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.max_tokens.0">
                 <source>Maximum Tokens</source>
@@ -93,6 +113,34 @@
                 <source>API key is invalid!</source>
                 <target>API-Schlüssel ist ungültig!</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.api_key_validating">
+                <source>Validating...</source>
+                <target>Validiere...</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.api_key_error">
+                <source>Validation failed.</source>
+                <target>Fehler bei der Validierung.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.api_key_required">
+                <source>API key is required and cannot be empty.</source>
+                <target>Der API-Schlüssel ist erforderlich und darf nicht leer sein.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.api_key_format_invalid">
+                <source>Invalid API key format. OpenAI API keys must start with "sk-".</source>
+                <target>Ungültiges API-Schlüssel-Format. OpenAI-API-Schlüssel beginnen mit "sk-".</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.api_key_check_failed">
+                <source>API key validation failed. Please check your API key.</source>
+                <target>Die API-Schlüssel-Prüfung ist fehlgeschlagen. Bitte überprüfen Sie Ihren API-Schlüssel.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.api_key_invalid_save">
+                <source>Invalid API key. Please verify your OpenAI API key is correct and has proper permissions.</source>
+                <target>Ungültiger API-Schlüssel. Bitte prüfen Sie, ob Ihr OpenAI-API-Schlüssel korrekt ist und über die nötigen Berechtigungen verfügt.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.api_key_check_unreachable">
+                <source>Could not reach OpenAI to validate the API key. The previously saved key was kept.</source>
+                <target>OpenAI konnte zur Prüfung des API-Schlüssels nicht erreicht werden. Der zuvor gespeicherte Schlüssel wurde beibehalten.</target>
+            </trans-unit>
 
             <!-- Create Operation -->
             <trans-unit id="tl_openai_config.new.0">
@@ -122,6 +170,12 @@
                 <target>Über die 2 Symbole rechts gelangen Sie zum Dateiupload und zur Einrichtung des OpenAI-Prompts.</target>
             </trans-unit>
 
+            <!-- No-files notice on dashboard -->
+            <trans-unit id="tl_openai_config.no_files_notice">
+                <source>No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform — without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.</source>
+                <target>Es wurden noch keine Dateien in den OpenAI Vector Store hochgeladen. Der Chatbot kann ohne Wissensdokumente keine Fragen beantworten. Wichtig: Mindestens ein Datei-Upload ist erforderlich, damit der Vector Store auf der OpenAI-Plattform angelegt wird - ohne diesen funktioniert auch das Premium-Addon (automatische Synchronisierung) nicht. Gehen Sie zu «Datei-Upload», um Ihre erste Datei hinzuzufügen.</target>
+            </trans-unit>
+
             <!-- Single Config Limitation Notice -->
             <trans-unit id="tl_openai_config.single_config_heading">
                 <source>Single Configuration</source>
@@ -134,6 +188,258 @@
             <trans-unit id="tl_openai_config.single_config_redirect">
                 <source>Only one OpenAI configuration is allowed. You are being redirected to the existing configuration.</source>
                 <target>Es ist nur eine OpenAI-Konfiguration erlaubt. Sie werden zur bestehenden Konfiguration weitergeleitet.</target>
+            </trans-unit>
+
+            <!-- Premium license -->
+            <trans-unit id="tl_openai_config.premium_legend">
+                <source>Premium License</source>
+                <target>Premium-Lizenz</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_heading">
+                <source>Premium add-on: Auto-Update Vector Store</source>
+                <target>Premium-Addon: Auto-Update Vector Store</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_text">
+                <source>With our premium add-on, your integrated chatbot stays up to date. Updated website content is automatically incorporated into the chatbot's knowledge base. 14-day free trial, then billed monthly per domain.</source>
+                <target>Mit unserem Premium-Addon halten Sie Ihren integrierten Chatbot stets aktuell. Aktualisierte Webseiten-Inhalte werden automatisch in die Wissensdatenbank des Chatbots übernommen. 14 Tage kostenlos testen, dann monatliche Abrechnung pro Domain.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_purchase">
+                <source>Get a license at</source>
+                <target>Lizenz erhalten unter</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_docs">
+                <source>Guide &amp; help</source>
+                <target>Anleitung &amp; Hilfe</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_manage">
+                <source>Manage subscription</source>
+                <target>Abo verwalten</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_hint_heading">
+                <source>Notes</source>
+                <target>Hinweise</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_hint">
+                <source>Enter your license key below and validate it with “Check key” before saving.</source>
+                <target>Geben Sie unten Ihren Lizenzschlüssel ein und validieren Sie ihn mit „Schlüssel prüfen”, bevor Sie speichern.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_info_hint_active">
+                <source>To switch to a different key: clear this field, enter the new key, and save. To remove the license entirely: use the "Remove license" button next to the key field. Removing the license stops future automatic syncs; content already added to the vector store stays in place until you delete the configuration.</source>
+                <target>Schlüssel wechseln: Feld leeren, neuen Schlüssel eingeben und speichern. Lizenz vollständig entfernen: Schaltfläche „Lizenz entfernen" neben dem Schlüsselfeld verwenden. Das Entfernen der Lizenz beendet künftige automatische Synchronisierungen; bereits in den Vektorspeicher übernommene Inhalte bleiben erhalten, bis Sie die Konfiguration löschen.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_validated">
+                <source>Premium license validated successfully.</source>
+                <target>Premium-Lizenz erfolgreich validiert.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_invalid">
+                <source>Premium license key is invalid or inactive. Auto-update sync will not run until a valid key is entered.</source>
+                <target>Premium-Lizenzschlüssel ist ungültig oder inaktiv. Die automatische Synchronisierung wird erst ausgeführt, wenn ein gültiger Schlüssel eingegeben wurde.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_format_invalid">
+                <source>Invalid license key format. Expected "JUHE-AI-…". The previous key was kept.</source>
+                <target>Ungültiges Format des Lizenzschlüssels. Erwartet wird „JUHE-AI-…“. Der vorherige Schlüssel wurde beibehalten.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_prompt_too_long">
+                <source>The custom prompt must not exceed 32,000 characters.</source>
+                <target>Der benutzerdefinierte Prompt darf 32.000 Zeichen nicht überschreiten.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_key.0">
+                <source>License key</source>
+                <target>Lizenzschlüssel</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.premium_license_key.1">
+                <source>Enter the license key you received after purchase at https://licenses.juhe-it-solutions.at/openai-assistant. Leave the masked value unchanged to keep the current key; clear the field to remove it.</source>
+                <target>Geben Sie den Lizenzschlüssel ein, den Sie nach dem Kauf auf https://licenses.juhe-it-solutions.at/openai-assistant erhalten haben. Lassen Sie den maskierten Wert unverändert, um den aktuellen Schlüssel zu behalten; leeren Sie das Feld, um ihn zu entfernen.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.check_license_key">
+                <source>Check key</source>
+                <target>Schlüssel prüfen</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.license_key_validating">
+                <source>Validating...</source>
+                <target>Validiere...</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.no_license_key">
+                <source>Please enter a license key first.</source>
+                <target>Bitte geben Sie zuerst einen Lizenzschlüssel ein.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.license_key_valid">
+                <source>License key is valid!</source>
+                <target>Lizenzschlüssel ist gültig!</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.license_key_invalid">
+                <source>License key is invalid!</source>
+                <target>Lizenzschlüssel ist ungültig!</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.license_key_error">
+                <source>Validation failed.</source>
+                <target>Validierung fehlgeschlagen.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.remove_license_key">
+                <source>Remove license</source>
+                <target>Lizenz entfernen</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.remove_license_key_confirm">
+                <source>License key cleared. Save to remove the license.</source>
+                <target>Lizenzschlüssel geleert. Speichern Sie, um die Lizenz zu entfernen.</target>
+            </trans-unit>
+
+            <!-- Automatic vector store sync -->
+            <trans-unit id="tl_openai_config.auto_update_legend">
+                <source>Vector store sync</source>
+                <target>Vector-Store-Synchronisierung</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_enabled.0">
+                <source>Enable sync</source>
+                <target>Synchronisierung aktivieren</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_enabled.1">
+                <source>Crawl the website and update the vector store document. Requires a valid premium license (use &quot;Check key&quot; above). Only pages that Contao&apos;s search indexer is allowed to index are included: pages with robots=noindex or the page-level setting &quot;Search indexer: Never index&quot; are excluded. To include such pages in the chatbot knowledge base anyway, set their page-level &quot;Search indexer&quot; field to &quot;Always index&quot;.</source>
+                <target>Die Website crawlen und das Vector-Store-Dokument aktualisieren. Erfordert eine gültige Premium-Lizenz (zuerst &#x201E;Schlüssel prüfen&#x201C; oben). Es werden nur Seiten aufgenommen, die der Contao-Suchindexer indexieren darf: Seiten mit robots=noindex oder der Seiteneinstellung &#x201E;Suchindexer: Nie indexieren&#x201C; werden ausgeschlossen. Sollen solche Seiten trotzdem in die Chatbot-Wissensbasis aufgenommen werden, setzen Sie deren Seiteneinstellung &#x201E;Suchindexer&#x201C; auf &#x201E;Immer indexieren&#x201C;.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_requires_license">
+                <source>Automatic sync requires a valid premium license. Use “Check key” in the Premium License section.</source>
+                <target>Automatische Synchronisierung erfordert eine gültige Premium-Lizenz. Nutzen Sie „Schlüssel prüfen“ im Bereich Premium-Lizenz.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.first_sync_hint_heading">
+                <source>First sync</source>
+                <target>Erste Synchronisierung</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.first_sync_hint_cron">
+                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard. Later syncs run automatically on your schedule.</source>
+                <target>Starten Sie die erste Synchronisierung über die Schaltfläche „Jetzt manuell synchronisieren“ im Auto-Sync-Dashboard. Weitere Läufe erfolgen automatisch gemäß Ihrem Zeitplan.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.first_sync_hint_nocron">
+                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard. Later syncs require a CLI cron job (contao:cron) on your server.</source>
+                <target>Starten Sie die erste Synchronisierung über die Schaltfläche „Jetzt manuell synchronisieren“ im Auto-Sync-Dashboard. Weitere Läufe erfordern einen CLI-Cronjob (contao:cron) auf Ihrem Server.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.first_sync_hint_manual">
+                <source>Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard.</source>
+                <target>Manueller Modus: Starten Sie die erste Synchronisierung über die Schaltfläche „Jetzt manuell synchronisieren“ im Auto-Sync-Dashboard.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.first_sync_hint_dashboard">
+                <source>Open the Auto-Sync dashboard</source>
+                <target>Zum Auto-Sync-Dashboard</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_trigger.0">
+                <source>Synchronization trigger</source>
+                <target>Synchronisierungs-Auslöser</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_trigger.1">
+                <source><![CDATA[<strong>Scheduled (default):</strong> start the first sync manually on the Vector Store Sync page; from the second run onward, sync follows the schedule below. Requires a working server cron (<code>contao:cron</code>).<br><br><strong>Manual only:</strong> the sync never runs automatically and needs no server cron at all - you start it yourself with the "Run sync now" button on the AI Tools -> Vector Store Sync page. Ideal for small sites that change rarely.]]></source>
+                <target><![CDATA[<strong>Zeitgesteuert (Standard):</strong> Starten Sie die erste Synchronisierung manuell auf der Seite Vector-Store-Synchronisierung; ab dem zweiten Lauf folgt sie dem unten festgelegten Zeitplan. Erfordert einen funktionierenden Server-Cron (<code>contao:cron</code>).<br><br><strong>Nur manuell:</strong> Die Synchronisierung läuft nie automatisch und benötigt überhaupt keinen Server-Cron - Sie starten sie selbst über die Schaltfläche „Jetzt synchronisieren“ auf der Seite KI-Werkzeuge -> Vector-Store-Synchronisierung. Ideal für kleine Websites, die sich selten ändern.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_trigger_ref.scheduled">
+                <source>Scheduled (automatic, needs server cron)</source>
+                <target>Zeitgesteuert (automatisch, benötigt Server-Cron)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_trigger_ref.manual">
+                <source>Manual only (no cron, run via button)</source>
+                <target>Nur manuell (kein Cron, Start per Schaltfläche)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_hour.0">
+                <source>Hour</source>
+                <target>Stunde</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_hour.1">
+                <source>Hour of day when the sync should start (server time). Choose “Every hour” to run at the selected minute each hour.</source>
+                <target>Stunde des Tages, zu der die Synchronisierung starten soll (Serverzeit). „Jede Stunde“ führt sie zur gewählten Minute in jeder Stunde aus.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_minute.0">
+                <source>Minute</source>
+                <target>Minute</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_minute.1">
+                <source>Minute of the selected hour. Choose “Every minute” to run every minute (requires server cron every minute).</source>
+                <target>Minute der gewählten Stunde. „Jede Minute“ führt die Synchronisierung jede Minute aus (Server-Cron muss jede Minute laufen).</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_weekday.0">
+                <source>Weekday</source>
+                <target>Wochentag</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_weekday.1">
+                <source>Run on a specific weekday only, or every day.</source>
+                <target>Nur an einem bestimmten Wochentag oder täglich ausführen.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_day.0">
+                <source>Day of month</source>
+                <target>Tag im Monat</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_schedule_day.1">
+                <source>Run on a specific calendar day, or every day. Requires a server cron running <code>contao:cron</code> every minute.</source>
+                <target>An einem bestimmten Kalendertag oder täglich ausführen. Erfordert einen Server-Cron, der <code>contao:cron</code> jede Minute ausführt.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_raw_mode.0">
+                <source>Upload page content as-is (skip AI optimisation) — advanced</source>
+                <target>Seiteninhalte unverändert übernehmen (ohne KI-Optimierung) — für Fortgeschrittene</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_raw_mode.1">
+                <source><![CDATA[<strong>What this does.</strong> By default (unchecked) the crawled page text is first rewritten by an AI model into one clean, compact knowledge document: navigation, menus, footers and cookie notices are stripped out, repeated content is merged, and everything is restructured so the chatbot can find answers reliably. Facts such as names, addresses, phone numbers, prices and dates are kept unchanged. This usually gives clearly better chatbot answers and costs only a fraction of a cent per synchronisation.<br><br><strong>If you tick this box</strong> the AI step is skipped and the raw extracted page text is uploaded to the vector store unchanged. <strong>Advantages:</strong> no AI cost and your text is never altered. <strong>Disadvantages:</strong> noticeably weaker chatbot answers, because navigation and repeated boilerplate are stored alongside the real content. In this mode the "Generation model" and "Instructions for the knowledge document" settings below are ignored. Leave this unchecked unless you know exactly why you want the raw text.]]></source>
+                <target><![CDATA[<strong>Was das bewirkt.</strong> Standardmäßig (Haken nicht gesetzt) wird der gecrawlte Seitentext zunächst von einem KI-Modell zu einem sauberen, kompakten Wissensdokument umgeschrieben: Navigation, Menüs, Fußzeilen und Cookie-Hinweise werden entfernt, wiederholte Inhalte zusammengefasst und alles so umstrukturiert, dass der Chatbot Antworten zuverlässig findet. Fakten wie Namen, Adressen, Telefonnummern, Preise und Daten bleiben unverändert. Das liefert in der Regel deutlich bessere Chatbot-Antworten und kostet pro Synchronisierung nur einen Bruchteil eines Cents.<br><br><strong>Wenn Sie diesen Haken setzen</strong>, wird der KI-Schritt übersprungen und der reine, extrahierte Seitentext unverändert in den Vector Store geladen. <strong>Vorteile:</strong> keine KI-Kosten und Ihr Text wird nie verändert. <strong>Nachteile:</strong> spürbar schwächere Chatbot-Antworten, da Navigations- und Wiederholungstext mitgespeichert wird. In diesem Modus werden die Einstellungen „Generierungsmodell“ und „Anweisungen für die Wissensdatei“ weiter unten ignoriert. Lassen Sie diesen Haken deaktiviert, sofern Sie nicht genau wissen, warum Sie den Rohtext benötigen.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_mode.0">
+                <source>Indexing mode</source>
+                <target>Indexierungsmodus</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_mode.1">
+                <source><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen – ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung.</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite.]]></source>
+                <target><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen – ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung.</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_mode_ref.faithful">
+                <source>Faithful — upload full page content (recommended)</source>
+                <target>Originalgetreu – vollständigen Seiteninhalt hochladen (empfohlen)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_mode_ref.llm_polish">
+                <source>AI polish — rewrite each page with an AI model</source>
+                <target>KI-Aufbereitung – jede Seite mit einem KI-Modell optimieren</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model.0">
+                <source>Generation model</source>
+                <target>Generierungsmodell</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model.1">
+                <source>OpenAI model loaded live from your account. Compatibility is checked against the Responses API when you save.</source>
+                <target>OpenAI-Modell, live aus Ihrem Konto geladen. Die Kompatibilität wird beim Speichern über die Responses API geprüft.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model_placeholder">
+                <source>-- Select model --</source>
+                <target>-- Modell wählen --</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model_no_api_key">
+                <source>Please configure a valid OpenAI API key first.</source>
+                <target>Bitte konfigurieren Sie zuerst einen gültigen OpenAI-API-Schlüssel.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model_invalid">
+                <source>The model "%s" is not compatible with the OpenAI Responses API.</source>
+                <target>Das Modell „%s“ ist nicht mit der OpenAI Responses API kompatibel.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_model_required">
+                <source>Please select a generation model for the AI processing mode.</source>
+                <target>Bitte wählen Sie ein Generierungsmodell für den Modus „KI-Aufbereitung“.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_site_root.0">
+                <source>Select the pages whose content should be updated automatically in the vector store</source>
+                <target>Seiten auswählen, deren Inhalt im Vector Store automatisch aktualisiert werden soll</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_site_root.1">
+                <source><![CDATA[Select the pages whose content should be synced into the chatbot's knowledge base.<br>The total number of selected pages must not exceed your subscription's page limit.<br>For installations with only one website root you can leave this field empty to use the entire website.]]></source>
+                <target><![CDATA[Wählen Sie die Seiten, deren Inhalte in die Wissensdatenbank des Chatbots übernommen werden sollen.<br>Die Gesamtzahl der ausgewählten Seiten darf das Seitenlimit Ihres Abos nicht überschreiten.<br>Bei Installationen mit nur einem Webseiten-Startpunkt können Sie das Feld leer lassen, um die gesamte Website zu verwenden.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_pages_over_limit">
+                <source>Your selection covers %1$s pages (including subpages), but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.</source>
+                <target>Ihre Auswahl umfasst %1$s Seiten, Ihr aktueller Tarif erlaubt jedoch höchstens %2$s. Reduzieren Sie die Auswahl oder führen Sie ein Tarif-Upgrade durch; die vorherige Auswahl wurde beibehalten.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_pages_none_selected_limit">
+                <source>No pages selected — all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.</source>
+                <target>Keine Seiten ausgewählt – alle %1$s Unterseiten des einzigen Webseiten-Startpunkts würden automatisch synchronisiert. Ihr aktueller Tarif erlaubt jedoch höchstens %2$s Seiten. Bitte wählen Sie gezielt Seiten aus oder führen Sie ein Tarif-Upgrade durch.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_prompt_template.0">
+                <source>System prompt for AI processing of the content</source>
+                <target>System-Prompt für KI-Aufbereitung der Inhalte</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_prompt_template.1">
+                <source>Defines how your website texts are turned into the chatbot knowledge file during automatic sync. The default works for most sites — change it only if you want a different focus, style, or structure.</source>
+                <target>Legt fest, wie aus den Texten Ihrer Website die Wissensdatei für den Chatbot erstellt wird. Die Voreinstellung passt in der Regel — ändern Sie sie nur, wenn Sie z. B. einen anderen Schwerpunkt, Stil oder Aufbau wünschen.</target>
             </trans-unit>
         </body>
     </file>

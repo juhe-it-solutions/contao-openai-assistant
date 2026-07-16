@@ -1,13 +1,12 @@
+/.gitattributes export-ignore
 /.github export-ignore
 /.cursor export-ignore
 /.gitignore export-ignore
-/20260220_I18N-HANDLE_CURRENTLY_HARDCODED_THINGS.md export-ignore
 /CHANGELOG.md export-ignore
-/CODE_OF_CONDUCT.md export-ignore
-/CONTRIBUTING.md export-ignore
 /XXX_DOCS_INTERN export-ignore
 /docs export-ignore
 /ecs.php export-ignore
 /phpstan.neon export-ignore
-/SECURITY.md export-ignore
+/phpunit.xml.dist export-ignore
 /scripts export-ignore
+/tests export-ignore

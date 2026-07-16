@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+    <file source-language="en" target-language="de" datatype="plaintext" original="tl_openai_sync_log.xlf">
+        <body>
+            <trans-unit id="tl_openai_sync_log.run_at">
+                <source>Date</source>
+                <target>Datum</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.status">
+                <source>Status</source>
+                <target>Status</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.status_ref.success">
+                <source>Success</source>
+                <target>Erfolgreich</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.status_ref.error">
+                <source>Error</source>
+                <target>Fehler</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.status_ref.partial">
+                <source>Partial (some pages failed)</source>
+                <target>Teilweise (einige Seiten fehlgeschlagen)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.status_ref.skipped">
+                <source>Skipped</source>
+                <target>Übersprungen</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.trigger_source">
+                <source>Trigger</source>
+                <target>Auslöser</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.source_ref.cron">
+                <source>Schedule</source>
+                <target>Zeitplan</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.source_ref.manual">
+                <source>Manual (button)</source>
+                <target>Manuell (Schaltfläche)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.source_ref.cli">
+                <source>Console</source>
+                <target>Konsole</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.model">
+                <source>Model</source>
+                <target>Modell</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.pages">
+                <source>Pages</source>
+                <target>Seiten</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.tokens_in">
+                <source>Tokens in</source>
+                <target>Token (Eingabe)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.tokens_out">
+                <source>Tokens out</source>
+                <target>Token (Ausgabe)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.duration">
+                <source>Duration</source>
+                <target>Dauer</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.file_id">
+                <source>File ID</source>
+                <target>Datei-ID</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.pages_added">
+                <source>Added</source>
+                <target>Hinzugefügt</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.pages_updated">
+                <source>Updated</source>
+                <target>Aktualisiert</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.pages_removed">
+                <source>Removed</source>
+                <target>Entfernt</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.pages_unchanged">
+                <source>Unchanged</source>
+                <target>Unverändert</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.files_uploaded">
+                <source>Files uploaded</source>
+                <target>Dateien hochgeladen</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.files_failed">
+                <source>Files failed</source>
+                <target>Dateien fehlgeschlagen</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.bytes">
+                <source>Bytes</source>
+                <target>Bytes</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_sync_log.message">
+                <source>Message</source>
+                <target>Meldung</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

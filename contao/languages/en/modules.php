@@ -1,11 +1,11 @@
 <?php
 
 /*
- * This file is part of Contao Open Source CMS.
- *  *
- *  * (c) JUHE IT-solutions
- *  *
- *  * @license LGPL-3.0-or-later
+ * This file is part of the JUHE Contao OpenAI Assistant bundle.
+ *
+ * (c) JUHE IT-solutions
+ *
+ * @license LGPL-3.0-or-later
  */
 
 // Category (used for module group in module creation)
@@ -15,6 +15,12 @@ $GLOBALS['TL_LANG']['MOD']['ai_tools'] = 'AI Tools';
 $GLOBALS['TL_LANG']['MOD']['openai_dashboard']   = ['OpenAI Dashboard', 'Manage OpenAI configurations, files, and prompts'];
 $GLOBALS['TL_LANG']['MOD']['openai_dashboard.0'] = 'OpenAI Dashboard';
 $GLOBALS['TL_LANG']['MOD']['openai_dashboard.1'] = 'Manage OpenAI configurations, files, and prompts';
+$GLOBALS['TL_LANG']['MOD']['vector_store_auto_update']   = ['OpenAI vector store auto-update', 'Status, log and manual trigger for the automatic sync'];
+$GLOBALS['TL_LANG']['MOD']['vector_store_auto_update.0'] = 'OpenAI vector store auto-update';
+$GLOBALS['TL_LANG']['MOD']['vector_store_auto_update.1'] = 'Status, log and manual trigger for the automatic sync';
+$GLOBALS['TL_LANG']['MOD']['openai_sync_log']   = ['OpenAI sync log', 'Manage the automatic vector store sync history'];
+$GLOBALS['TL_LANG']['MOD']['openai_sync_log.0'] = 'OpenAI sync log';
+$GLOBALS['TL_LANG']['MOD']['openai_sync_log.1'] = 'Manage the automatic vector store sync history';
 $GLOBALS['TL_LANG']['MOD']['ai_chat']            = 'AI-Chatbot';
 
 // Module group (used in module creation)

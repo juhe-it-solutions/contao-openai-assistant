@@ -52,7 +52,9 @@ function initAiChat(wrapper) {
       ai_chat_open: 'AI Chat öffnen',
       initial_message_fallback: 'Hallo! Wie kann ich dir helfen?',
       error_generic: 'Es ist ein Fehler aufgetreten. Bitte erneut versuchen.',
-      error_reload_page: 'Bitte lade die Seite neu und versuche es erneut.'
+      error_reload_page: 'Bitte lade die Seite neu und versuche es erneut.',
+      link_label_download: 'Download',
+      link_label_page: 'Seite aufrufen'
     };
   })();
 
@@ -398,11 +400,75 @@ function initAiChat(wrapper) {
     return false;
   };
 
+  // Escape HTML metacharacters so raw markup in a message (including model /
+  // knowledge-base output) is rendered as text, never executed. Runs BEFORE the
+  // markdown/link transforms below, which then re-introduce only the tags we
+  // generate ourselves and therefore match &lt;/&gt; where they mean a literal
+  // bracket. Ampersand first so we don't double-escape our own entities. Quotes
+  // stay literal: without "<" no tag or attribute context can open, and every URL
+  // pattern below already excludes them, so their handling is unchanged.
+  const escapeHtml = s => s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Shorten plain URLs (module option "shorten_urls", default ON): plain URLs
+  // are rendered as a short localized label instead of the full URL. The full
+  // URL stays in href and title; Markdown links keep their model-provided text
+  // (buildMarkdownLink is untouched). Missing attribute (e.g. cached template
+  // without data-shorten-urls) defaults to ON, matching the DCA default.
+  const shortenPlainUrls = wrapper.dataset.shortenUrls !== '0';
+  const linkLabelDownload = i18n.link_label_download || 'Download';
+  const linkLabelPage = i18n.link_label_page || 'Seite aufrufen';
+  // File extensions labeled "Download" (checked against the URL path only,
+  // query/fragment stripped). Everything else gets the "visit page" label.
+  const downloadExtensionsRe = /\.(pdf|zip|rar|7z|tar|gz|tgz|doc|docx|xls|xlsx|ppt|pptx|pps|ppsx|csv|txt|rtf|odt|ods|odp|epub|ics|vcf|mp3|m4a|wav|mp4|mov|avi|webm|jpg|jpeg|png|gif|svg|webp)$/i;
+  const isDownloadUrl = (url) => downloadExtensionsRe.test(url.split(/[?#]/)[0]);
+  // Hostname for the aria-label so screen-reader users know the link target
+  // domain even though the visible text is only the generic label. Userinfo
+  // ("user:pass@") is dropped - credentials must never reach the aria-label.
+  const hostnameOf = (url) => {
+    const m = url.match(/^(?:https?:\/\/)?(?:[^\/?#@]*@)?([^\/?#]+)/i);
+    return m ? m[1] : url;
+  };
+  // URL for tooltip/title display: same as the href but without userinfo, so
+  // credentials embedded in a URL are not shown on hover or read by a screen
+  // reader. The href itself stays verbatim (the link must still work).
+  const displayUrlOf = (url) => url.replace(/^((?:https?:\/\/)?)[^\/?#@]*@/i, '$1');
+
   const fmt = c => {
-    let result = c.replace(/【[^】]*】/g, '')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code>$1</code>')
+    // Emphasis/code delimiters must start at a word boundary (start of line,
+    // whitespace or an opening bracket/quote). Without this, a single "*" or
+    // "`" INSIDE a URL (e.g. "?flags=x!y$z*w") pairs up with one in a second
+    // URL later in the message and the <em>/<code> tags shred the URL - and
+    // any Markdown link around it - before the link transforms run. No
+    // lookbehind (Safari/iOS < 16.4): the boundary char is captured and
+    // re-emitted. Content stays line-local ([^*\n]) like the old ".*?".
+    let result = escapeHtml(c)
+      // Complete 【...】 pairs are citation markers from OpenAI file search
+      // ("【4:0†source】") and are stripped - UNLESS the content is a URL:
+      // models also wrap URLs in the same brackets, and deleting those loses
+      // the answer's link. URL-like content is unwrapped to ASCII brackets so
+      // the bracket-peeling and anchor-cleanup rules below apply to it.
+      .replace(/【([^】]*)】/g, (match, inner, offset, str) => {
+        if (!/https?:\/\/|www\./i.test(inner)) return '';
+        // If text follows the closing bracket with no separator ("【url】mehr"),
+        // add a space: otherwise the bare-URL pass would swallow "]mehr" into
+        // the href. Peel-handled punctuation and token-terminating chars after
+        // the bracket need no space.
+        const next = str[offset + match.length] || '';
+        const sep = next && !/[\s.,!?;:…)\]}<>"']/.test(next) ? ' ' : '';
+        return `[${inner}]${sep}`;
+      })
+      // Lone CJK brackets left over after citation stripping: models mix
+      // bracket styles when wrapping URLs (observed live: "[<url>】." - ASCII
+      // "[" opened, U+3011 "】" closed). Mapped to their ASCII counterparts so
+      // every bracket-peeling and wrapper-cleanup rule below applies to them.
+      .replace(/【/g, '[')
+      .replace(/】/g, ']')
+      .replace(/(^|[\s([{"'])\*\*([^*\n]+?)\*\*/gm, '$1<strong>$2</strong>')
+      .replace(/(^|[\s([{"'])\*([^*\n]+?)\*/gm, '$1<em>$2</em>')
+      .replace(/(^|[\s([{"'])`([^`\n]+?)`/gm, '$1<code>$2</code>')
       .replace(/\n/g, '<br>')
       .trim();
 
@@ -410,18 +476,27 @@ function initAiChat(wrapper) {
       .split(/(<a\b[^>]*>.*?<\/a>)/gi)
       .map(part => /^<a\b/i.test(part) ? part : replacer(part))
       .join('');
-    const sanitizeUrl = (url) => (url || '').replace(/[<>]/g, '');
+    // Strip literal brackets AND their escaped forms - the input is entity-escaped,
+    // so a bracket smuggled into a URL arrives as &lt;/&gt;.
+    const sanitizeUrl = (url) => (url || '').replace(/[<>]/g, '').replace(/&(?:lt|gt);/gi, '');
     const countChar = (value, char) => value.split(char).length - 1;
     const splitTrailingUrlPunctuation = (url) => {
       let clean = url;
       let trailing = '';
-      while (/[.,!?;:]+$/.test(clean)) {
+      // Sentence punctuation, plus Unicode ellipsis and fullwidth CJK
+      // punctuation - models decorate URLs with these and they are never a
+      // legitimate URL tail.
+      while (/[.,!?;:…。、！？：；，]+$/.test(clean)) {
         trailing = clean.slice(-1) + trailing;
         clean = clean.slice(0, -1);
       }
 
-      const pairs = {')': '(', ']': '[', '}': '{'};
-      while (/[)\]}]$/.test(clean)) {
+      // Balance-checked closers: ASCII plus fullwidth/CJK counterparts
+      // (corner brackets, fullwidth parens/brackets) so decorative wrappers
+      // like 「url」 or （url） do not leak into the href. Balanced pairs
+      // inside the URL (wiki-style "Function_(mathematics)") stay untouched.
+      const pairs = {')': '(', ']': '[', '}': '{', '）': '（', '」': '「', '』': '『', '］': '［'};
+      while (/[)\]}）」』］]$/.test(clean)) {
         const close = clean.slice(-1);
         if (countChar(clean, close) <= countChar(clean, pairs[close])) break;
         trailing = close + trailing;
@@ -432,32 +507,71 @@ function initAiChat(wrapper) {
     };
     const buildExternalLink = (url, hrefPrefix = '') => {
       const {clean, trailing} = splitTrailingUrlPunctuation(sanitizeUrl(url));
-      return clean ? `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener">${clean}</a>${trailing}` : url;
+      if (!clean) return url;
+      if (shortenPlainUrls) {
+        // Attribute values are safe unquoted-free: escapeHtml ran already and
+        // every URL pattern excludes double quotes, so `clean` cannot break out
+        // of the double-quoted attributes. title keeps &amp; entities - the
+        // browser decodes them for display; the href post-processing step below
+        // restores the literal & in href only.
+        const label = isDownloadUrl(clean) ? linkLabelDownload : linkLabelPage;
+        return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener" title="${hrefPrefix}${displayUrlOf(clean)}" aria-label="${label}, ${hostnameOf(clean)}">${label}</a>${trailing}`;
+      }
+      return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener">${clean}</a>${trailing}`;
     };
     const buildMarkdownLink = (text, url) => {
-      const clean = sanitizeUrl(url);
+      // Peel stray trailing "]"/")" and sentence punctuation from the explicit
+      // destination and DROP them: unlike a bare URL there is no surrounding
+      // sentence they could belong to - inside "(...)" they are model
+      // artifacts (observed: "[Download](<url>])"). Balanced brackets, e.g.
+      // ".../Function_(mathematics)", are untouched by the balance check.
+      const {clean} = splitTrailingUrlPunctuation(sanitizeUrl(url));
       if (!clean) return `[${text}](${url})`;
 
       const hrefPrefix = clean.toLowerCase().startsWith('www.') ? 'https://' : '';
-      return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener">${text}</a>`;
+      // Models often echo the URL itself as the link text ("[<url>](<url>)",
+      // e.g. when the vector-store document stores links that way). A URL used
+      // as its own label carries no information a shortened label wouldn't, so
+      // the shorten_urls option applies here too - real descriptive text is
+      // always kept as-is. Leading "[" in the text (from "[[label](url)]"
+      // double-wraps) is ignored for the URL-likeness test; the anchor-label
+      // cleanup pass below strips it from the rendered label.
+      if (shortenPlainUrls
+          && /^(?:https?:\/\/|www\.)/i.test(clean)
+          && /^(?:https?:\/\/|www\.)\S+$/i.test(text.replace(/^\[+/, '').trim())) {
+        const label = isDownloadUrl(clean) ? linkLabelDownload : linkLabelPage;
+        return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener" title="${hrefPrefix}${displayUrlOf(clean)}" aria-label="${label}, ${hostnameOf(clean)}">${label}</a>`;
+      }
+      // Descriptive labels hide the destination, so expose the full URL as a
+      // hover tooltip - same as the shortened rendering. Only for http/www
+      // destinations: a tel:/mailto: tooltip adds nothing (and displayUrlOf
+      // would mangle a mailto address, whose "userinfo" IS the address).
+      const titleAttr = /^(?:https?:\/\/|www\.)/i.test(clean)
+        ? ` title="${hrefPrefix}${displayUrlOf(clean)}"`
+        : '';
+      return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener"${titleAttr}>${text}</a>`;
     };
 
     // Render explicit Markdown links before bare URL autolinking.
     // Supports [text](url), [text](<url>), optional titles, and balanced parentheses in URLs.
+    // The input is entity-escaped, so literal angle brackets appear as &lt;/&gt; -
+    // the angled-destination form matches those, and the (?!&lt;|&gt;) tempering makes
+    // an escaped bracket terminate a URL exactly like the literal bracket used to.
     result = replaceOutsideAnchors(result, text => text.replace(
-      /(^|[^!])\[([^\]]+)\]\(\s*(?:<((?:https?:\/\/|www\.|mailto:|tel:)[^<>\s]+)>|((?:https?:\/\/|www\.|mailto:|tel:)(?:[^\s()<>"']|\([^\s()]*\))+))\s*(?:"[^"]*"|'[^']*'|\([^)]*\))?\s*\)/gi,
+      /(^|[^!])\[([^\]]+)\]\(\s*(?:&lt;((?:https?:\/\/|www\.|mailto:|tel:)(?:(?!&lt;|&gt;)[^<>\s])+)&gt;|((?:https?:\/\/|www\.|mailto:|tel:)(?:(?!&lt;|&gt;)[^\s()<>"']|\([^\s()]*\))+))\s*(?:"[^"]*"|'[^']*'|\([^)]*\))?\s*\)/gi,
       (_, prefix, linkText, angledUrl, plainUrl) => prefix + buildMarkdownLink(linkText, angledUrl || plainUrl)
     ));
 
-    // URLs wrapped in angle brackets, e.g. <https://example.com>.
+    // URLs wrapped in angle brackets, e.g. <https://example.com> (escaped to
+    // &lt;https://example.com&gt; before this runs).
     result = replaceOutsideAnchors(result, text => text.replace(
-      /<((?:https?:\/\/|www\.)[^<>\s]+)>/gi,
+      /&lt;((?:https?:\/\/|www\.)(?:(?!&lt;|&gt;)[^<>\s])+)&gt;/gi,
       (_, url) => buildExternalLink(url, url.toLowerCase().startsWith('www.') ? 'https://' : '')
     ));
 
     // Explicit mailto/tel links before generic email/phone autolinking.
     result = replaceOutsideAnchors(result, text => text.replace(
-      /(^|[^\w"=])(mailto:[^\s<>"']+@[^\s<>"']+)/gi,
+      /(^|[^\w"=])(mailto:(?:(?!&lt;|&gt;)[^\s<>"'])+@(?:(?!&lt;|&gt;)[^\s<>"'])+)/gi,
       (_, prefix, href) => `${prefix}<a href="${sanitizeUrl(href)}">${sanitizeUrl(href.replace(/^mailto:/i, ''))}</a>`
     ));
     result = replaceOutsideAnchors(result, text => text.replace(
@@ -465,35 +579,77 @@ function initAiChat(wrapper) {
       (_, prefix, href) => `${prefix}<a href="${sanitizeUrl(href.replace(/\s/g, ''))}">${sanitizeUrl(href.replace(/^tel:/i, ''))}</a>`
     ));
 
-    // Simple and bulletproof fix for duplicate URLs and square brackets
-    // Step 1: Remove square brackets around links
+    // Remove square brackets around links. (An earlier "dedup identical
+    // anchors" pass here also swallowed LEGITIMATE repeated links - two
+    // [A](same-url) links render byte-identical - so it was removed; the
+    // malformed-Markdown cleanup below handles accidental double emits.)
     result = result.replace(/\[<a[^>]*>.*?<\/a>\]/g, (match) => {
       return match.replace(/^\[|\]$/g, ''); // Remove [ and ]
     });
-    
-    // Step 2: Remove duplicate links with same href
-    result = result.replace(/(<a[^>]*>.*?<\/a>).*?\1/g, '$1');
 
     // Make URLs clickable (only if they're not already in <a> tags).
     // Keep query strings/fragments intact, then peel off sentence punctuation.
     // Models sometimes break long URLs with a newline at ?, &, /, = or #.
     // After \n→<br> those become <br> inside the URL; allow them at those breakpoints
     // and strip them from the href before building the link.
-    // URLs mit http/https
+    // No lookbehind here on purpose: (?<=...) is a PARSE-time syntax error on
+    // Safari/iOS < 16.4 and would kill this whole script. The breakpoint char and
+    // its <br> are consumed together instead - same accepted language.
+    // URLs mit http/https. (?!&lt;|&gt;) stops the URL at an escaped bracket, the
+    // same place the literal bracket in [^<>] used to stop it before escaping.
+    // The breakpoint alternative also accepts &amp; - the input is entity-escaped,
+    // so a literal & before a model-inserted newline arrives as "&amp;<br>".
+    // The (?!\]\() tempering stops a bare URL at a "](" boundary: when a
+    // Markdown link failed to parse (e.g. newline inside the destination),
+    // the text and destination URLs must become two separate anchors instead
+    // of one giant "url1](url2" href; the malformed-Markdown cleanup below
+    // then merges the leftover wrapper. Lone "["/"]" still pass through
+    // (unresolved Contao basic entities like "[&]" in old vector stores).
     result = replaceOutsideAnchors(result, text => text.replace(
-      /https?:\/\/(?:[^\s<>"']|(?<=[?&\/=#])<br\s*\/?>)*/g,
+      /https?:\/\/(?:(?:[?&\/=#]|&amp;)<br\s*\/?>|(?!&lt;|&gt;|\]\()[^\s<>"'])+/g,
       url => buildExternalLink(url.replace(/<br\s*\/?>/gi, ''))
     ));
     // URLs mit www.
     result = replaceOutsideAnchors(result, text => text.replace(
-      /(^|[^\w/])((?:www\.)(?:[^\s<>"']|(?<=[?&\/=#])<br\s*\/?>)+)/g,
+      /(^|[^\w/])((?:www\.)(?:(?:[?&\/=#]|&amp;)<br\s*\/?>|(?!&lt;|&gt;|\]\()[^\s<>"'])+)/g,
       (_, prefix, url) => prefix + buildExternalLink(url.replace(/<br\s*\/?>/gi, ''), 'https://')
     ));
 
-    // Make phone numbers clickable, keeping optional "+" at the start
-    result = replaceOutsideAnchors(result, text => text.replace(/(\+?[\d\s\(\)\-]{7,})/g, match => {
+    // Malformed-Markdown cleanup. Models echo vector-store links in broken
+    // shapes ("[url](url)" with a newline-wrapped destination, "[[label](url)]"
+    // double-wraps, reference-style "[label][url]"). After the bare-URL pass
+    // those leave Markdown wrapper syntax around finished anchors or garbage
+    // brackets inside anchor labels - normalize them to one clean anchor.
+    const isUrlLike = (s) => /^(?:https?:\/\/|www\.)/i.test(s.trim());
+    const relabel = (anchor, label) => isUrlLike(label)
+      ? anchor
+      : anchor.replace(/>[^]*?<\/a>$/, `>${label}</a>`);
+    // "[<a>..</a>](<a>..</a>)" (both halves of a failed Markdown link got
+    // autolinked separately): keep the destination anchor.
+    result = result.replace(/\[<a\b[^>]*>[^]*?<\/a>\]\((<a\b[^>]*>[^]*?<\/a>)\)/g, '$1');
+    // "[label](<a>..</a>)" and reference-style "[label][<a>..</a>]": the
+    // destination anchor wins, descriptive label text becomes its label.
+    result = result.replace(/\[([^\][<>]+)\]\((<a\b[^>]*>[^]*?<\/a>)\)/g, (_, label, anchor) => relabel(anchor, label));
+    result = result.replace(/\[([^\][<>]+)\]\[(<a\b[^>]*>[^]*?<\/a>)\]/g, (_, label, anchor) => relabel(anchor, label));
+    // Square brackets wrapping an anchor (also covers ones formed by the
+    // bare-URL pass, which runs after the early bracket-strip step).
+    result = result.replace(/\[(<a\b[^>]*>[^]*?<\/a>)\]/g, '$1');
+    // Stray "[" at the start of an anchor label ("[[Download](url)]" leftovers):
+    // drop it together with a "]" right after the anchor, or alone.
+    result = result.replace(/(<a\b[^>]*>)\[([^<]*<\/a>)\]/g, '$1$2');
+    result = result.replace(/(<a\b[^>]*>)\[([^<\]]*<\/a>)/g, '$1$2');
+
+    // Make phone numbers clickable, keeping optional "+" at the start.
+    // Bare digit runs also match invoice numbers, ISBNs, SKUs and datetimes,
+    // so a number only autolinks when it starts with "+" (international
+    // format) OR a phone keyword appears shortly before it ("Tel: 030 ...",
+    // "Rufen Sie an: ..."). Context is checked by slicing the string before
+    // the match - no lookbehind (parse error on Safari/iOS < 16.4).
+    const phoneCueRe = /(?:^|[^a-zäöüß])(?:tel(?:efon)?|phone|fax|call|hotline|mobil(?:e)?|handy|whatsapp|anruf(?:en)?|ruf(?:en)?|durchwahl)[^\d]{0,30}$/i;
+    result = replaceOutsideAnchors(result, text => text.replace(/(\+?[\d\s\(\)\-]{7,})/g, (match, _p1, offset) => {
       // Prüfe, ob die Nummer mit "+" beginnt
       const hasPlus = match.trim().startsWith('+');
+      if (!hasPlus && !phoneCueRe.test(text.slice(0, offset))) return match;
       // Extrahiere nur Ziffern (und ggf. das Plus)
       let telLink = match.replace(/\D/g, '');
       if (hasPlus) {
@@ -507,11 +663,18 @@ function initAiChat(wrapper) {
     // Make email addresses clickable
     result = replaceOutsideAnchors(result, text => text.replace(/([\w.-]+@[\w.-]+\.\w+)/g, '<a href="mailto:$1">$1</a>'));
 
-    // Sanitize href: strip < and > (all links, including from model)
-    result = result.replace(/href="([^"]*)"/g, (_, val) => 'href="' + (val || '').replace(/[<>]/g, '') + '"');
+    // Sanitize href: strip literal and escaped angle brackets, then decode &amp;
+    // back to & so the attribute carries the exact original URL. Decoding only &amp;
+    // (never &lt;/&gt;) is safe inside a double-quoted attribute and simply inverts
+    // the one escapeHtml pass for the characters a URL legitimately contains.
+    result = result.replace(/href="([^"]*)"/g, (_, val) => 'href="'
+      + (val || '').replace(/[<>]/g, '').replace(/&(?:lt|gt);/gi, '').replace(/&amp;/gi, '&')
+      + '"');
 
-    // Remove stray ">" immediately after </a> (e.g. from "https://example.com>" or angle-bracket notation like <https://example.com>)
-    result = result.replace(/<\/a>>/g, '</a>');
+    // Remove stray ">" immediately after </a> (e.g. from "https://example.com>" or
+    // angle-bracket notation like <https://example.com>). The bracket arrives
+    // entity-escaped now, so match both forms.
+    result = result.replace(/<\/a>(?:&gt;|>)/g, '</a>');
 
     // Remove exclamation mark + dot combinations
     result = result.replace(/!\./g, '!');
@@ -686,13 +849,22 @@ function initAiChat(wrapper) {
   });
 }
 
-  // Initialize all AI chat modules when DOM is ready
-  document.addEventListener('DOMContentLoaded', () => {
-    const chatModules = document.querySelectorAll('.mod_ai_chat');
-    chatModules.forEach(module => {
+  // Initialize all AI chat modules — guard against double-init on Turbo navigation.
+  function initAllAiChats() {
+    document.querySelectorAll('.mod_ai_chat:not([data-ai-chat-init])').forEach(function (module) {
+      module.setAttribute('data-ai-chat-init', '1');
       initAiChat(module);
     });
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAllAiChats);
+  } else {
+    initAllAiChats();
+  }
+
+  // Re-init after Turbo-driven page transitions (Contao 5.7+).
+  document.addEventListener('turbo:load', initAllAiChats);
   
   // Handle viewport height changes (for mobile browsers)
   window.addEventListener('resize', appHeight);

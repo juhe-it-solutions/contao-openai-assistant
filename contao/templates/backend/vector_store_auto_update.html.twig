@@ -1,0 +1,768 @@
+{# This file is part of the JUHE Contao OpenAI Assistant premium add-on.
+   (c) JUHE IT-solutions
+   @license Proprietary - see LICENSE-PREMIUM. Usage of the premium add-on
+   requires a valid premium subscription from JUHE IT-solutions. #}
+{% extends "@Contao/be_main.html.twig" %}
+
+{% block main_content %}
+    <style>
+        .vsau-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #fff; vertical-align: middle; line-height: 1.4; }
+        .vsau-refresh-result { font-size: 12px; vertical-align: middle; margin-left: 8px; }
+        .vsau-refresh-result--ok { color: #43a047; font-weight: 600; }
+        .vsau-refresh-result--inactive { color: #e65100; }
+        .vsau-badge.green  { background: #43a047; }
+        .vsau-badge.red    { background: #e53935; }
+        .vsau-badge.yellow { background: #f59e0b; color: #1a1a1a; }
+        .vsau-badge.amber  { background: #e65100; }
+        .vsau-badge.blue   { background: #2196f3; }
+        .vsau-badge.slate  { background: #546e7a; }
+        .vsau-badge.grey   { background: #757575; }
+
+        .vsau-spinner {
+            display: inline-block;
+            width: 11px; height: 11px;
+            margin-right: 6px;
+            vertical-align: -1px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: vsau-spin 0.7s linear infinite;
+        }
+        /* Explicit rule needed: the class display overrides the UA's [hidden] default. */
+        .vsau-spinner[hidden] { display: none; }
+        @keyframes vsau-spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) {
+            .vsau-spinner { animation-duration: 2s; }
+        }
+
+        .vsau-toolbar {
+            display: flex;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 0 1rem 8px 1rem;
+            padding: 8px 0 0;
+        }
+        .vsau-toolbar-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            min-height: 26px;
+            padding: 2px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.25;
+            text-decoration: none;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+        .vsau-toolbar-btn:hover,
+        .vsau-toolbar-btn:visited,
+        .vsau-toolbar-btn:active {
+            text-decoration: none;
+        }
+        .vsau-toolbar-btn:focus-visible {
+            outline: 2px solid #4ea1ff;
+            outline-offset: 2px;
+        }
+        .vsau-toolbar-btn--refresh {
+            background: #2196f3;
+            border-color: #1976d2;
+            color: #fff;
+        }
+        .vsau-toolbar-btn--refresh:hover,
+        .vsau-toolbar-btn--refresh:focus-visible {
+            background: #1976d2;
+            border-color: #1565c0;
+            color: #fff;
+        }
+        .vsau-toolbar-btn--help,
+        .vsau-toolbar-btn--help:link,
+        .vsau-toolbar-btn--help:visited {
+            background: #d7ff64;
+            border-color: #c5eb52;
+            color: #1a1a1a;
+            text-decoration: none !important;
+        }
+        .vsau-toolbar-btn--help:hover,
+        .vsau-toolbar-btn--help:focus-visible,
+        .vsau-toolbar-btn--help:active {
+            background: #c5eb52;
+            border-color: #b3d94a;
+            color: #1a1a1a;
+            text-decoration: none !important;
+        }
+        .vsau-help-link--inline {
+            min-height: 0;
+            padding: 4px 10px;
+            margin-top: 6px;
+            text-decoration: none !important;
+        }
+        .vsau-toolbar-btn svg { width: 13px; height: 13px; fill: currentColor; flex-shrink: 0; }
+
+        @media (max-width: 576px) {
+            .vsau-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .vsau-toolbar-btn {
+                display: flex;
+                width: 100%;
+                box-sizing: border-box;
+            }
+        }
+
+        .vsau-card {
+            background: var(--info-bg);
+            border: 1px solid var(--active-bg);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin: 8px 1rem 1rem 1rem;
+        }
+
+        .vsau-card-head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding-bottom: 1rem;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid var(--active-bg);
+        }
+        .vsau-eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary, #9aa0ad); }
+        .vsau-title { font-size: 19px; font-weight: 700; margin-right: auto; }
+        .vsau-chip { display: inline-block; padding: 3px 12px; border-radius: 999px; background: var(--active-bg); font-size: 12px; font-weight: 600; line-height: 1.4; vertical-align: middle; }
+
+        .vsau-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+        .vsau-stat {
+            border: 1px solid var(--active-bg);
+            border-radius: 0.75rem;
+            padding: 1rem 1.1rem;
+            background: rgba(0, 0, 0, 0.08);
+        }
+        .vsau-stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary, #9aa0ad); margin-bottom: 0.6rem; }
+        .vsau-stat-value { font-size: 13px; line-height: 1.6; }
+        .vsau-stat-value .vsau-sub { display: block; margin-top: 6px; color: var(--text-secondary, #9aa0ad); font-size: 12px; }
+        .vsau-stat-value .vsau-sub:empty { display: none; }
+        .vsau-link { color: var(--active-bg, #c5eb52); text-decoration: underline; }
+        .vsau-cron-mono { display: inline-block; margin-left: 6px; color: var(--text-secondary, #9aa0ad); font-size: 11px; }
+
+        .vsau-setup { border-radius: 0.75rem; padding: 1.1rem 1.25rem; margin-bottom: 1.25rem; border: 1px solid var(--active-bg); }
+        .vsau-setup.todo  { border-left: 4px solid #e53935; }
+        .vsau-setup.notice { border-left: 4px solid #f59e0b; }
+        .vsau-setup.ready { border-left: 4px solid #43a047; }
+        .vsau-setup h3 { margin: 0 0 0.75rem; font-size: 14px; font-weight: 700; }
+        .vsau-setup ul { list-style: none; margin: 0; padding: 0; }
+        .vsau-setup li { display: flex; gap: 10px; align-items: flex-start; margin: 0.6rem 0; font-size: 13px; line-height: 1.55; }
+        .vsau-setup li .vsau-mark { flex-shrink: 0; font-weight: 700; }
+        .vsau-setup li .vsau-mark.bad  { color: #e53935; }
+        .vsau-setup li .vsau-mark.warn { color: #f59e0b; }
+        .vsau-setup li .vsau-mark.ok   { color: #43a047; }
+        .vsau-setup code { background: rgba(0, 0, 0, 0.25); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+
+        .vsau-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .vsau-actions .tl_submit[disabled] { opacity: 0.5; cursor: not-allowed; }
+        .vsau-actions .tl_submit.vsau-stop { background: #e53935; border-color: #e53935; }
+        .vsau-actions .tl_submit.vsau-stop:hover { background: #c62828; }
+        .vsau-actions-hint { font-size: 12px; color: var(--text-secondary, #9aa0ad); }
+        .vsau-recent-hint { font-size: 13px; line-height: 1.55; margin: -0.5rem 0 1.25rem; }
+
+        .vsau-gate { border-radius: 0.75rem; padding: 1.1rem 1.25rem; border: 1px solid var(--active-bg); border-left: 4px solid #2196f3; font-size: 13px; }
+
+        table.vsau-log { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+        table.vsau-log th, table.vsau-log td { border: 1px solid var(--active-bg); padding: 8px 10px; text-align: left; font-size: 12px; vertical-align: top; }
+        table.vsau-log th { font-weight: 700; background: rgba(0, 0, 0, 0.08); }
+        table.vsau-log td.col-message .vsau-msg { display: block; max-width: 360px; overflow-wrap: anywhere; }
+        table.vsau-log td.col-file code { overflow-wrap: anywhere; }
+        table.vsau-log td.col-file { vertical-align: middle; }
+        .vsau-dl { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 11px; text-decoration: underline; white-space: nowrap; }
+        .vsau-dl svg { width: 12px; height: 12px; fill: currentColor; }
+
+        .vsau-info { position: relative; display: inline-flex; align-items: center; margin-left: 5px; vertical-align: middle; }
+        .vsau-info-icon { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; padding: 0; border: 0; background: none; cursor: help; color: var(--text-secondary, #9aa0ad); }
+        .vsau-info-icon svg { width: 14px; height: 14px; fill: currentColor; }
+        .vsau-info-icon:hover, .vsau-info-icon:focus-visible { color: #4ea1ff; }
+        .vsau-info-pop {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 240px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: var(--invert-bg);
+            color: var(--invert-text);
+            font-size: 12px;
+            font-weight: 400;
+            line-height: 1.5;
+            text-align: left;
+            white-space: normal;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.12s ease, visibility 0.12s ease;
+            z-index: 20;
+        }
+        .vsau-info:hover .vsau-info-pop,
+        .vsau-info:focus-within .vsau-info-pop { opacity: 1; visibility: visible; pointer-events: auto; }
+        .vsau-info-pop a { color: inherit; text-decoration: underline; }
+
+        .vsau-stat-hint { font-size: 11px; line-height: 1.45; color: var(--text-secondary, #9aa0ad); margin-bottom: 0.7rem; }
+
+        .vsau-setup .vsau-badge { margin-left: 8px; }
+        .vsau-cron-cmd { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+        .vsau-copy { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--active-bg); border-radius: 6px; background: rgba(0, 0, 0, 0.18); color: inherit; cursor: pointer; font-size: 12px; line-height: 1.4; }
+        .vsau-copy:hover { background: rgba(0, 0, 0, 0.32); }
+        .vsau-copy.copied { border-color: #43a047; color: #43a047; }
+        .vsau-copy svg { width: 14px; height: 14px; fill: currentColor; flex-shrink: 0; }
+    </style>
+
+    <div class="vsau-toolbar">
+        <a href="{{ path('vector_store_auto_update') }}" class="vsau-toolbar-btn vsau-toolbar-btn--refresh">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+            {{ 'MSC.vsau_refresh'|trans({}, 'contao_default') }}
+        </a>
+        <a href="{{ manage_url }}" target="_blank" rel="noopener noreferrer" class="vsau-toolbar-btn vsau-toolbar-btn--help">
+            {{ 'MSC.vsau_manage_link'|trans({}, 'contao_default') }}
+        </a>
+        <a href="{{ help_url }}" target="_blank" rel="noopener noreferrer" class="vsau-toolbar-btn vsau-toolbar-btn--help">
+            {{ 'MSC.vsau_help_link'|trans({}, 'contao_default') }}
+        </a>
+    </div>
+
+    {% if backend_messages %}
+        {{ backend_messages|raw }}
+    {% endif %}
+
+    {% if configs is empty %}
+        <div class="tl_message oaa-info-card oaa-info-card--premium" style="margin: 1rem;">
+            <p class="tl_info" style="background: transparent url({{ asset('system/themes/flexible/icons/show.svg') }}) no-repeat 11px 12px;">
+                <strong class="oaa-info-card-heading" style="display: block; font-size: 22px; position: relative; top: -5px;">{{ 'MSC.vsau_premium_heading'|trans({}, 'contao_default') }}</strong>
+                <span style="display: flex; gap: 16px; align-items: center; margin-top: 10px;">
+                    <a href="{{ purchase_url }}" target="_blank" rel="noopener noreferrer" style="flex-shrink: 0;">
+                        <img src="/bundles/contaoopenaiassistant/images/logo_juhe-licenses.svg"
+                             alt="JUHE Licenses" width="90" height="90"
+                             style="display: block; width: 90px; height: 90px;">
+                    </a>
+                    <span>
+                        {{ 'MSC.vsau_premium_intro'|trans({}, 'contao_default') }}<br>
+                        <span style="color: #f59e0b; line-height: 2">{{ 'MSC.vsau_premium_purchase'|trans({}, 'contao_default') }} <a href="{{ purchase_url }}" target="_blank" rel="noopener noreferrer" class="oaa-license-url-link">{{ purchase_url }}</a></span><br>
+                        <a href="{{ manage_url }}" target="_blank" rel="noopener noreferrer" class="vsau-toolbar-btn vsau-toolbar-btn--help vsau-help-link--inline">{{ 'MSC.vsau_manage_link'|trans({}, 'contao_default') }}</a>
+                        <a href="{{ help_url }}" target="_blank" rel="noopener noreferrer" class="vsau-toolbar-btn vsau-toolbar-btn--help vsau-help-link--inline">{{ 'MSC.vsau_help_link'|trans({}, 'contao_default') }}</a>
+                    </span>
+                </span>
+                <span style="display: block; margin-top: 28px; color: #c7ccd6;">
+                    {{ 'MSC.vsau_no_config'|trans({}, 'contao_default') }}
+                    <em style="display: block;">{{ 'MSC.vsau_no_config_hint'|trans({}, 'contao_default') }}</em>
+                </span>
+            </p>
+        </div>
+    {% endif %}
+
+    {% for config in configs %}
+        <div class="vsau-card">
+
+            {# Header: name + license + package #}
+            <div class="vsau-card-head">
+                <span>
+                    <span class="vsau-eyebrow">{{ 'MSC.vsau_config_label'|trans({}, 'contao_default') }}</span><br>
+                    <span class="vsau-title">{{ config.title }}</span>
+                </span>
+
+                {% if config.license_active %}
+                    {% if config.premium_license_status == 'error' %}
+                        <span class="vsau-badge yellow">{{ 'MSC.vsau_license_error_grace'|trans({}, 'contao_default') }}</span>
+                        <span class="vsau-actions-hint">{{ 'MSC.vsau_license_grace_hint'|trans({}, 'contao_default') }}</span>
+                    {% elseif config.premium_license_status == 'past_due' %}
+                        <span class="vsau-badge amber">{{ 'MSC.vsau_license_past_due'|trans({}, 'contao_default') }}</span>
+                        <span class="vsau-actions-hint">{{ 'MSC.vsau_license_past_due_hint'|trans({}, 'contao_default') }}</span>
+                        <a href="{{ manage_url }}" target="_blank" rel="noopener" class="tl_submit">{{ 'MSC.vsau_manage_subscription'|trans({}, 'contao_default') }}</a>
+                    {% elseif config.premium_license_cancel_at_period_end %}
+                        <span class="vsau-badge amber">{{ 'MSC.vsau_license_cancels'|trans({}, 'contao_default') }}</span>
+                        {% if config.premium_license_valid_until > 0 %}
+                            <span class="vsau-actions-hint">{{ 'MSC.vsau_license_cancels_on'|trans({}, 'contao_default') }} {{ config.premium_license_valid_until|date('d.m.Y') }}. {{ 'MSC.vsau_sync_continues_until_then'|trans({}, 'contao_default') }}</span>
+                        {% else %}
+                            <span class="vsau-actions-hint">{{ 'MSC.vsau_sync_continues_until_then'|trans({}, 'contao_default') }}</span>
+                        {% endif %}
+                    {% elseif config.premium_license_status == 'trialing' %}
+                        <span class="vsau-badge amber">{{ 'MSC.vsau_license_trialing'|trans({}, 'contao_default') }}</span>
+                        {% if config.plan_label %}
+                            <span class="vsau-chip">{{ 'MSC.vsau_plan_prefix'|trans({}, 'contao_default') }} {{ config.plan_label }}</span>
+                        {% endif %}
+                        {% if config.premium_license_valid_until > 0 %}
+                            <span class="vsau-actions-hint">{{ 'MSC.vsau_license_trial_ends'|trans({}, 'contao_default') }} {{ config.premium_license_valid_until|date('d.m.Y') }}</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="vsau-badge green">{{ 'MSC.vsau_license_active'|trans({}, 'contao_default') }}</span>
+                        {% if config.plan_label %}
+                            <span class="vsau-chip">{{ 'MSC.vsau_plan_prefix'|trans({}, 'contao_default') }} {{ config.plan_label }}</span>
+                        {% endif %}
+                        {% if config.premium_license_valid_until > 0 %}
+                            <span class="vsau-actions-hint">{{ 'MSC.vsau_license_expires'|trans({}, 'contao_default') }} {{ config.premium_license_valid_until|date('d.m.Y') }}</span>
+                        {% endif %}
+                    {% endif %}
+                    <form method="post" action="{{ path('vector_store_auto_update') }}" style="display:inline">
+                        <input type="hidden" name="REQUEST_TOKEN" value="{{ request_token }}">
+                        <input type="hidden" name="config_id" value="{{ config.id }}">
+                        <input type="hidden" name="action" value="refresh_license">
+                        <button type="submit" class="vsau-toolbar-btn vsau-toolbar-btn--refresh" title="{{ 'MSC.vsau_refresh_license_title'|trans({}, 'contao_default') }}">{{ 'MSC.vsau_refresh_license'|trans({}, 'contao_default') }}</button>
+                    </form>
+                    {% if refresh_result and refresh_config_id == config.id %}
+                        {% if refresh_result == 'ok_changed' and refresh_plan %}
+                            <span class="vsau-refresh-result vsau-refresh-result--ok">✓ {{ 'MSC.vsau_refresh_license_confirm_changed'|trans({}, 'contao_default') }} {{ refresh_plan }}</span>
+                        {% elseif refresh_result in ['ok_same', 'ok', 'ok_changed'] %}
+                            <span class="vsau-refresh-result vsau-refresh-result--ok">✓ {{ 'MSC.vsau_refresh_license_confirm'|trans({}, 'contao_default') }}</span>
+                        {% else %}
+                            <span class="vsau-refresh-result vsau-refresh-result--inactive">{{ 'MSC.vsau_refresh_license_inactive'|trans({}, 'contao_default') }}</span>
+                        {% endif %}
+                    {% endif %}
+                {% elseif config.premium_license_status == 'error' %}
+                    <span class="vsau-badge yellow">{{ 'MSC.vsau_license_error_grace'|trans({}, 'contao_default') }}</span>
+                    <span class="vsau-actions-hint">{{ 'MSC.vsau_license_grace_hint'|trans({}, 'contao_default') }}</span>
+                {% elseif config.premium_license_status == 'paused' %}
+                    <span class="vsau-badge amber">{{ 'MSC.vsau_license_paused'|trans({}, 'contao_default') }}</span>
+                    <a href="{{ manage_url }}" target="_blank" rel="noopener" class="tl_submit">{{ 'MSC.vsau_manage_subscription'|trans({}, 'contao_default') }}</a>
+                {% else %}
+                    <span class="vsau-badge red">{{ 'MSC.vsau_license_inactive'|trans({}, 'contao_default') }}</span>
+                    <a href="{{ purchase_url }}" target="_blank" rel="noopener" class="tl_submit">{{ 'MSC.vsau_buy_license'|trans({}, 'contao_default') }}</a>
+                    <a href="{{ help_url }}" target="_blank" rel="noopener" class="vsau-toolbar-btn vsau-toolbar-btn--help">{{ 'MSC.vsau_help_link'|trans({}, 'contao_default') }}</a>
+                {% endif %}
+            </div>
+
+            {% if config.license_active %}
+
+                {# Setup status - most important right after onboarding, shown first #}
+                {% if config.warnings is not empty %}
+                    <div class="vsau-setup todo">
+                        <h3>{{ 'MSC.vsau_setup_todo'|trans({}, 'contao_default') }}</h3>
+                        <ul>
+                            {% for warning in config.warnings %}
+                                <li><span class="vsau-mark bad">✗</span><span>{{ warning|raw }}</span></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% else %}
+                    <div class="vsau-setup ready">
+                        <ul>
+                            {# Scheduled + never synced: first run is manual; after that cron
+                               takes over when healthy. Manual mode always uses vsau_setup_ready. #}
+                            <li><span class="vsau-mark ok">✓</span><span>{{ (config.manual_mode ? 'MSC.vsau_setup_ready' : (config.auto_update_last_run == 0 ? 'MSC.vsau_setup_ready_auto_first' : (config.cron_status == 'healthy' ? 'MSC.vsau_setup_ready_auto' : 'MSC.vsau_setup_ready')))|trans({}, 'contao_default') }}</span></li>
+                        </ul>
+                    </div>
+                {% endif %}
+
+                {# Heartbeat (server cron) not running yet - needed for automatic runs only, not manual #}
+                {% if config.cron_status in ['never', 'no_cli_cron'] and not config.manual_mode %}
+                    <div class="vsau-setup notice">
+                        <h3>{{ 'MSC.vsau_cron_setup_heading'|trans({}, 'contao_default') }} <span class="vsau-badge yellow">{{ 'MSC.vsau_cron_action_required'|trans({}, 'contao_default') }}</span></h3>
+                        <ul>
+                            <li>
+                                <span class="vsau-mark warn">!</span>
+                                <span>
+                                    {% if config.cron_status == 'no_cli_cron' %}
+                                        {{ 'MSC.vsau_cron_no_cli_cron_warning'|trans({}, 'contao_default') }}
+                                    {% else %}
+                                        {{ 'MSC.vsau_cron_never_warning'|trans({}, 'contao_default') }}
+                                    {% endif %}
+                                    <span class="vsau-cron-cmd">
+                                        <code id="vsau-cron-cmd-{{ config.id }}">* * * * * [php] [project]/vendor/bin/contao-console contao:cron</code>
+                                        <button type="button" class="vsau-copy" data-copy-target="vsau-cron-cmd-{{ config.id }}"
+                                                data-label-copy="{{ 'MSC.vsau_copy'|trans({}, 'contao_default') }}"
+                                                data-label-copied="{{ 'MSC.vsau_copied'|trans({}, 'contao_default') }}"
+                                                title="{{ 'MSC.vsau_copy'|trans({}, 'contao_default') }}">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4a2 2 0 0 0-2 2v12h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg>
+                                            <span class="vsau-copy-text">{{ 'MSC.vsau_copy'|trans({}, 'contao_default') }}</span>
+                                        </button>
+                                    </span>
+                                    <span class="vsau-stat-hint" style="margin-top: 8px;">{{ 'MSC.vsau_cron_manual_note'|trans({}, 'contao_default') }}</span>
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                {% endif %}
+
+                {# Status grid #}
+                <div class="vsau-grid">
+
+                    <div class="vsau-stat">
+                        <div class="vsau-stat-label">{{ 'MSC.vsau_cron_status'|trans({}, 'contao_default') }}</div>
+                        <div class="vsau-stat-hint">{{ 'MSC.vsau_cron_status_hint'|trans({}, 'contao_default') }}</div>
+                        <div class="vsau-stat-value">
+                            {% if config.manual_mode %}
+                                <span class="vsau-badge grey">{{ 'MSC.vsau_cron_not_used'|trans({}, 'contao_default') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_cron_not_used_hint'|trans({}, 'contao_default') }}</span>
+                            {% elseif config.cron_status == 'never' %}
+                                <span class="vsau-badge red">{{ 'MSC.vsau_cron_never'|trans({}, 'contao_default') }}</span>
+                                <a href="{{ help_url }}" target="_blank" rel="noopener" class="vsau-sub vsau-link">{{ 'MSC.vsau_cron_setup_guide'|trans({}, 'contao_default') }}</a>
+                            {% elseif config.cron_status == 'no_cli_cron' %}
+                                <span class="vsau-badge yellow">{{ 'MSC.vsau_cron_no_cli_cron'|trans({}, 'contao_default') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_cron_no_cli_cron_hint'|trans({}, 'contao_default') }}</span>
+                                <a href="{{ help_url }}" target="_blank" rel="noopener" class="vsau-sub vsau-link">{{ 'MSC.vsau_cron_setup_guide'|trans({}, 'contao_default') }}</a>
+                            {% elseif config.cron_status == 'healthy' %}
+                                <span class="vsau-badge green">{{ 'MSC.vsau_cron_healthy'|trans({}, 'contao_default') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_cron_healthy_seen'|trans({}, 'contao_default') }} {{ config.heartbeat_last_run|date('d.m.Y H:i:s') }}</span>
+                            {% else %}
+                                <span class="vsau-badge yellow">{{ 'MSC.vsau_cron_stale'|trans({}, 'contao_default') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_cron_healthy_seen'|trans({}, 'contao_default') }} {{ config.heartbeat_last_run|date('d.m.Y H:i:s') }}. {{ 'MSC.vsau_cron_stale_hint'|trans({}, 'contao_default') }}</span>
+                                <a href="{{ help_url }}" target="_blank" rel="noopener" class="vsau-sub vsau-link">{{ 'MSC.vsau_cron_setup_guide'|trans({}, 'contao_default') }}</a>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {# All box content comes from the controller's statusView() — the same
+                       struct the JSON status endpoint serves — so the initial render and the
+                       poller can never disagree. The sub-spans are stable hooks for the poller
+                       (hidden via :empty when blank); the spinner is a permanent element
+                       toggled via the hidden attribute. #}
+                    <div class="vsau-stat" data-vsau-status="{{ config.id }}" data-vsau-active="{{ config.status_view.active ? '1' : '0' }}">
+                        <div class="vsau-stat-label">{{ 'MSC.vsau_last_sync'|trans({}, 'contao_default') }}</div>
+                        <div class="vsau-stat-hint">{{ 'MSC.vsau_last_sync_hint'|trans({}, 'contao_default') }}</div>
+                        <div class="vsau-stat-value">
+                            <span class="vsau-badge {{ config.status_view.badge_class }}" data-vsau-badge>
+                                <span class="vsau-spinner" aria-hidden="true" {% if not config.status_view.spinner %}hidden{% endif %}></span>
+                                <span data-vsau-badge-label>{{ config.status_view.badge_label }}</span>
+                            </span>
+                            <span class="vsau-sub" data-vsau-progress>{{ config.status_view.progress_text }}</span>
+                            <span class="vsau-sub" data-vsau-activity>{{ config.status_view.activity_text }}</span>
+                            <span class="vsau-sub" data-vsau-lastrun>{{ config.status_view.last_run_formatted }}</span>
+                            <span class="vsau-sub" data-vsau-message>{{ config.status_view.message }}</span>
+                        </div>
+                    </div>
+
+                    <div class="vsau-stat">
+                        <div class="vsau-stat-label">{{ 'MSC.vsau_schedule'|trans({}, 'contao_default') }}</div>
+                        <div class="vsau-stat-hint">{{ 'MSC.vsau_schedule_hint'|trans({}, 'contao_default') }}</div>
+                        <div class="vsau-stat-value">
+                            {% if config.manual_mode %}
+                                <span class="vsau-badge grey">{{ 'MSC.vsau_schedule_manual'|trans({}, 'contao_default') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_schedule_manual_hint'|trans({}, 'contao_default') }}</span>
+                            {% else %}
+                                {{ config.schedule_label }}
+                                {% if config.schedule_label != config.auto_update_schedule %}
+                                    <span class="vsau-cron-mono">({{ config.auto_update_schedule }})</span>
+                                {% endif %}
+                                {% if config.next_run %}
+                                    <span class="vsau-sub">{{ 'MSC.vsau_next_run'|trans({}, 'contao_default') }} {{ config.next_run|date('d.m.Y H:i') }}</span>
+                                {% elseif config.auto_update_last_run == 0 %}
+                                    <span class="vsau-sub">{{ 'MSC.vsau_schedule_first_manual_hint'|trans({}, 'contao_default') }}</span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                </div>
+
+                {# proc_open disabled - the "Run sync now" button cannot spawn the CLI process.
+                   Warn up front and point to the command-line fallback. #}
+                {% if not process_spawning_available %}
+                    <div class="vsau-setup notice">
+                        <h3>{{ 'MSC.vsau_no_proc_open_heading'|trans({}, 'contao_default') }} <span class="vsau-badge yellow">{{ 'MSC.vsau_cron_action_required'|trans({}, 'contao_default') }}</span></h3>
+                        <ul>
+                            <li>
+                                <span class="vsau-mark warn">!</span>
+                                <span>
+                                    {{ 'MSC.vsau_no_proc_open_warning'|trans({}, 'contao_default') }}
+                                    <span class="vsau-cron-cmd">
+                                        <code id="vsau-sync-cmd-{{ config.id }}">[php] [project]/vendor/bin/contao-console contao:openai-vector-sync {{ config.id }}</code>
+                                        <button type="button" class="vsau-copy" data-copy-target="vsau-sync-cmd-{{ config.id }}"
+                                                data-label-copy="{{ 'MSC.vsau_copy'|trans({}, 'contao_default') }}"
+                                                data-label-copied="{{ 'MSC.vsau_copied'|trans({}, 'contao_default') }}"
+                                                title="{{ 'MSC.vsau_copy'|trans({}, 'contao_default') }}">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4a2 2 0 0 0-2 2v12h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg>
+                                            <span class="vsau-copy-text">{{ 'MSC.vsau_copy'|trans({}, 'contao_default') }}</span>
+                                        </button>
+                                    </span>
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                {% endif %}
+
+                {# Manual trigger (needs an active license) #}
+                <div class="vsau-actions">
+                    <form method="post" action="{{ path('vector_store_auto_update') }}">
+                        <input type="hidden" name="REQUEST_TOKEN" value="{{ request_token }}">
+                        <input type="hidden" name="config_id" value="{{ config.id }}">
+                        <button type="submit" class="tl_submit" data-vsau-run-btn="{{ config.id }}"
+                                {% if config.blocking or not process_spawning_available or config.status_view.active %}disabled{% endif %}>
+                            {{ 'MSC.vsau_run_now'|trans({}, 'contao_default') }}
+                        </button>
+                    </form>
+                    {% if config.blocking %}
+                        <span class="vsau-actions-hint">{{ 'MSC.vsau_run_now_blocked_hint'|trans({}, 'contao_default') }}</span>
+                    {% endif %}
+                </div>
+
+            {% else %}
+
+                <div class="vsau-gate">{{ 'MSC.vsau_license_required_hint'|trans({}, 'contao_default') }}</div>
+                <p class="vsau-actions-hint" style="margin-top: 8px;">{{ 'MSC.vsau_license_content_live'|trans({}, 'contao_default') }}</p>
+                <p class="vsau-actions-hint">{{ 'MSC.vsau_license_resubscribe_hint'|trans({}, 'contao_default') }}</p>
+
+            {% endif %}
+
+            {# Stop automatic sync — always available while the config is enabled,
+               regardless of license state (re-enable later in the OpenAI config). #}
+            <div class="vsau-actions" style="margin-top: 14px;">
+                <form method="post" action="{{ path('vector_store_auto_update') }}"
+                      onsubmit="return confirm('{{ 'MSC.vsau_stop_confirm_js'|trans({}, 'contao_default')|e('js') }}');">
+                    <input type="hidden" name="REQUEST_TOKEN" value="{{ request_token }}">
+                    <input type="hidden" name="config_id" value="{{ config.id }}">
+                    <input type="hidden" name="action" value="stop">
+                    <button type="submit" class="tl_submit vsau-stop">{{ 'MSC.vsau_stop_sync'|trans({}, 'contao_default') }}</button>
+                </form>
+            </div>
+            <p class="vsau-actions-hint" style="margin-top: 10px;">{{ 'MSC.vsau_stop_hint'|trans({}, 'contao_default') }}</p>
+
+        </div>
+    {% endfor %}
+
+    {# Run history - keep visible for inactive licenses too, so skipped rows explain why sync stopped. #}
+    {% if configs is not empty %}
+        <div class="vsau-card">
+            <div class="vsau-card-head">
+                <span class="vsau-title">{{ 'MSC.vsau_recent_runs'|trans({}, 'contao_default') }}</span>
+                <a href="{{ manage_log_url }}" class="tl_submit" style="margin-left: auto;">{{ 'MSC.vsau_manage_log'|trans({}, 'contao_default') }}</a>
+            </div>
+            <p class="vsau-recent-hint">{{ 'MSC.vsau_recent_files_hint'|trans({}, 'contao_default')|raw }}</p>
+            {% if log is empty %}
+                <p class="vsau-actions-hint">{{ 'MSC.vsau_no_runs'|trans({}, 'contao_default') }}</p>
+            {% else %}
+                <div class="vsau-log-scroll">
+                <table class="vsau-log">
+                    <thead>
+                        <tr>
+                            <th>{{ 'MSC.vsau_col_date'|trans({}, 'contao_default') }}</th>
+                            <th>{{ 'MSC.vsau_col_status'|trans({}, 'contao_default') }}</th>
+                            <th>{{ 'MSC.vsau_col_source'|trans({}, 'contao_default') }}</th>
+                            <th>{{ 'MSC.vsau_col_mode'|trans({}, 'contao_default') }}</th>
+                            <th>{{ 'MSC.vsau_col_model'|trans({}, 'contao_default') }}</th>
+                            <th>{{ 'MSC.vsau_col_pages'|trans({}, 'contao_default') }}</th>
+                            <th>
+                                {{ 'MSC.vsau_col_tokens_in'|trans({}, 'contao_default') }}
+                                <span class="vsau-info">
+                                    <button type="button" class="vsau-info-icon" aria-label="{{ 'MSC.vsau_cost_tooltip'|trans({}, 'contao_default') }}">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                                    </button>
+                                    <span class="vsau-info-pop" role="tooltip">
+                                        {{ 'MSC.vsau_cost_tooltip'|trans({}, 'contao_default') }}
+                                        <a href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">{{ 'MSC.vsau_cost_tooltip_link'|trans({}, 'contao_default') }}</a>
+                                    </span>
+                                </span>
+                            </th>
+                            <th>
+                                {{ 'MSC.vsau_col_tokens_out'|trans({}, 'contao_default') }}
+                                <span class="vsau-info">
+                                    <button type="button" class="vsau-info-icon" aria-label="{{ 'MSC.vsau_cost_tooltip'|trans({}, 'contao_default') }}">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                                    </button>
+                                    <span class="vsau-info-pop" role="tooltip">
+                                        {{ 'MSC.vsau_cost_tooltip'|trans({}, 'contao_default') }}
+                                        <a href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">{{ 'MSC.vsau_cost_tooltip_link'|trans({}, 'contao_default') }}</a>
+                                    </span>
+                                </span>
+                            </th>
+                            <th>{{ 'MSC.vsau_col_duration'|trans({}, 'contao_default') }}</th>
+                            <th class="col-file">{{ 'MSC.vsau_col_file_id'|trans({}, 'contao_default') }}</th>
+                            <th class="col-message">{{ 'MSC.vsau_col_message'|trans({}, 'contao_default') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in log %}
+                            <tr>
+                                <td>{{ row.run_at|date('d.m.Y H:i:s') }}</td>
+                                <td>
+                                    {% if row.status == 'success' %}
+                                        <span class="vsau-badge green">{{ 'MSC.vsau_sync_success'|trans({}, 'contao_default') }}</span>
+                                    {% elseif row.status == 'partial' %}
+                                        <span class="vsau-badge amber">{{ 'MSC.vsau_sync_partial'|trans({}, 'contao_default') }}</span>
+                                    {% elseif row.status == 'skipped' %}
+                                        <span class="vsau-badge yellow">{{ 'MSC.vsau_sync_skipped'|trans({}, 'contao_default') }}</span>
+                                    {% else %}
+                                        <span class="vsau-badge red">{{ 'MSC.vsau_sync_error'|trans({}, 'contao_default') }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{% if row.trigger_source %}{{ ('MSC.vsau_source_' ~ row.trigger_source)|trans({}, 'contao_default') }}{% else %}–{% endif %}</td>
+                                <td>
+                                    {% if row.model %}
+                                        <span class="vsau-badge amber">{{ 'MSC.vsau_mode_ai'|trans({}, 'contao_default') }}</span>
+                                    {% else %}
+                                        <span class="vsau-badge grey">{{ 'MSC.vsau_mode_original'|trans({}, 'contao_default') }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ row.model ?: '–' }}</td>
+                                <td>{{ row.pages }}</td>
+                                <td>{{ row.tokens_in }}</td>
+                                <td>{{ row.tokens_out }}</td>
+                                <td>{{ '%02d:%02d:%02d'|format(row.duration // 3600, (row.duration // 60) % 60, row.duration % 60) }}</td>
+                                <td class="col-file">
+                                    <code>{{ row.file_id }}</code>
+                                    {% if row.has_document %}
+                                        <a class="vsau-dl" href="{{ path('vector_store_auto_update', {download: row.id}) }}">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>
+                                            {{ 'MSC.vsau_download'|trans({}, 'contao_default') }}
+                                        </a>
+                                    {% endif %}
+                                </td>
+                                <td class="col-message">
+                                    {% if row.is_initial %}
+                                        <span class="vsau-badge blue" style="margin-bottom: 4px;">{{ 'MSC.vsau_initial_sync'|trans({}, 'contao_default') }}</span>
+                                    {% endif %}
+                                    <span class="vsau-msg">{{ row.message }}</span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <script>
+        (function () {
+            document.addEventListener('click', function (e) {
+                var btn = e.target.closest('.vsau-copy');
+                if (!btn) { return; }
+
+                var el = document.getElementById(btn.getAttribute('data-copy-target'));
+                if (!el) { return; }
+
+                var text = el.textContent.trim();
+                var feedback = function () {
+                    var label = btn.querySelector('.vsau-copy-text');
+                    if (label) { label.textContent = btn.getAttribute('data-label-copied'); }
+                    btn.classList.add('copied');
+                    setTimeout(function () {
+                        if (label) { label.textContent = btn.getAttribute('data-label-copy'); }
+                        btn.classList.remove('copied');
+                    }, 1800);
+                };
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(feedback, function () { fallback(text); feedback(); });
+                } else {
+                    fallback(text);
+                    feedback();
+                }
+
+                function fallback(str) {
+                    var ta = document.createElement('textarea');
+                    ta.value = str;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try { document.execCommand('copy'); } catch (err) {}
+                    document.body.removeChild(ta);
+                }
+            });
+        })();
+
+        /* Live status: poll the JSON endpoint and update the "Last sync" box in place.
+           Fast interval while a run is queued/running, slow interval when idle (so a
+           scheduled cron run starting while the page is open is picked up too). When a
+           run reaches a terminal state, reload once so the log table, token counts and
+           next-run time re-render server-side. All updates use textContent only. */
+        (function () {
+            var boxes = document.querySelectorAll('[data-vsau-status]');
+            if (!boxes.length) { return; }
+
+            var url = '{{ status_url|e('js') }}';
+            var ACTIVE_INTERVAL = 5000;
+            var IDLE_INTERVAL = 30000;
+            var anyActive = false;
+            var wasActive = {};
+            var timer = null;
+
+            boxes.forEach(function (box) {
+                var id = box.getAttribute('data-vsau-status');
+                wasActive[id] = box.getAttribute('data-vsau-active') === '1';
+                anyActive = anyActive || wasActive[id];
+            });
+
+            function setText(box, selector, text) {
+                var el = box.querySelector(selector);
+                if (el) { el.textContent = text || ''; }
+            }
+
+            function apply(box, data) {
+                var badge = box.querySelector('[data-vsau-badge]');
+                if (badge) {
+                    badge.className = 'vsau-badge ' + data.badge_class;
+                    var spinner = badge.querySelector('.vsau-spinner');
+                    if (spinner) { spinner.hidden = !data.spinner; }
+                }
+                setText(box, '[data-vsau-badge-label]', data.badge_label);
+                setText(box, '[data-vsau-progress]', data.progress_text);
+                setText(box, '[data-vsau-activity]', data.activity_text);
+                setText(box, '[data-vsau-lastrun]', data.last_run_formatted);
+                setText(box, '[data-vsau-message]', data.message);
+            }
+
+            function schedule() {
+                clearTimeout(timer);
+                timer = setTimeout(poll, anyActive ? ACTIVE_INTERVAL : IDLE_INTERVAL);
+            }
+
+            function poll() {
+                if (document.hidden) { schedule(); return; }
+
+                fetch(url, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+                    .then(function (response) {
+                        if (!response.ok) { throw new Error('status ' + response.status); }
+                        return response.json();
+                    })
+                    .then(function (json) {
+                        var finished = false;
+                        anyActive = false;
+
+                        boxes.forEach(function (box) {
+                            var id = box.getAttribute('data-vsau-status');
+                            var data = json.configs && json.configs[id];
+                            if (!data) { return; }
+
+                            if (data.active) {
+                                anyActive = true;
+                                // A run started while the page was open (e.g. cron) —
+                                // disable the manual trigger; the completion reload re-enables it.
+                                var btn = document.querySelector('[data-vsau-run-btn="' + id + '"]');
+                                if (btn) { btn.disabled = true; }
+                            } else if (wasActive[id]) {
+                                finished = true;
+                            }
+
+                            wasActive[id] = data.active;
+                            apply(box, data);
+                        });
+
+                        if (finished) { location.reload(); return; }
+                        schedule();
+                    })
+                    .catch(function () {
+                        // Transient error (network, session expiry redirect, …): keep the
+                        // last rendered state and try again on the next tick.
+                        schedule();
+                    });
+            }
+
+            document.addEventListener('visibilitychange', function () {
+                if (!document.hidden) {
+                    clearTimeout(timer);
+                    poll();
+                }
+            });
+
+            schedule();
+        })();
+    </script>
+{% endblock %}

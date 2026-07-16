@@ -6,6 +6,10 @@
                 <source>OpenAI Dashboard</source>
                 <target>OpenAI Dashboard</target>
             </trans-unit>
+            <trans-unit id="MSC.oaa_bundle_version">
+                <source>Extension version</source>
+                <target>Extension version</target>
+            </trans-unit>
             <trans-unit id="MSC.file_uploaded_successfully">
                 <source>File uploaded successfully</source>
                 <target>File uploaded successfully</target>
@@ -17,6 +21,623 @@
             <trans-unit id="MSC.prompt_created">
                 <source>Prompt created successfully</source>
                 <target>Prompt created successfully</target>
+            </trans-unit>
+            <!-- Vector Store Auto-Update Dashboard -->
+            <trans-unit id="MSC.vsau_config_label">
+                <source>Configuration</source>
+                <target>Configuration</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_premium_heading">
+                <source>Premium add-on: Auto-Update Vector Store</source>
+                <target>Premium add-on: Auto-Update Vector Store</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_premium_intro">
+                <source>With our premium add-on, your integrated chatbot stays up to date. Updated website content is automatically incorporated into the chatbot's knowledge base. 14-day free trial, then billed monthly per domain.</source>
+                <target>With our premium add-on, your integrated chatbot stays up to date. Updated website content is automatically incorporated into the chatbot's knowledge base. 14-day free trial, then billed monthly per domain.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_premium_purchase">
+                <source>Get a license at</source>
+                <target>Get a license at</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_help_link">
+                <source>Guide &amp; help</source>
+                <target>Guide &amp; help</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_manage_link">
+                <source>Manage subscription</source>
+                <target>Manage subscription</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_no_config">
+                <source>No configuration has automatic sync enabled yet.</source>
+                <target>No configuration has automatic sync enabled yet.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_no_config_hint">
+                <source>Enable it in AI Tools → OpenAI Configuration → Vector store sync.</source>
+                <target>Enable it in AI Tools → OpenAI Configuration → Vector store sync.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_active">
+                <source>Active</source>
+                <target>Active</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_expires">
+                <source>expires</source>
+                <target>expires</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_error_grace">
+                <source>Error</source>
+                <target>Error</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_grace_hint">
+                <source>Could not reach license server - sync allowed under grace period.</source>
+                <target>Could not reach license server - sync allowed under grace period.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_inactive">
+                <source>Inactive</source>
+                <target>Inactive</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_buy_license">
+                <source>Buy premium license</source>
+                <target>Buy premium license</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_required_hint">
+                <source>Enter a valid license key in the OpenAI Configuration to unlock details and automatic sync.</source>
+                <target>Enter a valid license key in the OpenAI Configuration to unlock details and automatic sync.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_status">
+                <source>Server cron (heartbeat)</source>
+                <target>Server cron (heartbeat)</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_status_hint">
+                <source>External trigger that wakes Contao every minute.</source>
+                <target>External trigger that wakes Contao every minute.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_never">
+                <source>Never run</source>
+                <target>Never run</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_healthy">
+                <source>Active</source>
+                <target>Active</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_healthy_seen">
+                <source>last seen</source>
+                <target>last seen</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_stale">
+                <source>Stale</source>
+                <target>Stale</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_stale_hint">
+                <source>Your server cron may have stopped.</source>
+                <target>Your server cron may have stopped.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_no_cli_cron">
+                <source>Not configured</source>
+                <target>Not configured</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_no_cli_cron_hint">
+                <source>Contao cron jobs run via web visits only. The CLI cron job required for auto-sync is not configured.</source>
+                <target>Contao cron jobs run via web visits only. The CLI cron job required for auto-sync is not configured.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_no_cli_cron_warning">
+                <source>Contao is running cron jobs via website visits only. Scheduled syncs require a real CLI cron job. Add the following entry to your server cron:</source>
+                <target>Contao is running cron jobs via website visits only. Scheduled syncs require a real CLI cron job. Add the following entry to your server cron:</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_never_warning">
+                <source>The server cron has not run yet. Scheduled syncs only start once the cron job is set up. Add the following entry to your server cron:</source>
+                <target>The server cron has not run yet. Scheduled syncs only start once the cron job is set up. Add the following entry to your server cron:</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_setup_heading">
+                <source>Set up the server cron (heartbeat)</source>
+                <target>Set up the server cron (heartbeat)</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_action_required">
+                <source>Action required</source>
+                <target>Action required</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_manual_note">
+                <source>A manual sync via "Run sync now" works independently of this, as soon as the remaining prerequisites are met.</source>
+                <target>A manual sync via "Run sync now" works independently of this, as soon as the remaining prerequisites are met.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_copy">
+                <source>Copy</source>
+                <target>Copy</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_copied">
+                <source>Copied!</source>
+                <target>Copied!</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_last_sync">
+                <source>Last sync</source>
+                <target>Last sync</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_last_sync_hint">
+                <source>Result of the last vector store update.</source>
+                <target>Result of the last vector store update.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_sync_success">
+                <source>Success</source>
+                <target>Success</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_sync_partial">
+                <source>Partial</source>
+                <target>Partial</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_sync_skipped">
+                <source>Skipped</source>
+                <target>Skipped</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_not_used">
+                <source>Not used (manual mode)</source>
+                <target>Not used (manual mode)</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_not_used_hint">
+                <source>This configuration syncs only when you click “Run sync now”. No server cron is required.</source>
+                <target>This configuration syncs only when you click “Run sync now”. No server cron is required.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_manual">
+                <source>Manual only</source>
+                <target>Manual only</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_manual_hint">
+                <source>No automatic schedule — start each sync with the button below.</source>
+                <target>No automatic schedule — start each sync with the button below.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_no_proc_open_heading">
+                <source>Manual sync button unavailable on this server</source>
+                <target>Manual sync button unavailable on this server</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_no_proc_open_warning">
+                <source>This server disables PHP process spawning (proc_open), so the “Run sync now” button cannot start the sync. Run it from the command line instead (e.g. via SSH or a one-off cron task):</source>
+                <target>This server disables PHP process spawning (proc_open), so the “Run sync now” button cannot start the sync. Run it from the command line instead (e.g. via SSH or a one-off cron task):</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_sync_error">
+                <source>Error</source>
+                <target>Error</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_sync_running">
+                <source>Running</source>
+                <target>Running</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_sync_queued">
+                <source>Queued</source>
+                <target>Queued</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_progress_crawl">
+                <source>Crawling and indexing the website …</source>
+                <target>Crawling and indexing the website …</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_progress_polish">
+                <source>AI processing: %s of %s pages</source>
+                <target>AI processing: %s of %s pages</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_progress_upload">
+                <source>Vector store sync: %s of %s pages</source>
+                <target>Vector store sync: %s of %s pages</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_status_last_activity">
+                <source>Last activity %s min ago</source>
+                <target>Last activity %s min ago</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_sync_never">
+                <source>never run</source>
+                <target>never run</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule">
+                <source>Schedule (automatic sync)</source>
+                <target>Schedule (automatic sync)</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_hint">
+                <source>Defined by you in the OpenAI configuration.</source>
+                <target>Defined by you in the OpenAI configuration.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_next_run">
+                <source>next:</source>
+                <target>next:</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_plan_prefix">
+                <source>Plan:</source>
+                <target>Plan:</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_first_manual_hint">
+                <source>First sync: start manually with the button below; the schedule applies from the second run onward.</source>
+                <target>First sync: start manually with the button below; the schedule applies from the second run onward.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_run_now">
+                <source>Run manual sync now</source>
+                <target>Run manual sync now</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_refresh">
+                <source>Refresh</source>
+                <target>Refresh</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_cancels">
+                <source>Cancels at period end</source>
+                <target>Cancels at period end</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_cancels_on">
+                <source>Sync stops on</source>
+                <target>Sync stops on</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_sync_continues_until_then">
+                <source>Sync continues normally until then.</source>
+                <target>Sync continues normally until then.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_trialing">
+                <source>Trial active</source>
+                <target>Trial active</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_trial_ends">
+                <source>Trial ends on</source>
+                <target>Trial ends on</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_paused">
+                <source>Subscription paused</source>
+                <target>Subscription paused</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_past_due">
+                <source>Payment issue</source>
+                <target>Payment issue</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_past_due_hint">
+                <source>Your license still works for now, but a payment needs attention.</source>
+                <target>Your license still works for now, but a payment needs attention.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_manage_subscription">
+                <source>Manage subscription</source>
+                <target>Manage subscription</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_refresh_license">
+                <source>Refresh license</source>
+                <target>Refresh license</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_refresh_license_title">
+                <source>Check for plan changes without re-entering your license key.</source>
+                <target>Check for plan changes without re-entering your license key.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_refresh_license_confirm">
+                <source>License status refreshed – no plan change.</source>
+                <target>License status refreshed – no plan change.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_refresh_license_confirm_changed">
+                <source>License updated – current plan:</source>
+                <target>License updated – current plan:</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_refresh_license_inactive">
+                <source>License is not active. Enter a valid key in the OpenAI Configuration.</source>
+                <target>License is not active. Enter a valid key in the OpenAI Configuration.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_sync_skipped_license">
+                <source>Skipped: license inactive.</source>
+                <target>Skipped: license inactive.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_content_live">
+                <source>Your last synced content is still accessible in OpenAI but will no longer be updated automatically.</source>
+                <target>Your last synced content is still accessible in OpenAI but will no longer be updated automatically.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_license_resubscribe_hint">
+                <source>If you recently re-subscribed, a new license key was sent to your email. Enter it in the OpenAI Configuration to reactivate sync.</source>
+                <target>If you recently re-subscribed, a new license key was sent to your email. Enter it in the OpenAI Configuration to reactivate sync.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_setup_guide">
+                <source>View cron setup guide →</source>
+                <target>View cron setup guide →</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_no_proc_open">
+                <source>Cannot dispatch sync: proc_open is disabled on this server. Run the sync via the command line instead: php vendor/bin/contao-console contao:openai-vector-sync [config-id]</source>
+                <target>Cannot dispatch sync: proc_open is disabled on this server. Run the sync via the command line instead: php vendor/bin/contao-console contao:openai-vector-sync [config-id]</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_manage_log">
+                <source>Detailed history</source>
+                <target>Detailed history</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_recent_runs">
+                <source>Recent syncs</source>
+                <target>Recent syncs</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_recent_files_hint">
+                <source><![CDATA[Note: The automatically synced files are written directly into the vector store and do not appear under "OpenAI Dashboard" → "File upload".<br>The File upload screen is only for files you upload manually.]]></source>
+                <target><![CDATA[Note: The automatically synced files are written directly into the vector store and do not appear under "OpenAI Dashboard" → "File upload".<br>The File upload screen is only for files you upload manually.]]></target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_no_runs">
+                <source>No sync has run yet.</source>
+                <target>No sync has run yet.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_date">
+                <source>Date</source>
+                <target>Date</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_status">
+                <source>Status</source>
+                <target>Status</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_pages">
+                <source>Pages</source>
+                <target>Pages</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_tokens_in">
+                <source>Tokens in</source>
+                <target>Tokens in</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_tokens_out">
+                <source>Tokens out</source>
+                <target>Tokens out</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_duration">
+                <source>Duration</source>
+                <target>Duration</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_file_id">
+                <source>File</source>
+                <target>File</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_message">
+                <source>Message</source>
+                <target>Message</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cost_tooltip">
+                <source>These are token counts. The OpenAI API does not report costs; see your actual billed usage in the OpenAI dashboard.</source>
+                <target>These are token counts. The OpenAI API does not report costs; see your actual billed usage in the OpenAI dashboard.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cost_tooltip_link">
+                <source>Open OpenAI usage dashboard</source>
+                <target>Open OpenAI usage dashboard</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_source">
+                <source>Trigger</source>
+                <target>Trigger</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_model">
+                <source>Model</source>
+                <target>Model</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_mode">
+                <source>Mode</source>
+                <target>Mode</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_mode_ai">
+                <source>AI</source>
+                <target>AI</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_mode_original">
+                <source>Original</source>
+                <target>Original</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_initial_sync">
+                <source>Initial sync</source>
+                <target>Initial sync</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_download">
+                <source>Download</source>
+                <target>Download</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_download_missing">
+                <source>No stored document is available for this sync run.</source>
+                <target>No stored document is available for this sync run.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_source_cron">
+                <source>Schedule</source>
+                <target>Schedule</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_source_manual">
+                <source>Manual (button)</source>
+                <target>Manual (button)</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_source_cli">
+                <source>Console</source>
+                <target>Console</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_stop_sync">
+                <source>Stop automatic sync</source>
+                <target>Stop automatic sync</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_stop_confirm_js">
+                <source>Stop the automatic synchronisation for this configuration? No further scheduled syncs will run until you re-enable it in the OpenAI configuration.</source>
+                <target>Stop the automatic synchronisation for this configuration? No further scheduled syncs will run until you re-enable it in the OpenAI configuration.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_stopped_confirm">
+                <source>Automatic synchronisation stopped. Re-enable it any time in the OpenAI configuration under "Vector store sync".</source>
+                <target>Automatic synchronisation stopped. Re-enable it any time in the OpenAI configuration under "Vector store sync".</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_stop_hint">
+                <source>"Stop automatic sync" unticks "Enable sync" in the OpenAI configuration. Re-enable it there whenever you want scheduled syncs to resume.</source>
+                <target>"Stop automatic sync" unticks "Enable sync" in the OpenAI configuration. Re-enable it there whenever you want scheduled syncs to resume.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_queued_confirm">
+                <source>Sync queued. Refresh this page in a few minutes to see the result.</source>
+                <target>Sync queued. Refresh this page in a few minutes to see the result.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_dispatched_manual">
+                <source>Manual sync dispatched to CLI. Refresh this page in a few minutes.</source>
+                <target>Manual sync dispatched to CLI. Refresh this page in a few minutes.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_no_indexed_pages">
+                <source>No indexed pages found for this site root (tl_search is empty). Run System → Maintenance → Rebuild search index. If pages are still missing, check whether they carry robots=noindex or Search indexer=Never index — set Search indexer=Always index on those page records to force-include them in both Contao search and the vector store.</source>
+                <target>No indexed pages found for this site root (tl_search is empty). Run System → Maintenance → Rebuild search index. If pages are still missing, check whether they carry robots=noindex or Search indexer=Never index — set Search indexer=Always index on those page records to force-include them in both Contao search and the vector store.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_empty_document_raw">
+                <source>No page content found to upload; aborting before replacing the existing file.</source>
+                <target>No page content found to upload; aborting before replacing the existing file.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_empty_document_llm">
+                <source>The model returned an empty document; aborting before replacing the existing file.</source>
+                <target>The model returned an empty document; aborting before replacing the existing file.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_no_vector_store_sync">
+                <source>No vector store ID configured. Complete the file upload workflow or set a vector store ID first.</source>
+                <target>No vector store ID configured. Complete the file upload workflow or set a vector store ID first.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_multiple_roots">
+                <source>Multiple site roots detected. Select the pages to keep updated in OpenAI Configuration → Vector store sync.</source>
+                <target>Multiple site roots detected. Select the pages to keep updated in OpenAI Configuration → Vector store sync.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_temp_file">
+                <source>Could not create a temporary file for the upload.</source>
+                <target>Could not create a temporary file for the upload.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_upload_no_id">
+                <source>OpenAI Files upload did not return a file ID.</source>
+                <target>OpenAI Files upload did not return a file ID.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_sync_not_enabled">
+                <source>Automatic sync is not enabled for this configuration.</source>
+                <target>Automatic sync is not enabled for this configuration.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_sync_already_running">
+                <source>A sync is already queued or running for this configuration.</source>
+                <target>A sync is already queued or running for this configuration.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_dispatch_failed">
+                <source>Could not start the sync process. Your host may disable PHP process spawning (proc_open). Run it from the command line instead: vendor/bin/contao-console contao:openai-vector-sync &lt;id&gt;</source>
+                <target>Could not start the sync process. Your host may disable PHP process spawning (proc_open). Run it from the command line instead: vendor/bin/contao-console contao:openai-vector-sync &lt;id&gt;</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_run_stale">
+                <source>The sync run stopped responding and was marked as failed (the process was probably terminated). You can start a new sync.</source>
+                <target>The sync run stopped responding and was marked as failed (the process was probably terminated). You can start a new sync.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_plan_limit_truncated">
+                <source>Your plan allows at most %1$s pages, so %2$s additional page(s) were not synced. Reduce the selected pages or upgrade your plan to include them.</source>
+                <target>Your plan allows at most %1$s pages, so %2$s additional page(s) were not synced. Reduce the selected pages or upgrade your plan to include them.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_partial_files_failed">
+                <source>%1$s file upload(s) failed and will be retried on the next run.</source>
+                <target>%1$s file upload(s) failed and will be retried on the next run.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_config_not_found">
+                <source>OpenAI configuration %1$s not found.</source>
+                <target>OpenAI configuration %1$s not found.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_no_api_key">
+                <source>No usable OpenAI API key for configuration %1$s.</source>
+                <target>No usable OpenAI API key for configuration %1$s.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_invalid_page">
+                <source>Invalid page selected for auto-update (ID %1$s).</source>
+                <target>Invalid page selected for auto-update (ID %1$s).</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_crawl_failed">
+                <source>contao:crawl failed: %1$s</source>
+                <target>contao:crawl failed: %1$s</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_openai_chat">
+                <source>OpenAI chat completion failed (HTTP %1$s): %2$s</source>
+                <target>OpenAI chat completion failed (HTTP %1$s): %2$s</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_warn_no_vector_store">
+                <source>No vector store exists yet. Upload one document once via AI Tools → OpenAI Dashboard → File upload; this automatically creates the vector store.</source>
+                <target>No vector store exists yet. Upload one document once via AI Tools → OpenAI Dashboard → File upload; this automatically creates the vector store.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_warn_no_crawl_page">
+                <source>No pages selected. Choose the pages to keep updated in the OpenAI configuration (AI Tools → OpenAI Dashboard) under "Vector store sync".</source>
+                <target>No pages selected. Choose the pages to keep updated in the OpenAI configuration (AI Tools → OpenAI Dashboard) under "Vector store sync".</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_warn_no_indexed_pages">
+                <source><![CDATA[No pages in the search index yet. Update the search index under System → Maintenance → "Update the search index" before the first sync.<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></source>
+                <target><![CDATA[No pages in the search index yet. Update the search index under System → Maintenance → "Update the search index" before the first sync.<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_invalid_config">
+                <source>Invalid or disabled configuration.</source>
+                <target>Invalid or disabled configuration.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_no_license">
+                <source>No active premium license for this configuration.</source>
+                <target>No active premium license for this configuration.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_daily">
+                <source>Daily at %1$s:%2$s</source>
+                <target>Daily at %1$s:%2$s</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_weekday">
+                <source>On %1$s at %2$s:%3$s</source>
+                <target>On %1$s at %2$s:%3$s</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_every_minutes">
+                <source>Every %s minutes</source>
+                <target>Every %s minutes</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_every_minute">
+                <source>Every minute</source>
+                <target>Every minute</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_every_minute_in_hour">
+                <source>Every minute during hour %1$s</source>
+                <target>Every minute during hour %1$s</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_hourly">
+                <source>Hourly (minute %s)</source>
+                <target>Hourly (minute %s)</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_monthly">
+                <source>On day %1$s of month at %2$s:%3$s</source>
+                <target>On day %1$s of month at %2$s:%3$s</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_weekday_0">
+                <source>Sunday</source>
+                <target>Sunday</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_weekday_1">
+                <source>Monday</source>
+                <target>Monday</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_weekday_2">
+                <source>Tuesday</source>
+                <target>Tuesday</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_weekday_3">
+                <source>Wednesday</source>
+                <target>Wednesday</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_weekday_4">
+                <source>Thursday</source>
+                <target>Thursday</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_weekday_5">
+                <source>Friday</source>
+                <target>Friday</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_weekday_6">
+                <source>Saturday</source>
+                <target>Saturday</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_plan_starter">
+                <source>Starter</source>
+                <target>Starter</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_plan_business">
+                <source>Business</source>
+                <target>Business</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_plan_enterprise">
+                <source>Enterprise</source>
+                <target>Enterprise</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_plan_unlimited">
+                <source>unlimited</source>
+                <target>unlimited</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_plan_pages">
+                <source>up to %s pages</source>
+                <target>up to %s pages</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_setup_todo">
+                <source>To do before the first sync:</source>
+                <target>To do before the first sync:</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_setup_ready">
+                <source>Everything is ready - the sync can run.</source>
+                <target>Everything is ready - the sync can run.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_setup_ready_auto">
+                <source>Everything is ready - automatic synchronisation is active and runs on schedule. You can also start a manual sync any time below.</source>
+                <target>Everything is ready - automatic synchronisation is active and runs on schedule. You can also start a manual sync any time below.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_setup_ready_auto_first">
+                <source>Everything is ready - start the first sync with the button below. Later syncs run automatically on your schedule.</source>
+                <target>Everything is ready - start the first sync with the button below. Later syncs run automatically on your schedule.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_run_now_blocked_hint">
+                <source>Resolve the open items above first.</source>
+                <target>Resolve the open items above first.</target>
             </trans-unit>
         </body>
     </file>

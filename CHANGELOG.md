@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-07-16
+
+### Added
+- **Premium add-on: automatic vector-store updates.** Keeps the OpenAI vector store in sync with selected Contao pages (manual or scheduled runs, backend status dashboard). Requires a [premium subscription](https://licenses.juhe-it-solutions.at/en/openai-assistant/help).
+- **Chat rate limiting - on by default after upgrade.** Two new settings in the OpenAI configuration: per-IP limit (`chat_ip_rate_limit`, default 10/minute) and daily message cap (`chat_daily_limit`, default 1000/day); `0` disables. Raise or disable the IP limit on intranets/NAT where many users share one IP. See [docs/security/rate-limiting.md](docs/security/rate-limiting.md).
+- **Link shortening - on by default after upgrade.** New AI-Chatbot module checkbox **Shorten plain URLs** (`tl_module.shorten_urls`, default on): plain URLs in bot answers are rendered as short localized labels ("Download" / "Seite aufrufen" / "Visit page") instead of the full URL. The complete URL stays in `href` and `title`; Markdown links with descriptive text keep it and show the URL as tooltip. Disable the checkbox to restore full-URL rendering. See [docs/features/link-shortening.md](docs/features/link-shortening.md).
+
+### Changed
+- **Licensing:** the core extension remains LGPL-3.0-or-later; the new premium add-on files are proprietary (see [`LICENSE-PREMIUM`](LICENSE-PREMIUM)). All earlier releases remain entirely LGPL.
+- **Phone autolinking** in chat answers now requires a leading `+` or a phone cue ("Tel.", "Rufen Sie an", …) before the number, so invoice numbers, ISBNs, and dates are no longer turned into `tel:` links.
+
+### Fixed
+- **Frontend chat links:** more robust rendering of model-mangled URLs (CJK-bracket-wrapped or decorated URLs, malformed Markdown echoes, line-wrapped URLs); repeated identical links are no longer collapsed into one; URL credentials never appear in tooltips or screen-reader labels.
+
+### Security
+- Frontend chat messages are HTML-escaped before formatting (XSS hardening).
+- **License validation robustness:** rate-limit (429) and server-error (5xx) responses from the licensing server are now treated as temporary outages covered by the seven-day grace period instead of deactivating a valid license; entitlement data is only accepted from well-formed 2xx responses.
+
+### Notes
+- Run `contao:migrate` after the update (new database columns).
+
 ## [2.0.2] - 2026-07-01
 
 ### Fixed
@@ -40,10 +61,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All runtime calls to the OpenAI Assistants API:
   - `POST /v1/assistants`
   - `POST /v1/assistants/{id}`
-  - `DELETE /v1/assistants/{id}` *(still used once by the cleanup migration — last allowed usage)*
+  - `DELETE /v1/assistants/{id}` *(still used once by the cleanup migration - last allowed usage)*
   - `POST /v1/threads`, `POST /v1/threads/{id}/messages`, `POST /v1/threads/{id}/runs`, `GET /v1/threads/{id}/messages`
 - `src/Service/OpenAiAssistant.php` is no longer the runtime implementation; a deprecated BC shim now forwards to `OpenAiResponder` to keep 1.x custom integrations working until 2.1.
-- The "Sync with OpenAI" button and related `createOrUpdateAssistant` / `deleteAssistant` DCA actions — prompts are local and do not need remote synchronisation.
+- The "Sync with OpenAI" button and related `createOrUpdateAssistant` / `deleteAssistant` DCA actions - prompts are local and do not need remote synchronisation.
 - `config.onsubmit` / `config.ondelete` DCA callbacks that previously created / deleted remote Assistants.
 
 ### Migrated
@@ -51,10 +72,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Database table rename + new columns (`Version20260416000000RenamePromptsTable`): idempotent, re-runnable safely.
 
 ### Notes
-- Users with active chat sessions at upgrade time will see a fresh, empty conversation on their next message — the legacy thread ids were session-scoped in v1.x anyway.
+- Users with active chat sessions at upgrade time will see a fresh, empty conversation on their next message - the legacy thread ids were session-scoped in v1.x anyway.
 - Runtime API key resolution prefers `OPENAI_API_KEY_{configId}` over DB-encrypted keys. (The one-time orphan cleanup migration reads the DB-stored key for 1.x compatibility.)
 - **Important for upgrades from 1.x:** The orphan-assistant cleanup runs in CLI context. If no valid API key can be resolved there (e.g. encrypted key cannot be decrypted in that environment), the migration still clears local legacy references but cannot remove the remote Assistant. In that case, any already existing "OpenAI assistant" must be deleted manually in the OpenAI platform dashboard.
-- No changes to files, vector stores, or uploaded documents — these continue to live on OpenAI's platform and keep working with the File Search tool.
+- No changes to files, vector stores, or uploaded documents - these continue to live on OpenAI's platform and keep working with the File Search tool.
 
 ## [1.1.3] - 2026-03-04
 
