@@ -294,6 +294,81 @@ class OpenAiConfigListenerTest extends TestCase
         );
     }
 
+    public function testFaithfulModeDisablesPromptTemplateAndHidesModelField(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchOne')
+            ->with('SELECT auto_update_mode FROM tl_openai_config WHERE id = ?', [7])
+            ->willReturn('faithful')
+        ;
+
+        $previousDca = $GLOBALS['TL_DCA']['tl_openai_config'] ?? null;
+        $GLOBALS['TL_DCA']['tl_openai_config'] = [
+            'palettes' => ['default' => '{auto_update_legend},auto_update_mode,auto_update_model,auto_update_prompt_template'],
+            'fields' => ['auto_update_prompt_template' => ['eval' => []]],
+        ];
+
+        try {
+            $method = new \ReflectionMethod(OpenAiConfigListener::class, 'configureAutoUpdateModelVisibility');
+            $method->invoke($this->createListener($connection), 7);
+
+            $this->assertSame(
+                '{auto_update_legend},auto_update_mode,auto_update_prompt_template',
+                $GLOBALS['TL_DCA']['tl_openai_config']['palettes']['default'],
+                'Faithful mode must remove the generation model from the palette.',
+            );
+            $this->assertTrue(
+                $GLOBALS['TL_DCA']['tl_openai_config']['fields']['auto_update_prompt_template']['eval']['disabled'] ?? false,
+                'Faithful mode must disable the prompt template textarea.',
+            );
+        } finally {
+            if (null === $previousDca) {
+                unset($GLOBALS['TL_DCA']['tl_openai_config']);
+            } else {
+                $GLOBALS['TL_DCA']['tl_openai_config'] = $previousDca;
+            }
+        }
+    }
+
+    public function testLlmPolishModeKeepsPromptTemplateEditable(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchOne')
+            ->with('SELECT auto_update_mode FROM tl_openai_config WHERE id = ?', [7])
+            ->willReturn('llm_polish')
+        ;
+
+        $previousDca = $GLOBALS['TL_DCA']['tl_openai_config'] ?? null;
+        $GLOBALS['TL_DCA']['tl_openai_config'] = [
+            'palettes' => ['default' => '{auto_update_legend},auto_update_mode,auto_update_model,auto_update_prompt_template'],
+            'fields' => ['auto_update_prompt_template' => ['eval' => []]],
+        ];
+
+        try {
+            $method = new \ReflectionMethod(OpenAiConfigListener::class, 'configureAutoUpdateModelVisibility');
+            $method->invoke($this->createListener($connection), 7);
+
+            $this->assertSame(
+                '{auto_update_legend},auto_update_mode,auto_update_model,auto_update_prompt_template',
+                $GLOBALS['TL_DCA']['tl_openai_config']['palettes']['default'],
+                'LLM polish mode must keep the generation model in the palette.',
+            );
+            $this->assertArrayNotHasKey(
+                'disabled',
+                $GLOBALS['TL_DCA']['tl_openai_config']['fields']['auto_update_prompt_template']['eval'],
+                'LLM polish mode must leave the prompt template editable.',
+            );
+        } finally {
+            if (null === $previousDca) {
+                unset($GLOBALS['TL_DCA']['tl_openai_config']);
+            } else {
+                $GLOBALS['TL_DCA']['tl_openai_config'] = $previousDca;
+            }
+        }
+    }
+
     private function createModelValidationListener(bool $licenseActive, string $apiKey): OpenAiConfigListener
     {
         $encryption = $this->createMock(EncryptionService::class);

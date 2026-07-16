@@ -1313,6 +1313,8 @@ class OpenAiConfigListener
      * "Faithful" indexing uploads pages verbatim with no LLM rewrite step, so the
      * "Generation model" field has nothing to act on regardless of the trigger type.
      * Drop it from the palette whenever the mode is not explicitly "llm_polish".
+     * The prompt template is equally inert in faithful mode, but stays visible as
+     * a disabled textarea so the stored prompt is not hidden from the user.
      * Empty/legacy rows default to faithful behaviour, so they are treated the same.
      */
     private function configureAutoUpdateModelVisibility(int $configId): void
@@ -1330,6 +1332,10 @@ class OpenAiConfigListener
                 '',
                 $GLOBALS['TL_DCA']['tl_openai_config']['palettes']['default'],
             );
+
+            // Disabled widgets skip submitInput(), so the stored prompt survives
+            // saves made while faithful mode is active.
+            $GLOBALS['TL_DCA']['tl_openai_config']['fields']['auto_update_prompt_template']['eval']['disabled'] = true;
         }
     }
 
