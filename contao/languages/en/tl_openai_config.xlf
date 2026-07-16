@@ -306,16 +306,16 @@
                 <target>First sync</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.first_sync_hint_cron">
-                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard. Later syncs run automatically on your schedule.</source>
-                <target>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard. Later syncs run automatically on your schedule.</target>
+                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs run automatically on your schedule.</source>
+                <target>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs run automatically on your schedule.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.first_sync_hint_nocron">
-                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard. Later syncs require a CLI cron job (contao:cron) on your server.</source>
-                <target>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard. Later syncs require a CLI cron job (contao:cron) on your server.</target>
+                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs require a CLI cron job (contao:cron) on your server.</source>
+                <target>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs require a CLI cron job (contao:cron) on your server.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.first_sync_hint_manual">
-                <source>Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard.</source>
-                <target>Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard.</target>
+                <source>Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met.</source>
+                <target>Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.first_sync_hint_dashboard">
                 <source>Open the Auto-Sync dashboard</source>

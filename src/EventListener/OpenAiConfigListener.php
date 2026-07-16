@@ -1086,17 +1086,17 @@ class OpenAiConfigListener
         if ('manual' === (string) ($row['auto_update_trigger'] ?? 'scheduled')) {
             $text = $this->getConfigLangString(
                 'first_sync_hint_manual',
-                'Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard.',
+                'Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met.',
             );
         } elseif (CronHealthService::STATUS_HEALTHY === $this->cronHealth->status($this->cronHealth->heartbeatLastRun())) {
             $text = $this->getConfigLangString(
                 'first_sync_hint_cron',
-                'Start the first sync via the “Run sync now” button in the Auto-Sync dashboard. Later syncs run automatically on your schedule.',
+                'Start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs run automatically on your schedule.',
             );
         } else {
             $text = $this->getConfigLangString(
                 'first_sync_hint_nocron',
-                'Start the first sync via the “Run sync now” button in the Auto-Sync dashboard. Later syncs require a CLI cron job (contao:cron) on your server.',
+                'Start the first sync via the “Run sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs require a CLI cron job (contao:cron) on your server.',
             );
         }
 
