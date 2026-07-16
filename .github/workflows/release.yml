@@ -47,35 +47,46 @@ jobs:
     - name: Run security check
       run: composer audit --abandoned=report
 
-    - name: Derive release display name
-      id: derive_release
-      run: echo "release_name=Version ${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+    # The release body is the tag's section from CHANGELOG.md — fail the
+    # release if the section is missing so a tag can never ship without notes.
+    - name: Extract release notes from CHANGELOG.md
+      run: |
+        VERSION="${GITHUB_REF_NAME#v}"
+        awk -v ver="$VERSION" '
+          $0 ~ "^## \\[" ver "\\]" { found = 1; next }
+          found && /^## \[/ { exit }
+          found { print }
+        ' CHANGELOG.md > release-notes.md
 
-    - name: Create Release
-      uses: actions/create-release@v1
+        if ! grep -q '[^[:space:]]' release-notes.md; then
+          echo "::error::No section for version $VERSION found in CHANGELOG.md" >&2
+          exit 1
+        fi
+
+        cat >> release-notes.md <<'EOF'
+
+        ## 📦 Installation
+
+        ```bash
+        composer require juhe-it-solutions/contao-openai-assistant
+        ```
+
+        ## 🔗 Links
+
+        - [Documentation](https://github.com/juhe-it-solutions/contao-openai-assistant/tree/main/docs)
+        - [Full changelog](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/CHANGELOG.md)
+        EOF
+
+    # Updates the existing release instead of failing when one was already
+    # created manually for the tag (that broke the v2.0.2 release run).
+    - name: Create or update GitHub release
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref_name }}
-        release_name: ${{ steps.derive_release.outputs.release_name }}
-        body: |
-          ## 🎉 Release ${{ github.ref_name }}
-          
-          ### ✅ Quality Checks Passed
-          - PHP syntax validation
-          - Code style compliance (ECS)
-          - Static analysis (PHPStan Level 5)
-          - PHPUnit test suite
-          - Security vulnerability scan
-          - Composer validation
-          
-          ### 📦 Installation
-          ```bash
-          composer require juhe-it-solutions/contao-openai-assistant
-          ```
-          
-          ### 🔗 Links
-          - [Documentation](https://github.com/juhe-it-solutions/contao-openai-assistant/tree/main/docs)
-          - [Changelog](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/CHANGELOG.md)
-        draft: false
-        prerelease: false 
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+            --title "Version ${GITHUB_REF_NAME#v}" --notes-file release-notes.md
+        else
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --title "Version ${GITHUB_REF_NAME#v}" --notes-file release-notes.md
+        fi
