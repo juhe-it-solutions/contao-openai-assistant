@@ -30,6 +30,7 @@
   },
   "require-dev": {
     "contao/easy-coding-standard": "^6.13",
+    "symplify/easy-coding-standard": "13.2.3",
     "phpstan/phpstan": "^2.0",
     "phpunit/phpunit": "^10.5 || ^11.0"
   },
