@@ -30,12 +30,16 @@ Only URLs that the model outputs as plain text are affected:
 | `www.example.org/broschuere.pdf` | [Download] (with `https://` prefix) |
 | `<https://example.com/page>` (angle brackets) | [Seite aufrufen] / [Visit page] |
 | `[Herunterladen](https://example.com/files/manual.pdf)` | [Herunterladen] - **unchanged** |
+| `[https://example.com/a.pdf](https://example.com/a.pdf)` (URL as its own text) | [Download] - **shortened** |
 | `mailto:` / `tel:` links, e-mail addresses, phone numbers | **unchanged** |
 
-Markdown links always keep their model-provided link text. If you want full
-control over the visible labels, instruct the model to emit Markdown links (see
+Markdown links keep their model-provided link text as long as that text is
+descriptive. If the link text is itself just a bare URL (models often echo
+`[url](url)`), the text carries no extra information and the shortening
+applies to it as well. If you want full control over the visible labels,
+instruct the model to emit Markdown links with descriptive text (see
 "Recommended system prompt" below) - the shortening only acts as a safety net
-for URLs the model outputs bare.
+for URLs the model outputs bare or URL-labeled.
 
 ## Label Selection
 
@@ -77,6 +81,8 @@ language override.
 - The link's `aria-label` contains the label plus the target hostname (for
   example "Download, example.com"), so screen-reader users know where a
   generic "Download" link leads.
+- Exception: URL credentials (`user:password@`) never appear in `title` or
+  `aria-label`; only the `href` keeps the URL verbatim.
 - Trailing sentence punctuation stays outside the clickable link, and links
   keep `target="_blank" rel="noopener"` like all external chat links.
 

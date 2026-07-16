@@ -425,11 +425,16 @@ function initAiChat(wrapper) {
   const downloadExtensionsRe = /\.(pdf|zip|rar|7z|tar|gz|tgz|doc|docx|xls|xlsx|ppt|pptx|pps|ppsx|csv|txt|rtf|odt|ods|odp|epub|ics|vcf|mp3|m4a|wav|mp4|mov|avi|webm|jpg|jpeg|png|gif|svg|webp)$/i;
   const isDownloadUrl = (url) => downloadExtensionsRe.test(url.split(/[?#]/)[0]);
   // Hostname for the aria-label so screen-reader users know the link target
-  // domain even though the visible text is only the generic label.
+  // domain even though the visible text is only the generic label. Userinfo
+  // ("user:pass@") is dropped - credentials must never reach the aria-label.
   const hostnameOf = (url) => {
-    const m = url.match(/^(?:https?:\/\/)?([^\/?#]+)/i);
+    const m = url.match(/^(?:https?:\/\/)?(?:[^\/?#@]*@)?([^\/?#]+)/i);
     return m ? m[1] : url;
   };
+  // URL for tooltip/title display: same as the href but without userinfo, so
+  // credentials embedded in a URL are not shown on hover or read by a screen
+  // reader. The href itself stays verbatim (the link must still work).
+  const displayUrlOf = (url) => url.replace(/^((?:https?:\/\/)?)[^\/?#@]*@/i, '$1');
 
   const fmt = c => {
     // Emphasis/code delimiters must start at a word boundary (start of line,
@@ -440,7 +445,21 @@ function initAiChat(wrapper) {
     // lookbehind (Safari/iOS < 16.4): the boundary char is captured and
     // re-emitted. Content stays line-local ([^*\n]) like the old ".*?".
     let result = escapeHtml(c)
-      .replace(/【[^】]*】/g, '')
+      // Complete 【...】 pairs are citation markers from OpenAI file search
+      // ("【4:0†source】") and are stripped - UNLESS the content is a URL:
+      // models also wrap URLs in the same brackets, and deleting those loses
+      // the answer's link. URL-like content is unwrapped to ASCII brackets so
+      // the bracket-peeling and anchor-cleanup rules below apply to it.
+      .replace(/【([^】]*)】/g, (match, inner, offset, str) => {
+        if (!/https?:\/\/|www\./i.test(inner)) return '';
+        // If text follows the closing bracket with no separator ("【url】mehr"),
+        // add a space: otherwise the bare-URL pass would swallow "]mehr" into
+        // the href. Peel-handled punctuation and token-terminating chars after
+        // the bracket need no space.
+        const next = str[offset + match.length] || '';
+        const sep = next && !/[\s.,!?;:…)\]}<>"']/.test(next) ? ' ' : '';
+        return `[${inner}]${sep}`;
+      })
       // Lone CJK brackets left over after citation stripping: models mix
       // bracket styles when wrapping URLs (observed live: "[<url>】." - ASCII
       // "[" opened, U+3011 "】" closed). Mapped to their ASCII counterparts so
@@ -464,13 +483,20 @@ function initAiChat(wrapper) {
     const splitTrailingUrlPunctuation = (url) => {
       let clean = url;
       let trailing = '';
-      while (/[.,!?;:]+$/.test(clean)) {
+      // Sentence punctuation, plus Unicode ellipsis and fullwidth CJK
+      // punctuation - models decorate URLs with these and they are never a
+      // legitimate URL tail.
+      while (/[.,!?;:…。、！？：；，]+$/.test(clean)) {
         trailing = clean.slice(-1) + trailing;
         clean = clean.slice(0, -1);
       }
 
-      const pairs = {')': '(', ']': '[', '}': '{'};
-      while (/[)\]}]$/.test(clean)) {
+      // Balance-checked closers: ASCII plus fullwidth/CJK counterparts
+      // (corner brackets, fullwidth parens/brackets) so decorative wrappers
+      // like 「url」 or （url） do not leak into the href. Balanced pairs
+      // inside the URL (wiki-style "Function_(mathematics)") stay untouched.
+      const pairs = {')': '(', ']': '[', '}': '{', '）': '（', '」': '「', '』': '『', '］': '［'};
+      while (/[)\]}）」』］]$/.test(clean)) {
         const close = clean.slice(-1);
         if (countChar(clean, close) <= countChar(clean, pairs[close])) break;
         trailing = close + trailing;
@@ -489,7 +515,7 @@ function initAiChat(wrapper) {
         // browser decodes them for display; the href post-processing step below
         // restores the literal & in href only.
         const label = isDownloadUrl(clean) ? linkLabelDownload : linkLabelPage;
-        return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener" title="${hrefPrefix}${clean}" aria-label="${label}, ${hostnameOf(clean)}">${label}</a>${trailing}`;
+        return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener" title="${hrefPrefix}${displayUrlOf(clean)}" aria-label="${label}, ${hostnameOf(clean)}">${label}</a>${trailing}`;
       }
       return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener">${clean}</a>${trailing}`;
     };
@@ -514,7 +540,7 @@ function initAiChat(wrapper) {
           && /^(?:https?:\/\/|www\.)/i.test(clean)
           && /^(?:https?:\/\/|www\.)\S+$/i.test(text.replace(/^\[+/, '').trim())) {
         const label = isDownloadUrl(clean) ? linkLabelDownload : linkLabelPage;
-        return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener" title="${hrefPrefix}${clean}" aria-label="${label}, ${hostnameOf(clean)}">${label}</a>`;
+        return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener" title="${hrefPrefix}${displayUrlOf(clean)}" aria-label="${label}, ${hostnameOf(clean)}">${label}</a>`;
       }
       return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener">${text}</a>`;
     };
@@ -546,14 +572,13 @@ function initAiChat(wrapper) {
       (_, prefix, href) => `${prefix}<a href="${sanitizeUrl(href.replace(/\s/g, ''))}">${sanitizeUrl(href.replace(/^tel:/i, ''))}</a>`
     ));
 
-    // Simple and bulletproof fix for duplicate URLs and square brackets
-    // Step 1: Remove square brackets around links
+    // Remove square brackets around links. (An earlier "dedup identical
+    // anchors" pass here also swallowed LEGITIMATE repeated links - two
+    // [A](same-url) links render byte-identical - so it was removed; the
+    // malformed-Markdown cleanup below handles accidental double emits.)
     result = result.replace(/\[<a[^>]*>.*?<\/a>\]/g, (match) => {
       return match.replace(/^\[|\]$/g, ''); // Remove [ and ]
     });
-    
-    // Step 2: Remove duplicate links with same href
-    result = result.replace(/(<a[^>]*>.*?<\/a>).*?\1/g, '$1');
 
     // Make URLs clickable (only if they're not already in <a> tags).
     // Keep query strings/fragments intact, then peel off sentence punctuation.
@@ -607,10 +632,17 @@ function initAiChat(wrapper) {
     result = result.replace(/(<a\b[^>]*>)\[([^<]*<\/a>)\]/g, '$1$2');
     result = result.replace(/(<a\b[^>]*>)\[([^<\]]*<\/a>)/g, '$1$2');
 
-    // Make phone numbers clickable, keeping optional "+" at the start
-    result = replaceOutsideAnchors(result, text => text.replace(/(\+?[\d\s\(\)\-]{7,})/g, match => {
+    // Make phone numbers clickable, keeping optional "+" at the start.
+    // Bare digit runs also match invoice numbers, ISBNs, SKUs and datetimes,
+    // so a number only autolinks when it starts with "+" (international
+    // format) OR a phone keyword appears shortly before it ("Tel: 030 ...",
+    // "Rufen Sie an: ..."). Context is checked by slicing the string before
+    // the match - no lookbehind (parse error on Safari/iOS < 16.4).
+    const phoneCueRe = /(?:^|[^a-zäöüß])(?:tel(?:efon)?|phone|fax|call|hotline|mobil(?:e)?|handy|whatsapp|anruf(?:en)?|ruf(?:en)?|durchwahl)[^\d]{0,30}$/i;
+    result = replaceOutsideAnchors(result, text => text.replace(/(\+?[\d\s\(\)\-]{7,})/g, (match, _p1, offset) => {
       // Prüfe, ob die Nummer mit "+" beginnt
       const hasPlus = match.trim().startsWith('+');
+      if (!hasPlus && !phoneCueRe.test(text.slice(0, offset))) return match;
       // Extrahiere nur Ziffern (und ggf. das Plus)
       let telLink = match.replace(/\D/g, '');
       if (hasPlus) {

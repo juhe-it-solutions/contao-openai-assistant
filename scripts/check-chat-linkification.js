@@ -422,6 +422,99 @@ check('md-extra-10 punctuation', fmt(mdCases[9][0]).endsWith('</a>.'), fmt(mdCas
   check('em-boundary-2 paren', out.includes('(<strong>auch in Klammern</strong>)'), out);
 }
 
+// ------------------------------------------- 2026-07-16 analysis fixes (P1-P5)
+{
+  // P1: full CJK bracket wrap around a URL must unwrap to a link, not vanish.
+  {
+    const o = fmtShort('【https://example.com/a.pdf】');
+    check('cjk-wrap-1 label', anchorText(o) === 'Download', o);
+    check('cjk-wrap-1 href exact', o.includes('href="https://example.com/a.pdf"'), o);
+    check('cjk-wrap-1 no brackets', !/[\][【】]/.test(o), o);
+  }
+  {
+    const o = fmtShort('Die Seite: 【https://example.com】.');
+    check('cjk-wrap-2 label', anchorText(o) === 'Seite aufrufen', o);
+    check('cjk-wrap-2 href exact', o.includes('href="https://example.com"'), o);
+    check('cjk-wrap-2 trailing dot', o.endsWith('</a>.'), o);
+  }
+  // Guard: real file-search citations are still stripped entirely.
+  check('cjk-wrap-3 citation strip', fmtShort('Siehe【4:0†source】.') === 'Siehe.', fmtShort('Siehe【4:0†source】.'));
+  // Text glued directly after the closing bracket must not enter the href.
+  {
+    const o = fmtShort('Siehe【https://example.com】weiter');
+    check('cjk-wrap-4 href exact', o.includes('href="https://example.com"'), o);
+    check('cjk-wrap-4 text kept', o.endsWith('weiter') && o.includes('</a>'), o);
+  }
+
+  // P3: repeated identical Markdown links / bare URLs must all survive.
+  {
+    const o = fmt('[A](https://example.com/a) then [A](https://example.com/a)');
+    check('dedup-1 two anchors', (o.match(/<a /g) || []).length === 2, o);
+    check('dedup-1 both hrefs', o.split('href="https://example.com/a"').length - 1 === 2, o);
+  }
+  {
+    const o = fmtShort('https://example.com/a.pdf and also https://example.com/a.pdf');
+    check('dedup-2 two anchors', (o.match(/<a /g) || []).length === 2, o);
+  }
+
+  // P2: phone autolink needs a "+" prefix or a phone keyword in front of it.
+  const phoneNegatives = [
+    ['phone-neg-invoice', 'Rechnung 202407151234'],
+    ['phone-neg-isbn', 'ISBN 978-3-16-148410-0'],
+    ['phone-neg-sku', 'SKU 123-456-7890'],
+    ['phone-neg-order', 'Order #1234567 done'],
+    ['phone-neg-datetime', 'Am 2024-07-15 12:34:56 erstellt'],
+    ['phone-neg-bare', 'Die Zahl 030 12345678 allein'],
+  ];
+  phoneNegatives.forEach(([name, input]) => {
+    const o = fmt(input);
+    check(name, !o.includes('href="tel:'), o);
+  });
+  const phonePositives = [
+    ['phone-pos-plus', '+49 123 4567890', 'tel:+491234567890'],
+    ['phone-pos-keyword-de', 'Rufen Sie an: 030 12345678', 'tel:03012345678'],
+    // "Tel: ..." is caught by the earlier explicit-tel pass, which keeps the
+    // original scheme case ("Tel:") - the tel scheme is case-insensitive.
+    ['phone-pos-tel-label', 'Tel.: 030 12345678', 'tel:03012345678'],
+    ['phone-pos-telefon', 'Telefon 0664 1234567', 'tel:06641234567'],
+    ['phone-pos-explicit', 'tel:+43123456789', 'tel:+43123456789'],
+  ];
+  phonePositives.forEach(([name, input, href]) => {
+    const o = fmt(input);
+    check(name, o.includes(`href="${href}"`), o);
+  });
+
+  // P4: userinfo (user:pass@) must never reach title or aria-label; href is
+  // kept verbatim (product decision 2026-07-16).
+  {
+    const o = fmtShort('https://user:secret@example.com/file.pdf');
+    check('cred-1 href intact', o.includes('href="https://user:secret@example.com/file.pdf"'), o);
+    check('cred-1 title clean', /title="[^"]*"/.test(o) && !/title="[^"]*secret/.test(o), o);
+    check('cred-1 aria clean', /aria-label="[^"]*"/.test(o) && !/aria-label="[^"]*secret/.test(o), o);
+    check('cred-1 aria host', o.includes('aria-label="Download, example.com"'), o);
+  }
+
+  // P5: non-ASCII wrappers (corner brackets, fullwidth parens, ellipsis) must
+  // not leak into the href; they may remain as text outside the anchor.
+  {
+    const o = fmtShort('「https://example.com/a.pdf」');
+    check('wrap-cjk-1 href exact', o.includes('href="https://example.com/a.pdf"'), o);
+  }
+  {
+    const o = fmtShort('（https://example.com/a.pdf）');
+    check('wrap-fw-1 href exact', o.includes('href="https://example.com/a.pdf"'), o);
+  }
+  {
+    const o = fmtShort('https://example.com/page…');
+    check('ellipsis-1 href exact', o.includes('href="https://example.com/page"'), o);
+  }
+  // Balanced ASCII wiki parens keep working after the peel extension.
+  {
+    const o = fmt('https://en.wikipedia.org/wiki/Function_(mathematics)');
+    check('wrap-guard-wiki', o.includes('href="https://en.wikipedia.org/wiki/Function_(mathematics)"'), o);
+  }
+}
+
 console.log(`PASS: ${pass}  FAIL: ${fail}`);
 for (const f of failures) {
   console.log(`\n--- FAIL ${f.name}\n${f.detail}`);
