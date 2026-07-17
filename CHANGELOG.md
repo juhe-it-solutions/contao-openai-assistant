@@ -10,10 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **API keys stored before 2.1.0 could be unreadable for the CLI sync after an upgrade.** Older versions encrypted the OpenAI API key with a server-derived key that the CLI sync process cannot always reconstruct, so the first sync after upgrading could fail with "No usable OpenAI API key". Stored keys are now automatically re-encrypted with the app-secret key on first use (e.g. when opening the sync dashboard) - no manual re-entry needed.
 - Long API keys (e.g. `sk-proj-...`) stored in the pre-1.0 base64 format were misclassified as encrypted and failed to resolve. They are now decoded correctly and upgraded to the current encrypted storage format automatically.
+- The first-sync hint in the vector store sync settings was partly invisible in the Contao backend (bare text nodes are not rendered there). The hint is fully visible again, points to the dashboard's setup checklist for the prerequisites, and links to the dashboard with a button.
+- The prompt template field is now disabled while the indexing mode is "faithful" - the template has no effect in that mode - and is no longer re-enabled by the license check script. The stored template survives saves made in faithful mode and becomes editable again in "AI-polished" mode.
 
 ### Changed
 - The "No usable OpenAI API key" sync error now explains how to fix it (re-enter and save the key in the OpenAI configuration).
 - The sync dashboard's setup checklist now warns when no usable OpenAI API key is available, instead of letting the sync fail.
+- Sync history labels renamed to "Last 10 syncs" (dashboard) and "Full history" (sync log).
+- Frontend chat scrollbars now use the module's accent color in both themes.
+- Typographic cleanup in the German and English translations (en/em dashes replaced with hyphens).
 
 ## [2.1.1] - 2026-07-16
 
