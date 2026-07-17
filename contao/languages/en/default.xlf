@@ -328,12 +328,12 @@
                 <target>Cannot dispatch sync: proc_open is disabled on this server. Run the sync via the command line instead: php vendor/bin/contao-console contao:openai-vector-sync [config-id]</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_manage_log">
-                <source>Detailed history</source>
-                <target>Detailed history</target>
+                <source>Full history</source>
+                <target>Full history</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_recent_runs">
-                <source>Recent syncs</source>
-                <target>Recent syncs</target>
+                <source>Last 10 syncs</source>
+                <target>Last 10 syncs</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_recent_files_hint">
                 <source><![CDATA[Note: The automatically synced files are written directly into the vector store and do not appear under "OpenAI Dashboard" → "File upload".<br>The File upload screen is only for files you upload manually.]]></source>
