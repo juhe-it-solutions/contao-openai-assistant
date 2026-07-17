@@ -42,8 +42,10 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-php-8.2-composer-
 
+    # Pin static analysis to the lowest supported Contao line so PHPStan flags
+    # any accidental use of APIs that only exist in newer core versions.
     - name: Install dependencies
-      run: composer install --prefer-dist --no-progress
+      run: composer update --prefer-dist --no-progress --with contao/core-bundle:"5.3.*"
 
     - name: Check PHP syntax
       run: |
@@ -56,8 +58,20 @@ jobs:
       run: vendor/bin/phpstan analyse src/ --level=5
 
   tests:
-    name: PHPUnit
+    name: PHPUnit (PHP ${{ matrix.php }}, Contao ${{ matrix.contao }})
     runs-on: ubuntu-latest
+
+    # Test the lowest supported Contao line (5.3 LTS on PHP 8.2) and the newest
+    # (5.7 on PHP 8.3; it requires PHP >= 8.3). The in-between lines (5.4-5.6)
+    # are end-of-life and receive no fixes, so they are deliberately not tested.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            contao: '5.3.*'
+          - php: '8.3'
+            contao: '5.7.*'
 
     steps:
     - name: Checkout code
@@ -66,11 +80,11 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: 8.2
+        php-version: ${{ matrix.php }}
         extensions: mbstring, xml, ctype, iconv, intl, curl, json, dom, gd
 
     - name: Install dependencies
-      run: composer install --prefer-dist --no-progress
+      run: composer update --prefer-dist --no-progress --with contao/core-bundle:"${{ matrix.contao }}"
 
     - name: Run PHPUnit
       run: vendor/bin/phpunit
@@ -104,9 +118,20 @@ jobs:
         fi
 
   security:
-    name: Security Check
+    name: Security Check (PHP ${{ matrix.php }}, Contao ${{ matrix.contao }})
     runs-on: ubuntu-latest
-    
+
+    # Audit both supported Contao lines; without the pin, PHP 8.2 resolves the
+    # end-of-life 5.6 line, which no longer receives security fixes.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            contao: '5.3.*'
+          - php: '8.3'
+            contao: '5.7.*'
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -114,10 +139,10 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: 8.2
+        php-version: ${{ matrix.php }}
 
     - name: Install dependencies
-      run: composer install --prefer-dist --no-progress
+      run: composer update --prefer-dist --no-progress --with contao/core-bundle:"${{ matrix.contao }}"
 
     # Fatal on security advisories. Abandoned transitive packages are reported but do
     # not fail the build (they have no upstream fix we could apply here).
