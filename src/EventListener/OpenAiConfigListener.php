@@ -1105,11 +1105,16 @@ class OpenAiConfigListener
             .'<style>.oaa-first-sync-link:hover,.oaa-first-sync-link:focus-visible{background:#1976d2 !important;border-color:#1565c0 !important;color:#fff !important}</style>'
             .'<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin: 8px 0 0 0;">'
             .'<p style="margin: 0 0 4px 0;"><strong>ℹ️ %s:</strong></p>'
+            .'<p style="margin: 0 0 4px 0;">%s</p>'
             .'<p style="margin: 0 0 8px 0;">%s</p>'
             .'<a href="%s" class="oaa-first-sync-link" style="display: inline-flex; align-items: center; justify-content: center; min-height: 26px; padding: 2px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; line-height: 1.25; background: #2196f3; border: 1px solid #1976d2; color: #fff; text-decoration: none; white-space: nowrap;">%s</a>'
             .'</div></div>',
             htmlspecialchars($this->getConfigLangString('first_sync_hint_heading', 'First sync'), ENT_QUOTES),
             htmlspecialchars($text, ENT_QUOTES),
+            htmlspecialchars($this->getConfigLangString(
+                'first_sync_hint_delete_initial',
+                'After the first successful sync you can delete the initially uploaded file in «File upload» so its content does not influence the chatbot’s answers.',
+            ), ENT_QUOTES),
             htmlspecialchars($this->router->generate('vector_store_auto_update'), ENT_QUOTES),
             htmlspecialchars($this->getConfigLangString('first_sync_hint_dashboard', 'Open the Auto-Sync dashboard'), ENT_QUOTES),
         );
@@ -1374,11 +1379,19 @@ class OpenAiConfigListener
                 'No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform — without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.',
             ), ENT_QUOTES);
 
+            $premiumHint = htmlspecialchars($this->getTranslatedString(
+                'no_files_notice_premium_hint',
+                'If you use the Premium Add-on, you can delete the initially uploaded file again after the first successful sync so its content does not influence the chatbot\'s answers - the vector store itself is kept.',
+            ), ENT_QUOTES);
+
             Message::addRaw(
                 '<div class="oaa-info-card oaa-info-card--notice">'
                 .'<p style="margin:0;line-height:1.6;font-size:13px;">'
                 .'<span style="color:#f59e0b;font-weight:700;margin-right:6px;">!</span>'
                 .$text
+                .'</p>'
+                .'<p style="margin:6px 0 0 0;line-height:1.6;font-size:13px;">'
+                .$premiumHint
                 .'</p>'
                 .'</div>',
             );
