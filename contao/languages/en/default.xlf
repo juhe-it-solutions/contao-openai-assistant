@@ -52,8 +52,8 @@
                 <target>No configuration has automatic sync enabled yet.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_no_config_hint">
-                <source>Enable it in AI Tools → OpenAI Configuration → Vector store sync.</source>
-                <target>Enable it in AI Tools → OpenAI Configuration → Vector store sync.</target>
+                <source>Enable it in AI Tools → OpenAI Dashboard → OpenAI base configuration → Vector store sync.</source>
+                <target>Enable it in AI Tools → OpenAI Dashboard → OpenAI base configuration → Vector store sync.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_license_active">
                 <source>Active</source>
@@ -136,8 +136,8 @@
                 <target>Action required</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_manual_note">
-                <source>A manual sync via "Run sync now" works independently of this, as soon as the remaining prerequisites are met.</source>
-                <target>A manual sync via "Run sync now" works independently of this, as soon as the remaining prerequisites are met.</target>
+                <source>A manual sync via "Run manual sync now" works independently of this, as soon as the remaining prerequisites are met.</source>
+                <target>A manual sync via "Run manual sync now" works independently of this, as soon as the remaining prerequisites are met.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_copy">
                 <source>Copy</source>
@@ -172,8 +172,8 @@
                 <target>Not used (manual mode)</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_not_used_hint">
-                <source>This configuration syncs only when you click “Run sync now”. No server cron is required.</source>
-                <target>This configuration syncs only when you click “Run sync now”. No server cron is required.</target>
+                <source>This configuration syncs only when you click “Run manual sync now”. No server cron is required.</source>
+                <target>This configuration syncs only when you click “Run manual sync now”. No server cron is required.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_schedule_manual">
                 <source>Manual only</source>
@@ -188,8 +188,8 @@
                 <target>Manual sync button unavailable on this server</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_no_proc_open_warning">
-                <source>This server disables PHP process spawning (proc_open), so the “Run sync now” button cannot start the sync. Run it from the command line instead (e.g. via SSH or a one-off cron task):</source>
-                <target>This server disables PHP process spawning (proc_open), so the “Run sync now” button cannot start the sync. Run it from the command line instead (e.g. via SSH or a one-off cron task):</target>
+                <source>This server disables PHP process spawning (proc_open), so the “Run manual sync now” button cannot start the sync. Run it from the command line instead (e.g. via SSH or a one-off cron task):</source>
+                <target>This server disables PHP process spawning (proc_open), so the “Run manual sync now” button cannot start the sync. Run it from the command line instead (e.g. via SSH or a one-off cron task):</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_sync_error">
                 <source>Error</source>
@@ -436,8 +436,8 @@
                 <target>Stop the automatic synchronisation for this configuration? No further scheduled syncs will run until you re-enable it in the OpenAI configuration.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_stopped_confirm">
-                <source>Automatic synchronisation stopped. Re-enable it any time in the OpenAI configuration under "Vector store sync".</source>
-                <target>Automatic synchronisation stopped. Re-enable it any time in the OpenAI configuration under "Vector store sync".</target>
+                <source>Automatic synchronisation stopped. Re-enable it any time under AI Tools → OpenAI Dashboard → OpenAI base configuration → Vector store sync.</source>
+                <target>Automatic synchronisation stopped. Re-enable it any time under AI Tools → OpenAI Dashboard → OpenAI base configuration → Vector store sync.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_stop_hint">
                 <source>"Stop automatic sync" unticks "Enable sync" in the OpenAI configuration. Re-enable it there whenever you want scheduled syncs to resume.</source>
@@ -452,8 +452,8 @@
                 <target>Manual sync dispatched to CLI. Refresh this page in a few minutes.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_no_indexed_pages">
-                <source>No indexed pages found for this site root (tl_search is empty). Run System → Maintenance → Rebuild search index. If pages are still missing, check whether they carry robots=noindex or Search indexer=Never index - set Search indexer=Always index on those page records to force-include them in both Contao search and the vector store.</source>
-                <target>No indexed pages found for this site root (tl_search is empty). Run System → Maintenance → Rebuild search index. If pages are still missing, check whether they carry robots=noindex or Search indexer=Never index - set Search indexer=Always index on those page records to force-include them in both Contao search and the vector store.</target>
+                <source>No indexed pages found for this site root (tl_search is empty). Run System → Maintenance → "Update the search index". If pages are still missing, check whether they carry robots=noindex or Search indexer=Never index - set Search indexer=Always index on those page records to force-include them in both Contao search and the vector store.</source>
+                <target>No indexed pages found for this site root (tl_search is empty). Run System → Maintenance → "Update the search index". If pages are still missing, check whether they carry robots=noindex or Search indexer=Never index - set Search indexer=Always index on those page records to force-include them in both Contao search and the vector store.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_empty_document_raw">
                 <source>No page content found to upload; aborting before replacing the existing file.</source>
@@ -468,8 +468,8 @@
                 <target>No vector store ID configured. Complete the file upload workflow or set a vector store ID first.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_multiple_roots">
-                <source>Multiple site roots detected. Select the pages to keep updated in OpenAI Configuration → Vector store sync.</source>
-                <target>Multiple site roots detected. Select the pages to keep updated in OpenAI Configuration → Vector store sync.</target>
+                <source>Multiple site roots detected. Select the pages to keep updated under AI Tools → OpenAI Dashboard → OpenAI base configuration → Vector store sync.</source>
+                <target>Multiple site roots detected. Select the pages to keep updated under AI Tools → OpenAI Dashboard → OpenAI base configuration → Vector store sync.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_temp_file">
                 <source>Could not create a temporary file for the upload.</source>
@@ -508,8 +508,8 @@
                 <target>OpenAI configuration %1$s not found.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_no_api_key">
-                <source>No usable OpenAI API key for configuration %1$s. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard).</source>
-                <target>No usable OpenAI API key for configuration %1$s. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard).</target>
+                <source>No usable OpenAI API key for configuration %1$s. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard → OpenAI base configuration).</source>
+                <target>No usable OpenAI API key for configuration %1$s. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard → OpenAI base configuration).</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_invalid_page">
                 <source>Invalid page selected for auto-update (ID %1$s).</source>
@@ -528,16 +528,16 @@
                 <target>No vector store exists yet. Upload one document once via AI Tools → OpenAI Dashboard → File upload; this automatically creates the vector store.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_crawl_page">
-                <source>No pages selected. Choose the pages to keep updated in the OpenAI configuration (AI Tools → OpenAI Dashboard) under "Vector store sync".</source>
-                <target>No pages selected. Choose the pages to keep updated in the OpenAI configuration (AI Tools → OpenAI Dashboard) under "Vector store sync".</target>
+                <source>No pages selected. Choose the pages to keep updated under AI Tools → OpenAI Dashboard → OpenAI base configuration → Vector store sync.</source>
+                <target>No pages selected. Choose the pages to keep updated under AI Tools → OpenAI Dashboard → OpenAI base configuration → Vector store sync.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_indexed_pages">
                 <source><![CDATA[No pages in the search index yet. Update the search index under System → Maintenance → "Update the search index" before the first sync.<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></source>
                 <target><![CDATA[No pages in the search index yet. Update the search index under System → Maintenance → "Update the search index" before the first sync.<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_api_key">
-                <source>No usable OpenAI API key. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard).</source>
-                <target>No usable OpenAI API key. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard).</target>
+                <source>No usable OpenAI API key. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard → OpenAI base configuration).</source>
+                <target>No usable OpenAI API key. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard → OpenAI base configuration).</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_invalid_config">
                 <source>Invalid or disabled configuration.</source>

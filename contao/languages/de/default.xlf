@@ -52,8 +52,8 @@
                 <target>Noch keine Konfiguration mit automatischer Synchronisierung aktiviert.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_no_config_hint">
-                <source>Enable it in AI Tools → OpenAI Configuration → Vector store sync.</source>
-                <target>Aktivieren Sie diese unter KI-Tools → OpenAI-Konfiguration → Vector-Store-Synchronisierung.</target>
+                <source>Enable it in AI Tools → OpenAI Dashboard → OpenAI base configuration → Vector store sync.</source>
+                <target>Aktivieren Sie diese unter KI-Tools → OpenAI Dashboard → OpenAI-Basiskonfiguration → Vector-Store-Synchronisierung.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_license_active">
                 <source>Active</source>
@@ -136,8 +136,8 @@
                 <target>Aktion erforderlich</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_manual_note">
-                <source>A manual sync via "Run sync now" works independently of this, as soon as the remaining prerequisites are met.</source>
-                <target>Eine manuelle Synchronisierung über „Jetzt synchronisieren" ist davon unabhängig möglich, sobald die übrigen Voraussetzungen erfüllt sind.</target>
+                <source>A manual sync via "Run manual sync now" works independently of this, as soon as the remaining prerequisites are met.</source>
+                <target>Eine manuelle Synchronisierung über „Jetzt manuell synchronisieren" ist davon unabhängig möglich, sobald die übrigen Voraussetzungen erfüllt sind.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_copy">
                 <source>Copy</source>
@@ -172,8 +172,8 @@
                 <target>Nicht verwendet (manueller Modus)</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_not_used_hint">
-                <source>This configuration syncs only when you click “Run sync now”. No server cron is required.</source>
-                <target>Diese Konfiguration synchronisiert nur, wenn Sie „Jetzt synchronisieren“ klicken. Es ist kein Server-Cron erforderlich.</target>
+                <source>This configuration syncs only when you click “Run manual sync now”. No server cron is required.</source>
+                <target>Diese Konfiguration synchronisiert nur, wenn Sie „Jetzt manuell synchronisieren“ klicken. Es ist kein Server-Cron erforderlich.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_schedule_manual">
                 <source>Manual only</source>
@@ -185,11 +185,11 @@
             </trans-unit>
             <trans-unit id="MSC.vsau_no_proc_open_heading">
                 <source>Manual sync button unavailable on this server</source>
-                <target>Schaltfläche „Jetzt synchronisieren“ auf diesem Server nicht verfügbar</target>
+                <target>Schaltfläche „Jetzt manuell synchronisieren“ auf diesem Server nicht verfügbar</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_no_proc_open_warning">
-                <source>This server disables PHP process spawning (proc_open), so the “Run sync now” button cannot start the sync. Run it from the command line instead (e.g. via SSH or a one-off cron task):</source>
-                <target>Auf diesem Server ist das Starten von PHP-Prozessen (proc_open) deaktiviert, daher kann die Schaltfläche „Jetzt synchronisieren“ die Synchronisierung nicht starten. Führen Sie sie stattdessen über die Kommandozeile aus (z. B. per SSH oder als einmalige Cron-Aufgabe):</target>
+                <source>This server disables PHP process spawning (proc_open), so the “Run manual sync now” button cannot start the sync. Run it from the command line instead (e.g. via SSH or a one-off cron task):</source>
+                <target>Auf diesem Server ist das Starten von PHP-Prozessen (proc_open) deaktiviert, daher kann die Schaltfläche „Jetzt manuell synchronisieren“ die Synchronisierung nicht starten. Führen Sie sie stattdessen über die Kommandozeile aus (z. B. per SSH oder als einmalige Cron-Aufgabe):</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_sync_error">
                 <source>Error</source>
@@ -436,8 +436,8 @@
                 <target>Automatische Synchronisierung für diese Konfiguration stoppen? Es werden keine geplanten Synchronisierungen mehr ausgeführt, bis Sie sie in der OpenAI-Konfiguration wieder aktivieren.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_stopped_confirm">
-                <source>Automatic synchronisation stopped. Re-enable it any time in the OpenAI configuration under "Vector store sync".</source>
-                <target>Automatische Synchronisierung gestoppt. Sie können sie jederzeit in der OpenAI-Konfiguration unter „Vector-Store-Synchronisierung“ wieder aktivieren.</target>
+                <source>Automatic synchronisation stopped. Re-enable it any time under AI Tools → OpenAI Dashboard → OpenAI base configuration → Vector store sync.</source>
+                <target>Automatische Synchronisierung gestoppt. Sie können sie jederzeit unter KI-Tools → OpenAI Dashboard → OpenAI-Basiskonfiguration → „Vector-Store-Synchronisierung“ wieder aktivieren.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_stop_hint">
                 <source>"Stop automatic sync" unticks "Enable sync" in the OpenAI configuration. Re-enable it there whenever you want scheduled syncs to resume.</source>
@@ -452,8 +452,8 @@
                 <target>Manuelle Synchronisierung an die CLI übergeben. Aktualisieren Sie diese Seite in einigen Minuten.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_no_indexed_pages">
-                <source>No indexed pages found for this site root (tl_search is empty). Run System → Maintenance → Rebuild search index. If pages are still missing, check whether they carry robots=noindex or Search indexer=Never index - set Search indexer=Always index on those page records to force-include them in both Contao search and the vector store.</source>
-                <target>Für diese Website wurden keine indexierten Seiten gefunden (tl_search ist leer). Aktualisieren Sie den Suchindex unter System → Wartung → „Suchindex aktualisieren“. Fehlen Seiten weiterhin, prüfen Sie robots=noindex oder Suchindexer=„Nie indexieren“ - setzen Sie auf den betroffenen Seiten Suchindexer=„Immer indexieren“, um sie in Contao-Suche und Vector Store aufzunehmen.</target>
+                <source>No indexed pages found for this site root (tl_search is empty). Run System → Maintenance → "Update the search index". If pages are still missing, check whether they carry robots=noindex or Search indexer=Never index - set Search indexer=Always index on those page records to force-include them in both Contao search and the vector store.</source>
+                <target>Für diese Website wurden keine indexierten Seiten gefunden (tl_search ist leer). Aktualisieren Sie den Suchindex unter System → Systemwartung → „Den Suchindex aktualisieren“. Fehlen Seiten weiterhin, prüfen Sie robots=noindex oder Suchindexer=„Nie indexieren“ - setzen Sie auf den betroffenen Seiten Suchindexer=„Immer indexieren“, um sie in Contao-Suche und Vector Store aufzunehmen.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_empty_document_raw">
                 <source>No page content found to upload; aborting before replacing the existing file.</source>
@@ -468,8 +468,8 @@
                 <target>Keine Vector-Store-ID konfiguriert. Schließen Sie zuerst den Datei-Upload ab oder tragen Sie eine Vector-Store-ID ein.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_multiple_roots">
-                <source>Multiple site roots detected. Select the pages to keep updated in OpenAI Configuration → Vector store sync.</source>
-                <target>Mehrere Website-Startpunkte erkannt. Wählen Sie die zu aktualisierenden Seiten in der OpenAI-Konfiguration unter „Vector-Store-Synchronisierung“.</target>
+                <source>Multiple site roots detected. Select the pages to keep updated under AI Tools → OpenAI Dashboard → OpenAI base configuration → Vector store sync.</source>
+                <target>Mehrere Website-Startpunkte erkannt. Wählen Sie die zu aktualisierenden Seiten unter KI-Tools → OpenAI Dashboard → OpenAI-Basiskonfiguration → „Vector-Store-Synchronisierung“.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_temp_file">
                 <source>Could not create a temporary file for the upload.</source>
@@ -508,8 +508,8 @@
                 <target>OpenAI-Konfiguration %1$s nicht gefunden.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_no_api_key">
-                <source>No usable OpenAI API key for configuration %1$s. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard).</source>
-                <target>Kein verwendbarer OpenAI-API-Schlüssel für Konfiguration %1$s. Bitte geben Sie den API-Schlüssel in der OpenAI-Konfiguration (KI-Tools → OpenAI Dashboard) neu ein und speichern Sie die Konfiguration.</target>
+                <source>No usable OpenAI API key for configuration %1$s. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard → OpenAI base configuration).</source>
+                <target>Kein verwendbarer OpenAI-API-Schlüssel für Konfiguration %1$s. Bitte geben Sie den API-Schlüssel in der OpenAI-Konfiguration (KI-Tools → OpenAI Dashboard → OpenAI-Basiskonfiguration) neu ein und speichern Sie die Konfiguration.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_invalid_page">
                 <source>Invalid page selected for auto-update (ID %1$s).</source>
@@ -524,20 +524,20 @@
                 <target>OpenAI-Chat-Completion fehlgeschlagen (HTTP %1$s): %2$s</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_vector_store">
-                <source>No vector store exists yet. Upload one document once via AI Tools → OpenAI Configuration → File upload; this automatically creates the vector store.</source>
+                <source>No vector store exists yet. Upload one document once via AI Tools → OpenAI Dashboard → File upload; this automatically creates the vector store.</source>
                 <target>Es ist noch kein Vector Store vorhanden. Laden Sie einmalig ein Dokument über KI-Tools → OpenAI Dashboard → Datei-Upload hoch. Dabei wird der Vector Store automatisch angelegt.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_crawl_page">
-                <source>No pages selected. Choose the pages to keep updated under AI Tools → OpenAI Configuration → Vector store sync → "Pages to keep updated".</source>
-                <target>Es sind keine Seiten ausgewählt. Wählen Sie die zu aktualisierenden Seiten in der OpenAI-Konfiguration (KI-Tools → OpenAI Dashboard) unter „Vector-Store-Synchronisierung".</target>
+                <source>No pages selected. Choose the pages to keep updated under AI Tools → OpenAI Dashboard → OpenAI base configuration → Vector store sync.</source>
+                <target>Es sind keine Seiten ausgewählt. Wählen Sie die zu aktualisierenden Seiten unter KI-Tools → OpenAI Dashboard → OpenAI-Basiskonfiguration → „Vector-Store-Synchronisierung".</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_indexed_pages">
                 <source><![CDATA[No pages in the search index yet. Update the search index under System → Maintenance → "Update the search index" before the first sync.<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></source>
-                <target><![CDATA[Es sind noch keine Seiten im Suchindex. Aktualisieren Sie den Suchindex unter System → Wartung → „Suchindex aktualisieren", bevor Sie die erste Synchronisierung starten.<br>Prüfen Sie dazu auch die relevanten Seiteneinstellungen „Robots-Tag" und „Diese Seite nicht durchsuchen" (Contao 5.3) bzw. „Suchindexer" (Contao 5.7).]]></target>
+                <target><![CDATA[Es sind noch keine Seiten im Suchindex. Aktualisieren Sie den Suchindex unter System → Systemwartung → „Den Suchindex aktualisieren", bevor Sie die erste Synchronisierung starten.<br>Prüfen Sie dazu auch die relevanten Seiteneinstellungen „Robots-Tag" und „Diese Seite nicht durchsuchen" (Contao 5.3) bzw. „Suchindexer" (Contao 5.7).]]></target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_api_key">
-                <source>No usable OpenAI API key. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard).</source>
-                <target>Kein verwendbarer OpenAI-API-Schlüssel. Bitte geben Sie den API-Schlüssel in der OpenAI-Konfiguration (KI-Tools → OpenAI Dashboard) neu ein und speichern Sie die Konfiguration.</target>
+                <source>No usable OpenAI API key. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard → OpenAI base configuration).</source>
+                <target>Kein verwendbarer OpenAI-API-Schlüssel. Bitte geben Sie den API-Schlüssel in der OpenAI-Konfiguration (KI-Tools → OpenAI Dashboard → OpenAI-Basiskonfiguration) neu ein und speichern Sie die Konfiguration.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_invalid_config">
                 <source>Invalid or disabled configuration.</source>

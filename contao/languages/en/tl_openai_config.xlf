@@ -310,16 +310,16 @@
                 <target>First sync</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.first_sync_hint_cron">
-                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs run automatically on your schedule.</source>
-                <target>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs run automatically on your schedule.</target>
+                <source>Start the first sync via the “Run manual sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs run automatically on your schedule.</source>
+                <target>Start the first sync via the “Run manual sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs run automatically on your schedule.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.first_sync_hint_nocron">
-                <source>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs require a CLI cron job (contao:cron) on your server.</source>
-                <target>Start the first sync via the “Run sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs require a CLI cron job (contao:cron) on your server.</target>
+                <source>Start the first sync via the “Run manual sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs require a CLI cron job (contao:cron) on your server.</source>
+                <target>Start the first sync via the “Run manual sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs require a CLI cron job (contao:cron) on your server.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.first_sync_hint_manual">
-                <source>Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met.</source>
-                <target>Manual mode: start the first sync via the “Run sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met.</target>
+                <source>Manual mode: start the first sync via the “Run manual sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met.</source>
+                <target>Manual mode: start the first sync via the “Run manual sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.first_sync_hint_delete_initial">
                 <source>After the first successful sync you can delete the initially uploaded file in «File upload» so its content does not influence the chatbot's answers.</source>
@@ -334,8 +334,8 @@
                 <target>Synchronization trigger</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_trigger.1">
-                <source><![CDATA[<strong>Scheduled (default):</strong> start the first sync manually on the Vector Store Sync page; from the second run onward, sync follows the schedule below. Requires a working server cron (<code>contao:cron</code>).<br><br><strong>Manual only:</strong> the sync never runs automatically and needs no server cron at all - you start it yourself with the "Run sync now" button on the AI Tools -> Vector Store Sync page. Ideal for small sites that change rarely.]]></source>
-                <target><![CDATA[<strong>Scheduled (default):</strong> start the first sync manually on the Vector Store Sync page; from the second run onward, sync follows the schedule below. Requires a working server cron (<code>contao:cron</code>).<br><br><strong>Manual only:</strong> the sync never runs automatically and needs no server cron at all - you start it yourself with the "Run sync now" button on the AI Tools -> Vector Store Sync page. Ideal for small sites that change rarely.]]></target>
+                <source><![CDATA[<strong>Scheduled (default):</strong> start the first sync manually on the AI Tools → OpenAI vector store auto-update page; from the second run onward, sync follows the schedule below. Requires a working server cron (<code>contao:cron</code>).<br><br><strong>Manual only:</strong> the sync never runs automatically and needs no server cron at all - you start it yourself with the "Run manual sync now" button on the AI Tools → OpenAI vector store auto-update page. Ideal for small sites that change rarely.]]></source>
+                <target><![CDATA[<strong>Scheduled (default):</strong> start the first sync manually on the AI Tools → OpenAI vector store auto-update page; from the second run onward, sync follows the schedule below. Requires a working server cron (<code>contao:cron</code>).<br><br><strong>Manual only:</strong> the sync never runs automatically and needs no server cron at all - you start it yourself with the "Run manual sync now" button on the AI Tools → OpenAI vector store auto-update page. Ideal for small sites that change rarely.]]></target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_trigger_ref.scheduled">
                 <source>Scheduled (automatic, needs server cron)</source>
