@@ -364,7 +364,12 @@ class VectorStoreAutoUpdateService
 
             $rows = $this->readAllPages($configId);
             if (0 === \count($rows)) {
-                throw new \RuntimeException('MSC.vsau_err_no_indexed_pages');
+                // With an explicit selection, "tl_search is empty" would often be false -
+                // the index may have rows, just none for the picked pages. Report the
+                // selection-scoped cause (usually a missing root domain name) instead.
+                $hasSelection = [] !== self::parseConfiguredPageIds($config['auto_update_site_root'] ?? null);
+
+                throw new \RuntimeException($hasSelection ? 'MSC.vsau_err_selected_not_indexed' : 'MSC.vsau_err_no_indexed_pages');
             }
 
             // Safe boilerplate removal: only strips text repeated across many pages.
@@ -543,10 +548,22 @@ class VectorStoreAutoUpdateService
      */
     public function countScopePages(mixed $configValue): int
     {
+        return $this->countContentPages($this->resolveScopePageIds($configValue));
+    }
+
+    /**
+     * Resolve the effective sync scope to page ids: the explicit selection, or the
+     * whole subtree when exactly one domain root exists. Empty when the scope
+     * cannot be determined (no selection and not exactly one root with a domain).
+     *
+     * @return list<int>
+     */
+    public function resolveScopePageIds(mixed $configValue): array
+    {
         $selectedPageIds = self::parseConfiguredPageIds($configValue);
 
         if ([] !== $selectedPageIds) {
-            return $this->countContentPages($selectedPageIds);
+            return $selectedPageIds;
         }
 
         $roots = $this->connection->fetchAllAssociative(
@@ -554,10 +571,10 @@ class VectorStoreAutoUpdateService
         );
 
         if (1 !== \count($roots)) {
-            return 0;
+            return [];
         }
 
-        return $this->countContentPages(array_unique($this->collectPageSubtreeIds((int) $roots[0]['id'])));
+        return array_values(array_unique($this->collectPageSubtreeIds((int) $roots[0]['id'])));
     }
 
     /**

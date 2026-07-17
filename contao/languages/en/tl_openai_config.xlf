@@ -430,8 +430,8 @@
                 <target>Select the pages whose content should be updated automatically in the vector store</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_site_root.1">
-                <source><![CDATA[Select the pages whose content should be synced into the chatbot's knowledge base.<br>The total number of selected pages must not exceed your subscription's page limit.<br>For installations with only one website root you can leave this field empty to use the entire website.]]></source>
-                <target><![CDATA[Select the pages whose content should be synced into the chatbot's knowledge base.<br>The total number of selected pages must not exceed your subscription's page limit.<br>For installations with only one website root you can leave this field empty to use the entire website.]]></target>
+                <source><![CDATA[Select the pages whose content should be synced into the chatbot's knowledge base.<br>The total number of selected pages must not exceed your subscription's page limit.<br>For installations with exactly one website root you can leave this field empty to use the entire website.<br>Important: the website root needs a domain name so the crawler can index the pages for the sync.]]></source>
+                <target><![CDATA[Select the pages whose content should be synced into the chatbot's knowledge base.<br>The total number of selected pages must not exceed your subscription's page limit.<br>For installations with exactly one website root you can leave this field empty to use the entire website.<br>Important: the website root needs a domain name so the crawler can index the pages for the sync.]]></target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_pages_over_limit">
                 <source>Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.</source>

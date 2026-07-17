@@ -19,6 +19,7 @@ use Contao\CoreBundle\Security\ContaoCorePermissions;
 use Contao\Message;
 use Cron\CronExpression;
 use Cron\FieldFactory;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\CronHealthService;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicensePortalUrlService;
@@ -530,9 +531,25 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             $warnings[] = $this->translator->trans('MSC.vsau_warn_no_crawl_page', [], 'contao_default');
         }
 
-        $indexed = (int) $this->connection->fetchOne('SELECT COUNT(*) FROM tl_search');
+        // Scope the index check to what the sync would actually read (selected pages,
+        // or the single-domain-root subtree) - a globally non-empty tl_search says
+        // nothing when none of its rows belong to the effective scope. Falls back to
+        // the global count when the scope is unresolvable (that state already warns above).
+        $scopeIds = $this->service->resolveScopePageIds($config['auto_update_site_root'] ?? null);
+
+        if ([] !== $scopeIds) {
+            $indexed = (int) $this->connection->fetchOne(
+                'SELECT COUNT(*) FROM tl_search WHERE pid IN (?)',
+                [$scopeIds],
+                [ArrayParameterType::INTEGER],
+            );
+        } else {
+            $indexed = (int) $this->connection->fetchOne('SELECT COUNT(*) FROM tl_search');
+        }
+
         if (0 === $indexed) {
-            $warnings[] = $this->translator->trans('MSC.vsau_warn_no_indexed_pages', [], 'contao_default');
+            $key = $hasStartPage ? 'MSC.vsau_warn_selected_not_indexed' : 'MSC.vsau_warn_no_indexed_pages';
+            $warnings[] = $this->translator->trans($key, [], 'contao_default');
         }
 
         return $warnings;

@@ -463,6 +463,10 @@
                 <source>The model returned an empty document; aborting before replacing the existing file.</source>
                 <target>The model returned an empty document; aborting before replacing the existing file.</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_err_selected_not_indexed">
+                <source>None of the selected pages were found in the search index. Make sure the website root has a domain name, update the search index under System → Maintenance → "Update the search index", and check the page settings "Robots tag" (or "Search indexer" in Contao 5.7) on the affected pages.</source>
+                <target>None of the selected pages were found in the search index. Make sure the website root has a domain name, update the search index under System → Maintenance → "Update the search index", and check the page settings "Robots tag" (or "Search indexer" in Contao 5.7) on the affected pages.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_err_no_vector_store_sync">
                 <source>No vector store ID configured. Complete the file upload workflow or set a vector store ID first.</source>
                 <target>No vector store ID configured. Complete the file upload workflow or set a vector store ID first.</target>
@@ -538,6 +542,10 @@
             <trans-unit id="MSC.vsau_warn_no_api_key">
                 <source>No usable OpenAI API key. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard → OpenAI base configuration).</source>
                 <target>No usable OpenAI API key. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard → OpenAI base configuration).</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_warn_selected_not_indexed">
+                <source><![CDATA[None of the selected pages are in the search index yet. Make sure the website root has a domain name, then update the search index under System → Maintenance → "Update the search index".<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></source>
+                <target><![CDATA[None of the selected pages are in the search index yet. Make sure the website root has a domain name, then update the search index under System → Maintenance → "Update the search index".<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_invalid_config">
                 <source>Invalid or disabled configuration.</source>

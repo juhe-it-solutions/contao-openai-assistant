@@ -453,7 +453,7 @@
             </trans-unit>
             <trans-unit id="MSC.vsau_err_no_indexed_pages">
                 <source>No indexed pages found for this site root (tl_search is empty). Run System → Maintenance → "Update the search index". If pages are still missing, check whether they carry robots=noindex or Search indexer=Never index - set Search indexer=Always index on those page records to force-include them in both Contao search and the vector store.</source>
-                <target>Für diese Website wurden keine indexierten Seiten gefunden (tl_search ist leer). Aktualisieren Sie den Suchindex unter System → Systemwartung → „Den Suchindex aktualisieren“. Fehlen Seiten weiterhin, prüfen Sie robots=noindex oder Suchindexer=„Nie indexieren“ - setzen Sie auf den betroffenen Seiten Suchindexer=„Immer indexieren“, um sie in Contao-Suche und Vector Store aufzunehmen.</target>
+                <target>Für diese Website wurden keine indexierten Seiten gefunden (tl_search ist leer). Aktualisieren Sie den Suchindex unter System → Systemwartung → „Den Suchindex aktualisieren“. Fehlen Seiten weiterhin, prüfen Sie robots=noindex oder Suchindexer=„Nie indexieren“ - setzen Sie auf den betroffenen Seiten Suchindexer=„Immer indexieren“, um sie in die Contao-Suche und den Vector Store aufzunehmen.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_empty_document_raw">
                 <source>No page content found to upload; aborting before replacing the existing file.</source>
@@ -462,6 +462,10 @@
             <trans-unit id="MSC.vsau_err_empty_document_llm">
                 <source>The model returned an empty document; aborting before replacing the existing file.</source>
                 <target>Das Modell hat ein leeres Dokument zurückgegeben; der vorhandenen Datei wird nicht ersetzt.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_selected_not_indexed">
+                <source>None of the selected pages were found in the search index. Make sure the website root has a domain name, update the search index under System → Maintenance → "Update the search index", and check the page settings "Robots tag" (or "Search indexer" in Contao 5.7) on the affected pages.</source>
+                <target>Keine der ausgewählten Seiten wurde im Suchindex gefunden. Stellen Sie sicher, dass der Startpunkt der Webseite einen Domainnamen hat, aktualisieren Sie den Suchindex unter System → Systemwartung → „Den Suchindex aktualisieren“ und prüfen Sie auf den betroffenen Seiten die Einstellungen „Robots-Tag“ bzw. „Suchindexer“ (Contao 5.7).</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_no_vector_store_sync">
                 <source>No vector store ID configured. Complete the file upload workflow or set a vector store ID first.</source>
@@ -538,6 +542,10 @@
             <trans-unit id="MSC.vsau_warn_no_api_key">
                 <source>No usable OpenAI API key. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard → OpenAI base configuration).</source>
                 <target>Kein verwendbarer OpenAI-API-Schlüssel. Bitte geben Sie den API-Schlüssel in der OpenAI-Konfiguration (KI-Tools → OpenAI Dashboard → OpenAI-Basiskonfiguration) neu ein und speichern Sie die Konfiguration.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_warn_selected_not_indexed">
+                <source><![CDATA[None of the selected pages are in the search index yet. Make sure the website root has a domain name, then update the search index under System → Maintenance → "Update the search index".<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></source>
+                <target><![CDATA[Keine der ausgewählten Seiten ist bisher im Suchindex. Stellen Sie sicher, dass der Startpunkt der Webseite einen Domainnamen hat, und aktualisieren Sie dann den Suchindex unter System → Systemwartung → „Den Suchindex aktualisieren“.<br>Prüfen Sie dazu auch die relevanten Seiteneinstellungen „Robots-Tag“ und „Diese Seite nicht durchsuchen“ (Contao 5.3) bzw. „Suchindexer“ (Contao 5.7).]]></target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_invalid_config">
                 <source>Invalid or disabled configuration.</source>

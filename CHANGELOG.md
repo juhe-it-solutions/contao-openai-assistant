@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The first-sync hint in the vector store sync settings was partly invisible in the Contao backend (bare text nodes are not rendered there). The hint is fully visible again, points to the dashboard's setup checklist for the prerequisites, and links to the dashboard with a button.
 - The prompt template field is now disabled while the indexing mode is "faithful" - the template has no effect in that mode - and is no longer re-enabled by the license check script. The stored template survives saves made in faithful mode and becomes editable again in "AI-polished" mode.
 
+### Fixed (setup checks)
+- The sync dashboard's search-index check is now scoped to the pages the sync would actually read (selected pages, or the single site root's subtree). Previously a globally non-empty search index could show "All set" although none of the selected pages were indexed, and the sync then failed.
+- When a sync finds none of the selected pages in the search index, the error now names the selection-scoped cause (including the domain-name requirement) instead of wrongly claiming the whole search index is empty.
+- The page picker help text now mentions that the website root needs a domain name so the crawler can index pages for the sync.
+
 ### Changed
 - The sync dashboard now shows the license tier badge in all active license states (grace period, payment problem, cancelled but still running, trial, active) - previously it was missing e.g. for subscriptions cancelled at period end.
 - The "No usable OpenAI API key" sync error now explains how to fix it (re-enter and save the key in the OpenAI configuration).
