@@ -500,8 +500,8 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
     }
 
     /**
-     * Non-blocking prerequisite warnings (§10.5). Returned as a list of
-     * translated strings.
+     * Prerequisite warnings for the sync dashboard. Any non-empty list blocks the
+     * manual "Run sync now" button (see $config['blocking'] in __invoke()).
      *
      * @param array<string, mixed> $config
      *
