@@ -36,6 +36,7 @@ $GLOBALS['TL_LANG']['mod_ai_chat'] = [
     'js_initial_message_fallback' => 'Hello! How can I help you?',
     'js_error_generic'          => 'An error occurred. Please try again.',
     'js_error_reload_page'      => 'Please reload the page and try again.',
+    'js_error_timeout'          => 'The answer is taking longer than expected. Please try again in a moment.',
     'js_link_label_download'    => 'Download',
     'js_link_label_page'        => 'Visit page',
 

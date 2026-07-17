@@ -100,6 +100,7 @@ class AiChatModuleController extends AbstractFrontendModuleController
             'initial_message_fallback' => $lang['js_initial_message_fallback'] ?? 'Hello! How can I help you?',
             'error_generic' => $lang['js_error_generic'] ?? 'An error occurred. Please try again.',
             'error_reload_page' => $lang['js_error_reload_page'] ?? 'Please reload the page and try again.',
+            'error_timeout' => $lang['js_error_timeout'] ?? 'The answer is taking longer than expected. Please try again in a moment.',
             'link_label_download' => $lang['js_link_label_download'] ?? 'Download',
             'link_label_page' => $lang['js_link_label_page'] ?? 'Visit page',
         ];

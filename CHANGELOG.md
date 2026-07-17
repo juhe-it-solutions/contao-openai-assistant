@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **New prompt setting "Search results per question"** (default: 8, range 1-20). Controls how many text sections from the synced website content the AI may read per answer. Lower values keep answers focused and reduce cost per question; higher values help with broad questions that combine content from many pages (e.g. intranet research). Previously every question always retrieved up to 20 sections.
+- A pseudonymous per-visitor identifier (SHA-256 hash of the session id, not reversible) is sent to OpenAI as `safety_identifier`, so potential abuse is attributed to a single visitor instead of the site owner's whole API key.
+
+### Fixed
+- **Long chats no longer fail with "Service temporarily unavailable".** Once the stored conversation (including the retrieved website excerpts of earlier turns) outgrew the model's context window, OpenAI rejected every further question with HTTP 400 - especially quickly on smaller models such as gpt-4o-mini. Responses are now requested with `truncation: auto`, so OpenAI trims the oldest turns instead of failing, and if a request is still rejected the chat transparently continues on a fresh conversation instead of showing an error.
+- **A stale conversation no longer breaks the chat until the session expires.** If the stored conversation is gone on OpenAI's side (deleted, expired, or the API key was switched to another account), the chat now transparently continues on a fresh conversation. Switching the active configuration also proactively starts a new conversation instead of producing "not found" errors.
+- **Models that reject `temperature`/`top_p` (e.g. reasoning models) work now.** The rejected parameter is stripped and the call repeated; the rejection is remembered per model so only the first message after a model switch pays an extra (unbilled) round-trip. The model dropdown also no longer offers models that cannot power a text chat (audio, image, video, embedding, moderation).
+- **Reloading a long chat now shows the latest messages.** The history restore previously loaded the oldest 100 conversation items, so long conversations reappeared without their newest turns.
+- Transient OpenAI failures (connection failures before the request was processed, HTTP 429/503) are retried once after a short backoff instead of immediately showing an error. Timeouts are deliberately not retried to avoid processing a message twice.
+- The Responses call now has a wall-clock time cap (previously only an inactivity timeout), and the chat widget shows a friendly "taking too long" message (DE/EN) after 2 minutes instead of a spinner that runs until a proxy gives up.
+
+### Changed
+- CI now tests against both supported Contao lines: 5.3 LTS on PHP 8.2 and 5.7 on PHP 8.3 (the end-of-life 5.4-5.6 lines are no longer resolved into any CI job).
+
+### Notes
+- Run `contao:migrate` after updating (new `tl_openai_prompts.max_num_results` column). The chat itself works before the migration (the new setting then uses its default of 8), but editing prompts in the backend requires the migrated schema.
+- Visitors chatting during the upgrade keep their running conversation - existing sessions are adopted, not reset.
+
 ## [2.1.2] - 2026-07-18
 
 ### Fixed

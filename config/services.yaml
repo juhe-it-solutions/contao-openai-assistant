@@ -41,12 +41,14 @@ services:
     JuheItSolutions\ContaoOpenaiAssistant\Controller\FrontendModule\AiChatModuleController:
         public: true
 
-    # OpenAI Responder Service (Responses API + Conversations API)
+    # OpenAI Responder Service (Responses API + Conversations API); the cache
+    # remembers per-model parameter rejections across requests and workers
     JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiResponder:
         arguments:
             $http: '@http_client'
             $logger: '@monolog.logger.contao'
             $connection: '@doctrine.dbal.default_connection'
+            $cache: '@cache.app'
         public: true
 
     # Deprecated BC shim: keeps any 1.x customisations referring to OpenAiAssistant working until 2.1

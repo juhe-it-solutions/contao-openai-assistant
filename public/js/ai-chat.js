@@ -716,7 +716,12 @@ function initAiChat(wrapper) {
     addMsg('user', msg, new Date().toISOString());
     input.value = '';
     const tRow = typing();
-    
+
+    // Abort the request client-side after 2 minutes so the visitor gets a
+    // friendly message instead of a spinner that runs until a proxy gives up.
+    const abortCtrl = new AbortController();
+    const abortTimer = setTimeout(() => abortCtrl.abort(), 120000);
+
     try {
       let csrfToken = await ensureValidToken();
       const formDataString = `message=${encodeURIComponent(msg)}&REQUEST_TOKEN=${encodeURIComponent(csrfToken)}&language=${encodeURIComponent(userLanguage)}`;
@@ -729,7 +734,8 @@ function initAiChat(wrapper) {
           'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
         },
         credentials: 'same-origin',
-        body: formDataString
+        body: formDataString,
+        signal: abortCtrl.signal
       });
       
       let data;
@@ -756,7 +762,8 @@ function initAiChat(wrapper) {
               'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
             },
             credentials: 'same-origin',
-            body: retryFormDataString
+            body: retryFormDataString,
+            signal: abortCtrl.signal
           });
           
           let retryData;
@@ -796,7 +803,9 @@ function initAiChat(wrapper) {
     } catch (e) {
       console.error('Chat error:', e);
       tRow.remove();
-      addMsg('assistant', i18n.error_generic);
+      addMsg('assistant', e.name === 'AbortError'
+        ? (i18n.error_timeout || i18n.error_generic)
+        : i18n.error_generic);
       // Auto-focus input after error
       setTimeout(() => {
         if (input && !input.disabled) {
@@ -804,6 +813,7 @@ function initAiChat(wrapper) {
         }
       }, 100);
     } finally {
+      clearTimeout(abortTimer);
       input.disabled = false;
       if (sendBtn) sendBtn.removeAttribute('disabled');
       inFlight = false;

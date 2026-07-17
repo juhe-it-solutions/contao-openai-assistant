@@ -20,6 +20,14 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  */
 class OpenAiModelCatalogService
 {
+    /**
+     * Model ids that can never power a text chat (audio, image, video,
+     * embedding, moderation, ...). /v1/models returns the whole account
+     * catalog; offering these in the prompt settings only produces broken
+     * configurations. Chat-capable families (gpt-*, o*, chatgpt-*) pass.
+     */
+    private const NON_CHAT_MODEL_PATTERN = '/^(whisper|tts|dall-e|text-embedding|(omni-)?moderation|davinci|babbage|gpt-image|sora|computer-use)|(-audio|-realtime|-transcribe|-tts)/i';
+
     public function __construct(
         private readonly HttpClientInterface $httpClient,
         private readonly LoggerInterface $logger,
@@ -49,9 +57,16 @@ class OpenAiModelCatalogService
 
             if (isset($data['data']) && \is_array($data['data'])) {
                 foreach ($data['data'] as $model) {
-                    if (isset($model['id'])) {
-                        $models[(string) $model['id']] = (string) $model['id'];
+                    if (!isset($model['id'])) {
+                        continue;
                     }
+
+                    $id = (string) $model['id'];
+                    if (1 === preg_match(self::NON_CHAT_MODEL_PATTERN, $id)) {
+                        continue;
+                    }
+
+                    $models[$id] = $id;
                 }
             }
 

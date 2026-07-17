@@ -43,6 +43,14 @@
                 <source>Maximum number of output tokens per response (mapped to max_output_tokens on the Responses API).</source>
                 <target>Maximum number of output tokens per response (mapped to max_output_tokens on the Responses API).</target>
             </trans-unit>
+            <trans-unit id="tl_openai_prompts.max_num_results.0">
+                <source>Search results per question</source>
+                <target>Search results per question</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_prompts.max_num_results.1">
+                <source>How many text sections from your synced website content the AI may read to answer a single question (1–20). This does not limit how many questions visitors can ask. Lower values (4–8) keep answers focused and reduce cost per question; higher values (12–20) help with broad questions that combine content from many pages, e.g. intranet research. Default: 8.</source>
+                <target>How many text sections from your synced website content the AI may read to answer a single question (1–20). This does not limit how many questions visitors can ask. Lower values (4–8) keep answers focused and reduce cost per question; higher values (12–20) help with broad questions that combine content from many pages, e.g. intranet research. Default: 8.</target>
+            </trans-unit>
             <trans-unit id="tl_openai_prompts.temperature.0">
                 <source>Temperature</source>
                 <target>Temperature</target>
