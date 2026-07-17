@@ -187,8 +187,10 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             $config['next_run'] = $this->nextRun($config);
             $config['warnings'] = $this->prerequisiteWarnings($config);
             // A manual sync can run without the server cron, but not without a vector
-            // store, selected pages and an index. Those prerequisite warnings block it.
+            // store or selected pages. Those prerequisite warnings block it. Notices
+            // (e.g. an empty search index, which the sync's own crawl rebuilds) do not.
             $config['blocking'] = [] !== $config['warnings'];
+            $config['notices'] = $this->setupNotices($config);
             $config['plan_label'] = $this->planLabel($config);
             $schedule = (string) ($config['auto_update_schedule'] ?? '') ?: '0 2 * * *';
             $config['schedule_label'] = $this->humanReadableSchedule($schedule);
@@ -531,10 +533,39 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             $warnings[] = $this->translator->trans('MSC.vsau_warn_no_crawl_page', [], 'contao_default');
         }
 
+        // One license covers one domain. Warn (and thus block the run) when the selected
+        // scope spans more than one root-page domain - only distinct, non-empty domains of
+        // the selected pages' own roots count, so an unrelated second website in the same
+        // install and domain-less roots never trigger this.
+        if (\count($this->service->resolveScopeRootDomains($config['auto_update_site_root'] ?? null)) > 1) {
+            $warnings[] = $this->translator->trans('MSC.vsau_warn_multi_domain', [], 'contao_default');
+        }
+
+        return $warnings;
+    }
+
+    /**
+     * Non-blocking setup notices. Unlike prerequisiteWarnings(), these never disable
+     * the "Run sync now" button: every sync run (manual, scheduled or CLI) starts the
+     * Contao crawler itself and rebuilds the search index before reading it, so an
+     * empty tl_search is self-healing — worth pointing out, but no reason to block
+     * (e.g. after the operator truncated tl_search, or before the very first crawl).
+     *
+     * @param array<string, mixed> $config
+     *
+     * @return array<int, string>
+     */
+    private function setupNotices(array $config): array
+    {
+        $notices = [];
+
+        $hasStartPage = [] !== VectorStoreAutoUpdateService::parseConfiguredPageIds($config['auto_update_site_root'] ?? null);
+
         // Scope the index check to what the sync would actually read (selected pages,
         // or the single-domain-root subtree) - a globally non-empty tl_search says
         // nothing when none of its rows belong to the effective scope. Falls back to
-        // the global count when the scope is unresolvable (that state already warns above).
+        // the global count when the scope is unresolvable (that state is already a
+        // blocking warning in prerequisiteWarnings()).
         $scopeIds = $this->service->resolveScopePageIds($config['auto_update_site_root'] ?? null);
 
         if ([] !== $scopeIds) {
@@ -548,18 +579,10 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         }
 
         if (0 === $indexed) {
-            $key = $hasStartPage ? 'MSC.vsau_warn_selected_not_indexed' : 'MSC.vsau_warn_no_indexed_pages';
-            $warnings[] = $this->translator->trans($key, [], 'contao_default');
+            $key = $hasStartPage ? 'MSC.vsau_notice_selected_not_indexed' : 'MSC.vsau_notice_no_indexed_pages';
+            $notices[] = $this->translator->trans($key, [], 'contao_default');
         }
 
-        // One license covers one domain. Warn (and thus block the run) when the selected
-        // scope spans more than one root-page domain - only distinct, non-empty domains of
-        // the selected pages' own roots count, so an unrelated second website in the same
-        // install and domain-less roots never trigger this.
-        if (\count($this->service->resolveScopeRootDomains($config['auto_update_site_root'] ?? null)) > 1) {
-            $warnings[] = $this->translator->trans('MSC.vsau_warn_multi_domain', [], 'contao_default');
-        }
-
-        return $warnings;
+        return $notices;
     }
 }

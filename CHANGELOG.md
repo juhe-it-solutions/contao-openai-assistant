@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The page picker help text now mentions that the website root needs a domain name so the crawler can index pages for the sync.
 - The sync dashboard now warns (and blocks the manual run) when the selected pages span more than one website domain. One license covers one domain; unrelated second websites in the same Contao install are ignored unless their pages are selected.
 - The "selected pages not in search index" setup hint no longer presents the root domain name as a hard prerequisite; updating the search index comes first, and entering a domain name is only suggested if needed.
+- **An empty search index no longer blocks the sync.** Every sync run starts the Contao crawler itself and rebuilds the search index before reading it, so an empty `tl_search` (e.g. after truncating the table, or before the very first crawl) is self-healing. The dashboard now shows this as a non-blocking "Note" instead of a blocking to-do item, and the "Run manual sync now" button stays enabled.
 
 ### Changed
 - The sync dashboard now shows the license tier badge in all active license states (grace period, payment problem, cancelled but still running, trial, active) - previously it was missing e.g. for subscriptions cancelled at period end.

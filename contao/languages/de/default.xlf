@@ -535,17 +535,17 @@
                 <source>No pages selected. Choose the pages to keep updated under AI Tools → OpenAI Dashboard → OpenAI base configuration → Vector store sync.</source>
                 <target>Es sind keine Seiten ausgewählt. Wählen Sie die zu aktualisierenden Seiten unter KI-Tools → OpenAI Dashboard → OpenAI-Basiskonfiguration → „Vector-Store-Synchronisierung".</target>
             </trans-unit>
-            <trans-unit id="MSC.vsau_warn_no_indexed_pages">
-                <source><![CDATA[No pages in the search index yet. Update the search index under System → Maintenance → "Update the search index" before the first sync.<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></source>
-                <target><![CDATA[Es sind noch keine Seiten im Suchindex. Aktualisieren Sie den Suchindex unter System → Systemwartung → „Den Suchindex aktualisieren", bevor Sie die erste Synchronisierung starten.<br>Prüfen Sie dazu auch die relevanten Seiteneinstellungen „Robots-Tag" und „Diese Seite nicht durchsuchen" (Contao 5.3) bzw. „Suchindexer" (Contao 5.7).]]></target>
+            <trans-unit id="MSC.vsau_notice_no_indexed_pages">
+                <source><![CDATA[The search index is currently empty. No action needed: every sync run starts the Contao crawler first and rebuilds the search index automatically.<br>If a sync still reports "no indexed pages" afterwards, update the search index manually under System → Maintenance → "Update the search index" and check the page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></source>
+                <target><![CDATA[Der Suchindex ist derzeit leer. Es ist nichts zu tun: Jeder Synchronisierungslauf startet zuerst den Contao-Crawler und baut den Suchindex automatisch neu auf.<br>Falls eine Synchronisierung danach dennoch „keine indexierten Seiten" meldet, aktualisieren Sie den Suchindex manuell unter System → Systemwartung → „Den Suchindex aktualisieren" und prüfen Sie die Seiteneinstellungen „Robots-Tag" und „Diese Seite nicht durchsuchen" (Contao 5.3) bzw. „Suchindexer" (Contao 5.7).]]></target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_no_api_key">
                 <source>No usable OpenAI API key. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard → OpenAI base configuration).</source>
                 <target>Kein verwendbarer OpenAI-API-Schlüssel. Bitte geben Sie den API-Schlüssel in der OpenAI-Konfiguration (KI-Tools → OpenAI Dashboard → OpenAI-Basiskonfiguration) neu ein und speichern Sie die Konfiguration.</target>
             </trans-unit>
-            <trans-unit id="MSC.vsau_warn_selected_not_indexed">
-                <source><![CDATA[None of the selected pages are in the search index yet. Update the search index under System → Maintenance → "Update the search index".<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7). If necessary, enter a "domain name" on the website root (the "website starting point").]]></source>
-                <target><![CDATA[Keine der ausgewählten Seiten ist bisher im Suchindex. Aktualisieren Sie den Suchindex unter System → Systemwartung → „Den Suchindex aktualisieren“.<br>Prüfen Sie dazu auch die relevanten Seiteneinstellungen „Robots-Tag“ und „Diese Seite nicht durchsuchen“ (Contao 5.3) bzw. „Suchindexer“ (Contao 5.7). Ggf. müssen Sie im Seitenroot (=„Startpunkt einer Webseite“) einen „Domainnamen“ eintragen.]]></target>
+            <trans-unit id="MSC.vsau_notice_selected_not_indexed">
+                <source><![CDATA[None of the selected pages are currently in the search index. No action needed: every sync run starts the Contao crawler first and rebuilds the search index automatically.<br>If a sync still reports that the selected pages are not indexed, check the page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7), and make sure the website root (the "website starting point") has a "domain name".]]></source>
+                <target><![CDATA[Keine der ausgewählten Seiten ist derzeit im Suchindex. Es ist nichts zu tun: Jeder Synchronisierungslauf startet zuerst den Contao-Crawler und baut den Suchindex automatisch neu auf.<br>Falls eine Synchronisierung danach dennoch meldet, dass die ausgewählten Seiten nicht indexiert sind, prüfen Sie die Seiteneinstellungen „Robots-Tag" und „Diese Seite nicht durchsuchen" (Contao 5.3) bzw. „Suchindexer" (Contao 5.7) und stellen Sie sicher, dass im Seitenroot (=„Startpunkt einer Webseite") ein „Domainname" eingetragen ist.]]></target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_multi_domain">
                 <source>Your page selection spans multiple domains. One license covers one domain - select pages from a single domain, or purchase a separate license for each additional domain.</source>
@@ -638,6 +638,10 @@
             <trans-unit id="MSC.vsau_setup_todo">
                 <source>To do before the first sync:</source>
                 <target>Vor der ersten Synchronisierung zu erledigen:</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_setup_notice">
+                <source>Note:</source>
+                <target>Hinweis:</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_setup_ready">
                 <source>Everything is ready - the sync can run.</source>

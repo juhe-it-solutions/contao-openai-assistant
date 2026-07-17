@@ -369,6 +369,20 @@
                     </div>
                 {% endif %}
 
+                {# Non-blocking notices: e.g. an empty search index. The sync's own crawl
+                   rebuilds the index at the start of every run, so this never disables
+                   the "Run sync now" button - it only explains the current state. #}
+                {% if config.notices is not empty %}
+                    <div class="vsau-setup notice">
+                        <h3>{{ 'MSC.vsau_setup_notice'|trans({}, 'contao_default') }}</h3>
+                        <ul>
+                            {% for notice in config.notices %}
+                                <li><span class="vsau-mark warn">!</span><span>{{ notice|raw }}</span></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
                 {# Heartbeat (server cron) not running yet - needed for automatic runs only, not manual #}
                 {% if config.cron_status in ['never', 'no_cli_cron'] and not config.manual_mode %}
                     <div class="vsau-setup notice">
