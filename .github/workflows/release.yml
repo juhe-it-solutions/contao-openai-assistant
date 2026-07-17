@@ -23,8 +23,11 @@ jobs:
         php-version: 8.2
         extensions: mbstring, xml, ctype, iconv, intl, dom
 
+    # Pin to the 5.3 LTS line: on PHP 8.2 a plain install resolves the
+    # end-of-life Contao 5.6 line, which has open advisories and would fail
+    # the security check below.
     - name: Install dependencies
-      run: composer install --prefer-dist --no-progress
+      run: composer update --prefer-dist --no-progress --with contao/core-bundle:"5.3.*"
 
     - name: Validate composer.json
       run: composer validate

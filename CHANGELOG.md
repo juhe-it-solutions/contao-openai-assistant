@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.1.3] - 2026-07-18
 
 ### Added
 - **New prompt setting "Search results per question"** (default: 8, range 1-20). Controls how many text sections from the synced website content the AI may read per answer. Lower values keep answers focused and reduce cost per question; higher values help with broad questions that combine content from many pages (e.g. intranet research). Previously every question always retrieved up to 20 sections.
