@@ -552,6 +552,14 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             $warnings[] = $this->translator->trans($key, [], 'contao_default');
         }
 
+        // One license covers one domain. Warn (and thus block the run) when the selected
+        // scope spans more than one root-page domain - only distinct, non-empty domains of
+        // the selected pages' own roots count, so an unrelated second website in the same
+        // install and domain-less roots never trigger this.
+        if (\count($this->service->resolveScopeRootDomains($config['auto_update_site_root'] ?? null)) > 1) {
+            $warnings[] = $this->translator->trans('MSC.vsau_warn_multi_domain', [], 'contao_default');
+        }
+
         return $warnings;
     }
 }

@@ -544,8 +544,12 @@
                 <target>Kein verwendbarer OpenAI-API-Schlüssel. Bitte geben Sie den API-Schlüssel in der OpenAI-Konfiguration (KI-Tools → OpenAI Dashboard → OpenAI-Basiskonfiguration) neu ein und speichern Sie die Konfiguration.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_selected_not_indexed">
-                <source><![CDATA[None of the selected pages are in the search index yet. Make sure the website root has a domain name, then update the search index under System → Maintenance → "Update the search index".<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></source>
-                <target><![CDATA[Keine der ausgewählten Seiten ist bisher im Suchindex. Stellen Sie sicher, dass der Startpunkt der Webseite einen Domainnamen hat, und aktualisieren Sie dann den Suchindex unter System → Systemwartung → „Den Suchindex aktualisieren“.<br>Prüfen Sie dazu auch die relevanten Seiteneinstellungen „Robots-Tag“ und „Diese Seite nicht durchsuchen“ (Contao 5.3) bzw. „Suchindexer“ (Contao 5.7).]]></target>
+                <source><![CDATA[None of the selected pages are in the search index yet. Update the search index under System → Maintenance → "Update the search index".<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7). If necessary, enter a "domain name" on the website root (the "website starting point").]]></source>
+                <target><![CDATA[Keine der ausgewählten Seiten ist bisher im Suchindex. Aktualisieren Sie den Suchindex unter System → Systemwartung → „Den Suchindex aktualisieren“.<br>Prüfen Sie dazu auch die relevanten Seiteneinstellungen „Robots-Tag“ und „Diese Seite nicht durchsuchen“ (Contao 5.3) bzw. „Suchindexer“ (Contao 5.7). Ggf. müssen Sie im Seitenroot (=„Startpunkt einer Webseite“) einen „Domainnamen“ eintragen.]]></target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_warn_multi_domain">
+                <source>Your page selection spans multiple domains. One license covers one domain - select pages from a single domain, or purchase a separate license for each additional domain.</source>
+                <target>Ihre Seitenauswahl umfasst mehrere Domains. Eine Lizenz gilt für eine Domain - wählen Sie Seiten nur einer Domain aus oder erwerben Sie für jede weitere Domain eine eigene Lizenz.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_invalid_config">
                 <source>Invalid or disabled configuration.</source>

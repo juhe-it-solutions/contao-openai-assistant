@@ -544,8 +544,12 @@
                 <target>No usable OpenAI API key. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard → OpenAI base configuration).</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_warn_selected_not_indexed">
-                <source><![CDATA[None of the selected pages are in the search index yet. Make sure the website root has a domain name, then update the search index under System → Maintenance → "Update the search index".<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></source>
-                <target><![CDATA[None of the selected pages are in the search index yet. Make sure the website root has a domain name, then update the search index under System → Maintenance → "Update the search index".<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></target>
+                <source><![CDATA[None of the selected pages are in the search index yet. Update the search index under System → Maintenance → "Update the search index".<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7). If necessary, enter a "domain name" on the website root (the "website starting point").]]></source>
+                <target><![CDATA[None of the selected pages are in the search index yet. Update the search index under System → Maintenance → "Update the search index".<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7). If necessary, enter a "domain name" on the website root (the "website starting point").]]></target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_warn_multi_domain">
+                <source>Your page selection spans multiple domains. One license covers one domain - select pages from a single domain, or purchase a separate license for each additional domain.</source>
+                <target>Your page selection spans multiple domains. One license covers one domain - select pages from a single domain, or purchase a separate license for each additional domain.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_invalid_config">
                 <source>Invalid or disabled configuration.</source>

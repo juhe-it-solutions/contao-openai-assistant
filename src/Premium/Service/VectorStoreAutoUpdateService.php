@@ -578,6 +578,40 @@ class VectorStoreAutoUpdateService
     }
 
     /**
+     * Distinct non-empty root-page domains (tl_page.dns) that the effective sync scope
+     * spans. Used to detect a page selection covering more than one domain under a
+     * single-domain license. Resolves the scope through resolveScopePageIds(), so an
+     * empty selection uses the same single-root fallback as everywhere else.
+     *
+     * Roots without a domain name contribute nothing here (they are handled by the
+     * "not indexed / needs domain" prerequisite instead), so this never double-flags a
+     * domain-less setup as multi-domain.
+     *
+     * @return list<string>
+     */
+    public function resolveScopeRootDomains(mixed $configValue): array
+    {
+        $pageIds = $this->resolveScopePageIds($configValue);
+
+        if ([] === $pageIds) {
+            return [];
+        }
+
+        $domains = [];
+        $rootDnsCache = [];
+
+        foreach ($pageIds as $pageId) {
+            $dns = $this->rootDnsForPage((int) $pageId, $rootDnsCache);
+
+            if (null !== $dns && '' !== $dns) {
+                $domains[$dns] = true;
+            }
+        }
+
+        return array_keys($domains);
+    }
+
+    /**
      * @return list<int>
      */
     public static function parseConfiguredPageIds(mixed $value): array
@@ -848,6 +882,66 @@ class VectorStoreAutoUpdateService
             [$pageIds],
             [ArrayParameterType::INTEGER],
         );
+    }
+
+    /**
+     * Climb the page tree from $pageId up to its type='root' ancestor and return that
+     * root's dns: the trimmed domain, '' when the root has no domain, or null when the
+     * chain is broken (missing row / no root reached). Guards against pid cycles and
+     * orphaned chains, and memoizes every id visited on the way so a large selection
+     * sharing ancestors does not re-query the same path.
+     *
+     * @param array<int, string|null> $cache page id => resolved root dns (by reference)
+     */
+    private function rootDnsForPage(int $pageId, array &$cache): string|null
+    {
+        $chain = [];
+        $currentId = $pageId;
+
+        while ($currentId > 0) {
+            if (\array_key_exists($currentId, $cache)) {
+                $resolved = $cache[$currentId];
+
+                foreach (array_keys($chain) as $id) {
+                    $cache[$id] = $resolved;
+                }
+
+                return $resolved;
+            }
+
+            if (isset($chain[$currentId])) {
+                break; // cycle guard: a pid pointing back into the chain
+            }
+
+            $chain[$currentId] = true;
+
+            $row = $this->connection->fetchAssociative(
+                'SELECT pid, type, dns FROM tl_page WHERE id = ?',
+                [$currentId],
+            );
+
+            if (false === $row) {
+                break; // orphaned pid: parent no longer exists
+            }
+
+            if ('root' === $row['type']) {
+                $resolved = trim((string) ($row['dns'] ?? ''));
+
+                foreach (array_keys($chain) as $id) {
+                    $cache[$id] = $resolved;
+                }
+
+                return $resolved;
+            }
+
+            $currentId = (int) $row['pid'];
+        }
+
+        foreach (array_keys($chain) as $id) {
+            $cache[$id] = null;
+        }
+
+        return null;
     }
 
     /**

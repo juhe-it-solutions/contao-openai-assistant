@@ -183,6 +183,64 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
         $this->createService($connection)->reconcileStaleRuns();
     }
 
+    public function testResolveScopeRootDomainsDetectsPagesSpanningTwoDomains(): void
+    {
+        $connection = $this->createConnectionWithPages([
+            10 => ['pid' => 1, 'type' => 'regular', 'dns' => ''],
+            1 => ['pid' => 0, 'type' => 'root', 'dns' => 'abc.tld'],
+            20 => ['pid' => 2, 'type' => 'regular', 'dns' => ''],
+            2 => ['pid' => 0, 'type' => 'root', 'dns' => 'xyz.tld'],
+        ]);
+
+        $domains = $this->createService($connection)->resolveScopeRootDomains([10, 20]);
+
+        sort($domains);
+        $this->assertSame(['abc.tld', 'xyz.tld'], $domains);
+    }
+
+    public function testResolveScopeRootDomainsReturnsSingleDomainForOneRoot(): void
+    {
+        $connection = $this->createConnectionWithPages([
+            10 => ['pid' => 1, 'type' => 'regular', 'dns' => ''],
+            11 => ['pid' => 1, 'type' => 'regular', 'dns' => ''],
+            1 => ['pid' => 0, 'type' => 'root', 'dns' => 'abc.tld'],
+        ]);
+
+        $domains = $this->createService($connection)->resolveScopeRootDomains([10, 11]);
+
+        $this->assertSame(['abc.tld'], $domains);
+    }
+
+    public function testResolveScopeRootDomainsIgnoresDomainLessRoot(): void
+    {
+        $connection = $this->createConnectionWithPages([
+            10 => ['pid' => 1, 'type' => 'regular', 'dns' => ''],
+            1 => ['pid' => 0, 'type' => 'root', 'dns' => ''],
+        ]);
+
+        $this->assertSame([], $this->createService($connection)->resolveScopeRootDomains([10]));
+    }
+
+    /**
+     * @param array<int, array{pid: int, type: string, dns: string}> $pages
+     */
+    private function createConnectionWithPages(array $pages): Connection
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchAssociative')
+            ->willReturnCallback(
+                static function (string $sql, array $params = []) use ($pages): array|false {
+                    $id = (int) ($params[0] ?? 0);
+
+                    return $pages[$id] ?? false;
+                },
+            )
+        ;
+
+        return $connection;
+    }
+
     private function createService(Connection $connection): VectorStoreAutoUpdateService
     {
         return new VectorStoreAutoUpdateService(

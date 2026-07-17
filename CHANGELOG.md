@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The sync dashboard's search-index check is now scoped to the pages the sync would actually read (selected pages, or the single site root's subtree). Previously a globally non-empty search index could show "All set" although none of the selected pages were indexed, and the sync then failed.
 - When a sync finds none of the selected pages in the search index, the error now names the selection-scoped cause (including the domain-name requirement) instead of wrongly claiming the whole search index is empty.
 - The page picker help text now mentions that the website root needs a domain name so the crawler can index pages for the sync.
+- The sync dashboard now warns (and blocks the manual run) when the selected pages span more than one website domain. One license covers one domain; unrelated second websites in the same Contao install are ignored unless their pages are selected.
+- The "selected pages not in search index" setup hint no longer presents the root domain name as a hard prerequisite; updating the search index comes first, and entering a domain name is only suggested if needed.
 
 ### Changed
 - The sync dashboard now shows the license tier badge in all active license states (grace period, payment problem, cancelled but still running, trial, active) - previously it was missing e.g. for subscriptions cancelled at period end.
