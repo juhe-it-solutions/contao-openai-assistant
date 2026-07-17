@@ -5,32 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Added
-- The no-files notice and the first-sync hint now mention that Premium Add-on users can delete the initially uploaded bootstrap file after the first successful sync, so its content does not influence the chatbot's answers.
+## [2.1.2] - 2026-07-18
 
 ### Fixed
-- **API keys stored before 2.1.0 could be unreadable for the CLI sync after an upgrade.** Older versions encrypted the OpenAI API key with a server-derived key that the CLI sync process cannot always reconstruct, so the first sync after upgrading could fail with "No usable OpenAI API key". Stored keys are now automatically re-encrypted with the app-secret key on first use (e.g. when opening the sync dashboard) - no manual re-entry needed.
-- Long API keys (e.g. `sk-proj-...`) stored in the pre-1.0 base64 format were misclassified as encrypted and failed to resolve. They are now decoded correctly and upgraded to the current encrypted storage format automatically.
-- The first-sync hint in the vector store sync settings was partly invisible in the Contao backend (bare text nodes are not rendered there). The hint is fully visible again, points to the dashboard's setup checklist for the prerequisites, and links to the dashboard with a button.
-- The prompt template field is now disabled while the indexing mode is "faithful" - the template has no effect in that mode - and is no longer re-enabled by the license check script. The stored template survives saves made in faithful mode and becomes editable again in "AI-polished" mode.
-
-### Fixed (setup checks)
-- The sync dashboard's search-index check is now scoped to the pages the sync would actually read (selected pages, or the single site root's subtree). Previously a globally non-empty search index could show "All set" although none of the selected pages were indexed, and the sync then failed.
-- When a sync finds none of the selected pages in the search index, the error now names the selection-scoped cause (including the domain-name requirement) instead of wrongly claiming the whole search index is empty.
-- The page picker help text now mentions that the website root needs a domain name so the crawler can index pages for the sync.
-- The sync dashboard now warns (and blocks the manual run) when the selected pages span more than one website domain. One license covers one domain; unrelated second websites in the same Contao install are ignored unless their pages are selected.
-- The "selected pages not in search index" setup hint no longer presents the root domain name as a hard prerequisite; updating the search index comes first, and entering a domain name is only suggested if needed.
-- **An empty search index no longer blocks the sync.** Every sync run starts the Contao crawler itself and rebuilds the search index before reading it, so an empty `tl_search` (e.g. after truncating the table, or before the very first crawl) is self-healing. The dashboard now shows this as a non-blocking "Note" instead of a blocking to-do item, and the "Run manual sync now" button stays enabled.
+- **API keys stored before 2.1.0 could be unreadable for the CLI sync after an upgrade** ("No usable OpenAI API key"). Stored keys are now automatically re-encrypted with the current key on first use - no manual re-entry needed. Keys in the pre-1.0 base64 format are also migrated correctly.
+- **Sync setup checks now match what the sync actually does.** The search-index check is scoped to the selected pages instead of the whole index, and an empty search index no longer blocks the sync (each run starts the crawler itself, so this is now a non-blocking note).
+- The sync dashboard warns (and blocks the manual run) when the selected pages span more than one website domain - one license covers one domain.
+- Sync errors and setup hints now name the actual cause (pages missing from the search index, missing root domain name, unusable API key) and explain how to fix it.
+- The first-sync hint in the vector store sync settings was partly invisible in the Contao backend; it is visible again and links to the dashboard's setup checklist.
+- The prompt template field is disabled in "faithful" indexing mode, where it has no effect; the stored template is kept and becomes editable again in "AI-polished" mode.
 
 ### Changed
-- The sync dashboard now shows the license tier badge in all active license states (grace period, payment problem, cancelled but still running, trial, active) - previously it was missing e.g. for subscriptions cancelled at period end.
-- The "No usable OpenAI API key" sync error now explains how to fix it (re-enter and save the key in the OpenAI configuration).
-- The sync dashboard's setup checklist now warns when no usable OpenAI API key is available, instead of letting the sync fail.
-- Sync history labels renamed to "Last 10 syncs" (dashboard) and "Full history" (sync log).
-- Frontend chat scrollbars now use the module's accent color in both themes.
-- Typographic cleanup in the German and English translations (en/em dashes replaced with hyphens).
+- The sync dashboard shows the license tier badge in all active license states (trial, grace period, payment problem, cancelled but still running).
+- Backend text and style polish: sync history labels ("Last 10 syncs" / "Full history"), hint that the initial upload can be deleted after the first sync, theme-aware chat scrollbars, dash cleanup in translations.
 
 ## [2.1.1] - 2026-07-16
 
