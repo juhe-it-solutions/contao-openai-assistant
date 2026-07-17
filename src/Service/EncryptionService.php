@@ -65,7 +65,18 @@ class EncryptionService
             return null;
         }
 
-        return $this->processApiKey((string) $row['api_key'], $logInvalidFormat);
+        $storedApiKey = (string) $row['api_key'];
+        $apiKey = $this->processApiKey($storedApiKey, $logInvalidFormat);
+
+        // Lazy key rotation: values written before the app-secret switch are encrypted
+        // with a context-dependent server key (SERVER_NAME + DOCUMENT_ROOT) that the CLI
+        // sync often cannot reconstruct. Whenever such a value still decrypts here,
+        // persist it re-encrypted with the app-secret key so every context can read it.
+        if (null !== $apiKey) {
+            $this->reencryptLegacyApiKey($configId, $storedApiKey, $apiKey);
+        }
+
+        return $apiKey;
     }
 
     /**
@@ -229,6 +240,16 @@ class EncryptionService
         if (\strlen($storedApiKey) > 100) {
             // This is an encrypted key
             $apiKey = $this->decryptApiKey($storedApiKey);
+
+            // Length alone cannot distinguish the two formats: a modern long key
+            // (e.g. sk-proj-...) stored as legacy base64 also exceeds 100 chars.
+            // When decryption fails, fall back to base64 - decoding an actually
+            // encrypted value yields garbage that fails the format check below,
+            // so this can never resolve to a wrong key.
+            if (null === $apiKey) {
+                $decoded = base64_decode($storedApiKey, true);
+                $apiKey = false !== $decoded && $this->isValidApiKeyFormat($decoded) ? $decoded : null;
+            }
         } else {
             // This is a legacy base64 encoded key
             $apiKey = base64_decode($storedApiKey, true);
@@ -269,6 +290,69 @@ class EncryptionService
         }
 
         return false;
+    }
+
+    /**
+     * Re-encrypt a stored API key with the app-secret key when it is still in a legacy
+     * format (base64, or encrypted with a server-derived key). Runs opportunistically on
+     * every successful key resolution; a no-op once the value uses the app-secret key.
+     *
+     * Without an app secret the primary key itself depends on SERVER_NAME/DOCUMENT_ROOT,
+     * so rotating would only churn the value between web and CLI derivations - skip.
+     *
+     * The UPDATE is guarded by the previously read value so a key the user re-entered
+     * concurrently is never overwritten. Failures are logged and swallowed: rotation
+     * must never break key resolution.
+     */
+    private function reencryptLegacyApiKey(int $configId, string $storedApiKey, string $apiKey): void
+    {
+        if (null === $this->connection || null === $this->appSecret || '' === $this->appSecret) {
+            return;
+        }
+
+        if ($this->isEncryptedWithPrimaryKey($storedApiKey)) {
+            return;
+        }
+
+        try {
+            $updated = $this->connection->executeStatement(
+                'UPDATE tl_openai_config SET api_key = ? WHERE id = ? AND api_key = ?',
+                [$this->encryptApiKey($apiKey), $configId, $storedApiKey],
+            );
+
+            if ($updated > 0) {
+                $this->logger->info(
+                    \sprintf('Re-encrypted the stored OpenAI API key for configuration %d with the app-secret key.', $configId),
+                );
+            }
+        } catch (\Throwable $e) {
+            $this->logger->error('Failed to re-encrypt the stored API key: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Whether a stored value decrypts with the primary (app-secret based) key alone.
+     */
+    private function isEncryptedWithPrimaryKey(string $storedApiKey): bool
+    {
+        // Legacy base64 values (and anything else this short) are never primary-encrypted.
+        if (\strlen($storedApiKey) <= 100) {
+            return false;
+        }
+
+        $data = base64_decode($storedApiKey, true);
+        if (false === $data) {
+            return false;
+        }
+
+        $method = 'aes-256-cbc';
+        $ivLength = (int) openssl_cipher_iv_length($method);
+        $iv = substr($data, 0, $ivLength);
+        $encrypted = substr($data, $ivLength);
+
+        $decrypted = openssl_decrypt($encrypted, $method, $this->getEncryptionKey(), 0, $iv);
+
+        return false !== $decrypted && $this->isValidApiKeyFormat($decrypted);
     }
 
     /**

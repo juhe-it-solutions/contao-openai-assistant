@@ -508,8 +508,8 @@
                 <target>OpenAI-Konfiguration %1$s nicht gefunden.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_no_api_key">
-                <source>No usable OpenAI API key for configuration %1$s.</source>
-                <target>Kein verwendbarer OpenAI-API-Schlüssel für Konfiguration %1$s.</target>
+                <source>No usable OpenAI API key for configuration %1$s. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard).</source>
+                <target>Kein verwendbarer OpenAI-API-Schlüssel für Konfiguration %1$s. Bitte geben Sie den API-Schlüssel in der OpenAI-Konfiguration (KI-Tools → OpenAI Dashboard) neu ein und speichern Sie die Konfiguration.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_invalid_page">
                 <source>Invalid page selected for auto-update (ID %1$s).</source>
@@ -534,6 +534,10 @@
             <trans-unit id="MSC.vsau_warn_no_indexed_pages">
                 <source><![CDATA[No pages in the search index yet. Update the search index under System → Maintenance → "Update the search index" before the first sync.<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></source>
                 <target><![CDATA[Es sind noch keine Seiten im Suchindex. Aktualisieren Sie den Suchindex unter System → Wartung → „Suchindex aktualisieren", bevor Sie die erste Synchronisierung starten.<br>Prüfen Sie dazu auch die relevanten Seiteneinstellungen „Robots-Tag" und „Diese Seite nicht durchsuchen" (Contao 5.3) bzw. „Suchindexer" (Contao 5.7).]]></target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_warn_no_api_key">
+                <source>No usable OpenAI API key. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard).</source>
+                <target>Kein verwendbarer OpenAI-API-Schlüssel. Bitte geben Sie den API-Schlüssel in der OpenAI-Konfiguration (KI-Tools → OpenAI Dashboard) neu ein und speichern Sie die Konfiguration.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_invalid_config">
                 <source>Invalid or disabled configuration.</source>

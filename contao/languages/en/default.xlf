@@ -508,8 +508,8 @@
                 <target>OpenAI configuration %1$s not found.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_no_api_key">
-                <source>No usable OpenAI API key for configuration %1$s.</source>
-                <target>No usable OpenAI API key for configuration %1$s.</target>
+                <source>No usable OpenAI API key for configuration %1$s. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard).</source>
+                <target>No usable OpenAI API key for configuration %1$s. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard).</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_invalid_page">
                 <source>Invalid page selected for auto-update (ID %1$s).</source>
@@ -534,6 +534,10 @@
             <trans-unit id="MSC.vsau_warn_no_indexed_pages">
                 <source><![CDATA[No pages in the search index yet. Update the search index under System → Maintenance → "Update the search index" before the first sync.<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></source>
                 <target><![CDATA[No pages in the search index yet. Update the search index under System → Maintenance → "Update the search index" before the first sync.<br>Also check the relevant page settings "Robots tag" and "Do not search the page" (Contao 5.3) or "Search indexer" (Contao 5.7).]]></target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_warn_no_api_key">
+                <source>No usable OpenAI API key. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard).</source>
+                <target>No usable OpenAI API key. Please re-enter and save the API key in the OpenAI configuration (AI Tools → OpenAI Dashboard).</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_invalid_config">
                 <source>Invalid or disabled configuration.</source>

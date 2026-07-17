@@ -25,6 +25,7 @@ use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicensePortalUrlServic
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicenseValidationService;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreAutoUpdateService;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreSyncMessageTranslator;
+use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -46,6 +47,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         private readonly LicensePortalUrlService $licensePortalUrls,
         private readonly VectorStoreSyncMessageTranslator $syncMessages,
         private readonly CronHealthService $cronHealth,
+        private readonly EncryptionService $encryption,
         private readonly ContaoCsrfTokenManager $csrfTokenManager,
         private readonly string $csrfTokenName,
         private readonly TranslatorInterface $translator,
@@ -507,6 +509,14 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
     private function prerequisiteWarnings(array $config): array
     {
         $warnings = [];
+
+        // The sync runs in a CLI process and must be able to resolve the API key there.
+        // Resolving it here (web context) also lazily re-encrypts legacy values with the
+        // app-secret key, so upgraded installs are healed before the first CLI run; the
+        // warning only remains when no context can produce a usable key.
+        if (null === $this->encryption->getApiKeyForConfig((int) $config['id'], false)) {
+            $warnings[] = $this->translator->trans('MSC.vsau_warn_no_api_key', [], 'contao_default');
+        }
 
         if ('' === (string) ($config['vector_store_id'] ?? '')) {
             $warnings[] = $this->translator->trans('MSC.vsau_warn_no_vector_store', [], 'contao_default');

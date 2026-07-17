@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **API keys stored before 2.1.0 could be unreadable for the CLI sync after an upgrade.** Older versions encrypted the OpenAI API key with a server-derived key that the CLI sync process cannot always reconstruct, so the first sync after upgrading could fail with "No usable OpenAI API key". Stored keys are now automatically re-encrypted with the app-secret key on first use (e.g. when opening the sync dashboard) - no manual re-entry needed.
+- Long API keys (e.g. `sk-proj-...`) stored in the pre-1.0 base64 format were misclassified as encrypted and failed to resolve. They are now decoded correctly and upgraded to the current encrypted storage format automatically.
+
+### Changed
+- The "No usable OpenAI API key" sync error now explains how to fix it (re-enter and save the key in the OpenAI configuration).
+- The sync dashboard's setup checklist now warns when no usable OpenAI API key is available, instead of letting the sync fail.
+
 ## [2.1.1] - 2026-07-16
 
 ### Changed
