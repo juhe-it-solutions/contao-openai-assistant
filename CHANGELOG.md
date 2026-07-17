@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The prompt template field is now disabled while the indexing mode is "faithful" - the template has no effect in that mode - and is no longer re-enabled by the license check script. The stored template survives saves made in faithful mode and becomes editable again in "AI-polished" mode.
 
 ### Changed
+- The sync dashboard now shows the license tier badge in all active license states (grace period, payment problem, cancelled but still running, trial, active) - previously it was missing e.g. for subscriptions cancelled at period end.
 - The "No usable OpenAI API key" sync error now explains how to fix it (re-enter and save the key in the OpenAI configuration).
 - The sync dashboard's setup checklist now warns when no usable OpenAI API key is available, instead of letting the sync fail.
 - Sync history labels renamed to "Last 10 syncs" (dashboard) and "Full history" (sync log).

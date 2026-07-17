@@ -281,13 +281,22 @@
                 {% if config.license_active %}
                     {% if config.premium_license_status == 'error' %}
                         <span class="vsau-badge yellow">{{ 'MSC.vsau_license_error_grace'|trans({}, 'contao_default') }}</span>
+                        {% if config.plan_label %}
+                            <span class="vsau-chip">{{ 'MSC.vsau_plan_prefix'|trans({}, 'contao_default') }} {{ config.plan_label }}</span>
+                        {% endif %}
                         <span class="vsau-actions-hint">{{ 'MSC.vsau_license_grace_hint'|trans({}, 'contao_default') }}</span>
                     {% elseif config.premium_license_status == 'past_due' %}
                         <span class="vsau-badge amber">{{ 'MSC.vsau_license_past_due'|trans({}, 'contao_default') }}</span>
+                        {% if config.plan_label %}
+                            <span class="vsau-chip">{{ 'MSC.vsau_plan_prefix'|trans({}, 'contao_default') }} {{ config.plan_label }}</span>
+                        {% endif %}
                         <span class="vsau-actions-hint">{{ 'MSC.vsau_license_past_due_hint'|trans({}, 'contao_default') }}</span>
                         <a href="{{ manage_url }}" target="_blank" rel="noopener" class="tl_submit">{{ 'MSC.vsau_manage_subscription'|trans({}, 'contao_default') }}</a>
                     {% elseif config.premium_license_cancel_at_period_end %}
                         <span class="vsau-badge amber">{{ 'MSC.vsau_license_cancels'|trans({}, 'contao_default') }}</span>
+                        {% if config.plan_label %}
+                            <span class="vsau-chip">{{ 'MSC.vsau_plan_prefix'|trans({}, 'contao_default') }} {{ config.plan_label }}</span>
+                        {% endif %}
                         {% if config.premium_license_valid_until > 0 %}
                             <span class="vsau-actions-hint">{{ 'MSC.vsau_license_cancels_on'|trans({}, 'contao_default') }} {{ config.premium_license_valid_until|date('d.m.Y') }}. {{ 'MSC.vsau_sync_continues_until_then'|trans({}, 'contao_default') }}</span>
                         {% else %}
