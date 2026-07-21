@@ -235,6 +235,14 @@
                 <source>next:</source>
                 <target>next:</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_not_running">
+                <source>Not running automatically</source>
+                <target>Not running automatically</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_not_running_hint">
+                <source>The server cron is not running, so scheduled syncs will not start. Set up or restart the server cron (see the “Server cron” box). You can still sync manually.</source>
+                <target>The server cron is not running, so scheduled syncs will not start. Set up or restart the server cron (see the “Server cron” box). You can still sync manually.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_plan_prefix">
                 <source>Plan:</source>
                 <target>Plan:</target>
