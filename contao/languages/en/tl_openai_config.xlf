@@ -394,8 +394,8 @@
                 <target>Faithful - upload full page content (recommended)</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_mode_ref.llm_polish">
-                <source>AI polish - rewrite each page with an AI model</source>
-                <target>AI polish - rewrite each page with an AI model</target>
+                <source>AI polish - rewrite each page with an AI model (incurs token costs)</source>
+                <target>AI polish - rewrite each page with an AI model (incurs token costs)</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_model.0">
                 <source>Generation model</source>

@@ -44,8 +44,17 @@ $GLOBALS['TL_DCA']['tl_openai_sync_log'] = [
             'panelLayout' => 'sort,search,limit',
         ],
         'label' => [
-            'fields'      => ['run_at', 'status', 'trigger_source', 'model', 'pages', 'pages_added', 'pages_updated', 'pages_removed', 'pages_unchanged', 'files_uploaded', 'files_failed', 'duration', 'message'],
+            'fields'      => ['run_at', 'status', 'trigger_source', 'model', 'pages', 'tokens_in', 'tokens_out', 'pages_added', 'pages_updated', 'pages_removed', 'pages_unchanged', 'files_uploaded', 'files_failed', 'duration', 'message'],
             'showColumns' => true,
+        ],
+        // "download" links to the auto-sync controller's document-download route
+        // (button_callback in OpenAiSyncLogListener). The default show + delete
+        // operations are auto-prepended by Contao's DefaultOperationsListener.
+        'operations' => [
+            'download' => [
+                'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['download'],
+                'icon'  => 'show.svg',
+            ],
         ],
     ],
     'fields' => [

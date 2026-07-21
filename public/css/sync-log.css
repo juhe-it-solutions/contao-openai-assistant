@@ -14,11 +14,17 @@
     margin-top: 1rem;
     margin-right: 1rem;
     margin-left: 1rem;
+    /* Many columns: on narrow viewports (and since 5.7 the list panel narrows the
+       content area) let the table scroll horizontally instead of squeezing columns. */
+    overflow-x: auto;
 }
 
 /* Table */
 #tl_listing table.tl_listing.showColumns {
-    width: 100%;
+    /* Fill the card, but grow past it (triggering the container's horizontal
+       scroll) when the many columns need more room than the viewport offers. */
+    width: auto;
+    min-width: 100%;
     border-collapse: collapse;
     margin: 0;
 }

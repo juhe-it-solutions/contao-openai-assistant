@@ -15,7 +15,9 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Premium\EventListener;
 
 use Contao\CoreBundle\DependencyInjection\Attribute\AsCallback;
 use Contao\DataContainer;
+use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreSyncMessageTranslator;
+use Symfony\Component\Routing\RouterInterface;
 
 /**
  * Presentation tweaks for the read-only "OpenAI Sync-Protokoll" listing
@@ -34,8 +36,54 @@ class OpenAiSyncLogListener
         'error' => 'red',
     ];
 
-    public function __construct(private readonly VectorStoreSyncMessageTranslator $syncMessages)
+    private const DOWNLOAD_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:middle;fill:currentColor" aria-hidden="true"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>';
+
+    /**
+     * IDs of the sync-log rows that carry a downloadable document, loaded once
+     * (ids only, never the blobs) and reused for every operation-button render.
+     *
+     * @var array<int, bool>|null
+     */
+    private array|null $rowsWithDocument = null;
+
+    public function __construct(
+        private readonly VectorStoreSyncMessageTranslator $syncMessages,
+        private readonly Connection $connection,
+        private readonly RouterInterface $router,
+    ) {
+    }
+
+    /**
+     * button_callback for the "download" row operation: link each run that has a
+     * stored document to the auto-sync controller's download route (the same one
+     * the dashboard's "Letzte Synchronisierungen" table uses). Runs with no
+     * document render no button.
+     *
+     * Only the record ($row) is typed: Contao passes further positional arguments
+     * (href, label, title, icon, attributes, …) which PHP ignores. This keeps the
+     * callback working unchanged on Contao 5.3/5.7 and 6.0, where those extra
+     * arguments differ in nullability and count.
+     *
+     * @param array<string, mixed> $row
+     */
+    #[AsCallback(table: 'tl_openai_sync_log', target: 'list.operations.download.button_callback')]
+    public function downloadButton(array $row): string
     {
+        $id = (int) ($row['id'] ?? 0);
+
+        if ($id <= 0 || !$this->rowHasDocument($id)) {
+            return '';
+        }
+
+        $url = $this->router->generate('vector_store_auto_update', ['download' => $id]);
+        $title = (string) ($GLOBALS['TL_LANG']['tl_openai_sync_log']['download'] ?? 'Download document');
+
+        return \sprintf(
+            '<a href="%s" title="%s">%s</a> ',
+            htmlspecialchars($url, ENT_QUOTES),
+            htmlspecialchars($title, ENT_QUOTES),
+            self::DOWNLOAD_ICON,
+        );
     }
 
     /**
@@ -81,6 +129,18 @@ class OpenAiSyncLogListener
         }
 
         return $args;
+    }
+
+    private function rowHasDocument(int $id): bool
+    {
+        if (null === $this->rowsWithDocument) {
+            $ids = $this->connection->fetchFirstColumn(
+                "SELECT id FROM tl_openai_sync_log WHERE document IS NOT NULL AND document <> ''",
+            );
+            $this->rowsWithDocument = array_fill_keys(array_map('intval', $ids), true);
+        }
+
+        return isset($this->rowsWithDocument[$id]);
     }
 
     private function formatDuration(int $seconds): string
