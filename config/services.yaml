@@ -99,7 +99,7 @@ services:
             - { name: contao.callback, table: tl_openai_config, target: config.onload, method: onLoadCallback }
             - { name: contao.callback, table: tl_openai_config, target: edit.buttons, method: removeSingleRecordCreateButtons }
             - { name: contao.callback, table: tl_openai_config, target: fields.api_key.load, method: processApiKeyForDisplay }
-            - { name: contao.callback, table: tl_openai_config, target: list.label, method: addIcon }
+            - { name: contao.callback, table: tl_openai_config, target: list.label.label_callback, method: addIcon }
             - { name: contao.callback, table: tl_openai_config, target: list.header, method: addHeader }
             - { name: contao.callback, table: tl_openai_config, target: fields.api_key.save, method: processApiKeyForStorage }
             - { name: contao.callback, table: tl_openai_config, target: config.ondelete, method: deleteVectorStore }
@@ -163,7 +163,7 @@ services:
             - { name: contao.callback, table: tl_openai_prompts, target: fields.top_p.save, method: validateTopP }
             - { name: contao.callback, table: tl_openai_prompts, target: fields.temperature.save, method: validateTemperature }
             - { name: contao.callback, table: tl_openai_prompts, target: list.header, method: addHeader }
-            - { name: contao.callback, table: tl_openai_prompts, target: list.label, method: listPrompts }
+            - { name: contao.callback, table: tl_openai_prompts, target: list.label.label_callback, method: listPrompts }
 
     # Security Voter
     JuheItSolutions\ContaoOpenaiAssistant\Security\Voter\AiChatVoter:
