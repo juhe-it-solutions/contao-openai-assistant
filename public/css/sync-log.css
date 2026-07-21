@@ -35,6 +35,10 @@
     text-align: left;
     font-size: 12px;
     vertical-align: top;
+    /* Keep each cell on one line so the table grows to its natural width and the
+       container scrolls horizontally, instead of columns wrapping (e.g. "21.07.2
+       6 20:33"). The message column opts back into wrapping below. */
+    white-space: nowrap;
 }
 #tl_listing table.tl_listing.showColumns thead th {
     font-weight: 700;
