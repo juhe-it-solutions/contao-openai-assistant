@@ -373,9 +373,14 @@ class OpenAiFilesListener
     #[AsCallback(table: 'tl_openai_files', target: 'list.label.label_callback')]
     public function listFiles($row): RecordLabel
     {
+        // Contao auto-loads the tl_openai_files language file for this DCA, so the
+        // status/ID/size labels follow the backend locale (fallbacks are English).
+        System::loadLanguageFile('tl_openai_files');
+        $lang = $GLOBALS['TL_LANG']['tl_openai_files'] ?? [];
+
         // Handle null or empty row
         if (!$row || !\is_array($row)) {
-            return RecordLabel::fromHtml('<div class="tl_content_left">No file data available</div>');
+            return RecordLabel::fromHtml('<div class="tl_content_left">'.htmlspecialchars((string) ($lang['list_no_data'] ?? 'No file data available'), ENT_QUOTES, 'UTF-8').'</div>');
         }
 
         // Enhanced status handling with proper type checking
@@ -389,28 +394,43 @@ class OpenAiFilesListener
             }
         }
 
-        $status = match ($statusValue) {
-            'uploaded' => '<span style="color: green;">✓ Uploaded</span>',
-            'completed' => '<span style="color: green;">✓ Completed</span>',
-            'failed' => '<span style="color: red;">✗ Failed</span>',
-            'processing' => '<span style="color: orange;">⟳ Processing</span>',
-            'error' => '<span style="color: red;">✗ Error</span>',
-            default => '<span style="color: gray;">⏳ Pending</span>',
-        };
+        $statusColors = [
+            'uploaded' => 'green',
+            'completed' => 'green',
+            'failed' => 'red',
+            'error' => 'red',
+            'processing' => 'orange',
+            'pending' => 'gray',
+        ];
+        $statusIcons = [
+            'uploaded' => '✓',
+            'completed' => '✓',
+            'failed' => '✗',
+            'error' => '✗',
+            'processing' => '⟳',
+            'pending' => '⏳',
+        ];
+        $statusLabel = $lang['status_options'][$statusValue] ?? ucfirst($statusValue);
+        $status = \sprintf(
+            '<span style="color: %s;">%s %s</span>',
+            $statusColors[$statusValue] ?? 'gray',
+            $statusIcons[$statusValue] ?? '⏳',
+            htmlspecialchars((string) $statusLabel, ENT_QUOTES, 'UTF-8'),
+        );
 
         // Safe handling of all fields with type checking
         $fileId = '';
         if (isset($row['openai_file_id']) && \is_string($row['openai_file_id']) && !empty($row['openai_file_id'])) {
-            $fileId = 'ID: '.$row['openai_file_id'];
+            $fileId = ($lang['list_id'] ?? 'ID').': '.$row['openai_file_id'];
         } else {
-            $fileId = 'No OpenAI ID';
+            $fileId = (string) ($lang['list_no_id'] ?? 'No OpenAI ID');
         }
 
         $fileSize = '';
         if (isset($row['file_size']) && (is_numeric($row['file_size']) || \is_int($row['file_size'])) && $row['file_size'] > 0) {
-            $fileSize = 'Size: '.$this->formatFileSize((int) $row['file_size']);
+            $fileSize = ($lang['list_size'] ?? 'Size').': '.$this->formatFileSize((int) $row['file_size']);
         } else {
-            $fileSize = 'Size: Unknown';
+            $fileSize = ($lang['list_size'] ?? 'Size').': '.($lang['list_size_unknown'] ?? 'Unknown');
         }
 
         return RecordLabel::fromHtml(\sprintf(
