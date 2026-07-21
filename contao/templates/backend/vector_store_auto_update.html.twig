@@ -473,10 +473,20 @@
                                 {% if config.schedule_label != config.auto_update_schedule %}
                                     <span class="vsau-cron-mono">({{ config.auto_update_schedule }})</span>
                                 {% endif %}
-                                {% if config.next_run %}
-                                    <span class="vsau-sub">{{ 'MSC.vsau_next_run'|trans({}, 'contao_default') }} {{ config.next_run|date('d.m.Y H:i') }}</span>
-                                {% elseif config.auto_update_last_run == 0 %}
-                                    <span class="vsau-sub">{{ 'MSC.vsau_schedule_first_manual_hint'|trans({}, 'contao_default') }}</span>
+                                {# Only surface the concrete next-run time when the server cron is
+                                   healthy — otherwise it will not fire and the timestamp misleads.
+                                   When unhealthy, show a warning badge instead. Manual sync still works. #}
+                                {% if config.cron_status == 'healthy' %}
+                                    {% if config.next_run %}
+                                        <span class="vsau-sub">{{ 'MSC.vsau_next_run'|trans({}, 'contao_default') }} {{ config.next_run|date('d.m.Y H:i') }}</span>
+                                    {% elseif config.auto_update_last_run == 0 %}
+                                        <span class="vsau-sub">{{ 'MSC.vsau_schedule_first_manual_hint'|trans({}, 'contao_default') }}</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="vsau-sub">
+                                        <span class="vsau-badge amber">{{ 'MSC.vsau_schedule_not_running'|trans({}, 'contao_default') }}</span>
+                                    </span>
+                                    <span class="vsau-sub">{{ 'MSC.vsau_schedule_not_running_hint'|trans({}, 'contao_default') }}</span>
                                 {% endif %}
                             {% endif %}
                         </div>
