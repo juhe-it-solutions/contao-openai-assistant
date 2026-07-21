@@ -95,7 +95,6 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'format'         => '%s <span style="color:#999;">[%s]</span>',
             'label_callback' => ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener', 'addIcon'],
         ],
-        'header_callback'   => ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener', 'addHeader'],
         'global_operations' => [
             'all' => [
                 'href'       => 'act=select',

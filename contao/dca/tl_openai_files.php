@@ -56,7 +56,6 @@ $GLOBALS['TL_DCA']['tl_openai_files'] = [
             'fields' => ['filename'],
             'format' => '%s',
         ],
-        'header_callback'   => ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiFilesListener', 'addHeader'],
         'global_operations' => [
             'all' => [
                 'href'       => 'act=select',
