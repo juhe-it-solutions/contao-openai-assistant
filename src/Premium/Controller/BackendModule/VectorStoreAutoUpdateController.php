@@ -16,6 +16,7 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Premium\Controller\BackendModule
 use Contao\CoreBundle\Controller\AbstractBackendController;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\CoreBundle\Security\ContaoCorePermissions;
+use Contao\Image;
 use Contao\Message;
 use Cron\CronExpression;
 use Cron\FieldFactory;
@@ -245,6 +246,8 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             'refresh_plan' => $request->query->get('refresh_plan', ''),
             // Polled by the inline status script for live badge/progress updates.
             'status_url' => $this->generateUrl('vector_store_auto_update_status'),
+            // Backend "show" icon path (Contao 6 serves it from bundles/contaocore/icons/).
+            'show_icon' => Image::getPath('show.svg'),
         ]);
     }
 

@@ -11,6 +11,7 @@
 declare(strict_types=1);
 
 use Contao\DC_Table;
+use Contao\Image;
 use Contao\Message;
 
 $GLOBALS['TL_DCA']['tl_openai_files'] = [
@@ -21,7 +22,7 @@ $GLOBALS['TL_DCA']['tl_openai_files'] = [
         'onload_callback'  => [
             function ($dc) {
                 $message = '<div class="oaa-info-card">' .
-                          '<p class="tl_info" style="background: transparent url(bundles/contaocore/icons/show.svg) no-repeat 11px 12px;">' .
+                          '<p class="tl_info" style="background: transparent url(' . Image::getPath('show.svg') . ') no-repeat 11px 12px;">' .
                           '<strong class="oaa-info-card-heading" style="display: block; font-size: 22px; position: relative; top: -5px;">' .
                           $GLOBALS['TL_LANG']['tl_openai_files']['welcome_heading'] .
                           '</strong>' .

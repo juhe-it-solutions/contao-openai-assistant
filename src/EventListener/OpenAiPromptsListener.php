@@ -17,6 +17,7 @@ use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\CoreBundle\DataContainer\RecordLabel;
 use Contao\CoreBundle\Monolog\ContaoContext;
 use Contao\DataContainer;
+use Contao\Image;
 use Contao\Message;
 use Contao\System;
 use Doctrine\DBAL\Connection;
@@ -264,7 +265,7 @@ class OpenAiPromptsListener
         $lang = $GLOBALS['TL_LANG']['tl_openai_prompts'] ?? [];
 
         $combinedMessage = '<div class="oaa-info-card">';
-        $combinedMessage .= '<p class="tl_info" style="background: transparent url(bundles/contaocore/icons/show.svg) no-repeat 11px 12px;">';
+        $combinedMessage .= '<p class="tl_info" style="background: transparent url('.Image::getPath('show.svg').') no-repeat 11px 12px;">';
         $combinedMessage .= '<strong class="oaa-info-card-heading" style="display: block; font-size: 22px; position: relative; top: -5px;">'.
                           ($lang['welcome_heading'] ?? 'OpenAI Prompt').
                           '</strong>'.
