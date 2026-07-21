@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.4] - 2026-07-21
+
+### Added
+- The sync history ("OpenAI Sync-Protokoll") now offers a **per-row document download** and shows the input/output token columns, matching the "Last 10 syncs" table on the auto-sync dashboard.
+
+### Fixed
+- Backend file-list labels (status, "ID:", "Size:") are now localized and follow the backend language instead of always showing English.
+- The auto-sync **Schedule** box no longer shows a misleading "next run" time when the server cron is not running (stale, never run, or not configured) - in that case scheduled syncs never fire. It now shows a "not running automatically" warning pointing to the server-cron box; manual sync is unaffected.
+- The sync history table no longer squeezes its many columns into unreadable wrapped cells; it scrolls horizontally on narrow screens, and its actions column now has a header ("Aktionen" / "Actions").
+
+### Changed
+- The "AI polish" indexing mode is now labelled as incurring token costs, so the cost implication is clear without opening the field help.
+- The first-sync hint no longer shows a dashboard link that navigated users away before setup was complete.
+
 ## [2.1.3] - 2026-07-18
 
 ### Added
