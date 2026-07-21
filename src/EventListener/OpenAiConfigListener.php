@@ -686,7 +686,7 @@ class OpenAiConfigListener
             .'@media (max-width:576px){.premium-license-intro .openai-license-help-link{width:100%%}}'
             .'</style>'
             .'<div class="tl_message oaa-info-card oaa-info-card--premium">'
-            .'<p class="tl_info" style="background: transparent url(system/themes/flexible/icons/show.svg) no-repeat 11px 12px;">%s</p>'
+            .'<p class="tl_info" style="background: transparent url(bundles/contaocore/icons/show.svg) no-repeat 11px 12px;">%s</p>'
             .'%s'
             .'</div>'
             .'</div>',
