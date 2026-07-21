@@ -88,6 +88,28 @@
                 <target>Fehler</target>
             </trans-unit>
 
+            <!-- File list row labels -->
+            <trans-unit id="tl_openai_files.list_no_data">
+                <source>No file data available</source>
+                <target>Keine Dateidaten verfügbar</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.list_id">
+                <source>ID</source>
+                <target>ID</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.list_no_id">
+                <source>No OpenAI ID</source>
+                <target>Keine OpenAI-ID</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.list_size">
+                <source>Size</source>
+                <target>Größe</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_files.list_size_unknown">
+                <source>Unknown</source>
+                <target>Unbekannt</target>
+            </trans-unit>
+
             <!-- Global Operations -->
             <trans-unit id="tl_openai_files.upload">
                 <source>Upload File(s)</source>
