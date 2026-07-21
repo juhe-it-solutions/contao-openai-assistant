@@ -32,7 +32,6 @@ $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
             'fields' => ['name'],
             'headerFields' => ['title'],
             'panelLayout' => 'filter;search,limit',
-            'child_record_callback' => ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiPromptsListener', 'listPrompts'],
         ],
         'label' => [
             'fields' => ['name', 'model', 'status'],
@@ -212,9 +211,9 @@ $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
                 'rte' => '',
                 'tl_class' => 'clr',
                 'rows' => 6,
-                // Preserve literal characters and decode HTML entities on save so instructions remain 1:1
+                // Preserve literal characters so instructions are stored 1:1. Contao 6
+                // stores raw input, so decodeEntities (removed in 6.0) is no longer needed.
                 'preserveTags' => true,
-                'decodeEntities' => true,
             ],
             'search' => true,
             'sql' => 'text NULL',

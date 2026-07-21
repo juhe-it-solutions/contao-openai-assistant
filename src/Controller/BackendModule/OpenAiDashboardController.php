@@ -15,7 +15,7 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Controller\BackendModule;
 use Contao\CoreBundle\Controller\AbstractController;
 use Contao\CoreBundle\DependencyInjection\Attribute\AsBackendModule;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[AsBackendModule(
     category: 'ai_tools',

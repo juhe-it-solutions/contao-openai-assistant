@@ -31,7 +31,7 @@ class OpenAiFilesListenerTest extends TestCase
         $dc = $this->getMockBuilder(DataContainer::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['getPalette', 'save'])
-            ->getMockForAbstractClass()
+            ->getMock()
         ;
         $dc->pid = 7;
 

@@ -165,7 +165,7 @@ class AiChatModuleController extends AbstractFrontendModuleController
             }
         }
 
-        return $GLOBALS['TL_LANGUAGE'] ?? 'en';
+        return str_starts_with($request->getLocale(), 'de') ? 'de' : 'en';
     }
 
     /**

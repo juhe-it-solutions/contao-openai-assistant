@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace JuheItSolutions\ContaoOpenaiAssistant\EventListener;
 
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
+use Contao\CoreBundle\DataContainer\RecordLabel;
 use Contao\CoreBundle\DependencyInjection\Attribute\AsCallback;
 use Contao\CoreBundle\Monolog\ContaoContext;
 use Contao\DataContainer;
@@ -364,12 +365,17 @@ class OpenAiFilesListener
         return $value;
     }
 
-    #[AsCallback(table: 'tl_openai_files', target: 'list.child_record')]
-    public function listFiles($row): string
+    /**
+     * Registered as the label_callback (Contao 6 removed child_record_callback).
+     * Returns a RecordLabel so the HTML markup is rendered raw instead of being
+     * auto-encoded as a plain-text string.
+     */
+    #[AsCallback(table: 'tl_openai_files', target: 'list.label.label_callback')]
+    public function listFiles($row): RecordLabel
     {
         // Handle null or empty row
         if (!$row || !\is_array($row)) {
-            return '<div class="tl_content_left">No file data available</div>';
+            return RecordLabel::fromHtml('<div class="tl_content_left">No file data available</div>');
         }
 
         // Enhanced status handling with proper type checking
@@ -407,12 +413,12 @@ class OpenAiFilesListener
             $fileSize = 'Size: Unknown';
         }
 
-        return \sprintf(
+        return RecordLabel::fromHtml(\sprintf(
             '<div class="tl_content_left"><span style="color:#999;">%s | %s</span> %s</div>',
             htmlspecialchars($fileId, ENT_QUOTES, 'UTF-8'),
             htmlspecialchars($fileSize, ENT_QUOTES, 'UTF-8'),
             $status,
-        );
+        ));
     }
 
     /**
@@ -518,7 +524,7 @@ class OpenAiFilesListener
             return;
         }
 
-        $language = $GLOBALS['TL_LANGUAGE'] ?? 'en';
+        $language = $this->requestStack->getCurrentRequest()?->getLocale() ?? 'en';
         System::loadLanguageFile('tl_openai_files', $language);
 
         $lang = $GLOBALS['TL_LANG']['tl_openai_files'] ?? [];
@@ -552,8 +558,8 @@ class OpenAiFilesListener
         }
 
         $request = $this->requestStack->getCurrentRequest();
-        if ($request && $request->get('pid')) {
-            return (int) $request->get('pid');
+        if ($request && $request->query->get('pid')) {
+            return (int) $request->query->get('pid');
         }
 
         $existingConfig = $this->connection->fetchAssociative(

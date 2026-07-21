@@ -573,11 +573,11 @@ class OpenAiConfigListener
         $this->configureSingleRecordCreation();
 
         $request = $this->requestStack->getCurrentRequest();
-        if ($request && ('create' === $request->get('act') || '' === $request->get('act'))) {
+        if ($request && ('create' === $request->query->get('act') || '' === $request->query->get('act'))) {
             $this->checkSingleRecordLimitation($dc);
         }
 
-        if ($dc && $dc->id && 'edit' === ($request?->get('act') ?? '')) {
+        if ($dc && $dc->id && 'edit' === ($request?->query->get('act') ?? '')) {
             $this->migrateScheduleFieldsOnLoad($dc);
             // Render path: use the cache-only check so building the form never blocks
             // on a licensing HTTP call. Save paths keep the authoritative check.
@@ -1353,7 +1353,7 @@ class OpenAiConfigListener
 
     private function loadConfigLang(): array
     {
-        $language = $GLOBALS['TL_LANGUAGE'] ?? 'en';
+        $language = $this->requestStack->getCurrentRequest()?->getLocale() ?? 'en';
         System::loadLanguageFile('tl_openai_config', $language);
 
         return $GLOBALS['TL_LANG']['tl_openai_config'] ?? [];
@@ -1463,7 +1463,7 @@ class OpenAiConfigListener
      */
     private function getTranslatedString(string $key, string $fallback): string
     {
-        $language = $GLOBALS['TL_LANGUAGE'] ?? 'en';
+        $language = $this->requestStack->getCurrentRequest()?->getLocale() ?? 'en';
         System::loadLanguageFile('tl_openai_config', $language);
 
         $lang = $GLOBALS['TL_LANG']['tl_openai_config'] ?? [];

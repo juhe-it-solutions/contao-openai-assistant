@@ -14,6 +14,7 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\EventListener;
 
 use Contao\Controller;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
+use Contao\CoreBundle\DataContainer\RecordLabel;
 use Contao\CoreBundle\Monolog\ContaoContext;
 use Contao\DataContainer;
 use Contao\Message;
@@ -161,8 +162,12 @@ class OpenAiPromptsListener
 
     /**
      * Renders a single prompt row in the backend list.
+     *
+     * Registered as the label_callback (Contao 6 removed child_record_callback).
+     * Returns a RecordLabel so the HTML markup is rendered raw instead of being
+     * auto-encoded as a plain-text string.
      */
-    public function listPrompts($row): string
+    public function listPrompts($row): RecordLabel
     {
         $statusColors = [
             'active' => 'green',
@@ -196,7 +201,7 @@ class OpenAiPromptsListener
             );
         }
 
-        return \sprintf(
+        return RecordLabel::fromHtml(\sprintf(
             '<div class="tl_file_list"><span class="name">%s</span> <span class="model">[%s]</span> <span class="settings">(temp: %s, top_p: %s)</span>%s <span class="status" style="color: %s">%s %s%s</span>',
             htmlspecialchars((string) ($row['name'] ?? '')),
             htmlspecialchars((string) ($row['model'] ?? '')),
@@ -207,7 +212,7 @@ class OpenAiPromptsListener
             $icon,
             $GLOBALS['TL_LANG']['tl_openai_prompts']['status_options'][$status] ?? $status,
             $cause,
-        );
+        ));
     }
 
     /**
@@ -249,11 +254,11 @@ class OpenAiPromptsListener
     public function onLoadCallback($dc): void
     {
         $request = $this->requestStack->getCurrentRequest();
-        if ($request && ('create' === $request->get('act') || '' === $request->get('act'))) {
+        if ($request && ('create' === $request->query->get('act') || '' === $request->query->get('act'))) {
             $this->checkSingleRecordLimitation($dc);
         }
 
-        $language = $GLOBALS['TL_LANGUAGE'] ?? 'en';
+        $language = $this->requestStack->getCurrentRequest()?->getLocale() ?? 'en';
         System::loadLanguageFile('tl_openai_prompts', $language);
 
         $lang = $GLOBALS['TL_LANG']['tl_openai_prompts'] ?? [];
@@ -456,7 +461,7 @@ class OpenAiPromptsListener
         } else {
             $request = $this->requestStack->getCurrentRequest();
             if ($request) {
-                $configId = (int) ($request->get('pid') ?: $request->get('id'));
+                $configId = (int) ($request->query->get('pid') ?: $request->query->get('id'));
             }
         }
 

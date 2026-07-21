@@ -140,7 +140,6 @@ services:
         public: true
         tags:
             - { name: contao.callback, table: tl_openai_files, target: fields.file_upload.save, method: uploadToOpenAI }
-            - { name: contao.callback, table: tl_openai_files, target: list.child_record, method: listFiles }
             - { name: contao.callback, table: tl_openai_files, target: config.ondelete, method: deleteFromOpenAI }
             - { name: contao.callback, table: tl_openai_files, target: list.header, method: addHeader }
 
@@ -165,7 +164,6 @@ services:
             - { name: contao.callback, table: tl_openai_prompts, target: fields.temperature.save, method: validateTemperature }
             - { name: contao.callback, table: tl_openai_prompts, target: list.header, method: addHeader }
             - { name: contao.callback, table: tl_openai_prompts, target: list.label, method: listPrompts }
-            - { name: contao.callback, table: tl_openai_prompts, target: list.child_record, method: listPrompts }
 
     # Security Voter
     JuheItSolutions\ContaoOpenaiAssistant\Security\Voter\AiChatVoter:

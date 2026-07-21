@@ -133,9 +133,18 @@ class LicenseValidationServiceTest extends TestCase
         $connection = $this->createMock(Connection::class);
 
         // 1: initial isLicenseActive SELECT, 2: revalidate() $previous SELECT, 3: re-read.
+        $fetchSequence = [$active, $active, $canceled];
+        $fetchCall = 0;
         $connection
             ->method('fetchAssociative')
-            ->willReturnOnConsecutiveCalls($active, $active, $canceled)
+            ->willReturnCallback(
+                static function () use ($fetchSequence, &$fetchCall) {
+                    $result = $fetchSequence[$fetchCall] ?? end($fetchSequence);
+                    ++$fetchCall;
+
+                    return $result;
+                },
+            )
         ;
 
         $connection

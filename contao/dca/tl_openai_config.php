@@ -258,7 +258,6 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
                 'maxlength'   => 255,
                 'tl_class'    => 'w50',
                 'placeholder' => 'JUHE-AI-...',
-                'allowHtml'   => true,
             ],
             'sql' => [
                 'type'    => 'string',

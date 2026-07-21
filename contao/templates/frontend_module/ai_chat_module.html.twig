@@ -98,7 +98,7 @@
                 </button>
             </div>
             <div class="ai-chat-disclaimer-body" id="ai-chat-disclaimer-description-{{ module_id|replace({'ai-chat-': ''}) }}">
-                {{ disclaimer_text|default(default_disclaimer_text)|raw }}
+                {{ disclaimer_text|default(default_disclaimer_text)|sanitize_html('contao')|csp_inline_styles }}
             </div>
         </div>
     </div>

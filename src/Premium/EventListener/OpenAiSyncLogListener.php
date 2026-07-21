@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Premium\EventListener;
 
+use Contao\CoreBundle\DataContainer\RecordLabel;
 use Contao\CoreBundle\DependencyInjection\Attribute\AsCallback;
 use Contao\DataContainer;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreSyncMessageTranslator;
@@ -50,15 +51,16 @@ class OpenAiSyncLogListener
 
     /**
      * Format the columns of a single list row. In "showColumns" mode the callback
-     * receives the positional $args array and must return it (see DC_Table).
+     * receives the positional $args array and returns the per-column values.
+     *
+     * Contao 6 auto-encodes plain string/array returns, so the columns (which carry
+     * the raw status-badge markup) are wrapped in a RecordLabel to render as HTML.
      *
      * @param array<string, mixed> $row
      * @param array<int, string>   $args
-     *
-     * @return array<int, string>
      */
     #[AsCallback(table: 'tl_openai_sync_log', target: 'list.label.label_callback')]
-    public function formatRow(array $row, string $label, DataContainer $dc, array $args): array
+    public function formatRow(array $row, string $label, DataContainer $dc, array $args): RecordLabel
     {
         $fields = $GLOBALS['TL_DCA']['tl_openai_sync_log']['list']['label']['fields'] ?? [];
         $index = array_flip($fields);
@@ -80,7 +82,7 @@ class OpenAiSyncLogListener
             $args[$index['message']] = htmlspecialchars($translated, ENT_QUOTES);
         }
 
-        return $args;
+        return RecordLabel::fromHtml($args);
     }
 
     private function formatDuration(int $seconds): string
