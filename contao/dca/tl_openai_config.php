@@ -257,7 +257,9 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             ],
             'eval'      => [
                 'maxlength'   => 255,
-                'tl_class'    => 'w50',
+                // 'wizard' makes Contao 6 lay the wizard button (licenseKeyWizard)
+                // beside the input instead of below it.
+                'tl_class'    => 'w50 wizard',
                 'placeholder' => 'JUHE-AI-...',
             ],
             'sql' => [
