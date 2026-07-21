@@ -49,6 +49,13 @@ $GLOBALS['TL_DCA']['tl_openai_files'] = [
             'headerFields'          => ['title'],
             'panelLayout'           => 'filter;search,limit',
         ],
+        // Contao 6 builds a base label from list.label.fields in generateRecordLabel()
+        // before invoking the label_callback (listFiles), which then replaces it with
+        // the rich HTML row. Without 'fields' the parent view fatals (vsprintf 0 args).
+        'label' => [
+            'fields' => ['filename'],
+            'format' => '%s',
+        ],
         'header_callback'   => ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiFilesListener', 'addHeader'],
         'global_operations' => [
             'all' => [
