@@ -98,6 +98,10 @@
                 <source>Message</source>
                 <target>Message</target>
             </trans-unit>
+            <trans-unit id="tl_openai_sync_log.download">
+                <source>Download document</source>
+                <target>Download document</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>
