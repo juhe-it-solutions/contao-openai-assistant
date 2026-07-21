@@ -526,13 +526,24 @@
         startObserver();
     }
 
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", function () {
-            init();
-            syncAutoUpdateLicenseState();
-        });
-    } else {
+    function boot() {
         init();
         syncAutoUpdateLicenseState();
     }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot);
+    } else {
+        boot();
+    }
+
+    // Contao 6's backend is a Hotwired Turbo app: navigating to a page (e.g. opening
+    // the config edit form) is a Turbo visit that swaps the DOM WITHOUT firing
+    // DOMContentLoaded, so the DOMContentLoaded hook above never re-runs and the
+    // check-key button stays where Contao rendered it (in the field's <h3>). Re-run
+    // on Turbo's lifecycle events so the button is relocated and the click handlers
+    // are (re)bound after every visit / frame render. boot()/init() are idempotent.
+    document.addEventListener("turbo:load", boot);
+    document.addEventListener("turbo:render", boot);
+    document.addEventListener("turbo:frame-load", boot);
 })();

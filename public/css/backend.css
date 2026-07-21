@@ -96,14 +96,15 @@ a.openai-license-help-link:focus-visible {
 
 /* Remove API Status Indicator Styles and related rules */
 
-/* Contao 6 renders xlabel content inside the field's <h3> label line and the
-   wizard slot inline right after the <input>. Keep the button inline so it sits
-   beside the label / input instead of overflowing onto the field (a block-level
-   wrapper collides with the tighter Contao 6 widget layout). */
+/* The check-key wrapper is rendered by Contao inside the field's <h3> label line
+   (xlabel) and relocated below the input at runtime by backend-api-key-check.js. */
 .api-key-check-wrapper {
-    display: inline-block;
-    margin-left: 8px;
-    vertical-align: middle;
+    display: block;
+    margin-top: 8px;
+    margin-bottom: 4px;
+    position: relative;
+    /* Stay below Contao sticky .jump-targets (z-index: 3) */
+    z-index: 1;
 }
 
 .api-key-check-wrapper .api-key-result {
