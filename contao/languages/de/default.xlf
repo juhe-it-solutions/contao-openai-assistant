@@ -235,6 +235,14 @@
                 <source>next:</source>
                 <target>nächster:</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_not_running">
+                <source>Not running automatically</source>
+                <target>Läuft nicht automatisch</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_not_running_hint">
+                <source>The server cron is not running, so scheduled syncs will not start. Set up or restart the server cron (see the “Server cron” box). You can still sync manually.</source>
+                <target>Der Server-Cron läuft nicht, daher werden geplante Synchronisierungen nicht gestartet. Richten Sie den Server-Cron ein bzw. starten Sie ihn neu (siehe Kasten „Server-Cron“). Eine manuelle Synchronisierung ist weiterhin möglich.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_plan_prefix">
                 <source>Plan:</source>
                 <target>Tarif:</target>
