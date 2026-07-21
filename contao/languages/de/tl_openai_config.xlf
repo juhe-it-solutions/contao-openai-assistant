@@ -2,10 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 http://docs.oasis-open.org/xliff/v1.2/os/xliff-core-1.2-strict.xsd">
     <file source-language="en" target-language="de" datatype="plaintext" original="tl_openai_config.xlf">
         <body>
-            <trans-unit id="tl_openai_config.header">
-                <source>OpenAI Configuration</source>
-                <target>OpenAI-Konfiguration</target>
-            </trans-unit>
             <trans-unit id="tl_openai_config.intro">
                 <source>Here you can manage your OpenAI configurations. Each configuration requires an API key and will create a vector store for file-based knowledge.</source>
                 <target>Hier können Sie Ihre OpenAI-Konfigurationen verwalten. Jede Konfiguration benötigt einen API-Schlüssel und erstellt einen Vector Store für dateibasiertes Wissen.</target>

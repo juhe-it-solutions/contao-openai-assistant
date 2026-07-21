@@ -548,15 +548,6 @@ class OpenAiFilesListener
         );
     }
 
-    /**
-     * Adds the header to the list view.
-     */
-    #[AsCallback(table: 'tl_openai_files', target: 'list.header')]
-    public function addHeader(): string
-    {
-        return '<div class="tl_header">'.$GLOBALS['TL_LANG']['tl_openai_files']['header'].'</div>';
-    }
-
     private function resolveParentConfigId(DataContainer|null $dc): int|null
     {
         if ($dc && $dc->pid) {

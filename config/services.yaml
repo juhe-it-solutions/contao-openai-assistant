@@ -100,7 +100,6 @@ services:
             - { name: contao.callback, table: tl_openai_config, target: edit.buttons, method: removeSingleRecordCreateButtons }
             - { name: contao.callback, table: tl_openai_config, target: fields.api_key.load, method: processApiKeyForDisplay }
             - { name: contao.callback, table: tl_openai_config, target: list.label, method: addIcon }
-            - { name: contao.callback, table: tl_openai_config, target: list.header, method: addHeader }
             - { name: contao.callback, table: tl_openai_config, target: fields.api_key.save, method: processApiKeyForStorage }
             - { name: contao.callback, table: tl_openai_config, target: config.ondelete, method: deleteVectorStore }
             # Premium license + auto-update (registered ONLY here — not in the DCA arrays — to run once via DI)
@@ -142,7 +141,6 @@ services:
             - { name: contao.callback, table: tl_openai_files, target: fields.file_upload.save, method: uploadToOpenAI }
             - { name: contao.callback, table: tl_openai_files, target: list.child_record, method: listFiles }
             - { name: contao.callback, table: tl_openai_files, target: config.ondelete, method: deleteFromOpenAI }
-            - { name: contao.callback, table: tl_openai_files, target: list.header, method: addHeader }
 
     # OpenAiPromptsListener
     JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiPromptsListener:
@@ -163,7 +161,6 @@ services:
             - { name: contao.callback, table: tl_openai_prompts, target: fields.system_instructions.save, method: normalizeSystemInstructions }
             - { name: contao.callback, table: tl_openai_prompts, target: fields.top_p.save, method: validateTopP }
             - { name: contao.callback, table: tl_openai_prompts, target: fields.temperature.save, method: validateTemperature }
-            - { name: contao.callback, table: tl_openai_prompts, target: list.header, method: addHeader }
             - { name: contao.callback, table: tl_openai_prompts, target: list.label, method: listPrompts }
             - { name: contao.callback, table: tl_openai_prompts, target: list.child_record, method: listPrompts }
 

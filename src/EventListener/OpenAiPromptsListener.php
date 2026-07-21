@@ -238,14 +238,6 @@ class OpenAiPromptsListener
         return (string) $value;
     }
 
-    /**
-     * Adds the header to the list view.
-     */
-    public function addHeader(): string
-    {
-        return '<div class="tl_header">'.($GLOBALS['TL_LANG']['tl_openai_prompts']['header'] ?? '').'</div>';
-    }
-
     public function onLoadCallback($dc): void
     {
         $request = $this->requestStack->getCurrentRequest();
