@@ -44,6 +44,15 @@
     font-weight: 700;
     background: rgba(0, 0, 0, 0.08);
 }
+/* Name the operations column: Contao renders its header as an empty
+   <th class="tl_right_nowrap"> (hardcoded in core, no DCA hook), so inject a
+   label via ::after. Keyed off the backend <html lang> so it stays bilingual. */
+#tl_listing table.tl_listing.showColumns thead th.tl_right_nowrap::after {
+    content: 'Actions';
+}
+html[lang|='de'] #tl_listing table.tl_listing.showColumns thead th.tl_right_nowrap::after {
+    content: 'Aktionen';
+}
 
 /* Cap the message column instead of letting it stretch the whole table */
 #tl_listing table.tl_listing.showColumns td.col_message {
