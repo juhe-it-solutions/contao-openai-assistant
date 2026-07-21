@@ -14,7 +14,6 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\EventListener;
 
 use Contao\Controller;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
-use Contao\CoreBundle\DependencyInjection\Attribute\AsCallback;
 use Contao\CoreBundle\Monolog\ContaoContext;
 use Contao\DataContainer;
 use Contao\Message;
@@ -557,15 +556,6 @@ class OpenAiConfigListener
         } finally {
             $this->connection->executeStatement('DELETE FROM tl_openai_vector_file WHERE pid = ?', [$configId]);
         }
-    }
-
-    /**
-     * Adds the header to the list view.
-     */
-    #[AsCallback(table: 'tl_openai_config', target: 'list.header')]
-    public function addHeader(): string
-    {
-        return '<div class="tl_header">'.$GLOBALS['TL_LANG']['tl_openai_config']['header'].'</div>';
     }
 
     public function onLoadCallback($dc): void

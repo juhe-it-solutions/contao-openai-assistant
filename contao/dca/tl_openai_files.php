@@ -49,7 +49,6 @@ $GLOBALS['TL_DCA']['tl_openai_files'] = [
             'panelLayout'           => 'filter;search,limit',
             'child_record_callback' => ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiFilesListener', 'listFiles'],
         ],
-        'header_callback'   => ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiFilesListener', 'addHeader'],
         'global_operations' => [
             'all' => [
                 'href'       => 'act=select',
