@@ -220,6 +220,37 @@ class PageLinkFilterTest extends TestCase
         $this->assertArrayNotHasKey(1, $literal['links']);
     }
 
+    /**
+     * Contao 5.3/5.7 store "=", "#", "(", ")" and the quotes of a posted value as
+     * numeric entities; Contao 6 stores the raw text. The same configuration has
+     * to behave identically on both.
+     */
+    public function testExcludePatternsWorkWithContaoInputEncoding(): void
+    {
+        $corpus = [1 => [
+            self::link('https://example.com/download.html?file=preise.pdf'),
+            self::link('https://example.com/aktuelles.html'),
+        ]];
+        $filter = new PageLinkFilter();
+
+        $encoded = $filter->applyPolicy($corpus, null, ['*?file&#61;*']);
+        $this->assertSame(
+            ['https://example.com/aktuelles.html'],
+            array_map(static fn ($link) => $link->url, $encoded['links'][1]),
+            'A pattern saved on Contao 5.3/5.7 arrives entity-encoded and must still match.',
+        );
+
+        $raw = $filter->applyPolicy($corpus, null, ['*?file=*']);
+        $this->assertSame(
+            ['https://example.com/aktuelles.html'],
+            array_map(static fn ($link) => $link->url, $raw['links'][1]),
+            'The same pattern saved on Contao 6 arrives raw and must match the same way.',
+        );
+
+        $comment = $filter->applyPolicy($corpus, null, ['&#35; nur eine Notiz']);
+        $this->assertCount(2, $comment['links'][1], 'An encoded "#" line is still a comment, not a pattern.');
+    }
+
     public function testRemovesLinksToProtectedPages(): void
     {
         $corpus = [1 => [
