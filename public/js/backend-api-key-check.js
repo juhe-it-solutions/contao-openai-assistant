@@ -194,7 +194,15 @@
                         return;
                     }
 
-                    resultSpan.innerHTML = '<span style="color:red;">✗ ' + labels.invalid + ' ' + (result.message || "") + '</span>';
+                    // The endpoint returns machine codes, never raw exception text.
+                    // "request_failed" (the call did not complete) and "access_denied"
+                    // (missing backend permission) are not statements about the key, so
+                    // they must not be reported as "the key is invalid".
+                    var couldNotCheck = 'request_failed' === result.message || 'access_denied' === result.message;
+
+                    resultSpan.innerHTML = couldNotCheck
+                        ? '<span style="color:red;">✗ ' + labels.error + '</span>'
+                        : '<span style="color:red;">✗ ' + labels.invalid + '</span>';
                     input.style.backgroundColor = "lightcoral";
                     input.style.color = "#121212";
                 } catch (e) {

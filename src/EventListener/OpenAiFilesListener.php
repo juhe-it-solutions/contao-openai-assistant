@@ -37,7 +37,6 @@ class OpenAiFilesListener
     public function __construct(
         private readonly HttpClientInterface $httpClient,
         private readonly string $projectDir,
-        private readonly string $webDir,
         private readonly LoggerInterface $logger,
         private readonly OpenAiConfigListener $configListener,
         private readonly RequestStack $requestStack,
@@ -116,25 +115,20 @@ class OpenAiFilesListener
 
             // Find the file model by UUID
             $file = FilesModel::findByUuid($fileUuid);
-            $absolutePath = null;
-            if ($file && isset($file->path)) {
-                $webRoot = $this->webDir;
-                // If webDir is not absolute, prefix with projectDir
-                if ('' !== $webRoot && !str_starts_with($webRoot, '/')) {
-                    $webRoot = rtrim($this->projectDir, '/').'/'.ltrim($webRoot, '/');
-                }
-                $absolutePath = rtrim($webRoot, '/').'/'.ltrim($file->path, '/');
-            }
-            if (!$file || !$absolutePath || !file_exists($absolutePath)) {
-                $webRootForMessage = $this->webDir;
-                if ('' !== $webRootForMessage && !str_starts_with($webRootForMessage, '/')) {
-                    $webRootForMessage = rtrim($this->projectDir, '/').'/'.ltrim($webRootForMessage, '/');
-                }
 
+            // FilesModel paths are project-relative ("files/…"), and getAbsolutePath()
+            // resolves them against kernel.project_dir - Contao's own contract. Building
+            // the path from the web directory instead only worked through the
+            // "public/files" symlink that contao:symlinks creates; without it (and it is
+            // absent often enough on Windows and on hosts that forbid symlinks) every
+            // upload failed with "File not found".
+            $absolutePath = $file ? $file->getAbsolutePath() : null;
+
+            if (!$file || !$absolutePath || !file_exists($absolutePath)) {
                 if (!$file) {
                     $errorMessage = 'File not found (invalid or missing file reference). Please reselect the file.';
                 } else {
-                    $errorMessage = 'File not found: '.$file->path.'. Looked in: '.($absolutePath ?? 'unknown').'. Web root: '.$webRootForMessage.'.';
+                    $errorMessage = 'File not found: '.$file->path.'. Looked in: '.($absolutePath ?? 'unknown').'.';
                 }
 
                 Message::addError($errorMessage);
@@ -143,8 +137,7 @@ class OpenAiFilesListener
                     'file_uuid' => $fileUuid,
                     'file_path' => $file ? $file->path : null,
                     'absolute_path' => $absolutePath,
-                    'configured_webdir' => $this->webDir,
-                    'resolved_web_root' => $webRootForMessage,
+                    'project_dir' => $this->projectDir,
                 ]);
                 ++$errorCount;
 

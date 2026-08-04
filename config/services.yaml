@@ -136,7 +136,6 @@ services:
         arguments:
             $httpClient: '@http_client'
             $projectDir: '%kernel.project_dir%'
-            $webDir: '%contao.web_dir%'
             $logger: '@monolog.logger.contao'
             $configListener: '@JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener'
             $requestStack: '@request_stack'
@@ -170,10 +169,13 @@ services:
             - { name: contao.callback, table: tl_openai_prompts, target: fields.temperature.save, method: validateTemperature }
             - { name: contao.callback, table: tl_openai_prompts, target: list.label.label_callback, method: listPrompts }
 
-    # Security Voter
-    JuheItSolutions\ContaoOpenaiAssistant\Security\Voter\AiChatVoter:
-        tags:
-            - { name: security.voter }
+    # No security voter for /ai-chat/*: the endpoints are anonymous by design (a
+    # public chatbot answers visitors who are not logged in), and the voter that
+    # used to sit here voted "true" for every request without ever consulting
+    # anything. It read like access control while providing none, so it was removed
+    # rather than left as a trap for the next reader. Access is documented in
+    # docs/security/rate-limiting.md; abuse is bounded by CSRF, the IP limit, the
+    # session throttle, the daily cap and the message length limit.
 
     # --- Automatic vector store updates ---
 

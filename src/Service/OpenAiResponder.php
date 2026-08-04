@@ -74,6 +74,12 @@ class OpenAiResponder
 
     private const MAX_FILE_SEARCH_RESULTS = 20;
 
+    /**
+     * Keeps the "more than one configuration" warning to once per PHP process
+     * instead of once per chat message.
+     */
+    private static bool $multiConfigWarningLogged = false;
+
     public function __construct(
         private readonly HttpClientInterface $http,
         private readonly LoggerInterface $logger,
@@ -134,15 +140,38 @@ class OpenAiResponder
     }
 
     /**
-     * Get the active OpenAI configuration (most recent record).
+     * Get the active OpenAI configuration.
+     *
+     * Ordered by id, not by tstamp. The backend allows exactly one configuration
+     * (OpenAiConfigListener::checkSingleRecordLimitation()) and edits the lowest-id
+     * row, so this picks the row an operator actually sees. With "newest tstamp
+     * wins", an installation that still carries a second row from an older version
+     * silently switched API key, vector store and prompt whenever that other row
+     * was saved - including by a save that changed nothing.
      */
     public function getActiveConfig(): array|null
     {
-        $result = $this->connection->fetchAssociative(
-            'SELECT * FROM tl_openai_config WHERE api_key IS NOT NULL ORDER BY tstamp DESC LIMIT 1',
+        // LIMIT 2 rather than 1: the second row is only ever used to notice that a
+        // surplus configuration exists, which costs nothing here and saves a COUNT(*)
+        // on every chat message. (A static flag would not help - PHP-FPM resets
+        // statics between requests, so "once per process" is once per request there.)
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT * FROM tl_openai_config WHERE api_key IS NOT NULL ORDER BY id ASC LIMIT 2',
         );
 
-        return $result ?: null;
+        if ([] === $rows) {
+            return null;
+        }
+
+        if (\count($rows) > 1 && !self::$multiConfigWarningLogged) {
+            self::$multiConfigWarningLogged = true;
+            $this->logger->warning(\sprintf(
+                'More than one usable OpenAI configuration exists; only one is supported. The chat uses configuration ID %s. Remove the surplus row in the backend.',
+                (string) $rows[0]['id'],
+            ));
+        }
+
+        return $rows[0];
     }
 
     /**

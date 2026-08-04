@@ -104,9 +104,13 @@ class ApiValidationController
                 );
             }
         } catch (\Exception $e) {
-            $message = $e->getMessage();
+            // The exception text can carry transport details, resolved hosts and
+            // proxy internals. It belongs in the log, not in a JSON body that ends
+            // up in every browser network panel and error report - the caller only
+            // needs to know that the check could not be completed.
+            $message = 'request_failed';
             $this->logger->error(
-                'OpenAI API key validation failed: '.$message,
+                'OpenAI API key validation failed: '.$e->getMessage(),
                 [
                     'contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR),
                 ],
