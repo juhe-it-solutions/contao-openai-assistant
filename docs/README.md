@@ -21,6 +21,7 @@ This directory documents the current Contao OpenAI Assistant 2.x codebase. The e
 
 - [Disclaimer feature](features/disclaimer.md)
 - [Link shortening (shorten plain URLs)](features/link-shortening.md)
+- [Page links: answering with real links and documents (premium)](features/page-links.md)
 - [HTTP/API reference](development/api-reference.md)
 - [Troubleshooting and upgrades](development/troubleshooting.md)
 - [Backend icon notes](backend-icon.md)

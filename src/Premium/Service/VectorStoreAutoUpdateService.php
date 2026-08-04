@@ -129,6 +129,10 @@ class VectorStoreAutoUpdateService
         private readonly LicenseValidationService $licenseValidation,
         private readonly BoilerplateFilter $boilerplate,
         private readonly VectorStoreFileSync $fileSync,
+        private readonly PageLinkRepository $pageLinks,
+        private readonly PageLinkFilter $linkFilter,
+        private readonly LinkSectionBuilder $linkSection,
+        private readonly LinkIndexDocumentBuilder $linkIndex,
     ) {
     }
 
@@ -350,6 +354,11 @@ class VectorStoreAutoUpdateService
             $this->progress($configId, 'crawl', 0, 0);
             $this->spawnCrawl($configId);
 
+            // Drop collected links whose source document has vanished from the
+            // search index (page deleted, 404, excluded from indexing). Runs after
+            // the crawl so it sees the fresh index, and never fails the run.
+            $this->pageLinks->pruneOrphans();
+
             // Plan-based page cap: enforce the subscription limit at runtime so a
             // downgrade immediately shrinks the sync scope without requiring the admin to
             // re-save their site-root selection (BUG-06). Resolved through the same
@@ -427,6 +436,13 @@ class VectorStoreAutoUpdateService
                 ));
             }
 
+            // Links of the pages in scope. They were collected while Contao indexed
+            // each page (SearchIndexLinkListener), so this is a read-only step: no
+            // crawling, no network, no page parsing here.
+            $linksEnabled = (bool) ($config['auto_update_include_links'] ?? false);
+            $linkStats = ['total' => 0, 'dropped_policy' => 0, 'dropped_boilerplate' => 0];
+            $linksByPage = $linksEnabled ? $this->collectLinks($config, array_keys($byPage), $linkStats) : [];
+
             $tokensIn = 0;
             $tokensOut = 0;
             $pages = [];
@@ -453,6 +469,13 @@ class VectorStoreAutoUpdateService
                     $this->progress($configId, 'polish', $polishDone, $polishTotal);
                 }
 
+                // Appended AFTER the optional LLM rewrite on purpose: the model
+                // never sees a URL, so it cannot truncate, reword or invent one.
+                // The block is byte-deterministic, so it costs no tokens and keeps
+                // the incremental content hash meaningful - a page is re-uploaded
+                // exactly when its links (or its text) really changed.
+                $content = $this->appendLinkSection($content, $page, $linksByPage, $linksEnabled);
+
                 $pages[] = [
                     'page_id' => $page['page_id'],
                     'url' => $page['url'],
@@ -467,6 +490,24 @@ class VectorStoreAutoUpdateService
             if (0 === \count($pages)) {
                 throw new \RuntimeException('MSC.vsau_err_empty_document_raw');
             }
+
+            // Number of real content pages, captured BEFORE the optional directory
+            // document is appended: it is what the sync log, the dashboard and the
+            // plan-limit wording refer to, and it must not be inflated by a
+            // synthetic document.
+            $contentPageCount = \count($pages);
+
+            // Site-wide directory of documents and pages, uploaded as one extra
+            // file with page_id = 0. Built AFTER the plan cap was applied to
+            // $byPage, so it never consumes a page of the customer's quota. When
+            // the option is switched off the entry simply disappears from $pages
+            // and VectorStoreFileSync removes its file like any other page that
+            // dropped out of scope.
+            $pages = $this->appendLinkIndexDocument(
+                $pages,
+                $linksByPage,
+                $linksEnabled && (bool) ($config['auto_update_link_index'] ?? false),
+            );
 
             $syncStats = $this->fileSync->sync(
                 $apiKey,
@@ -504,12 +545,12 @@ class VectorStoreAutoUpdateService
                 '',
                 // per-page mode has no single file id
                 [
-                    'pages' => \count($pages),
+                    'pages' => $contentPageCount,
                     'tokens_in' => $tokensIn,
                     'tokens_out' => $tokensOut,
                     'duration' => time() - $start,
                     'model' => $model,
-                    'document' => $this->buildManifest($pages, $syncStats),
+                    'document' => $this->buildManifest($pages, $syncStats, $linksEnabled ? $linkStats : null),
                     'sync' => $syncStats,
                 ],
                 $resultMessage,
@@ -636,6 +677,82 @@ class VectorStoreAutoUpdateService
         }
 
         return array_values(array_unique(array_filter(array_map(intval(...), explode(',', $raw)))));
+    }
+
+    /**
+     * Append the deterministic link section to one page's content.
+     *
+     * Called AFTER the optional LLM rewrite, so the model never sees a URL and can
+     * neither truncate, reword nor invent one. With the feature switched off the
+     * content is returned byte-identical, which is what keeps an installation that
+     * does not want links exactly where it was.
+     *
+     * Public so the behaviour the acceptance criteria describe can be tested
+     * without running the whole sync (which needs a database, HTTP and a
+     * subprocess).
+     *
+     * @param array{page_id: int, title?: string, language?: string} $page
+     * @param array<int, list<PageLink>>                             $linksByPage
+     */
+    public function appendLinkSection(string $content, array $page, array $linksByPage, bool $enabled): string
+    {
+        if (!$enabled) {
+            return $content;
+        }
+
+        $block = $this->linkSection->build(
+            $linksByPage[$page['page_id']] ?? [],
+            (string) ($page['title'] ?? ''),
+            (string) ($page['language'] ?? ''),
+        );
+
+        return '' !== $block ? $content."\n\n".$block : $content;
+    }
+
+    /**
+     * Append the site-wide directory of documents and pages as one extra document.
+     *
+     * It is uploaded with page_id = 0 and is added AFTER the plan cap was applied,
+     * so it never consumes a page of the customer's quota. Switching the option
+     * off simply omits the entry, and VectorStoreFileSync then removes its file
+     * like any other page that dropped out of scope.
+     *
+     * @param list<array<string, mixed>> $pages
+     * @param array<int, list<PageLink>> $linksByPage
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function appendLinkIndexDocument(array $pages, array $linksByPage, bool $enabled): array
+    {
+        if (!$enabled || [] === $pages) {
+            return $pages;
+        }
+
+        $language = (string) ($pages[0]['language'] ?? '');
+        $siteRoot = $this->siteRootUrl((string) ($pages[0]['url'] ?? ''));
+        $document = $this->linkIndex->build(
+            $pages,
+            $linksByPage,
+            $language,
+            (string) parse_url($siteRoot, PHP_URL_HOST),
+        );
+
+        if ('' === $document) {
+            return $pages;
+        }
+
+        $pages[] = [
+            'page_id' => 0,
+            // The directory belongs to the site as a whole, so it cites the site
+            // root rather than an arbitrary page.
+            'url' => $siteRoot,
+            'title' => $this->linkIndex->title($language),
+            'language' => $language,
+            'content' => $document,
+            'search_checksum' => '',
+        ];
+
+        return $pages;
     }
 
     /**
@@ -779,6 +896,108 @@ class VectorStoreAutoUpdateService
         if (!$process->isSuccessful()) {
             throw new \RuntimeException('MSC.vsau_err_crawl_failed|'.$process->getErrorOutput());
         }
+    }
+
+    /**
+     * Load, filter and group the links of the pages in scope.
+     *
+     * Three filtering stages, in this order:
+     *   1. the operator's policy (allowed types, exclude patterns) plus the hard
+     *      rule that a link to a protected page is never advertised,
+     *   2. the cross-page frequency filter, which removes site chrome no matter
+     *      what the theme's markup looks like,
+     *   3. (implicitly) the extractor's own per-page cap, applied at collection time.
+     *
+     * @param array<string, mixed>                                             $config
+     * @param list<int|string>                                                 $pageIds
+     * @param array{total: int, dropped_policy: int, dropped_boilerplate: int} $stats   by reference
+     *
+     * @return array<int, list<PageLink>>
+     */
+    private function collectLinks(array $config, array $pageIds, array &$stats): array
+    {
+        $links = $this->pageLinks->findForPages(array_map(intval(...), $pageIds));
+
+        if ([] === $links) {
+            return [];
+        }
+
+        $policy = $this->linkFilter->applyPolicy(
+            $links,
+            // NULL when the field was never saved (every type allowed, which is
+            // what an installation upgrading into this feature sees); an empty
+            // list when the admin unchecked every type, which must then mean
+            // "no links" rather than "all links".
+            self::parseStringList($config['auto_update_link_types'] ?? null),
+            preg_split('/\r\n|\r|\n/', (string) ($config['auto_update_link_exclude'] ?? '')) ?: [],
+            $this->pageLinks->protectedUrls(),
+        );
+
+        // The frequency denominator is the whole sync scope, not just the pages that
+        // happen to contain links.
+        $cleaned = $this->linkFilter->removeBoilerplate($policy['links'], \count($pageIds));
+
+        $stats['dropped_policy'] = $policy['dropped'];
+        $stats['dropped_boilerplate'] = $cleaned['dropped'];
+        $stats['total'] = array_sum(array_map('count', $cleaned['links']));
+
+        if ([] !== $cleaned['samples']) {
+            $this->logger->info(
+                'VectorStoreAutoUpdate: dropped '.$cleaned['dropped'].' boilerplate link(s), e.g. '
+                .implode(', ', \array_slice($cleaned['samples'], 0, 3)),
+            );
+        }
+
+        return $cleaned['links'];
+    }
+
+    /**
+     * Scheme + host of a page URL, used as the citation URL of the site-wide
+     * directory document. Falls back to the input when it cannot be parsed.
+     */
+    private function siteRootUrl(string $pageUrl): string
+    {
+        $scheme = parse_url($pageUrl, PHP_URL_SCHEME);
+        $host = parse_url($pageUrl, PHP_URL_HOST);
+
+        if (!\is_string($scheme) || !\is_string($host) || '' === $scheme || '' === $host) {
+            return $pageUrl;
+        }
+
+        $port = parse_url($pageUrl, PHP_URL_PORT);
+
+        return $scheme.'://'.$host.(\is_int($port) ? ':'.$port : '').'/';
+    }
+
+    /**
+     * Read a DCA multi-value field (stored serialised by Contao) as a plain list of
+     * strings. Object deserialisation is disabled - the value comes from the
+     * database and must never be able to instantiate a class.
+     *
+     * Returns NULL when the field was never saved (column missing, NULL or empty
+     * string), which the caller must treat differently from an explicitly saved
+     * empty selection ("a:0:{}").
+     *
+     * @return list<string>|null
+     */
+    private static function parseStringList(mixed $value): array|null
+    {
+        if (\is_array($value)) {
+            return array_values(array_filter(array_map(strval(...), $value)));
+        }
+
+        if (null === $value || '' === $value) {
+            return null;
+        }
+
+        $raw = (string) $value;
+        $unserialized = @unserialize($raw, ['allowed_classes' => false]);
+
+        if (\is_array($unserialized)) {
+            return array_values(array_filter(array_map(strval(...), $unserialized)));
+        }
+
+        return array_values(array_filter(array_map(trim(...), explode(',', $raw))));
     }
 
     /**
@@ -1075,8 +1294,9 @@ class VectorStoreAutoUpdateService
      *
      * @param list<array{page_id: int, url: string, title: string, content: string}>                                            $pages
      * @param array{added: int, updated: int, removed: int, unchanged: int, files_uploaded: int, files_failed: int, bytes: int} $sync
+     * @param array{total: int, dropped_policy: int, dropped_boilerplate: int}|null                                             $links null = link collection disabled
      */
-    private function buildManifest(array $pages, array $sync): string
+    private function buildManifest(array $pages, array $sync, array|null $links = null): string
     {
         $lines = [
             '# Vector store sync manifest',
@@ -1090,6 +1310,19 @@ class VectorStoreAutoUpdateService
                 $sync['removed'],
             ),
             \sprintf('- Files uploaded: %d, failed: %d, bytes: %d', $sync['files_uploaded'], $sync['files_failed'], $sync['bytes']),
+        ];
+
+        if (null !== $links) {
+            $lines[] = \sprintf(
+                '- Links embedded: %d | removed as site chrome: %d, removed by type/exclude rules: %d',
+                $links['total'],
+                $links['dropped_boilerplate'],
+                $links['dropped_policy'],
+            );
+        }
+
+        $lines = [
+            ...$lines,
             '',
             '---',
             '',

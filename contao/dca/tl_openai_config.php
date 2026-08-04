@@ -124,14 +124,16 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         ],
     ],
     'palettes' => [
-        '__selector__' => ['auto_update_trigger'],
+        '__selector__' => ['auto_update_trigger', 'auto_update_include_links'],
         'default' => '{title_legend},title,api_key;{chat_protection_legend},chat_daily_limit,chat_ip_rate_limit;{config_legend},vector_store_id'
             . ';{premium_legend},premium_license_intro,premium_license_key'
-            . ';{auto_update_legend},auto_update_enabled,auto_update_first_sync_hint,auto_update_trigger,auto_update_mode,auto_update_model,auto_update_site_root,auto_update_prompt_template',
+            . ';{auto_update_legend},auto_update_enabled,auto_update_first_sync_hint,auto_update_trigger,auto_update_mode,auto_update_model,auto_update_site_root,auto_update_include_links,auto_update_prompt_template',
     ],
     'subpalettes' => [
         // Schedule fields only make sense for the automatic trigger; hidden in manual mode.
         'auto_update_trigger_scheduled' => 'auto_update_schedule_hour,auto_update_schedule_minute,auto_update_schedule_weekday,auto_update_schedule_day',
+        // Link options only make sense while link collection is switched on.
+        'auto_update_include_links' => 'auto_update_link_types,auto_update_link_exclude,auto_update_link_index',
     ],
     'fields' => [
         'id' => [
@@ -369,6 +371,44 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             ],
             'sql'       => ['type' => 'blob', 'notnull' => false],
             'relation'  => ['type' => 'hasMany', 'table' => 'tl_page', 'load' => 'lazy'],
+        ],
+        // Collect the links found on indexed pages and append them to each page
+        // document, so the chatbot can hand visitors real, working links.
+        // Default ON: the SQL default also backfills existing configurations on
+        // contao:migrate. Note that switching it on changes every page document,
+        // so the next sync re-uploads all pages once.
+        'auto_update_include_links' => [
+            'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_include_links'],
+            'exclude'   => true,
+            'inputType' => 'checkbox',
+            'default'   => true,
+            'eval'      => ['submitOnChange' => true, 'tl_class' => 'w50 clr auto-update-field auto-update-license-field'],
+            'sql'       => ['type' => 'boolean', 'default' => true],
+        ],
+        'auto_update_link_types' => [
+            'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_link_types'],
+            'exclude'   => true,
+            'inputType' => 'checkbox',
+            'options'   => ['page', 'file', 'external', 'mailto', 'tel'],
+            'reference' => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_link_types_ref'],
+            'default'   => ['page', 'file', 'external', 'mailto', 'tel'],
+            'eval'      => ['multiple' => true, 'tl_class' => 'w50 auto-update-field auto-update-license-field'],
+            'sql'       => ['type' => 'blob', 'notnull' => false],
+        ],
+        'auto_update_link_exclude' => [
+            'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_link_exclude'],
+            'exclude'   => true,
+            'inputType' => 'textarea',
+            'eval'      => ['rows' => 4, 'tl_class' => 'clr auto-update-field auto-update-license-field'],
+            'sql'       => ['type' => 'text', 'notnull' => false],
+        ],
+        'auto_update_link_index' => [
+            'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_link_index'],
+            'exclude'   => true,
+            'inputType' => 'checkbox',
+            'default'   => true,
+            'eval'      => ['tl_class' => 'w50 clr auto-update-field auto-update-license-field'],
+            'sql'       => ['type' => 'boolean', 'default' => true],
         ],
         'auto_update_prompt_template' => [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_prompt_template'],

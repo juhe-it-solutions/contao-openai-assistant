@@ -437,6 +437,58 @@
                 <source>No pages selected - all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.</source>
                 <target>No pages selected - all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_include_links.0">
+                <source>Collect links from the pages</source>
+                <target>Collect links from the pages</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_include_links.1">
+                <source><![CDATA[Collects the links contained in your pages - to other pages, to documents such as PDFs, and to external websites - and adds them to each page's knowledge document. The chatbot can then answer with a real, working link instead of merely describing where something is.<br><br>Navigation, breadcrumb, footer and other links that repeat across the site are removed automatically, and links inside protected (members-only) areas are never collected.<br><br><strong>Note:</strong> switching this on changes every page document, so the next synchronisation uploads all pages once.]]></source>
+                <target><![CDATA[Collects the links contained in your pages - to other pages, to documents such as PDFs, and to external websites - and adds them to each page's knowledge document. The chatbot can then answer with a real, working link instead of merely describing where something is.<br><br>Navigation, breadcrumb, footer and other links that repeat across the site are removed automatically, and links inside protected (members-only) areas are never collected.<br><br><strong>Note:</strong> switching this on changes every page document, so the next synchronisation uploads all pages once.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_link_types.0">
+                <source>Link types to include</source>
+                <target>Link types to include</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_link_types.1">
+                <source>Which kinds of links may appear in the chatbot's answers. Unchecking a type removes it from the next synchronisation.</source>
+                <target>Which kinds of links may appear in the chatbot's answers. Unchecking a type removes it from the next synchronisation.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_link_types_ref.page">
+                <source>Pages of this website</source>
+                <target>Pages of this website</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_link_types_ref.file">
+                <source>Documents and downloads (PDF, Office files, archives ...)</source>
+                <target>Documents and downloads (PDF, Office files, archives ...)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_link_types_ref.external">
+                <source>External websites</source>
+                <target>External websites</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_link_types_ref.mailto">
+                <source>E-mail addresses</source>
+                <target>E-mail addresses</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_link_types_ref.tel">
+                <source>Phone numbers</source>
+                <target>Phone numbers</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_link_exclude.0">
+                <source>Exclude links (one pattern per line)</source>
+                <target>Exclude links (one pattern per line)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_link_exclude.1">
+                <source><![CDATA[Links whose address matches one of these patterns are never handed to the chatbot. Use "*" as a wildcard, one pattern per line, for example:<br><code>*/impressum*</code><br><code>https://www.facebook.com/*</code><br><br>Lines starting with "#" are ignored, so you can add your own notes.]]></source>
+                <target><![CDATA[Links whose address matches one of these patterns are never handed to the chatbot. Use "*" as a wildcard, one pattern per line, for example:<br><code>*/impressum*</code><br><code>https://www.facebook.com/*</code><br><br>Lines starting with "#" are ignored, so you can add your own notes.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_link_index.0">
+                <source>Add a link and document directory</source>
+                <target>Add a link and document directory</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_link_index.1">
+                <source>Uploads one additional document listing every page and every document found on your website, including which pages link to them. It helps the chatbot answer questions such as "do you have a PDF about ...?" even when it does not retrieve the individual page. It does not count towards your plan's page limit.</source>
+                <target>Uploads one additional document listing every page and every document found on your website, including which pages link to them. It helps the chatbot answer questions such as "do you have a PDF about ...?" even when it does not retrieve the individual page. It does not count towards your plan's page limit.</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.0">
                 <source>System prompt for AI processing of the content</source>
                 <target>System prompt for AI processing of the content</target>
