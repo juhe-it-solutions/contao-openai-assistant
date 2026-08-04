@@ -124,7 +124,7 @@ class PageLinkExtractor
         'articlenav', 'sitemap', 'search', 'changelanguage', 'login', 'logout',
         'pagination', 'pager', 'invisible', 'skip_navigation', 'skip_link', 'sr_only',
         'visually_hidden', 'screen_reader_text', 'cookiebar', 'cc_banner', 'cookie_consent',
-        'toplink', 'social_links',
+        'toplink', 'social_links', 'calendar', 'newsmenu', 'eventmenu', 'comment_default',
         'site_header', 'page_header', 'main_header', 'site_footer', 'page_footer',
         'main_footer', 'topbar', 'meta_nav', 'metanav', 'metanavigation', 'langnav',
         'language_switcher', 'lang_switcher', 'mainmenu', 'main_menu', 'submenu',
@@ -135,6 +135,21 @@ class PageLinkExtractor
      * subtree, mirroring Contao's own data-skip-search-index idea.
      */
     private const IGNORE_ATTRIBUTE = 'data-oaa-ignore-links';
+
+    /**
+     * Contao's own per-link opt-out. Its crawler refuses to follow a link carrying
+     * it (SearchIndexSubscriber), and core sets it on the mini calendar's month
+     * arrows (cal_mini) and on the article print button - neither of which is
+     * wrapped in an indexer::stop region. Identical in 5.3, 5.7 and 6.0.
+     */
+    private const CONTAO_SKIP_ATTRIBUTE = 'data-skip-search-index';
+
+    /**
+     * A "nofollow" link is one the page itself refuses to endorse: comment author
+     * websites (com_default sets it), user-submitted content, ads. Recommending
+     * those in a chat answer is exactly what the attribute asks us not to do.
+     */
+    private const EXCLUDED_REL = 'nofollow';
 
     /**
      * @param string $uploadPath Contao's upload path (container parameter
@@ -676,8 +691,12 @@ class PageLinkExtractor
      */
     private function isExcluded(\DOMElement $node): bool
     {
+        if (\in_array(self::EXCLUDED_REL, preg_split('/\s+/', strtolower(trim($node->getAttribute('rel')))) ?: [], true)) {
+            return true;
+        }
+
         for ($el = $node; $el instanceof \DOMElement; $el = $el->parentNode) {
-            if ($el->hasAttribute(self::IGNORE_ATTRIBUTE)) {
+            if ($el->hasAttribute(self::IGNORE_ATTRIBUTE) || $el->hasAttribute(self::CONTAO_SKIP_ATTRIBUTE)) {
                 return true;
             }
 

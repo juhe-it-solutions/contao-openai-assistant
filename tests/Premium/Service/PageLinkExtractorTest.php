@@ -335,6 +335,68 @@ class PageLinkExtractorTest extends TestCase
         $this->assertSame(['https://example.com/news/neue-halle.html'], self::urls($links));
     }
 
+    /**
+     * Contao's own per-link opt-out, honoured by its crawler. Core sets it on the
+     * mini calendar's month arrows (cal_mini.html5 / cal_mini.html.twig) and on
+     * the article print button - the markup below is theirs.
+     */
+    public function testHonoursContaosSkipSearchIndexAttribute(): void
+    {
+        $links = $this->extract(self::page(
+            '<table class="mini"><tr><th class="head previous">'
+            .'<a href="/events.html?month=202607" title="Vorheriger Monat" data-skip-search-index>&lt;</a>'
+            .'</th></tr></table>'
+            .'<div class="syndication" data-skip-search-index><a href="/seite.html?pdf=1">Drucken</a></div>'
+            .'<a href="/keep.html">Keep</a>',
+        ));
+
+        $this->assertSame(['https://example.com/keep.html'], self::urls($links));
+    }
+
+    /**
+     * A page that refuses to endorse a link should not have the chatbot recommend
+     * it. Comment author websites are the case in Contao (com_default.html5).
+     */
+    public function testDropsNofollowLinks(): void
+    {
+        $links = $this->extract(self::page(
+            '<div class="comment_default"><p class="info">Von '
+            .'<a href="https://spam.example.net/" target="_blank" rel="nofollow noreferrer noopener">Max</a>'
+            .'</p></div>'
+            .'<a href="https://partner.example.org/" rel="NoFollow">Partner</a>'
+            .'<a href="https://echt.example.org/" rel="noopener">Echte Quelle</a>',
+        ));
+
+        $this->assertSame(['https://echt.example.org/'], self::urls($links));
+    }
+
+    public function testSkipsCalendarAndArchiveMenuModules(): void
+    {
+        $links = $this->extract(self::page(
+            '<div class="mod_calendar block"><a href="/events.html?day=20260804">4</a></div>'
+            .'<div class="mod_newsmenu block"><a href="/news.html?year=2026">2026</a></div>'
+            .'<div class="module-eventmenu"><a href="/events.html?month=202608">August</a></div>'
+            .'<div class="mod_newslist block"><a href="/news/neue-halle.html">Neue Halle</a></div>',
+        ));
+
+        $this->assertSame(['https://example.com/news/neue-halle.html'], self::urls($links));
+    }
+
+    /**
+     * Insert tags are resolved before Contao indexes the page, so the extractor
+     * only ever sees their output. {{email::…}} is the interesting one: core
+     * writes the whole href as numeric character references
+     * (StringUtil::encodeEmail()), which the DOM parser decodes for us.
+     */
+    public function testResolvesContaoEmailInsertTagOutput(): void
+    {
+        $links = $this->extract(self::page(
+            '<a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#111;&#x66;&#102;&#x69;&#99;&#x65;&#64;&#x65;&#120;&#x61;&#109;&#x70;&#108;&#x65;&#46;&#x63;&#111;&#x6D;" class="email">office@example.com</a>',
+        ));
+
+        $this->assertSame(['mailto:office@example.com'], self::urls($links));
+    }
+
     public function testHonoursIgnoreAttributeAndHiddenElements(): void
     {
         $links = $this->extract(self::page(
