@@ -128,7 +128,11 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         '__selector__' => ['auto_update_trigger', 'auto_update_include_links'],
         'default' => '{title_legend},title,api_key;{chat_protection_legend},chat_daily_limit,chat_ip_rate_limit;{config_legend},vector_store_id'
             . ';{premium_legend},premium_license_intro,premium_license_key'
-            . ';{auto_update_legend},auto_update_enabled,auto_update_first_sync_hint,auto_update_trigger,auto_update_mode,auto_update_model,auto_update_site_root,auto_update_include_links,auto_update_prompt_template',
+            // Field order follows the groups of the legend: the master switch, the
+            // schedule (trigger + its subpalette), the indexing mode with the two
+            // settings that only apply to it, the page selection, and finally the
+            // link options with their subpalette.
+            . ';{auto_update_legend},auto_update_enabled,auto_update_first_sync_hint,auto_update_trigger,auto_update_mode,auto_update_model,auto_update_prompt_template,auto_update_site_root,auto_update_include_links',
     ],
     'subpalettes' => [
         // Schedule fields only make sense for the automatic trigger; hidden in manual mode.
