@@ -378,6 +378,39 @@ function initAiChat(wrapper) {
     addMsg('assistant', initialMessage);
   };
 
+  // Remembers that this browser has an ongoing conversation, so a page view by
+  // someone who never used the chat costs no request at all. Kept in
+  // localStorage rather than sessionStorage because the conversation lives in
+  // the PHP session and is shared across tabs.
+  const HIST_FLAG = 'oaa-chat-active';
+
+  const markChatActive = () => {
+    try {
+      window.localStorage.setItem(HIST_FLAG, '1');
+    } catch (e) {
+      // Private mode or storage disabled - history restore then simply stays off.
+    }
+  };
+
+  const hasChatted = () => {
+    try {
+      return '1' === window.localStorage.getItem(HIST_FLAG);
+    } catch (e) {
+      // Storage blocked (private mode, hardened browser): we cannot know whether
+      // there is a conversation, so keep the previous behaviour and ask. Losing
+      // the transcript would be worse than one extra request.
+      return true;
+    }
+  };
+
+  const clearChatActive = () => {
+    try {
+      window.localStorage.removeItem(HIST_FLAG);
+    } catch (e) {
+      // Nothing to clean up if storage is unavailable.
+    }
+  };
+
   const fetchHist = (token) => fetch(historyEndpoint, {
     method: 'GET',
     headers: {
@@ -389,21 +422,33 @@ function initAiChat(wrapper) {
   });
 
   const loadHist = async () => {
+    // Nothing to restore for a visitor who has not written anything yet, and the
+    // usual case: no request, no token round trip.
+    if (!hasChatted()) {
+      return false;
+    }
+
     try {
-      // The history endpoint requires the CSRF token, so reading a visitor's
-      // transcript takes more than their session cookie.
-      //
-      // Deliberately the token already rendered into the form, NOT
-      // ensureValidToken(): the refresh timer starts at zero, so asking it here
-      // would fire a request to the token endpoint on every single page view that
-      // carries the chat. A stale token is handled below, where it costs one
-      // request instead of all of them.
-      let response = await fetchHist(csrfTokenField.value);
+      // A fresh token, exactly like the send path does. The token rendered into
+      // the page cannot be trusted: with Contao's page cache the HTML may carry
+      // another visitor's token, or the visitor may have no CSRF cookie at all -
+      // which is what produced a 403 on every page view.
+      const token = await ensureValidToken();
+
+      // Without a token the request can only be refused - do not make it.
+      if (!token) {
+        return false;
+      }
+
+      let response = await fetchHist(token);
 
       if (403 === response.status) {
         const freshToken = await refreshToken();
 
-        if (freshToken) {
+        // Only worth repeating with a DIFFERENT token; ensureValidToken() may
+        // already have fetched a fresh one, and asking again would just spend the
+        // token endpoint's own rate limit for the same result.
+        if (freshToken && freshToken !== token) {
           response = await fetchHist(freshToken);
         }
       }
@@ -416,6 +461,10 @@ function initAiChat(wrapper) {
           });
           return true;
         }
+
+        // The conversation is gone (session expired, cleared server-side), so stop
+        // asking for it on every following page view.
+        clearChatActive();
       }
     } catch (error) {
       console.warn('Could not load chat history:', error);
@@ -779,6 +828,8 @@ function initAiChat(wrapper) {
     
     addMsg('user', msg, new Date().toISOString());
     input.value = '';
+    // From here on there is a conversation worth restoring after a page change.
+    markChatActive();
     const tRow = typing();
 
     // Abort the request client-side after 2 minutes so the visitor gets a

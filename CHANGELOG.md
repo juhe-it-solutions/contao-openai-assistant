@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The chat module now states that the chat endpoint is public.** Contao's "Protected / member groups" option hides the chat window, but the chatbot still answers anyone who can reach the website - so confidential content does not belong in the knowledge base. See [docs/security/rate-limiting.md](docs/security/rate-limiting.md).
 
 ### Security
-- **Reading the chat history now also requires the security token**, not just the session cookie. **Note:** after the update, reload the page once with a forced refresh (Ctrl+F5) if the previous conversation no longer appears - until then the browser keeps using its cached copy of the chat script. The chat itself works normally in the meantime.
+- **Reading the chat history now also requires the security token**, not just the session cookie. The chat window also stops requesting the history on every page view: it is only fetched once the visitor has actually written something, which saves a request on every page of the website. **Note:** a conversation that was already running during the update reappears as soon as the visitor sends their next message - the chatbot still knows the conversation, only the displayed transcript starts empty once.
 
 ## [2.1.3] - 2026-07-18
 
