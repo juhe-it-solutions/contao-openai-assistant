@@ -52,6 +52,23 @@
     clear: none;
 }
 
+/* The "Vector store synchronisation" legend holds several groups of settings.
+   The two that only apply while a switch above them is on - the schedule and the
+   link options - are rendered by Contao as subpalettes, i.e. as
+   <div id="sub_<selector>" class="subpal ..."> (identical id in 5.3, 5.7 and 6.0).
+   That wrapper is enough to set them off as a group; no extra markup needed.
+   Horizontal padding stays at 0 so the fields inside keep their own margins and
+   stay aligned with the fields outside the box. Colours come from the backend
+   theme, so light and dark mode are both correct. */
+#sub_auto_update_trigger_scheduled,
+#sub_auto_update_include_links {
+    margin-bottom: 16px;
+    padding: 12px 0 4px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--nested-bg);
+}
+
 .widget.auto-update-toggle.openai-auto-update-disabled label,
 .widget.auto-update-toggle.openai-auto-update-disabled .tl_checkbox_container {
     opacity: 0.55;
