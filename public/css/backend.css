@@ -242,7 +242,9 @@ ul#sort_auto_update_site_root.oaa-picker-collapsed {
 }
 .oaa-info-card--premium {
     border-color: #d7ff64;
-    margin: 0 1rem 1rem 1rem;
+    /* The top margin used to be 0, so the box sat directly under the
+       "Premium licence" legend while having 1rem of air below it. */
+    margin: 1rem;
 }
 
 /* The blue "Notes" block inside an info card. Was an inline style on two
