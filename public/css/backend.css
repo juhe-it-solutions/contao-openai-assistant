@@ -115,9 +115,14 @@
 
 @media (max-width: 767px) {
     .widget.auto-update-license-field.w50 {
-        width: 100%;
+        /* NOT width:100% - a .widget carries 15px side margins in 5.3/5.7, so a
+           full-width box overflows its container by 30px and pushes the select
+           and the help text past the right edge. "auto" is correct in both the
+           legacy margin layout and the Contao 6 widget grid. */
+        width: auto;
         float: none;
         clear: both;
+        min-height: 0;
     }
 }
 
@@ -239,6 +244,17 @@ ul#sort_auto_update_site_root.oaa-picker-collapsed {
     border-color: #d7ff64;
     margin: 0 1rem 1rem 1rem;
 }
+
+/* The blue "Notes" block inside an info card. Was an inline style on two
+   different blocks, which no media query could reach - the left indent alone
+   ate 11px of a phone screen. */
+.oaa-info-card-note {
+    margin: 8px 0 0 11px;
+    padding: 10px;
+    border-left: 4px solid #2196f3;
+    background: var(--info-bg);
+    line-height: 1.3;
+}
 .oaa-info-card--notice {
     border-color: #f59e0b;
     border-left-width: 4px;
@@ -294,6 +310,36 @@ ul#sort_auto_update_site_root.oaa-picker-collapsed {
     .widget.oaa-picker-field {
         overflow-x: auto;
         overflow-y: visible;
+    }
+
+    /* On a phone the info cards stack four insets on top of each other: the
+       widget margin, the card margin, the card padding and Contao's 32px
+       .tl_info indent for the icon. That left barely 280px of the 375px screen
+       for the text, so the premium heading broke after every second word. */
+    .oaa-info-card {
+        padding: 0.75rem 0.5rem;
+    }
+
+    .oaa-info-card--premium {
+        margin-left: 0.5rem;
+        margin-right: 0.5rem;
+    }
+
+    .tl_message > .oaa-info-card {
+        margin-left: 8px;
+        margin-right: 8px;
+    }
+
+    /* The icon stays at 11px (it is painted by an inline background shorthand),
+       so keep just enough room to clear it. */
+    .oaa-info-card .tl_info {
+        padding-left: 28px;
+        padding-right: 10px;
+    }
+
+    .oaa-info-card-note {
+        margin-left: 0;
+        padding: 8px;
     }
 }
 

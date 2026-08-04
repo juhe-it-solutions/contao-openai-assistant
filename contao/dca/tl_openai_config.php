@@ -65,7 +65,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
                           '<br>' .
                           '<span style="color: #f59e0b; line-height: 1.4; display: block; margin-top: 10px;">' . $GLOBALS['TL_LANG']['tl_openai_config']['navigation_message'] . '</span>' .
                           '</p>' .
-                          '<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin: 8px 0 0 11px;">' .
+                          '<div class="oaa-info-card-note">' .
                           '<strong>ℹ️ ' . ($GLOBALS['TL_LANG']['tl_openai_config']['single_config_heading'] ?? 'Single Configuration') . ':</strong> ' .
                           ($GLOBALS['TL_LANG']['tl_openai_config']['single_config_message'] ?? 'Only one OpenAI configuration is allowed per system. If a configuration already exists, you will be redirected to edit it.') .
                           '</div>' .
