@@ -16,6 +16,11 @@ use Contao\CoreBundle\Util\ProcessUtil;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\BoilerplateFilter;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicenseValidationService;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LinkIndexDocumentBuilder;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LinkSectionBuilder;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageLink;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageLinkFilter;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageLinkRepository;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreAutoUpdateService;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreFileSync;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
@@ -221,6 +226,116 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
         $this->assertSame([], $this->createService($connection)->resolveScopeRootDomains([10]));
     }
 
+    // ------------------------------------------------- page links (§18 criteria)
+
+    /**
+     * @return array{0: VectorStoreAutoUpdateService, 1: array<int, list<PageLink>>}
+     */
+    private function createServiceWithLinks(): array
+    {
+        $links = [
+            7 => [
+                new PageLink('https://example.com/files/preisliste.pdf', 'Preisliste 2026', PageLink::TYPE_FILE, '', '', 'files/preisliste.pdf', 1_258_291),
+                new PageLink('https://example.com/kontakt.html', 'Kontakt', PageLink::TYPE_PAGE),
+            ],
+        ];
+
+        return [$this->createService($this->createMock(Connection::class)), $links];
+    }
+
+    /**
+     * Criterion 1: the link block is appended to the page content.
+     */
+    public function testAppendsTheLinkSectionAfterTheContent(): void
+    {
+        [$service, $links] = $this->createServiceWithLinks();
+
+        $out = $service->appendLinkSection(
+            'Der Seitentext.',
+            ['page_id' => 7, 'title' => 'Preise', 'language' => 'de'],
+            $links,
+            true,
+        );
+
+        $this->assertStringStartsWith('Der Seitentext.', $out);
+        $this->assertStringContainsString('## Weiterführende Links auf „Preise"', $out);
+        $this->assertStringContainsString('[Preisliste 2026](https://example.com/files/preisliste.pdf) — PDF, 1,2 MB', $out);
+        $this->assertStringContainsString('[Kontakt](https://example.com/kontakt.html)', $out);
+    }
+
+    /**
+     * Criterion 6: with the feature off, the uploaded document is byte-identical
+     * to what an installation without this feature produces.
+     */
+    public function testProducesByteIdenticalContentWhenDisabled(): void
+    {
+        [$service, $links] = $this->createServiceWithLinks();
+        $page = ['page_id' => 7, 'title' => 'Preise', 'language' => 'de'];
+
+        $this->assertSame(
+            'Der Seitentext.',
+            $service->appendLinkSection('Der Seitentext.', $page, $links, false),
+        );
+
+        // A page without links is untouched even while the feature is on.
+        $this->assertSame(
+            'Der Seitentext.',
+            $service->appendLinkSection('Der Seitentext.', ['page_id' => 99], $links, true),
+        );
+    }
+
+    /**
+     * Criteria 4 + 5: the content hash is stable when nothing changed and changes
+     * when - and only when - the links change.
+     */
+    public function testContentHashTracksLinkChangesOnly(): void
+    {
+        [$service, $links] = $this->createServiceWithLinks();
+        $page = ['page_id' => 7, 'title' => 'Preise', 'language' => 'de'];
+
+        $first = hash('sha256', $service->appendLinkSection('Text', $page, $links, true));
+        $again = hash('sha256', $service->appendLinkSection('Text', $page, $links, true));
+        $this->assertSame($first, $again, 'unchanged input must not trigger a re-upload');
+
+        $changed = $links;
+        $changed[7][] = new PageLink('https://example.com/agb.html', 'AGB', PageLink::TYPE_PAGE);
+
+        $this->assertNotSame(
+            $first,
+            hash('sha256', $service->appendLinkSection('Text', $page, $changed, true)),
+            'a changed link set must change the hash',
+        );
+    }
+
+    /**
+     * Criterion: the directory document is added with page_id 0 and must not be
+     * counted as a content page (it is appended after the plan cap).
+     */
+    public function testAppendsTheDirectoryDocumentWithoutConsumingPageQuota(): void
+    {
+        [$service, $links] = $this->createServiceWithLinks();
+
+        $pages = [[
+            'page_id' => 7,
+            'url' => 'https://example.com/preise.html',
+            'title' => 'Preise',
+            'language' => 'de',
+            'content' => 'Text',
+            'search_checksum' => 'abc',
+        ]];
+
+        $contentPageCount = \count($pages);
+        $withIndex = $service->appendLinkIndexDocument($pages, $links, true);
+
+        $this->assertCount($contentPageCount + 1, $withIndex);
+        $this->assertSame(0, $withIndex[1]['page_id']);
+        $this->assertSame('https://example.com/', $withIndex[1]['url'], 'cites the site root, not a page');
+        $this->assertStringContainsString('Link- und Dokumentenverzeichnis', (string) $withIndex[1]['content']);
+        $this->assertSame($pages[0], $withIndex[0], 'existing page entries are untouched');
+
+        $this->assertSame($pages, $service->appendLinkIndexDocument($pages, $links, false));
+    }
+
     /**
      * @param array<int, array{pid: int, type: string, dns: string}> $pages
      */
@@ -252,6 +367,10 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
             $this->createMock(LicenseValidationService::class),
             $this->createMock(BoilerplateFilter::class),
             $this->createMock(VectorStoreFileSync::class),
+            $this->createMock(PageLinkRepository::class),
+            new PageLinkFilter(),
+            new LinkSectionBuilder(),
+            new LinkIndexDocumentBuilder(),
         );
     }
 }

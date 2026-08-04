@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **The chatbot can now answer with real links (premium).** While Contao indexes your pages, the extension collects the links they contain - to other pages, to documents such as PDFs, and to external websites - and appends them to each page's knowledge document as a structured list. Visitors get a working link to the price list instead of a description of where to find it. The list is built by the extension, never by the AI model, so a URL can never be shortened, reworded or invented, and it costs no tokens. Navigation, breadcrumbs and footers are removed by three independent mechanisms (Contao's own `indexer::stop` markers, structural rules, and a cross-page frequency analysis), and links inside or to protected member areas are never collected. New settings in the OpenAI configuration: **Collect links from the pages** (on by default), **Link types to include**, **Exclude links** and **Add a link and document directory**. Requires `contao:migrate` (new table `tl_openai_page_link`, four new columns). **Note:** the first synchronisation after the update re-uploads every page once, because the page documents change; later runs are incremental again. See `docs/features/page-links.md`.
+
 ## [2.1.3] - 2026-07-18
 
 ### Added

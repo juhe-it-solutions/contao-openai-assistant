@@ -120,6 +120,10 @@ services:
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_site_root.save, method: enforceCrawlPageLimit }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_model.options, method: getAutoUpdateModelOptions }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_model.save, method: validateAutoUpdateModel }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_include_links.save, method: guardAutoUpdateFieldWithoutLicense }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_link_types.save, method: guardAutoUpdateFieldWithoutLicense }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_link_exclude.save, method: guardAutoUpdateFieldWithoutLicense }
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_link_index.save, method: guardAutoUpdateFieldWithoutLicense }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_prompt_template.load, method: loadAutoUpdatePromptTemplate }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_prompt_template.save, method: saveAutoUpdatePromptTemplate }
 
@@ -189,8 +193,36 @@ services:
             $http: '@http_client'
             $logger: '@monolog.logger.contao'
 
+    # --- Page links (premium): collected while Contao indexes a page, rendered
+    # into the page documents by the vector-store sync ---
+
+    # PageLinkExtractor — pure DOM extraction; needs Contao's upload path to tell a
+    # document link from a page link
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageLinkExtractor:
+        arguments:
+            $uploadPath: '%contao.upload_path%'
+
+    # LinkedFileMetadataResolver — stats linked documents (size only), strictly
+    # inside the upload directory
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LinkedFileMetadataResolver:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+            $uploadPath: '%contao.upload_path%'
+
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageLinkRepository:
+        arguments:
+            $connection: '@doctrine.dbal.default_connection'
+
+    # SearchIndexLinkListener — the indexPage hook (#[AsHook] handles registration).
+    # Fires during contao:crawl AND on live front-end indexing, so it is a hard
+    # no-op unless a configuration has auto-sync + link collection enabled.
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\EventListener\SearchIndexLinkListener:
+        arguments:
+            $logger: '@monolog.logger.contao'
+
     # VectorStoreAutoUpdateService — orchestration; ProcessUtil + EncryptionService +
-    # LicenseValidationService + BoilerplateFilter + VectorStoreFileSync autowire by type
+    # LicenseValidationService + BoilerplateFilter + VectorStoreFileSync +
+    # PageLinkRepository/Filter/LinkSectionBuilder autowire by type
     JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreAutoUpdateService:
         arguments:
             $connection: '@doctrine.dbal.default_connection'
