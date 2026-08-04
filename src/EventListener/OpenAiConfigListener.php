@@ -668,7 +668,7 @@ class OpenAiConfigListener
         // a <div> inside <p> is invalid HTML and browsers auto-close the paragraph,
         // leaving a stray empty <p></p> in the DOM.
         $hintMarkup = \sprintf(
-            '<div style="background: var(--info-bg); border-left: 4px solid #2196f3; padding: 10px; margin-top: 8px; margin-left: 11px; line-height: 1.3;">'
+            '<div class="oaa-info-card-note">'
             .'<strong>ℹ️ %s:</strong><br>%s'
             .'</div>',
             (string) ($lang['premium_license_info_hint_heading'] ?? 'Notes'),
