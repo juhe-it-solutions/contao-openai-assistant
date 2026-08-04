@@ -54,19 +54,56 @@
 
 /* The "Vector store synchronisation" legend holds several groups of settings.
    The two that only apply while a switch above them is on - the schedule and the
-   link options - are rendered by Contao as subpalettes, i.e. as
-   <div id="sub_<selector>" class="subpal ..."> (identical id in 5.3, 5.7 and 6.0).
-   That wrapper is enough to set them off as a group; no extra markup needed.
-   Horizontal padding stays at 0 so the fields inside keep their own margins and
-   stay aligned with the fields outside the box. Colours come from the backend
-   theme, so light and dark mode are both correct. */
+   link options - get a box each, so the switch and the settings it controls read
+   as one group.
+
+   Contao wraps the settings in <div id="sub_<selector>" class="subpal ..."> (same
+   id in 5.3, 5.7 and 6.0) but nothing wraps them together with their switch, so
+   the box is drawn in two halves that meet seamlessly: the switch carries the top
+   and sides, the subpalette the bottom and sides. The switch widget is taken out
+   of its w50 column for that, otherwise a half-width lid would sit on a
+   full-width box. Colours are backend theme variables, so light and dark are both
+   correct. */
+.widget.auto-update-license-field:has(+ #sub_auto_update_trigger_scheduled),
+.widget.auto-update-license-field:has(+ #sub_auto_update_include_links) {
+    float: none;
+    width: auto;
+    /* .w50 reserves 80px so two columns line up - pointless for a single
+       checkbox that is now the lid of a box. */
+    min-height: 0;
+    margin-bottom: 0;
+    padding: 12px 15px 10px;
+    border: 1px solid var(--border);
+    border-bottom: 0;
+    border-radius: 3px 3px 0 0;
+    background: var(--nested-bg);
+}
+
 #sub_auto_update_trigger_scheduled,
 #sub_auto_update_include_links {
-    margin-bottom: 16px;
-    padding: 12px 0 4px;
+    margin-bottom: 18px;
+    padding-top: 6px;
+    padding-bottom: 14px;
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-top: 0;
+    border-radius: 0 0 3px 3px;
     background: var(--nested-bg);
+}
+
+/* 5.3 / 5.7 give every .widget a 15px side margin, so the box only has to line
+   up with the widgets around it. Contao 6 renders the subpalette as a grid
+   (.widget-group) whose items have no side margins - there the box has to
+   provide that inset itself. */
+#sub_auto_update_trigger_scheduled.cf,
+#sub_auto_update_include_links.cf {
+    margin-left: 15px;
+    margin-right: 15px;
+}
+
+#sub_auto_update_trigger_scheduled.widget-group,
+#sub_auto_update_include_links.widget-group {
+    padding-left: 15px;
+    padding-right: 15px;
 }
 
 .widget.auto-update-toggle.openai-auto-update-disabled label,
