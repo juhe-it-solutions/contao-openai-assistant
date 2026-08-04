@@ -450,8 +450,8 @@
                 <target>Link types to include</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_link_types.1">
-                <source>Which kinds of links may appear in the chatbot's answers. Unchecking a type removes it from the next synchronisation.</source>
-                <target>Which kinds of links may appear in the chatbot's answers. Unchecking a type removes it from the next synchronisation.</target>
+                <source>Which kinds of links may appear in the chatbot's answers. Unchecking a type removes it from the next synchronisation. At least one type must remain selected; to switch links off completely, uncheck "Collect links from the pages" above.</source>
+                <target>Which kinds of links may appear in the chatbot's answers. Unchecking a type removes it from the next synchronisation. At least one type must remain selected; to switch links off completely, uncheck "Collect links from the pages" above.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_link_types_ref.page">
                 <source>Pages of this website</source>

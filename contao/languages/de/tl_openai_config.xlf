@@ -450,8 +450,8 @@
                 <target>Zu berücksichtigende Linkarten</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_link_types.1">
-                <source>Which kinds of links may appear in the chatbot's answers.</source>
-                <target>Welche Arten von Links in den Antworten des Chatbots erscheinen dürfen. Wird eine Art abgewählt, entfällt sie ab der nächsten Synchronisierung.</target>
+                <source>Which kinds of links may appear in the chatbot's answers. At least one type must remain selected; to switch links off completely, uncheck "Collect links from the pages" above.</source>
+                <target>Welche Arten von Links in den Antworten des Chatbots erscheinen dürfen. Wird eine Art abgewählt, entfällt sie ab der nächsten Synchronisierung. Mindestens eine Art muss ausgewählt bleiben - um Links vollständig abzuschalten, deaktivieren Sie oben „Links aus den Seiten übernehmen".</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_link_types_ref.page">
                 <source>Pages of this website</source>

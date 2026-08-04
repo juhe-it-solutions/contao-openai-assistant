@@ -122,6 +122,10 @@ services:
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_model.save, method: validateAutoUpdateModel }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_include_links.save, method: guardAutoUpdateFieldWithoutLicense }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_link_types.save, method: guardAutoUpdateFieldWithoutLicense }
+            # Shows every type as checked for configurations saved before the link
+            # feature existed (NULL column) and requires an explicit selection
+            # wherever the premium fields are editable.
+            - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_link_types.load, method: prepareLinkTypesField }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_link_exclude.save, method: guardAutoUpdateFieldWithoutLicense }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_link_index.save, method: guardAutoUpdateFieldWithoutLicense }
             - { name: contao.callback, table: tl_openai_config, target: fields.auto_update_prompt_template.load, method: loadAutoUpdatePromptTemplate }

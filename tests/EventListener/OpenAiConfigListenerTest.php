@@ -438,6 +438,76 @@ class OpenAiConfigListenerTest extends TestCase
         return $dc;
     }
 
+    /**
+     * A configuration saved before the link feature existed has a NULL column,
+     * because a DCA "default" is only written when a record is created. Without
+     * the load_callback the form would show no type checked while the sync
+     * allows every type.
+     */
+    public function testLinkTypesShowEveryTypeForConfigurationsSavedBeforeTheFeature(): void
+    {
+        $listener = $this->createModelValidationListener(true, 'sk-test');
+
+        $this->assertSame(
+            OpenAiConfigListener::DEFAULT_LINK_TYPES,
+            $listener->prepareLinkTypesField(null, $this->createModelValidationDc(true)),
+            'A never-saved link type list must render with every type checked, matching what the sync does.',
+        );
+
+        $this->assertSame(
+            OpenAiConfigListener::DEFAULT_LINK_TYPES,
+            $listener->prepareLinkTypesField('', $this->createModelValidationDc(true)),
+            'An empty string is the same "never saved" state as NULL.',
+        );
+    }
+
+    public function testLinkTypesKeepAStoredSelection(): void
+    {
+        $stored = serialize(['page', 'file']);
+
+        $this->assertSame(
+            $stored,
+            $this->createModelValidationListener(true, 'sk-test')->prepareLinkTypesField($stored, $this->createModelValidationDc(true)),
+            'An explicit selection must never be widened by the load_callback.',
+        );
+    }
+
+    /**
+     * Contao stores an emptied checkbox group as NULL for a nullable column, so
+     * "no type checked" would silently mean "all types". The field is therefore
+     * mandatory - but only with an active licence, because the premium fields
+     * are disabled (and thus not submitted) without one.
+     */
+    public function testLinkTypesAreMandatoryOnlyWithAnActiveLicense(): void
+    {
+        $previousDca = $GLOBALS['TL_DCA']['tl_openai_config'] ?? null;
+
+        try {
+            $GLOBALS['TL_DCA']['tl_openai_config']['fields']['auto_update_link_types']['eval'] = [];
+            $this->createModelValidationListener(false, 'sk-test')->prepareLinkTypesField(null, $this->createModelValidationDc(true));
+
+            $this->assertArrayNotHasKey(
+                'mandatory',
+                $GLOBALS['TL_DCA']['tl_openai_config']['fields']['auto_update_link_types']['eval'],
+                'Without a licence the field is disabled client-side; making it mandatory would block every save.',
+            );
+
+            $GLOBALS['TL_DCA']['tl_openai_config']['fields']['auto_update_link_types']['eval'] = [];
+            $this->createModelValidationListener(true, 'sk-test')->prepareLinkTypesField(null, $this->createModelValidationDc(true));
+
+            $this->assertTrue(
+                $GLOBALS['TL_DCA']['tl_openai_config']['fields']['auto_update_link_types']['eval']['mandatory'],
+                'With an active licence the admin must pick at least one type instead of silently getting all of them.',
+            );
+        } finally {
+            if (null === $previousDca) {
+                unset($GLOBALS['TL_DCA']['tl_openai_config']);
+            } else {
+                $GLOBALS['TL_DCA']['tl_openai_config'] = $previousDca;
+            }
+        }
+    }
+
     private function createListener(Connection $connection): OpenAiConfigListener
     {
         return new OpenAiConfigListener(
