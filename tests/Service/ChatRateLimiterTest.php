@@ -95,4 +95,35 @@ class ChatRateLimiterTest extends TestCase
             $this->assertTrue($limiter->acceptConfigDaily(1, 0));
         }
     }
+
+    /**
+     * The check must not spend budget: a request that never reaches OpenAI (bad
+     * key, outage) may not consume the day's ceiling.
+     */
+    public function testCheckingTheDailyBudgetDoesNotConsumeIt(): void
+    {
+        $limiter = new ChatRateLimiter(new ArrayAdapter());
+
+        for ($i = 0; $i < 20; ++$i) {
+            $this->assertTrue($limiter->hasConfigDailyBudget(1, 2));
+        }
+
+        // Nothing was booked, so both completions are still available.
+        $limiter->consumeConfigDaily(1, 2);
+        $this->assertTrue($limiter->hasConfigDailyBudget(1, 2));
+
+        $limiter->consumeConfigDaily(1, 2);
+        $this->assertFalse($limiter->hasConfigDailyBudget(1, 2));
+    }
+
+    public function testConsumingTheDailyBudgetIsUncappedAtZero(): void
+    {
+        $limiter = new ChatRateLimiter(new ArrayAdapter());
+
+        for ($i = 0; $i < 50; ++$i) {
+            $limiter->consumeConfigDaily(1, 0);
+        }
+
+        $this->assertTrue($limiter->hasConfigDailyBudget(1, 0));
+    }
 }

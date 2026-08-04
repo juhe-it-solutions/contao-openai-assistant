@@ -19,11 +19,13 @@ use Contao\CoreBundle\Framework\ContaoFramework;
 use Contao\CoreBundle\Twig\FragmentTemplate;
 use Contao\ModuleModel;
 use Contao\System;
+use JuheItSolutions\ContaoOpenaiAssistant\Controller\AiChatController;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\BundleVersionService;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\RouterInterface;
 
 #[AsFrontendModule(
     category: 'ai_tools',
@@ -38,6 +40,7 @@ class AiChatModuleController extends AbstractFrontendModuleController
         private readonly ContaoFramework $framework,
         private readonly RequestStack $requestStack,
         private readonly BundleVersionService $bundleVersion,
+        private readonly RouterInterface $router,
         #[Autowire('%contao.web_dir%')]
         private readonly string $webDir,
     ) {
@@ -56,8 +59,17 @@ class AiChatModuleController extends AbstractFrontendModuleController
         // Generate CSRF token for the template
         $csrfToken = $this->csrfTokenManager->getDefaultTokenValue();
 
-        $template->set('chat_endpoint', '/ai-chat/send');
-        $template->set('token_endpoint', '/ai-chat/token');
+        // Generated, not hard-coded: an installation served from a subdirectory
+        // (https://example.com/cms/) needs the request base path in front of the
+        // route, otherwise every call goes to the domain root and the widget is dead.
+        $template->set('chat_endpoint', $this->router->generate('ai_chat_send'));
+        $template->set('token_endpoint', $this->router->generate('ai_chat_token'));
+        $template->set('history_endpoint', $this->router->generate('ai_chat_history'));
+        // Exposed for custom templates, but deliberately NOT used as a maxlength on
+        // the textarea: a browser enforcing maxlength truncates a pasted question
+        // silently, and the visitor would send half a question without noticing. The
+        // server-side rejection says what is wrong and leaves the text in the box.
+        $template->set('max_message_length', AiChatController::MAX_MESSAGE_LENGTH);
         $template->set('asset_version', $this->resolveAssetVersion());
         $template->set('csrf_token', $csrfToken);
         $template->set('module_id', 'ai-chat-'.$model->id);

@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace JuheItSolutions\ContaoOpenaiAssistant\Service;
 
 use Psr\Cache\CacheItemPoolInterface;
+use Symfony\Component\RateLimiter\LimiterInterface;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\RateLimiter\Storage\CacheStorage;
 
@@ -89,6 +90,48 @@ class ChatRateLimiter
             return true;
         }
 
+        return $this->dailyLimiter($configId, $dailyLimit)->consume(1)->isAccepted();
+    }
+
+    /**
+     * Is there budget left for today, without spending any of it?
+     *
+     * Used to reject a request before the paid call. The matching consume() runs
+     * only once the completion actually succeeded, so a misconfiguration or an
+     * OpenAI outage cannot burn the day's ceiling - which used to let anyone shut
+     * the chatbot down for the rest of the day with requests that never cost a cent.
+     */
+    public function hasConfigDailyBudget(int $configId, int $dailyLimit): bool
+    {
+        if ($dailyLimit <= 0) {
+            return true;
+        }
+
+        // consume(0) reads the window without spending from it. isAccepted() is not
+        // usable here - "can I take zero tokens" is trivially true even on an
+        // exhausted window - so the remaining count is what decides.
+        return $this->dailyLimiter($configId, $dailyLimit)->consume(0)->getRemainingTokens() > 0;
+    }
+
+    /**
+     * Book one completion against today's budget.
+     */
+    public function consumeConfigDaily(int $configId, int $dailyLimit): void
+    {
+        if ($dailyLimit <= 0) {
+            return;
+        }
+
+        $this->dailyLimiter($configId, $dailyLimit)->consume(1);
+    }
+
+    /**
+     * The window id and the key are unchanged from the single-step version, so an
+     * installation updating in the middle of a day keeps its running counter
+     * instead of resetting or double-counting it.
+     */
+    private function dailyLimiter(int $configId, int $dailyLimit): LimiterInterface
+    {
         $factory = new RateLimiterFactory(
             [
                 'id' => 'oaa_chat_daily',
@@ -99,6 +142,6 @@ class ChatRateLimiter
             new CacheStorage($this->cache),
         );
 
-        return $factory->create((string) $configId)->consume(1)->isAccepted();
+        return $factory->create((string) $configId);
     }
 }

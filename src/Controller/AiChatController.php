@@ -25,6 +25,17 @@ use Symfony\Component\Security\Csrf\CsrfToken;
 
 class AiChatController extends AbstractController
 {
+    /**
+     * Hard ceiling for one chat message, in characters.
+     *
+     * The endpoint is anonymous and every request is billed by input token, while
+     * the IP and daily limits count *messages* - so without a length cap a single
+     * caller can spend far more than "messages per day" suggests. 4000 characters
+     * are roughly 1000 tokens: enough for a pasted paragraph or a long question,
+     * far too little to be worth abusing.
+     */
+    public const MAX_MESSAGE_LENGTH = 4000;
+
     public function __construct(
         private readonly OpenAiResponder $responder,
         private readonly EncryptionService $encryption,
@@ -87,6 +98,18 @@ class AiChatController extends AbstractController
             );
         }
 
+        // Rejected before the rate limiters below on purpose: an oversized message
+        // must not consume the IP or daily budget it is meant to protect. Counted in
+        // characters, not bytes, so umlauts do not shorten the limit.
+        if (mb_strlen($message) > self::MAX_MESSAGE_LENGTH) {
+            return new JsonResponse(
+                [
+                    'error' => $this->getErrorMessage('message_too_long', $language),
+                ],
+                400,
+            );
+        }
+
         // Both abuse limits are configured on the active config row; read it once here
         // (the responder re-resolves it later) so they are enforced before any paid
         // call. Missing column (pre-migration) or missing config falls back to the
@@ -126,22 +149,28 @@ class AiChatController extends AbstractController
 
         // Per-configuration daily ceiling: an absolute cap on completions one config can
         // spend per day, bounding worst-case API cost even under a distributed attack.
-        if ($activeConfig) {
-            $dailyLimit = (int) ($activeConfig['chat_daily_limit'] ?? 0);
-            if (!$this->rateLimiter->acceptConfigDaily((int) $activeConfig['id'], $dailyLimit)) {
-                return new JsonResponse(
-                    [
-                        'error' => $this->getErrorMessage('daily_limit_reached', $language),
-                    ],
-                    429,
-                );
-            }
+        // Checked here, booked only after a successful completion - a bad key or an
+        // OpenAI outage must not spend the day's budget, or anyone could take the
+        // chatbot offline until midnight with requests that never cost anything.
+        $dailyLimit = $activeConfig ? (int) ($activeConfig['chat_daily_limit'] ?? 0) : 0;
+
+        if ($activeConfig && !$this->rateLimiter->hasConfigDailyBudget((int) $activeConfig['id'], $dailyLimit)) {
+            return new JsonResponse(
+                [
+                    'error' => $this->getErrorMessage('daily_limit_reached', $language),
+                ],
+                429,
+            );
         }
 
         try {
             // Send the message as-is without automatic language instructions The prompt
             // should be configured with appropriate system instructions
             $reply = $this->responder->processMessage($message, $session);
+
+            if ($activeConfig) {
+                $this->rateLimiter->consumeConfigDaily((int) $activeConfig['id'], $dailyLimit);
+            }
 
             return new JsonResponse([
                 'reply' => $reply,
@@ -207,6 +236,22 @@ class AiChatController extends AbstractController
                     'error' => $this->getErrorMessage('invalid_request', $language),
                 ],
                 400,
+            );
+        }
+
+        // Defence in depth. Contao's _token_check never fires here - it only covers
+        // POST requests - and a cross-origin caller cannot read this response anyway,
+        // so the transcript was never exposed across sites. Requiring the token
+        // nevertheless means a same-origin script has to hold a valid token to read
+        // the visitor's conversation, instead of the session cookie alone being enough.
+        $submittedToken = $request->headers->get('X-CSRF-Token') ?? $request->query->get('REQUEST_TOKEN');
+
+        if (!$submittedToken || !$this->csrfTokenManager->isTokenValid(new CsrfToken($this->csrfTokenName, (string) $submittedToken))) {
+            return new JsonResponse(
+                [
+                    'error' => $this->getErrorMessage('invalid_csrf_token', $language),
+                ],
+                403,
             );
         }
 
@@ -296,6 +341,7 @@ class AiChatController extends AbstractController
                 'csrf_token_missing' => 'CSRF-Token fehlt',
                 'invalid_csrf_token' => 'Ungültiger CSRF-Token. Bitte laden Sie die Seite neu und versuchen Sie es erneut.',
                 'empty_message' => 'Leere Nachricht',
+                'message_too_long' => 'Ihre Nachricht ist zu lang. Bitte kürzen Sie sie auf höchstens '.self::MAX_MESSAGE_LENGTH.' Zeichen.',
                 'please_wait' => 'Bitte warten Sie, bevor Sie eine weitere Nachricht senden',
                 'service_unavailable' => 'Service vorübergehend nicht verfügbar',
                 'token_requests_too_frequent' => 'Token-Anfragen zu häufig',
@@ -306,6 +352,7 @@ class AiChatController extends AbstractController
                 'csrf_token_missing' => 'CSRF token missing',
                 'invalid_csrf_token' => 'Invalid CSRF token. Please reload the page and try again.',
                 'empty_message' => 'Empty message',
+                'message_too_long' => 'Your message is too long. Please shorten it to at most '.self::MAX_MESSAGE_LENGTH.' characters.',
                 'please_wait' => 'Please wait before sending another message',
                 'service_unavailable' => 'Service temporarily unavailable',
                 'token_requests_too_frequent' => 'Token requests too frequent',
