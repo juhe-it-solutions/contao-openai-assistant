@@ -236,7 +236,14 @@ class PageLinkFilter
         $compiled = [];
 
         foreach ($patterns as $pattern) {
-            $pattern = trim($pattern);
+            // Contao 5.3/5.7 encode every posted value on save: "#", "=", "(", ")",
+            // "<", ">", "\", "'" and '"' become numeric entities (Input::encodeInput,
+            // InputEncodingMode::encodeAll - the ampersand is left alone). Contao 6
+            // dropped input encoding and stores the raw value instead. Without this
+            // decode, "*?file=*" would be stored as "*?file&#61;*" and never match a
+            // real URL on the 5.x line, and a "# note" line would not be recognised
+            // as a comment - while both work on 6.0.
+            $pattern = trim(html_entity_decode($pattern, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
 
             if ('' === $pattern || str_starts_with($pattern, '#') || mb_strlen($pattern) > self::MAX_PATTERN_LENGTH) {
                 continue;
