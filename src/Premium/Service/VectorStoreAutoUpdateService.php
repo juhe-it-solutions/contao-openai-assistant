@@ -347,7 +347,7 @@ class VectorStoreAutoUpdateService
 
             $mode = $this->resolveMode($config);
             $model = self::MODE_LLM_POLISH === $mode ? ((string) ($config['auto_update_model'] ?? '') ?: 'gpt-4o-mini') : '';
-            $promptTpl = $config['auto_update_prompt_template'] ?? null ?: null;
+            $promptTpl = self::decodeStoredText($config['auto_update_prompt_template'] ?? null) ?: null;
             $legacyFileId = (string) ($config['auto_update_file_id'] ?? '');
 
             // Crawling has no page total yet — phase-only progress ("crawling…").
@@ -1025,6 +1025,25 @@ class VectorStoreAutoUpdateService
     }
 
     /**
+     * Undo Contao's input encoding on a stored free-text field.
+     *
+     * Contao 5.3 and 5.7 encode every posted value on save - "#", "<", ">", "(",
+     * ")", "\", "=", '"' and "'" become numeric entities (Input::encodeInput(),
+     * InputEncodingMode::encodeAll; the ampersand is left alone). Contao 6 dropped
+     * input encoding and stores the raw text. Without this, an admin's prompt
+     * reaches the model as "Fasse den Text zusammen &#40;kurz&#41;" on the whole
+     * 2.x line, which quietly degrades every AI-polished document.
+     *
+     * A no-op on Contao 6, where the stored value contains no entities.
+     */
+    private static function decodeStoredText(mixed $value): string
+    {
+        $text = trim((string) ($value ?? ''));
+
+        return '' === $text ? '' : html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+
+    /**
      * Read tl_search rows scoped to the configured page selection.
      *
      * Explicitly selected pages are used as-is (no subpages implied). An empty
@@ -1093,10 +1112,24 @@ class VectorStoreAutoUpdateService
         // The plan page cap is applied later in run(), on the actual content pages, not on
         // this raw id list — so a non-content page (root/forward/redirect) never consumes
         // a slot that a real indexed page should have.
+        //
+        // Protected pages are excluded unconditionally. With contao.search.index_protected
+        // enabled, member-only page bodies DO reach tl_search, and the chat endpoint that
+        // answers from the vector store is anonymous — so uploading them would hand
+        // member-only content to any visitor. Contao's own search module filters those
+        // rows by member group at query time; we have no equivalent, so we never take
+        // them in the first place.
+        //
+        // COALESCE, not "s.protected != 1": a NULL would make the comparison NULL, drop
+        // the row here, and the reconcile in VectorStoreFileSync would then DELETE that
+        // page's document from the customer's vector store. The column is
+        // "boolean NOT NULL default false" in Contao 5.3, 5.7 and 6.0 alike, so NULL
+        // should be impossible — this is a guard against schema drift, not a hypothesis.
         return $this->connection->fetchAllAssociative(
             'SELECT s.pid AS page_id, s.url, s.title, s.text, s.language, s.checksum
              FROM tl_search s
              WHERE s.pid IN (?)
+               AND COALESCE(s.protected, 0) = 0
              ORDER BY s.pid, s.url',
             [$pageIds],
             [ArrayParameterType::INTEGER],
