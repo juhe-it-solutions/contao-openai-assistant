@@ -71,8 +71,12 @@ function initAiChat(wrapper) {
 
   // CSRF Token Management
   const csrfTokenField = form.querySelector('input[name="REQUEST_TOKEN"]');
+  // The fallbacks keep a chat template copied from an older version working; they
+  // are only correct when Contao is served from the domain root, which is exactly
+  // the situation those templates were written for.
   const chatEndpoint = sendBtn?.dataset.endpoint || '/ai-chat/send';
   const tokenEndpoint = sendBtn?.dataset.tokenEndpoint || '/ai-chat/token';
+  const historyEndpoint = sendBtn?.dataset.historyEndpoint || '/ai-chat/history';
 
   if (!csrfTokenField) {
     console.error('AI Chat: CSRF token field not found');
@@ -374,17 +378,36 @@ function initAiChat(wrapper) {
     addMsg('assistant', initialMessage);
   };
 
+  const fetchHist = (token) => fetch(historyEndpoint, {
+    method: 'GET',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'Accept': 'application/json',
+      'X-CSRF-Token': token
+    },
+    credentials: 'same-origin'
+  });
+
   const loadHist = async () => {
     try {
-      const response = await fetch('/ai-chat/history', {
-        method: 'GET',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'Accept': 'application/json'
-        },
-        credentials: 'same-origin'
-      });
-      
+      // The history endpoint requires the CSRF token, so reading a visitor's
+      // transcript takes more than their session cookie.
+      //
+      // Deliberately the token already rendered into the form, NOT
+      // ensureValidToken(): the refresh timer starts at zero, so asking it here
+      // would fire a request to the token endpoint on every single page view that
+      // carries the chat. A stale token is handled below, where it costs one
+      // request instead of all of them.
+      let response = await fetchHist(csrfTokenField.value);
+
+      if (403 === response.status) {
+        const freshToken = await refreshToken();
+
+        if (freshToken) {
+          response = await fetchHist(freshToken);
+        }
+      }
+
       if (response.ok) {
         const data = await response.json();
         if (data.history && data.history.length > 0) {
