@@ -75,9 +75,19 @@ Beyond that, the following never appear:
   credentials.
 - Links to the page itself and pure in-page anchors (`#section`).
 - Image lightbox links.
+- Links carrying Contao's own `data-skip-search-index` attribute - the same
+  marker its crawler honours, used in core on the mini calendar's month arrows
+  and the article print button.
+- Links marked `rel="nofollow"`, i.e. links the page itself does not endorse -
+  in Contao most notably the website of a comment author.
+- Calendar and archive navigation: the day cells of the calendar module and the
+  month/year links of the news and event menu modules.
 
-You can exclude anything else with the **Exclude links** patterns. To exclude a
-whole region of a template, add `data-oaa-ignore-links` to its container element.
+You can exclude anything else with the **Exclude links** patterns. Two markers
+work directly in the page: `<!-- indexer::stop -->` … `<!-- indexer::continue -->`
+excludes a whole region from Contao's search index *and* from link collection,
+and `data-oaa-ignore-links` on a container element hides only the links inside it
+while leaving the text indexed.
 
 ## Where the links open
 
