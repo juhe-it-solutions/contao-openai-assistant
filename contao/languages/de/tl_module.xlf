@@ -126,6 +126,26 @@
                 <source>Default disclaimer text</source>
                 <target>Unser Chatbot ist ein Serviceangebot unseres Unternehmens und soll die Kommunikation sowie den Informationszugang erleichtern. Die Antworten werden automatisch generiert und dienen ausschließlich allgemeinen Informations- und Unterstützungszwecken. Trotz sorgfältiger Entwicklung können Inhalte unvollständig, missverständlich oder fehlerhaft sein. Wir übernehmen daher keine Gewähr für die inhaltliche Richtigkeit oder Vollständigkeit der Antworten. Verbindliche Auskünfte, individuelle Beratung oder rechtliche Empfehlungen werden durch den Chatbot nicht erteilt. Bitte nutze die bereitgestellten Informationen als Orientierung und wende dich für wichtige Anliegen direkt an unser Team oder an eine entsprechend qualifizierte Fachperson.</target>
             </trans-unit>
+            <trans-unit id="tl_module.link_target.0">
+                <source>Open links in</source>
+                <target>Links öffnen in</target>
+            </trans-unit>
+            <trans-unit id="tl_module.link_target.1">
+                <source>Where links in chat answers open. "New tab (all links)" is the previous behaviour. The middle option keeps links to pages of your own website in the current tab - usually the better experience once the chatbot suggests your own pages - while external links and documents (PDF, Office files, archives ...) still open in a new tab, so a download never replaces the page and the visible chat.</source>
+                <target>Legt fest, wo Links in Chat-Antworten geöffnet werden. „Neuer Tab (alle Links)" entspricht dem bisherigen Verhalten. Die mittlere Option öffnet Links auf Seiten der eigenen Website im aktuellen Tab - meist die bessere Nutzererfahrung, sobald der Chatbot eigene Seiten vorschlägt -, während externe Links und Dokumente (PDF, Office-Dateien, Archive ...) weiterhin in einem neuen Tab geöffnet werden, damit ein Download nie die Seite und den sichtbaren Chat ersetzt.</target>
+            </trans-unit>
+            <trans-unit id="tl_module.link_target_ref.blank">
+                <source>New tab (all links)</source>
+                <target>Neuer Tab (alle Links)</target>
+            </trans-unit>
+            <trans-unit id="tl_module.link_target_ref.external_blank">
+                <source>New tab for external links and documents</source>
+                <target>Externe Links und Dokumente im neuen Tab</target>
+            </trans-unit>
+            <trans-unit id="tl_module.link_target_ref.self">
+                <source>Same tab (all links)</source>
+                <target>Gleicher Tab (alle Links)</target>
+            </trans-unit>
             <trans-unit id="tl_module.colors_legend">
                 <source>Color Settings</source>
                 <target>Farbeinstellungen</target>

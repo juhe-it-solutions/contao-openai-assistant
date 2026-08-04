@@ -19,6 +19,9 @@ chat settings.
 The option is per module, so different chat modules on the same installation
 can use different settings.
 
+Where those links open (new tab vs. current tab) is a separate, independent
+setting - see [Link target](link-target.md).
+
 ## What Gets Shortened - And What Does Not
 
 Only URLs that the model outputs as plain text are affected:
