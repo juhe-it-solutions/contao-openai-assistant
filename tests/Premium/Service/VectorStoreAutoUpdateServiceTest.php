@@ -356,6 +356,75 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
         return $connection;
     }
 
+    /**
+     * With contao.search.index_protected enabled, member-only page bodies reach
+     * tl_search. The chat endpoint answering from the vector store is anonymous, so
+     * those rows must never be read for upload. Pages that were uploaded before this
+     * filter existed leave the scope and are removed by VectorStoreFileSync's
+     * existing "pages that dropped out of scope" pass.
+     */
+    public function testNeverReadsProtectedPagesForUpload(): void
+    {
+        $capturedSql = null;
+
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchAssociative')
+            ->willReturn(['auto_update_site_root' => serialize(['7'])])
+        ;
+        $connection
+            ->method('fetchFirstColumn')
+            ->willReturn([7])
+        ;
+        $connection
+            ->method('fetchAllAssociative')
+            ->willReturnCallback(
+                static function (string $sql) use (&$capturedSql): array {
+                    if (str_contains($sql, 'FROM tl_search')) {
+                        $capturedSql = $sql;
+                    }
+
+                    return [];
+                },
+            )
+        ;
+
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'readAllPages');
+        $method->invoke($this->createService($connection), 1);
+
+        $this->assertNotNull($capturedSql, 'readAllPages() must query tl_search.');
+        $this->assertStringContainsString(
+            'COALESCE(s.protected, 0) = 0',
+            $capturedSql,
+            'Protected pages must be excluded - and via COALESCE, because a NULL would '
+            .'drop the row and make the reconcile delete that page from the vector store.',
+        );
+    }
+
+    /**
+     * Contao 5.3/5.7 encode "=", "(", ")" and the quotes of every posted value, so
+     * an AI-polish prompt used to reach the model as "&#40;kurz&#41;". Contao 6
+     * stores the raw text, where the decode is a no-op.
+     */
+    public function testStoredPromptTemplateIsDecodedForTheModel(): void
+    {
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'decodeStoredText');
+
+        $this->assertSame(
+            'Fasse den Text zusammen (kurz, sachlich) = ein Dokument.',
+            $method->invoke(null, 'Fasse den Text zusammen &#40;kurz, sachlich&#41; &#61; ein Dokument.'),
+            'A prompt saved on Contao 5.3/5.7 must reach the model as the admin typed it.',
+        );
+
+        $this->assertSame(
+            'Fasse den Text zusammen (kurz) = ein Dokument.',
+            $method->invoke(null, 'Fasse den Text zusammen (kurz) = ein Dokument.'),
+            'On Contao 6 the value is already raw and must survive unchanged.',
+        );
+
+        $this->assertSame('', $method->invoke(null, null), 'An unset template stays empty.');
+    }
+
     private function createService(Connection $connection): VectorStoreAutoUpdateService
     {
         return new VectorStoreAutoUpdateService(
