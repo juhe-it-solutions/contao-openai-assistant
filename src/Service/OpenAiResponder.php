@@ -75,6 +75,29 @@ class OpenAiResponder
     private const MAX_FILE_SEARCH_RESULTS = 20;
 
     /**
+     * Upstream statuses that mean the message was NOT processed, so repeating it
+     * cannot produce a second answer or a second charge.
+     *
+     * 429/503 are rejections before processing. 502 and the Cloudflare origin
+     * family 520-523 ("unknown error", "origin down", "connection timed out",
+     * "origin unreachable") belong in the same class: api.openai.com sits behind
+     * Cloudflare, so this is what a brief OpenAI wobble looks like from here -
+     * observed live on 2026-08-04, where a single 520 surfaced to the visitor as
+     * a hard error although the next attempt would have succeeded.
+     *
+     * Deliberately NOT retried: 500 and 524 (origin timeout). There the request
+     * may well have reached the model and only the answer was lost, so a repeat
+     * would charge twice - the same reasoning that keeps request timeouts out of
+     * the retry path.
+     */
+    private const TRANSIENT_STATUS_CODES = [429, 502, 503, 520, 521, 522, 523];
+
+    /**
+     * How much of an upstream error body is kept for the exception message.
+     */
+    private const MAX_ERROR_LENGTH = 300;
+
+    /**
      * Keeps the "more than one configuration" warning to once per PHP process
      * instead of once per chat message.
      */
@@ -269,6 +292,28 @@ class OpenAiResponder
     }
 
     /**
+     * Reduce an upstream error body to something a log line can carry.
+     *
+     * When the response is not JSON, the "error message" is the entire HTML error
+     * page of whichever proxy answered - Cloudflare's 520 page is roughly 10 KB -
+     * and it would be embedded in the exception message and written to the log
+     * twice, once as the message and once in the trace. Status code plus the
+     * first sentence is what an operator needs.
+     */
+    private static function summariseError(string $error): string
+    {
+        $text = trim((string) preg_replace('/\s+/', ' ', strip_tags($error)));
+
+        if ('' === $text) {
+            return '(empty response body)';
+        }
+
+        return mb_strlen($text) > self::MAX_ERROR_LENGTH
+            ? mb_substr($text, 0, self::MAX_ERROR_LENGTH).' […]'
+            : $text;
+    }
+
+    /**
      * Lazily create a Conversation for this session.
      */
     private function ensureConversation(string $apiKey, SessionInterface $session, int $configId): string
@@ -426,24 +471,26 @@ class OpenAiResponder
                     continue;
                 }
 
-                // 429/503 mean the message was rejected before processing; one
-                // retry after a short backoff absorbs most transient blips.
-                if (!$transientRetried && \in_array($statusCode, [429, 503], true)) {
+                // One retry after a short backoff absorbs the transient blips of
+                // OpenAI and the CDN in front of it (see TRANSIENT_STATUS_CODES).
+                if (!$transientRetried && \in_array($statusCode, self::TRANSIENT_STATUS_CODES, true)) {
                     $transientRetried = true;
                     $this->logger->warning('Responses API returned HTTP '.$statusCode.'; retrying once');
                     usleep(1000000);
                     continue;
                 }
 
+                // The detectors below read the FULL error text; only what ends up
+                // in the exception (and therefore in the log) is shortened.
                 if ($this->isContextWindowError($statusCode, $data, $error)) {
-                    throw new ContextWindowExceededException('Responses API returned HTTP '.$statusCode.': '.$error);
+                    throw new ContextWindowExceededException('Responses API returned HTTP '.$statusCode.': '.self::summariseError($error));
                 }
 
                 if ($this->isConversationNotFoundError($statusCode, $error)) {
-                    throw new ConversationNotFoundException('Responses API returned HTTP '.$statusCode.': '.$error);
+                    throw new ConversationNotFoundException('Responses API returned HTTP '.$statusCode.': '.self::summariseError($error));
                 }
 
-                throw new \RuntimeException('Responses API returned HTTP '.$statusCode.': '.$error);
+                throw new \RuntimeException('Responses API returned HTTP '.$statusCode.': '.self::summariseError($error));
             }
 
             $status = (string) ($data['status'] ?? 'unknown');
