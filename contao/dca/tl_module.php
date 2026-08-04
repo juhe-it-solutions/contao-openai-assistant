@@ -11,7 +11,7 @@
 declare(strict_types=1);
 
 // Add the module configuration
-$GLOBALS['TL_DCA']['tl_module']['palettes']['ai_chat'] = '{title_legend},name,type;{chat_legend},chatPosition,initial_state,chat_title,welcome_message,initial_bot_message,disclaimer_text,custom_css,theme,base_font_size,shorten_urls;{colors_legend},dark_toggle_icon_color,dark_bg_primary,dark_bg_secondary,dark_text_primary,dark_text_secondary,color_separator,light_toggle_icon_color,light_bg_primary,light_bg_secondary,light_text_primary,light_text_secondary;{template_legend:hide},customTpl;{protected_legend:hide},protected;{expert_legend:hide},guests,cssID,space';
+$GLOBALS['TL_DCA']['tl_module']['palettes']['ai_chat'] = '{title_legend},name,type;{chat_legend},chatPosition,initial_state,chat_title,welcome_message,initial_bot_message,disclaimer_text,custom_css,theme,base_font_size,shorten_urls,link_target;{colors_legend},dark_toggle_icon_color,dark_bg_primary,dark_bg_secondary,dark_text_primary,dark_text_secondary,color_separator,light_toggle_icon_color,light_bg_primary,light_bg_secondary,light_text_primary,light_text_secondary;{template_legend:hide},customTpl;{protected_legend:hide},protected;{expert_legend:hide},guests,cssID,space';
 
 // Add the position field
 $GLOBALS['TL_DCA']['tl_module']['fields']['chatPosition'] = [
@@ -94,6 +94,25 @@ $GLOBALS['TL_DCA']['tl_module']['fields']['shorten_urls'] = [
         'tl_class' => 'w50 m12',
     ],
     'sql'       => "char(1) NOT NULL default '1'",
+];
+
+// Add the "link target" field. Controls where links in chat answers open:
+// blank = always a new tab (legacy behaviour), external_blank = only links to
+// another host, self = never. The SQL default 'blank' also backfills existing
+// module rows on contao:migrate, so no separate data migration is needed and
+// existing installations keep their current rendering.
+$GLOBALS['TL_DCA']['tl_module']['fields']['link_target'] = [
+    'label'     => &$GLOBALS['TL_LANG']['tl_module']['link_target'],
+    'exclude'   => true,
+    'inputType' => 'select',
+    'options'   => ['blank', 'external_blank', 'self'],
+    'reference' => &$GLOBALS['TL_LANG']['tl_module']['link_target_ref'],
+    'default'   => 'blank',
+    'eval'      => [
+        'tl_class'           => 'w50',
+        'includeBlankOption' => false,
+    ],
+    'sql'       => "varchar(16) NOT NULL default 'blank'",
 ];
 
 // Add the chat title field

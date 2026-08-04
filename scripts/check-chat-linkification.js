@@ -20,8 +20,15 @@ if (start < 0 || end < 0 || end <= start) {
   console.error('FATAL: could not locate escapeHtml/fmt block in ai-chat.js');
   process.exit(2);
 }
-// The block reads `wrapper` (data-shorten-urls) and `i18n` (link labels) from
-// the initAiChat closure - inject stubs as function parameters.
+// The block's isSameHost() compares against the browser's location. Node has no
+// `location`, so provide one - without it every URL would count as external and
+// the "external_blank" cases could never exercise the same-host branch.
+if (typeof global.location === 'undefined') {
+  global.location = { host: 'example.com', href: 'https://example.com/' };
+}
+
+// The block reads `wrapper` (data-shorten-urls, data-link-target) and `i18n`
+// (link labels) from the initAiChat closure - inject stubs as function parameters.
 const block = src.slice(start, end);
 const makeFmt = (wrapperStub, i18nStub) =>
   new Function('wrapper', 'i18n', block + '; return fmt;')(wrapperStub, i18nStub);
@@ -33,6 +40,11 @@ const fmt = makeFmt({ dataset: { shortenUrls: '0' } }, I18N);
 const fmtShort = makeFmt({ dataset: { shortenUrls: '1' } }, I18N);
 // No data attribute at all (older cached template) - must behave like ON.
 const fmtDefault = makeFmt({ dataset: {} }, I18N);
+// Link target modes (module option link_target). Default/missing = 'blank',
+// which is what every other fmt above uses, so all existing cases stay valid.
+const fmtTargetExternal = makeFmt({ dataset: { shortenUrls: '0', linkTarget: 'external_blank' } }, I18N);
+const fmtTargetSelf = makeFmt({ dataset: { shortenUrls: '0', linkTarget: 'self' } }, I18N);
+const fmtTargetSelfShort = makeFmt({ dataset: { shortenUrls: '1', linkTarget: 'self' } }, I18N);
 
 // Decode the entities our pipeline can emit in element CONTENT, to compare the
 // rendered (DOM) text with the expected raw URL.
@@ -538,6 +550,115 @@ check('md-extra-10 punctuation', fmt(mdCases[9][0]).endsWith('</a>.'), fmt(mdCas
   {
     const o = fmt('https://en.wikipedia.org/wiki/Function_(mathematics)');
     check('wrap-guard-wiki', o.includes('href="https://en.wikipedia.org/wiki/Function_(mathematics)"'), o);
+  }
+}
+
+// ------------------------------------------- link target (module link_target)
+// Stubbed location.host is "example.com" (see top of file).
+{
+  // Default (attribute missing) and explicit "blank" keep the legacy rendering:
+  // every link opens in a new tab. Covered implicitly by all cases above; assert
+  // it once explicitly for both an own-host and a foreign-host link.
+  {
+    const o = fmt('https://example.com/kontakt.html');
+    check('target-blank-1 own host', o.includes('target="_blank" rel="noopener"'), o);
+  }
+  {
+    const o = fmtDefault('https://other.tld/page');
+    check('target-blank-2 missing attr', o.includes('target="_blank" rel="noopener"'), o);
+  }
+
+  // external_blank: own host stays in the tab, foreign host opens a new one.
+  {
+    const o = fmtTargetExternal('https://example.com/kontakt.html');
+    check('target-ext-1 own host no target', !o.includes('target=') && !o.includes('rel='), o);
+    check('target-ext-1 href intact', o.includes('href="https://example.com/kontakt.html"'), o);
+  }
+  {
+    const o = fmtTargetExternal('https://other.tld/page');
+    check('target-ext-2 foreign host new tab', o.includes('target="_blank" rel="noopener"'), o);
+  }
+  // Case-insensitive host comparison.
+  {
+    const o = fmtTargetExternal('https://EXAMPLE.com/x.html');
+    check('target-ext-3 host case', !o.includes('target='), o);
+  }
+  // A different host on the same registrable domain is still external.
+  {
+    const o = fmtTargetExternal('https://shop.example.com/x.html');
+    check('target-ext-4 subdomain external', o.includes('target="_blank"'), o);
+  }
+  // Scheme-less "www." links are normalised before the host check, and a
+  // leading "www." is ignored on both sides (same site to every visitor).
+  {
+    const o = fmtTargetExternal('www.example.com/x.html');
+    check('target-ext-5 www own host', !o.includes('target='), o);
+    check('target-ext-5 href prefixed', o.includes('href="https://www.example.com/x.html"'), o);
+  }
+  {
+    const o = fmtTargetExternal('https://www.example.com/x.html');
+    check('target-ext-5b www variant own host', !o.includes('target='), o);
+  }
+  // "www" as part of a different domain must NOT be stripped into a match.
+  {
+    const o = fmtTargetExternal('https://wwwexample.com/x.html');
+    check('target-ext-5c lookalike external', o.includes('target="_blank"'), o);
+  }
+  // Documents on the own host keep the new tab in external_blank: an inline
+  // PDF would replace the page and drop the visible chat transcript.
+  {
+    const o = fmtTargetExternal('https://example.com/files/preisliste.pdf');
+    check('target-doc-1 own host pdf new tab', o.includes('target="_blank" rel="noopener"'), o);
+  }
+  {
+    const o = fmtTargetExternal('https://example.com/files/agb.docx');
+    check('target-doc-2 own host docx new tab', o.includes('target="_blank"'), o);
+  }
+  // ...but an own-host PAGE still navigates in place, including one whose query
+  // string merely mentions a file (Contao download URLs are served as
+  // attachments and never navigate, so the tab is irrelevant for them).
+  {
+    const o = fmtTargetExternal('https://example.com/download-center?file=report.pdf');
+    check('target-doc-3 query-only file is a page', !o.includes('target='), o);
+  }
+  // "self" is literal: even a document stays in the tab when the admin says so.
+  {
+    const o = fmtTargetSelf('https://example.com/files/preisliste.pdf');
+    check('target-doc-4 self honoured for documents', !o.includes('target='), o);
+  }
+  // Markdown links honour the mode too, and keep their descriptive label.
+  {
+    const o = fmtTargetExternal('[Kontakt](https://example.com/kontakt.html)');
+    check('target-ext-6 md own host', !o.includes('target=') && o.includes('>Kontakt</a>'), o);
+  }
+  {
+    const o = fmtTargetExternal('[ÖNORM](https://www.austrian-standards.at/x)');
+    check('target-ext-7 md foreign host', o.includes('target="_blank" rel="noopener"'), o);
+  }
+
+  // self: never a new tab - plain, Markdown and shortened renderings alike.
+  {
+    const o = fmtTargetSelf('https://other.tld/page');
+    check('target-self-1 plain', !o.includes('target=') && !o.includes('rel='), o);
+  }
+  {
+    const o = fmtTargetSelf('[Preisliste](https://other.tld/a.pdf)');
+    check('target-self-2 markdown', !o.includes('target='), o);
+  }
+  {
+    const o = fmtTargetSelfShort('https://other.tld/a.pdf');
+    check('target-self-3 shortened keeps label+title',
+      !o.includes('target=') && o.includes('>Download</a>') && o.includes('title="https://other.tld/a.pdf"'), o);
+  }
+
+  // mailto:/tel: anchors never carried a target - unchanged in every mode.
+  {
+    const o = fmtTargetExternal('mailto:office@example.com');
+    check('target-mail-1 no target', !o.includes('target='), o);
+  }
+  {
+    const o = fmtTargetSelf('tel:+43123456789');
+    check('target-tel-1 no target', !o.includes('target='), o);
   }
 }
 

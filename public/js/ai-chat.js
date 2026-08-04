@@ -436,6 +436,47 @@ function initAiChat(wrapper) {
   // reader. The href itself stays verbatim (the link must still work).
   const displayUrlOf = (url) => url.replace(/^((?:https?:\/\/)?)[^\/?#@]*@/i, '$1');
 
+  // Link target (module option "link_target"): where chat links open.
+  //   blank          - always a new tab (legacy behaviour, the DCA default)
+  //   external_blank - only links to another host; own-site links stay in place
+  //   self           - never open a new tab
+  // A missing attribute (e.g. a cached custom template without data-link-target)
+  // defaults to "blank", so existing embeds keep their current rendering - same
+  // graceful-default reasoning as data-shorten-urls above.
+  const linkTargetMode = wrapper.dataset.linkTarget || 'blank';
+  // Same-host test for "external_blank". The URL may still be scheme-less
+  // ("www.example.com" - hrefPrefix adds https:// when building the anchor), so
+  // it is normalised first. A leading "www." is ignored on both sides: a site
+  // served at example.com and one at www.example.com are the same site to every
+  // visitor, and the model quotes whichever variant the crawler indexed.
+  // Anything unparseable or host-less counts as external, i.e. errs towards
+  // keeping the new tab.
+  const bareHost = (host) => host.toLowerCase().replace(/^www\./, '');
+  const isSameHost = (url) => {
+    try {
+      const abs = /^[a-z][a-z0-9+.-]*:/i.test(url) ? url : 'https://' + url;
+      const host = new URL(abs).host;
+      return '' !== host && bareHost(host) === bareHost(location.host);
+    } catch (e) {
+      return false;
+    }
+  };
+  // Returns ' target="_blank" rel="noopener"' or ''. rel travels with target:
+  // noopener is meaningless without _blank.
+  //
+  // In "external_blank", documents on the own host keep the new tab as well: a
+  // PDF that the browser renders inline REPLACES the page, and the chat
+  // transcript lives only in the DOM (nothing but the theme is persisted), so
+  // navigating away for a download would drop the visible conversation. Own
+  // PAGES are different - going there is what the visitor asked for.
+  // "self" stays literal: an explicit "never open a tab" is honoured for
+  // documents too.
+  const targetAttr = (url) => {
+    if ('self' === linkTargetMode) return '';
+    if ('external_blank' === linkTargetMode && isSameHost(url) && !isDownloadUrl(url)) return '';
+    return ' target="_blank" rel="noopener"';
+  };
+
   const fmt = c => {
     // Emphasis/code delimiters must start at a word boundary (start of line,
     // whitespace or an opening bracket/quote). Without this, a single "*" or
@@ -515,9 +556,9 @@ function initAiChat(wrapper) {
         // browser decodes them for display; the href post-processing step below
         // restores the literal & in href only.
         const label = isDownloadUrl(clean) ? linkLabelDownload : linkLabelPage;
-        return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener" title="${hrefPrefix}${displayUrlOf(clean)}" aria-label="${label}, ${hostnameOf(clean)}">${label}</a>${trailing}`;
+        return `<a href="${hrefPrefix}${clean}"${targetAttr(hrefPrefix + clean)} title="${hrefPrefix}${displayUrlOf(clean)}" aria-label="${label}, ${hostnameOf(clean)}">${label}</a>${trailing}`;
       }
-      return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener">${clean}</a>${trailing}`;
+      return `<a href="${hrefPrefix}${clean}"${targetAttr(hrefPrefix + clean)}>${clean}</a>${trailing}`;
     };
     const buildMarkdownLink = (text, url) => {
       // Peel stray trailing "]"/")" and sentence punctuation from the explicit
@@ -540,7 +581,7 @@ function initAiChat(wrapper) {
           && /^(?:https?:\/\/|www\.)/i.test(clean)
           && /^(?:https?:\/\/|www\.)\S+$/i.test(text.replace(/^\[+/, '').trim())) {
         const label = isDownloadUrl(clean) ? linkLabelDownload : linkLabelPage;
-        return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener" title="${hrefPrefix}${displayUrlOf(clean)}" aria-label="${label}, ${hostnameOf(clean)}">${label}</a>`;
+        return `<a href="${hrefPrefix}${clean}"${targetAttr(hrefPrefix + clean)} title="${hrefPrefix}${displayUrlOf(clean)}" aria-label="${label}, ${hostnameOf(clean)}">${label}</a>`;
       }
       // Descriptive labels hide the destination, so expose the full URL as a
       // hover tooltip - same as the shortened rendering. Only for http/www
@@ -549,7 +590,7 @@ function initAiChat(wrapper) {
       const titleAttr = /^(?:https?:\/\/|www\.)/i.test(clean)
         ? ` title="${hrefPrefix}${displayUrlOf(clean)}"`
         : '';
-      return `<a href="${hrefPrefix}${clean}" target="_blank" rel="noopener"${titleAttr}>${text}</a>`;
+      return `<a href="${hrefPrefix}${clean}"${targetAttr(hrefPrefix + clean)}${titleAttr}>${text}</a>`;
     };
 
     // Render explicit Markdown links before bare URL autolinking.

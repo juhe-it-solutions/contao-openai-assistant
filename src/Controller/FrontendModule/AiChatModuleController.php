@@ -74,6 +74,9 @@ class AiChatModuleController extends AbstractFrontendModuleController
         $template->set('initial_state', $model->initial_state ?? 'collapsed');
         // Default ON: null (column not yet migrated) and '1' enable, '' disables
         $template->set('shorten_urls', (bool) ($model->shorten_urls ?? '1'));
+        // Where chat links open. Empty/null (column not yet migrated) = 'blank',
+        // i.e. the previous hard-coded behaviour.
+        $template->set('link_target', (string) ($model->link_target ?: 'blank'));
         $template->set('disclaimer_text', $model->disclaimer_text);
 
         // Default disclaimer from chat language file (translated)

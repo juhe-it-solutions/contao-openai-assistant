@@ -114,6 +114,26 @@
                 <source>Render plain URLs in chat answers as short labels ("Download" / "Visit page") instead of the full URL. Only affects URLs the model outputs as plain text or with the URL itself as link text - Markdown links with descriptive text keep it regardless of this option.</source>
                 <target>Render plain URLs in chat answers as short labels ("Download" / "Visit page") instead of the full URL. Only affects URLs the model outputs as plain text or with the URL itself as link text - Markdown links with descriptive text keep it regardless of this option.</target>
             </trans-unit>
+            <trans-unit id="tl_module.link_target.0">
+                <source>Open links in</source>
+                <target>Open links in</target>
+            </trans-unit>
+            <trans-unit id="tl_module.link_target.1">
+                <source>Where links in chat answers open. "New tab (all links)" is the previous behaviour. The middle option keeps links to pages of your own website in the current tab - usually the better experience once the chatbot suggests your own pages - while external links and documents (PDF, Office files, archives ...) still open in a new tab, so a download never replaces the page and the visible chat.</source>
+                <target>Where links in chat answers open. "New tab (all links)" is the previous behaviour. The middle option keeps links to pages of your own website in the current tab - usually the better experience once the chatbot suggests your own pages - while external links and documents (PDF, Office files, archives ...) still open in a new tab, so a download never replaces the page and the visible chat.</target>
+            </trans-unit>
+            <trans-unit id="tl_module.link_target_ref.blank">
+                <source>New tab (all links)</source>
+                <target>New tab (all links)</target>
+            </trans-unit>
+            <trans-unit id="tl_module.link_target_ref.external_blank">
+                <source>New tab for external links and documents</source>
+                <target>New tab for external links and documents</target>
+            </trans-unit>
+            <trans-unit id="tl_module.link_target_ref.self">
+                <source>Same tab (all links)</source>
+                <target>Same tab (all links)</target>
+            </trans-unit>
             <trans-unit id="tl_module.colors_legend">
                 <source>Color Settings</source>
                 <target>Color Settings</target>
