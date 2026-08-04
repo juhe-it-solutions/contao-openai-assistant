@@ -206,6 +206,76 @@ class OpenAiResponderTest extends TestCase
     {
         yield 'rate limited (429)' => [429];
         yield 'service unavailable (503)' => [503];
+        yield 'bad gateway (502)' => [502];
+        // api.openai.com sits behind Cloudflare; 520 was observed live on
+        // 2026-08-04 and reached the visitor as a hard error.
+        yield 'cloudflare unknown origin error (520)' => [520];
+        yield 'cloudflare origin down (521)' => [521];
+        yield 'cloudflare connection timed out (522)' => [522];
+        yield 'cloudflare origin unreachable (523)' => [523];
+    }
+
+    /**
+     * A repeat must not be able to produce a second answer - and a second charge.
+     * For these two the request may well have reached the model, with only the
+     * answer lost, which is why they stay out of the retry list.
+     */
+    #[DataProvider('nonRetryableStatusProvider')]
+    public function testAmbiguousServerErrorsAreNotRetried(int $statusCode): void
+    {
+        $requests = [];
+        $http = new MockHttpClient($this->createResponseFactory($requests, [
+            new MockResponse('{"id": "conv_1"}'),
+            new MockResponse('{"error": {"message": "boom"}}', ['http_code' => $statusCode]),
+        ]));
+
+        $responder = $this->createResponder($http, []);
+
+        $this->expectException(\RuntimeException::class);
+
+        try {
+            $responder->processMessage('Frage', $this->createSession());
+        } finally {
+            $this->assertCount(2, $requests, 'The message must be sent exactly once.');
+        }
+    }
+
+    public static function nonRetryableStatusProvider(): iterable
+    {
+        yield 'internal server error (500)' => [500];
+        yield 'cloudflare origin timeout (524)' => [524];
+    }
+
+    /**
+     * A non-JSON body is the whole HTML error page of whatever proxy answered.
+     * The live 520 wrote roughly 10 KB of Cloudflare markup into the log, twice.
+     */
+    public function testHtmlErrorPagesAreShortenedForTheLog(): void
+    {
+        $cloudflarePage = '<!DOCTYPE html><html><head><title>api.openai.com | 520: Web server is '
+            .'returning an unknown error</title></head><body><h1>Web server is returning an '
+            .'unknown error</h1><p>'.str_repeat('Cloudflare filler text. ', 200).'</p></body></html>';
+
+        $requests = [];
+        $http = new MockHttpClient($this->createResponseFactory($requests, [
+            new MockResponse('{"id": "conv_1"}'),
+            new MockResponse($cloudflarePage, ['http_code' => 520]),
+            new MockResponse($cloudflarePage, ['http_code' => 520]),
+        ]));
+
+        $responder = $this->createResponder($http, []);
+
+        try {
+            $responder->processMessage('Frage', $this->createSession());
+            $this->fail('A repeated 520 must surface as an exception.');
+        } catch (\RuntimeException $e) {
+            $message = $e->getMessage();
+
+            $this->assertStringContainsString('HTTP 520', $message, 'The status code is the useful part.');
+            $this->assertStringNotContainsString('<', $message, 'Markup must not reach the log.');
+            $this->assertLessThan(400, mb_strlen($message), 'A 10 KB error page must not be logged verbatim.');
+            $this->assertStringContainsString('Web server is returning an unknown error', $message);
+        }
     }
 
     public function testHistoryIsFetchedNewestFirstAndReturnedOldestFirst(): void
