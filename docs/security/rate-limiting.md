@@ -36,6 +36,40 @@ Rough cost intuition: the cap times your prompt/completion size is the most the 
 - **Corporate intranets, shared offices, NAT and proxy setups:** all users behind one egress IP share this budget collectively — ten colleagues chatting at once would throttle each other. Raise the value to match your concurrent-user expectation (e.g. 60–120), or set **0** to disable IP limiting entirely. With the IP limit off, the session throttle and the daily cap still bound abuse and cost.
 - Changing the value takes effect immediately, even mid-window — no cache clearing needed.
 
+## The Endpoint Is Public — Module Protection Does Not Change That
+
+`POST /ai-chat/send`, `GET /ai-chat/history` and `GET /ai-chat/token` are anonymous
+by design: a public chatbot has to answer visitors who are not logged in.
+
+Contao's **"Protected / member groups"** option on the chat module controls
+*rendering* — it decides who sees the widget. It does **not** gate the endpoints.
+Anyone who can reach the site can post to `/ai-chat/send` and receive answers
+drawn from the vector store, whether or not the module is protected and whether or
+not it is placed on a page at all.
+
+Consequences to plan for:
+
+- **Everything you sync into the vector store is effectively public.** Do not put
+  member-only documents, price lists for logged-in customers or internal notes in
+  there and rely on module protection to keep them private.
+- Protected Contao pages are excluded from the synchronisation automatically, so
+  the usual case is covered — but files you upload manually in the backend are
+  not, because nothing marks them as protected.
+- The abuse controls above (CSRF token, IP limit, session throttle, daily cap,
+  message length limit) bound the *cost* of that public access. They are not
+  access control.
+
+A members-only chatbot — one that refuses to answer visitors who are not logged
+in — is not currently supported.
+
+## Message Length
+
+A single message is limited to **4000 characters**. The endpoint is public and
+OpenAI bills per token, while the limits above count messages rather than length,
+so an unbounded message would let one caller spend far more than the daily cap
+suggests. Longer messages are rejected with HTTP `400` before any rate limit is
+touched and before any OpenAI call is made.
+
 ## Operational Notes
 
 - **Run `contao:migrate` after updating.** The limits are stored in new `tl_openai_config.chat_daily_limit` and `tl_openai_config.chat_ip_rate_limit` columns. Until the migration has added them, the daily cap is inactive and the IP limit runs at the built-in default of 10/minute; after the migration, existing configurations get the defaults (1000 / 10).
@@ -50,5 +84,6 @@ Rough cost intuition: the cap times your prompt/completion size is the most the 
 | IP over 10/minute | 429 | `please_wait` ("Please wait before sending another message") |
 | Session faster than 2 s | 429 | `please_wait` |
 | Daily cap reached | 429 | `daily_limit_reached` ("The chatbot has reached its daily message limit. Please try again tomorrow.") |
+| Message longer than 4000 characters | 400 | `message_too_long` ("Your message is too long. Please shorten it to at most 4000 characters.") |
 
 All messages are returned in English or German depending on the visitor's `Accept-Language` header, matching the other chat endpoint errors.

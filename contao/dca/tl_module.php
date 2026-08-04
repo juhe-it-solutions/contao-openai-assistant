@@ -322,3 +322,22 @@ $GLOBALS['TL_DCA']['tl_module']['fields']['disclaimer_text'] = [
     ],
     'sql'       => ['type' => 'text', 'notnull' => false],
 ];
+
+// Explanation shown next to Contao's "Protected / member groups" option: that
+// setting hides the widget, it does not gate the chat API. Rendered as a notice,
+// not stored - hence input_field_callback and no "sql" key. The field is only in
+// the ai_chat palette, so no other module type ever sees it.
+$GLOBALS['TL_DCA']['tl_module']['fields']['ai_chat_public_endpoint_note'] = [
+    'label'                => [''],
+    'exclude'              => true,
+    'input_field_callback' => [
+        'JuheItSolutions\ContaoOpenaiAssistant\EventListener\AiChatModuleNoticeListener',
+        'publicEndpointNoticeField',
+    ],
+];
+
+$GLOBALS['TL_DCA']['tl_module']['palettes']['ai_chat'] = str_replace(
+    '{protected_legend:hide},protected',
+    '{protected_legend:hide},ai_chat_public_endpoint_note,protected',
+    $GLOBALS['TL_DCA']['tl_module']['palettes']['ai_chat'],
+);
