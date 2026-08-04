@@ -298,6 +298,43 @@ class OpenAiResponderTest extends TestCase
         };
     }
 
+    /**
+     * The backend permits exactly one configuration and edits the lowest-id row.
+     * Selecting by tstamp meant that on an installation still carrying a second row
+     * from an older version, saving that other row silently switched the live API
+     * key, vector store and prompt.
+     */
+    public function testActiveConfigIsSelectedByIdNotByTimestamp(): void
+    {
+        $capturedSql = null;
+
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchAllAssociative')
+            ->willReturnCallback(
+                static function (string $sql) use (&$capturedSql): array {
+                    $capturedSql = $sql;
+
+                    return [['id' => 1, 'api_key' => 'encrypted']];
+                },
+            )
+        ;
+        // The surplus-config check must not cost an extra query.
+        $connection->expects($this->never())->method('fetchOne');
+
+        $responder = new OpenAiResponder(
+            new MockHttpClient(),
+            new NullLogger(),
+            $connection,
+            $this->createMock(EncryptionService::class),
+        );
+
+        $responder->getActiveConfig();
+
+        $this->assertStringContainsString('ORDER BY id ASC', (string) $capturedSql);
+        $this->assertStringNotContainsString('tstamp DESC', (string) $capturedSql);
+    }
+
     private function createResponder(MockHttpClient $http, array $promptExtra, CacheItemPoolInterface|null $cache = null): OpenAiResponder
     {
         $configRow = [
@@ -320,11 +357,15 @@ class OpenAiResponderTest extends TestCase
         );
 
         $connection = $this->createMock(Connection::class);
+        // The active configuration is read as a list (LIMIT 2, so a surplus row is
+        // noticed without a second query); prompts are still a single row.
+        $connection
+            ->method('fetchAllAssociative')
+            ->willReturn([$configRow])
+        ;
         $connection
             ->method('fetchAssociative')
-            ->willReturnCallback(
-                static fn (string $sql) => str_contains($sql, 'tl_openai_config') ? $configRow : $promptRow,
-            )
+            ->willReturn($promptRow)
         ;
 
         $encryption = $this->createMock(EncryptionService::class);

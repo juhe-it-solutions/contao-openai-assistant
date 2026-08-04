@@ -86,7 +86,6 @@ class OpenAiFilesListenerTest extends TestCase
         return new OpenAiFilesListener(
             new MockHttpClient(),
             '/tmp/project',
-            'public',
             new NullLogger(),
             $this->createMock(OpenAiConfigListener::class),
             $requestStack ?? new RequestStack(),
