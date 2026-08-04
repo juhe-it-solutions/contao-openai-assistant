@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 use Contao\DC_Table;
 use Contao\Message;
+use JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener;
 
 $autoUpdateScheduleHours = [
     '*' => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_schedule_hour_options']['every'],
@@ -389,9 +390,12 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_link_types'],
             'exclude'   => true,
             'inputType' => 'checkbox',
-            'options'   => ['page', 'file', 'external', 'mailto', 'tel'],
+            'options'   => OpenAiConfigListener::DEFAULT_LINK_TYPES,
             'reference' => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_link_types_ref'],
-            'default'   => ['page', 'file', 'external', 'mailto', 'tel'],
+            // Only applied to newly created records; existing configurations are
+            // handled by the load_callback (prepareLinkTypesField), which also
+            // makes the field mandatory wherever it is editable.
+            'default'   => OpenAiConfigListener::DEFAULT_LINK_TYPES,
             'eval'      => ['multiple' => true, 'tl_class' => 'w50 auto-update-field auto-update-license-field'],
             'sql'       => ['type' => 'blob', 'notnull' => false],
         ],

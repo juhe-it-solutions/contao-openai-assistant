@@ -40,7 +40,7 @@ In the OpenAI configuration, section **Automatic vector store update**:
 | Setting | Meaning |
 |---|---|
 | **Collect links from the pages** | Master switch. **On by default.** |
-| **Link types to include** | Pages, documents, external websites, e-mail addresses, phone numbers - individually selectable. |
+| **Link types to include** | Pages, documents, external websites, e-mail addresses, phone numbers - individually selectable. At least one type must stay selected; to switch links off completely, use the master switch above. Configurations that existed before this feature show all types selected, which is what they already do. |
 | **Exclude links** | One glob pattern per line, e.g. `*/impressum*` or `https://www.facebook.com/*`. Lines starting with `#` are notes. |
 | **Add a link and document directory** | Uploads one extra document listing every page and every document of the site. Does not count towards your plan's page limit. |
 

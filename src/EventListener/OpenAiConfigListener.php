@@ -41,6 +41,13 @@ class OpenAiConfigListener
      */
     public const LICENSE_KEY_MASK = '••••••••••••••••';
 
+    /**
+     * Every link type the extractor knows, i.e. what "no explicit selection"
+     * resolves to. Used as the DCA options/default of auto_update_link_types and
+     * as the display fallback in prepareLinkTypesField().
+     */
+    public const DEFAULT_LINK_TYPES = ['page', 'file', 'external', 'mailto', 'tel'];
+
     private const AUTO_UPDATE_LICENSE_FIELDS = [
         'auto_update_enabled',
         'auto_update_schedule_hour',
@@ -865,6 +872,36 @@ class OpenAiConfigListener
         }
 
         return '' === $value ? null : $value;
+    }
+
+    /**
+     * load_callback for auto_update_link_types.
+     *
+     * Two problems this solves, both caused by the column being nullable:
+     *
+     * 1. A DCA "default" is only written when a record is *created*
+     *    (DC_Table::create()), so every configuration that existed before this
+     *    feature shipped has a NULL column and renders with no type checked -
+     *    while the sync reads NULL as "never saved" and therefore allows every
+     *    type. The form would show the opposite of what actually happens.
+     * 2. Contao stores an empty checkbox group as NULL for a nullable column
+     *    (Widget::getEmptyValueByFieldType()), not as "a:0:{}". Unchecking every
+     *    type would therefore mean "all types" again. Requiring a selection
+     *    removes that state from the UI; switching links off entirely is what
+     *    the auto_update_include_links master switch is for.
+     *
+     * The mandatory flag is only set where the premium fields are actually
+     * editable: without a licence they are disabled client-side and are not
+     * submitted at all, so a mandatory field would block *every* save of the
+     * configuration.
+     */
+    public function prepareLinkTypesField(mixed $value, DataContainer $dc): mixed
+    {
+        if ($dc->id && $this->licenseValidation->isLicenseActiveCached((int) $dc->id)) {
+            $GLOBALS['TL_DCA']['tl_openai_config']['fields']['auto_update_link_types']['eval']['mandatory'] = true;
+        }
+
+        return null === $value || '' === $value ? self::DEFAULT_LINK_TYPES : $value;
     }
 
     public function guardAutoUpdateFieldWithoutLicense($value, DataContainer $dc)
