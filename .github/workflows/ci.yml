@@ -49,7 +49,10 @@ jobs:
 
     - name: Check PHP syntax
       run: |
-        find src/ -name "*.php" -exec php -l {} \;
+        # xargs (unlike "find -exec") propagates a non-zero exit status, so a syntax
+        # error actually fails the build. contao/ is included because ECS skips it
+        # by design, which left DCA and language files unchecked entirely.
+        find src/ tests/ contao/ -name "*.php" -print0 | xargs -0 -r -n1 php -l > /dev/null
 
     - name: Check code style
       run: vendor/bin/ecs check
