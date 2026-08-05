@@ -4,7 +4,7 @@
     // Contao's backend tooltip (vendor contao/core-bundle assets/scripts/tips.js)
     // always opens 0-60px below its trigger and is positioned with
     // `position: absolute`, so a tall tooltip - e.g. the 3-paragraph help text
-    // for "Links aus den Seiten übernehmen" on the OpenAI config - pushes the
+    // for "Links aus den Seiteninhalten übernehmen" on the OpenAI config - pushes the
     // document taller than the viewport whenever its trigger sits near the
     // current bottom of the page. The extra document height makes the browser
     // show a scrollbar, which narrows the viewport just enough to rewrap this
