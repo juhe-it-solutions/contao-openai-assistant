@@ -276,22 +276,34 @@ ul#sort_auto_update_site_root.oaa-picker-collapsed {
     margin: 15px 15px 10px 15px;
 }
 
-/* Widen Contao's backend help tooltip so long help texts stay short
-   instead of becoming a very tall column that is clipped at the bottom.
-   Contao core caps .tip at max-width:320px; we load after the theme.
+/* Widen Contao's backend help tooltip so short-to-medium help texts stay
+   short instead of becoming a tall column. Contao core caps .tip at
+   max-width:320px; we load after the theme.
 
-   Also cap its height to the viewport (minus a little breathing room) so a
-   very long help text - e.g. the 3-paragraph "Links aus den Seiten
-   übernehmen" hint on the OpenAI config - can never be taller than the
-   screen itself. That is the other half of the fix in
-   backend-tooltip-fit.js: JS keeps the tooltip's whole box inside the
-   visible viewport (flipping it above the field when there is no room
-   below), and this cap guarantees the box it is flipping never exceeds
-   that viewport in the first place, even on a short mobile screen. */
+   This does NOT fix genuinely long, multi-paragraph help texts: Contao's
+   .tip carries pointer-events:none (core theme), so a tooltip taller than
+   the viewport can never be scrolled by the user - any attempt falls
+   through to the page underneath and scrolls that instead, which is what
+   caused the flicker reported for "Links aus den Seiteninhalten
+   übernehmen". A field whose help text is that long must be added to
+   LONG_HELP_FIELD_IDS in backend-tooltip-fit.js (which disables its hover
+   popup) and given a rule below to show its help text inline instead. */
 .tip {
     max-width: 560px;
-    max-height: calc(100vh - 32px);
-    overflow-y: auto;
+}
+
+/* Companion to LONG_HELP_FIELD_IDS in backend-tooltip-fit.js: undoes
+   Contao core's one-line tl_tip clip (height:15px; overflow:hidden;
+   white-space:nowrap - see the flexible backend theme) so this field's
+   full help text is always visible under the checkbox instead of only in
+   a hover popup, since that popup cannot be made to work for text this
+   long (see the comment on .tip above). */
+.widget:has(#ctrl_auto_update_include_links) > p.tl_help.tl_tip {
+    height: auto;
+    overflow: visible;
+    white-space: normal;
+    text-overflow: clip;
+    cursor: default;
 }
 
 @media (max-width: 767px) {
