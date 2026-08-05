@@ -33,8 +33,13 @@ services:
             $csrfTokenName: '%contao.csrf_token_name%'
         public: true
 
-    # BackendModule Controller
-    JuheItSolutions\ContaoOpenaiAssistant\Controller\BackendModule\OpenAiDashboardController:
+    # AiChatModuleNoticeListener — referenced from tl_module by name via
+    # input_field_callback, which Contao resolves through System::importStatic().
+    # That helper only reaches the container for PUBLIC ids; for a private (and
+    # therefore compiled-away) id it throws a ServiceNotFoundException whenever
+    # kernel.debug is on. Public keeps the notice field working in dev as well as
+    # prod, on Contao 5.3, 5.7 and 6.0 alike.
+    JuheItSolutions\ContaoOpenaiAssistant\EventListener\AiChatModuleNoticeListener:
         public: true
 
     # FrontendModule Controller
