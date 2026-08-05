@@ -16,6 +16,7 @@
     "php": "^8.4",
     "contao/core-bundle": "^6.0",
     "nyholm/psr7": "^1.2",
+    "symfony/asset": "^6.4 || ^7.0 || ^8.0",
     "symfony/dom-crawler": "^6.4 || ^7.0 || ^8.0",
     "symfony/http-client": "^7.4 || ^8.0",
     "symfony/rate-limiter": "^7.4 || ^8.0"

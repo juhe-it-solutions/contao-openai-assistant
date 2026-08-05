@@ -26,6 +26,7 @@ use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiModelCatalogService;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
+use Symfony\Component\Asset\Packages;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
@@ -242,6 +243,7 @@ class OpenAiConfigListenerTest extends TestCase
             $fileSync,
             $this->createMock(RouterInterface::class),
             $this->createMock(CronHealthService::class),
+            $this->createMock(Packages::class),
         );
 
         $dc = (object) [
@@ -403,6 +405,7 @@ class OpenAiConfigListenerTest extends TestCase
             $this->createMock(VectorStoreFileSync::class),
             $this->createMock(RouterInterface::class),
             $this->createMock(CronHealthService::class),
+            $this->createMock(Packages::class),
         );
     }
 
@@ -525,6 +528,7 @@ class OpenAiConfigListenerTest extends TestCase
             $this->createMock(VectorStoreFileSync::class),
             $this->createMock(RouterInterface::class),
             $this->createMock(CronHealthService::class),
+            $this->createMock(Packages::class),
         );
     }
 }
