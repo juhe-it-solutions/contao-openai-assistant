@@ -438,12 +438,12 @@
                 <target>Keine Seiten ausgewählt - alle %1$s Unterseiten des einzigen Webseiten-Startpunkts würden automatisch synchronisiert. Ihr aktueller Tarif erlaubt jedoch höchstens %2$s Seiten. Bitte wählen Sie gezielt Seiten aus oder führen Sie ein Tarif-Upgrade durch.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_include_links.0">
-                <source>Collect links from the pages</source>
-                <target>Links aus den Seiten übernehmen</target>
+                <source>Collect links from the page contents</source>
+                <target>Links aus den Seiteninhalten übernehmen</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_include_links.1">
-                <source><![CDATA[Collects the links contained in your pages - to other pages, to documents such as PDFs, and to external websites - and adds them to each page's knowledge document.]]></source>
-                <target><![CDATA[Sammelt die Links, die in Ihren Seiten enthalten sind - auf andere Seiten, auf Dokumente wie PDFs und auf externe Websites - und ergänzt sie im Wissensdokument jeder Seite. Der Chatbot kann dann mit einem echten, funktionierenden Link antworten, statt nur zu beschreiben, wo etwas zu finden ist.<br><br>Navigation, Breadcrumb, Fußzeile und andere seitenübergreifend wiederkehrende Links werden automatisch entfernt; Links aus geschützten (nur für Mitglieder sichtbaren) Bereichen werden nie gesammelt.<br><br><strong>Hinweis:</strong> Das Aktivieren verändert jedes Seitendokument - die nächste Synchronisierung lädt daher einmalig alle Seiten neu hoch.]]></target>
+                <source><![CDATA[Collects links contained in your pages - to other pages, to documents such as PDFs, and to external websites - and adds them to each page's knowledge document.]]></source>
+                <target><![CDATA[Sammelt Links, die in Seiteninhalten enthalten sind (Links auf andere Seiten, auf Dokumente wie z.B. PDFs und Links auf externe Webseiten), und ergänzt sie im Wissensdokument jeder Seite. Der Chatbot kann dann mit einem echten, funktionierenden Link antworten, anstatt nur zu beschreiben, wo etwas zu finden ist.<br><br>Navigation, Breadcrumb, Fußzeile und andere seitenübergreifend wiederkehrende Links werden automatisch entfernt; Links aus geschützten (nur für Mitglieder sichtbaren) Bereichen werden nie gesammelt.<br><br><strong>Hinweis:</strong> Das Aktivieren dieser Option verändert jedes Seitendokument - die nächste Synchronisierung lädt daher einmalig alle Seiten neu hoch.]]></target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_link_types.0">
                 <source>Link types to include</source>
@@ -451,7 +451,7 @@
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_link_types.1">
                 <source>Which kinds of links may appear in the chatbot's answers. At least one type must remain selected; to switch links off completely, uncheck "Collect links from the pages" above.</source>
-                <target>Welche Arten von Links in den Antworten des Chatbots erscheinen dürfen. Wird eine Art abgewählt, entfällt sie ab der nächsten Synchronisierung. Mindestens eine Art muss ausgewählt bleiben - um Links vollständig abzuschalten, deaktivieren Sie oben „Links aus den Seiten übernehmen".</target>
+                <target>Welche Arten von Links in den Antworten des Chatbots erscheinen dürfen. Wird eine Art abgewählt, entfällt sie ab der nächsten Synchronisierung. Mindestens eine Art muss ausgewählt bleiben - um Links vollständig abzuschalten, deaktivieren Sie oben „Links aus den Seiteninhalten übernehmen".</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_link_types_ref.page">
                 <source>Pages of this website</source>

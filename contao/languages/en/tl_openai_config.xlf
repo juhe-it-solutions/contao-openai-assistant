@@ -438,20 +438,20 @@
                 <target>No pages selected - all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_include_links.0">
-                <source>Collect links from the pages</source>
-                <target>Collect links from the pages</target>
+                <source>Collect links from the page contents</source>
+                <target>Collect links from the page contents</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_include_links.1">
-                <source><![CDATA[Collects the links contained in your pages - to other pages, to documents such as PDFs, and to external websites - and adds them to each page's knowledge document. The chatbot can then answer with a real, working link instead of merely describing where something is.<br><br>Navigation, breadcrumb, footer and other links that repeat across the site are removed automatically, and links inside protected (members-only) areas are never collected.<br><br><strong>Note:</strong> switching this on changes every page document, so the next synchronisation uploads all pages once.]]></source>
-                <target><![CDATA[Collects the links contained in your pages - to other pages, to documents such as PDFs, and to external websites - and adds them to each page's knowledge document. The chatbot can then answer with a real, working link instead of merely describing where something is.<br><br>Navigation, breadcrumb, footer and other links that repeat across the site are removed automatically, and links inside protected (members-only) areas are never collected.<br><br><strong>Note:</strong> switching this on changes every page document, so the next synchronisation uploads all pages once.]]></target>
+                <source><![CDATA[Collects links contained in your pages (links to other pages, to documents such as PDFs and links to external websites), and adds them to each page's knowledge document. The chatbot can then answer with a real, working link instead of merely describing where something is.<br><br>Navigation, breadcrumb, footer and other links that repeat across the site are removed automatically, and links inside protected (members-only) areas are never collected.<br><br><strong>Note:</strong> switching this option on changes every page document, so the next synchronisation uploads all pages once.]]></source>
+                <target><![CDATA[Collects links contained in your pages (links to other pages, to documents such as PDFs and links to external websites), and adds them to each page's knowledge document. The chatbot can then answer with a real, working link instead of merely describing where something is.<br><br>Navigation, breadcrumb, footer and other links that repeat across the site are removed automatically, and links inside protected (members-only) areas are never collected.<br><br><strong>Note:</strong> switching this option on changes every page document, so the next synchronisation uploads all pages once.]]></target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_link_types.0">
                 <source>Link types to include</source>
                 <target>Link types to include</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_link_types.1">
-                <source>Which kinds of links may appear in the chatbot's answers. Unchecking a type removes it from the next synchronisation. At least one type must remain selected; to switch links off completely, uncheck "Collect links from the pages" above.</source>
-                <target>Which kinds of links may appear in the chatbot's answers. Unchecking a type removes it from the next synchronisation. At least one type must remain selected; to switch links off completely, uncheck "Collect links from the pages" above.</target>
+                <source>Which kinds of links may appear in the chatbot's answers. Unchecking a type removes it from the next synchronisation. At least one type must remain selected; to switch links off completely, uncheck "Collect links from the page contents" above.</source>
+                <target>Which kinds of links may appear in the chatbot's answers. Unchecking a type removes it from the next synchronisation. At least one type must remain selected; to switch links off completely, uncheck "Collect links from the page contents" above.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_link_types_ref.page">
                 <source>Pages of this website</source>
