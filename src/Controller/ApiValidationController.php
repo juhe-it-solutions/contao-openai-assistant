@@ -19,7 +19,6 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -35,7 +34,11 @@ class ApiValidationController
     ) {
     }
 
-    #[Route('%contao.backend.route_prefix%/api-key-validate', name: 'contao_api_key_validate', methods: ['POST'])]
+    /**
+     * Routed from config/routes.yaml (this bundle does not import controller route
+     * attributes, so an attribute here would be silently inert and a second, drifting
+     * source of truth for the path and the _scope/_token_check defaults).
+     */
     public function validateApiKey(Request $request): JsonResponse
     {
         // Check CSRF token using Symfony's CSRF token manager
