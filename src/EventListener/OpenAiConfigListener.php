@@ -28,6 +28,7 @@ use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreFileSync;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiModelCatalogService;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Asset\Packages;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\Routing\RouterInterface;
@@ -76,6 +77,7 @@ class OpenAiConfigListener
         private readonly VectorStoreFileSync $fileSync,
         private readonly RouterInterface $router,
         private readonly CronHealthService $cronHealth,
+        private readonly Packages $assets,
     ) {
     }
 
@@ -606,7 +608,10 @@ class OpenAiConfigListener
         $licenseUrl = $this->licensePortalUrls->getProductUrl();
         $helpUrl = $this->licensePortalUrls->getHelpUrl();
         $manageUrl = $this->licensePortalUrls->getManageUrl();
-        $logoUrl = '/bundles/contaoopenaiassistant/images/logo_juhe-licenses.svg';
+        // Resolved through the bundle's asset package rather than hard-coded, so the
+        // logo also loads on installations served from a subdirectory (the package
+        // context prepends the request base path). Identical on Contao 5.3/5.7/6.0.
+        $logoUrl = $this->assets->getUrl('images/logo_juhe-licenses.svg', 'contao_openai_assistant');
 
         $licenseActive = $dc->id && $this->licenseValidation->isLicenseActiveCached((int) $dc->id);
         $stateMarkup = $this->renderAutoUpdateBackendState((int) ($dc->id ?? 0), $licenseActive);

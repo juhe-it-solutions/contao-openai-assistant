@@ -2,13 +2,28 @@
 
 {# Load CSS and JavaScript assets. asset_version busts browser caches on every
    deploy (file mtime, Composer version as fallback) - without it, browsers
-   keep serving a stale ai-chat.js after updates. #}
+   keep serving a stale ai-chat.js after updates.
+
+   The URLs come from the bundle's asset package ("contao_openai_assistant",
+   derived from the bundle class name by Contao's AddAssetsPackagesPass in 5.3,
+   5.7 and 6.0 alike). A hard-coded "/bundles/..." path would drop the request
+   base path and leave the widget unstyled and dead on any installation served
+   from a subdirectory - the same reason the endpoints below are router-generated.
+   The separator is computed because a site that configures framework.assets.version
+   gets a version query from asset() already, and "?a=1?v=2" is not a valid URL. #}
+{% set css_href = asset('css/ai-chat.css', 'contao_openai_assistant') %}
+{% set js_href = asset('js/ai-chat.js', 'contao_openai_assistant') %}
+{% if asset_version %}
+    {% set css_href = css_href ~ ('?' in css_href ? '&' : '?') ~ 'v=' ~ asset_version %}
+    {% set js_href = js_href ~ ('?' in js_href ? '&' : '?') ~ 'v=' ~ asset_version %}
+{% endif %}
+
 {% add to head %}
-<link rel="stylesheet" href="/bundles/contaoopenaiassistant/css/ai-chat.css{% if asset_version %}?v={{ asset_version }}{% endif %}">
+<link rel="stylesheet" href="{{ css_href }}">
 {% endadd %}
 
 {% add to body %}
-<script src="/bundles/contaoopenaiassistant/js/ai-chat.js{% if asset_version %}?v={{ asset_version }}{% endif %}"></script>
+<script src="{{ js_href }}"></script>
 {% endadd %}
 
 <div class="{{ module_class }}{% if custom_css %} {{ custom_css }}{% endif %} theme-{{ theme }}" id="{{ module_id }}" data-position="{{ chat_position|default('bottom-right') }}" data-initial-message="{{ initial_bot_message|escape('html_attr') }}" data-initial-state="{{ initial_state|default('collapsed') }}" data-shorten-urls="{{ shorten_urls ? '1' : '0' }}" data-link-target="{{ link_target|default('blank') }}" data-i18n="{{ i18n_json|escape('html_attr') }}" role="region" aria-label="{{ aria_label_region }}" style="--ai-chat-font-size-base: {{ base_font_size|default('14px') }};
