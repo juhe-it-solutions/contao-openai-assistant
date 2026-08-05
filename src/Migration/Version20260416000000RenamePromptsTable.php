@@ -15,7 +15,7 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Migration;
 use Contao\CoreBundle\Migration\AbstractMigration;
 use Contao\CoreBundle\Migration\MigrationResult;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Platforms\MySQLPlatform;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 
 /**
@@ -62,7 +62,12 @@ class Version20260416000000RenamePromptsTable extends AbstractMigration
     {
         $schemaManager = $this->getSchemaManager();
         $platform = $this->connection->getDatabasePlatform();
-        $isMysql = $platform instanceof MySQLPlatform;
+        // AbstractMySQLPlatform, not MySQLPlatform: DBAL 3 (Contao 5.3/5.7) has
+        // MariaDBPlatform extending MySQLPlatform, but DBAL 4 (Contao 6) reparents it
+        // to AbstractMySQLPlatform - so the narrower check silently turns false on
+        // MariaDB there. AbstractMySQLPlatform is the common ancestor of both engines
+        // in DBAL 3 and 4 alike, so this means "MySQL family" on every version.
+        $isMysql = $platform instanceof AbstractMySQLPlatform;
         $messages = [];
 
         $hasLegacy = $schemaManager->tablesExist(['tl_openai_assistants']);
