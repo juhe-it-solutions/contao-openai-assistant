@@ -126,9 +126,27 @@ class ChatRateLimiter
     }
 
     /**
-     * The window id and the key are unchanged from the single-step version, so an
-     * installation updating in the middle of a day keeps its running counter
-     * instead of resetting or double-counting it.
+     * The configured limit is folded into the cache key, not just passed to the
+     * factory. Symfony's FixedWindowLimiter only uses the limit it is constructed
+     * with to create a brand new Window; once a Window exists in storage for a
+     * given key, reserve() reuses it as-is and the limit baked into that object
+     * never changes. Without the limit in the key, raising chat_daily_limit after
+     * a config had exhausted its (old, lower) budget did nothing - the exhausted
+     * Window kept reporting zero tokens against its original ceiling for up to a
+     * full day, with no way for an admin to unstick it short of waiting it out.
+     * Folding the limit into the key means every distinct limit value a config
+     * has been run with today keeps its own counter: changing the configured
+     * value always starts a fresh window at the new ceiling rather than
+     * inheriting hits booked under a different value. That is an unconditional
+     * fix for raising the limit (a config can never get stuck again). Lowering
+     * it mid-day is the honest trade-off: usage already booked under a higher
+     * limit is not carried over as a head start against the new, lower one, so
+     * a config can send a few more messages right after the change - but it is
+     * bounded by the new limit from that point on, which is far preferable to
+     * the alternative of reading a still-frozen ceiling from before the change.
+     * A stable limit, the normal case, keeps the same key and therefore the
+     * same running counter across requests and across an installation
+     * updating mid-day, exactly as before.
      */
     private function dailyLimiter(int $configId, int $dailyLimit): LimiterInterface
     {
@@ -142,6 +160,6 @@ class ChatRateLimiter
             new CacheStorage($this->cache),
         );
 
-        return $factory->create((string) $configId);
+        return $factory->create($configId.':'.$dailyLimit);
     }
 }

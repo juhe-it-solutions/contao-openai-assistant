@@ -126,4 +126,50 @@ class ChatRateLimiterTest extends TestCase
 
         $this->assertTrue($limiter->hasConfigDailyBudget(1, 0));
     }
+
+    /**
+     * Reported bug: Tageslimit set to 2, both messages sent, budget exhausted -
+     * then raising it back to 1000 in the backend left the chat permanently
+     * refusing with "daily limit reached" for the rest of the day, with no way
+     * for an admin to recover short of waiting it out (the limit baked into
+     * the cached window at exhaustion time never changes just because the
+     * config value does). Raising the limit must unstick it immediately.
+     */
+    public function testRaisingTheDailyLimitAfterExhaustionUnsticksTheBudget(): void
+    {
+        $limiter = new ChatRateLimiter(new ArrayAdapter());
+
+        $limiter->consumeConfigDaily(1, 2);
+        $limiter->consumeConfigDaily(1, 2);
+        $this->assertFalse($limiter->hasConfigDailyBudget(1, 2), 'sanity check: budget is exhausted at the old limit');
+
+        $this->assertTrue($limiter->hasConfigDailyBudget(1, 1000), 'raising the limit must unstick the config immediately');
+    }
+
+    /**
+     * Each distinct limit value a config has been run with today keeps its own
+     * counter (the fix for the bug above folds the limit into the cache key).
+     * So lowering the limit mid-day does not carry usage already booked under
+     * the old, higher limit over as a head start against the new one - it
+     * starts that lower limit's own counter from zero, which is the honest
+     * trade-off documented on ChatRateLimiter::dailyLimiter(): a config can
+     * momentarily send a few more messages than the newly lowered limit right
+     * after it changes, but it is bounded by that new limit from then on, and
+     * it can never end up stuck the way the reported bug describes.
+     */
+    public function testLoweringTheDailyLimitMidDayStartsThatLimitsOwnCounter(): void
+    {
+        $limiter = new ChatRateLimiter(new ArrayAdapter());
+
+        $limiter->consumeConfigDaily(1, 1000);
+        $limiter->consumeConfigDaily(1, 1000);
+        $this->assertTrue($limiter->hasConfigDailyBudget(1, 1000), 'sanity check: nowhere near the old, high limit');
+
+        // The lower limit has never been consumed against today, so it has
+        // its own fresh budget rather than inheriting the two hits above.
+        $this->assertTrue($limiter->hasConfigDailyBudget(1, 2));
+        $limiter->consumeConfigDaily(1, 2);
+        $limiter->consumeConfigDaily(1, 2);
+        $this->assertFalse($limiter->hasConfigDailyBudget(1, 2), 'but it is bounded by the new limit from that point on');
+    }
 }
