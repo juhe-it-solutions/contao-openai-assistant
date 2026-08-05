@@ -37,9 +37,6 @@ $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
             'fields' => ['name', 'model', 'status'],
             'format' => '%s<br><span style="color:#999;padding-left:3px">[%s] - Status: %s</span>',
         ],
-        'child_record' => [
-            'fields' => ['name', 'model', 'temperature', 'top_p', 'status'],
-        ],
         'global_operations' => [
             'all' => [
                 'href' => 'act=select',
@@ -62,11 +59,6 @@ $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
                 'icon' => 'show.svg',
             ],
         ],
-    ],
-
-    'header' => [
-        'fields' => ['name'],
-        'format' => '%s',
     ],
 
     'palettes' => [
