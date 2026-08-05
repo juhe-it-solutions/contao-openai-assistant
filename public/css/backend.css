@@ -79,10 +79,30 @@
     /* .w50 reserves 80px so two columns line up - pointless for a single
        field that is now its own full-width box. */
     min-height: 0;
+    /* Contao 6 wraps every field row - not just subpalettes - in a
+       ".widget-group" CSS grid (see single.html.twig), where a w50 field
+       is placed in one grid track regardless of this rule's own
+       float/width. Spanning every track is what actually makes it full
+       width there; float/width cover the 5.3/5.7 float layout. Harmless
+       no-op where there is no grid. */
+    grid-column: 1 / -1;
     padding: 15px;
     border: 1px solid var(--border);
     border-radius: 3px;
     background: var(--nested-bg);
+}
+
+/* The checkbox variant (auto_update_include_links) additionally wraps its
+   <input> in Contao core's .tl_checkbox_single_container, which carries
+   its own unconditional "margin: 14px 0 1px" (flexible backend theme) -
+   meant to separate the checkbox from a field label above it. Inside this
+   box that stacks on top of the 15px padding above, so the checkbox sits
+   ~29px from the top border against ~16px on every other side. Zeroing
+   just the top half of that margin here brings it back to the 15px the
+   other three sides get, without touching the same container's spacing
+   anywhere else in the backend. */
+.widget.auto-update-license-field:has(#ctrl_auto_update_include_links) .tl_checkbox_single_container {
+    margin-top: 0;
 }
 
 #sub_auto_update_trigger_scheduled,
