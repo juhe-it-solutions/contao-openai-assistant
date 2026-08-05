@@ -52,41 +52,47 @@
     clear: none;
 }
 
-/* The "Vector store synchronisation" legend holds several groups of settings.
-   The two that only apply while a switch above them is on - the schedule and the
-   link options - get a box each, so the switch and the settings it controls read
-   as one group.
+/* The "Vector store synchronisation" legend holds two settings that only
+   apply while a switch above them is on (the schedule and the link
+   options). Give each switch its own small, full-width, self-contained
+   box so it reads as a distinct setting instead of blending into the
+   two-column field grid, and give the settings panel it reveals a
+   matching box with a little breathing room below it. Colours are
+   backend theme variables, so light and dark are both correct.
 
-   Contao wraps the settings in <div id="sub_<selector>" class="subpal ..."> (same
-   id in 5.3, 5.7 and 6.0) but nothing wraps them together with their switch, so
-   the box is drawn in two halves that meet seamlessly: the switch carries the top
-   and sides, the subpalette the bottom and sides. The switch widget is taken out
-   of its w50 column for that, otherwise a half-width lid would sit on a
-   full-width box. Colours are backend theme variables, so light and dark are both
-   correct. */
-.widget.auto-update-license-field:has(+ #sub_auto_update_trigger_scheduled),
-.widget.auto-update-license-field:has(+ #sub_auto_update_include_links) {
+   This used to draw ONE seamless box across the switch and its panel by
+   keying off ":has(+ #sub_...)" - the switch has the subpalette as its
+   very next sibling - and splitting the border/radius/padding so the two
+   halves met without a seam. That relied on the subpalette existing as
+   an immediate next sibling of the switch's own .widget, which held in
+   testing but not in the field: reported as no box at all in Contao 5.3
+   and mismatched top padding in Contao 6. Keying off "the switch's own
+   .widget contains its <select>/<input> by id" instead needs nothing
+   from sibling DOM structure - each box is styled entirely on its own,
+   so this holds regardless of version or checked state, at the cost of
+   a visible (small) gap between the two boxes instead of a seamless
+   join. */
+.widget.auto-update-license-field:has(#ctrl_auto_update_trigger),
+.widget.auto-update-license-field:has(#ctrl_auto_update_include_links) {
     float: none;
     width: auto;
     /* .w50 reserves 80px so two columns line up - pointless for a single
-       checkbox that is now the lid of a box. */
+       field that is now its own full-width box. */
     min-height: 0;
-    margin-bottom: 0;
-    padding: 12px 15px 10px;
+    padding: 15px;
     border: 1px solid var(--border);
-    border-bottom: 0;
-    border-radius: 3px 3px 0 0;
+    border-radius: 3px;
     background: var(--nested-bg);
 }
 
 #sub_auto_update_trigger_scheduled,
 #sub_auto_update_include_links {
+    margin-top: 8px;
     margin-bottom: 18px;
-    padding-top: 6px;
-    padding-bottom: 14px;
+    padding-top: 15px;
+    padding-bottom: 15px;
     border: 1px solid var(--border);
-    border-top: 0;
-    border-radius: 0 0 3px 3px;
+    border-radius: 3px;
     background: var(--nested-bg);
 }
 
