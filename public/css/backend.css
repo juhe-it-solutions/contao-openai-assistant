@@ -281,6 +281,24 @@ ul#sort_auto_update_site_root.oaa-picker-collapsed {
     max-width: 560px;
 }
 
+/* Fixes a page-wide flicker when hovering long help texts near the bottom of
+   a form - most noticeably "Links aus den Seiten übernehmen" on the OpenAI
+   config, whose tooltip runs to three paragraphs.
+   Contao's tooltip (assets/scripts/tips.js) is appended to <body> with
+   position:absolute, so a tall tooltip that opens below a field near the
+   page's current bottom edge pushes the document past the viewport height.
+   That makes the browser show a vertical scrollbar, which narrows the
+   viewport just enough to rewrap this bundle's tight w50 two-column field
+   layout - moving the field (and the cursor's target) out from under the
+   pointer. That fires mouseleave, the tooltip closes, the page shrinks back
+   below the threshold, the scrollbar disappears, the layout un-wraps, the
+   pointer is over the field again, mouseenter fires - and the cycle repeats
+   as a flicker. Reserving the scrollbar's gutter up front means showing or
+   hiding it never changes the viewport width, which breaks the loop. */
+html:has(body.be_main) {
+    scrollbar-gutter: stable;
+}
+
 @media (max-width: 767px) {
     /* Prevent select dropdowns from overflowing the viewport */
     .tl_form select,
