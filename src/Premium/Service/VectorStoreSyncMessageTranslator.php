@@ -142,6 +142,30 @@ class VectorStoreSyncMessageTranslator
             }
         }
 
+        if (str_starts_with($message, 'MSC.vsau_plan_limit_truncated_items|')) {
+            $rest = substr($message, \strlen('MSC.vsau_plan_limit_truncated_items|'));
+            if (preg_match('/^(\d+)\|(\d+)\|(\d+)$/', $rest, $matches)) {
+                // %1$s = limit, %2$s = skipped pages, %3$s = reader items lost with them.
+                return $this->translator->trans(
+                    'MSC.vsau_plan_limit_truncated_items',
+                    [$matches[2], $matches[1], $matches[3]],
+                    self::DOMAIN,
+                );
+            }
+        }
+
+        if (str_starts_with($message, 'MSC.vsau_plan_item_limit_exceeded|')) {
+            $rest = substr($message, \strlen('MSC.vsau_plan_item_limit_exceeded|'));
+            if (preg_match('/^(\d+)\|(\d+)$/', $rest, $matches)) {
+                // %1$s = allowed, %2$s = present.
+                return $this->translator->trans(
+                    'MSC.vsau_plan_item_limit_exceeded',
+                    [$matches[2], $matches[1]],
+                    self::DOMAIN,
+                );
+            }
+        }
+
         if (str_starts_with($message, 'MSC.vsau_partial_files_failed|')) {
             $rest = substr($message, \strlen('MSC.vsau_partial_files_failed|'));
             if (preg_match('/^(\d+)$/', $rest, $matches)) {

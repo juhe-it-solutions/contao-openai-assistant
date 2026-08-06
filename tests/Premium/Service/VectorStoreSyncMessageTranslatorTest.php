@@ -40,6 +40,50 @@ class VectorStoreSyncMessageTranslatorTest extends TestCase
         );
     }
 
+    public function testExpandsTruncationMessageThatAlsoLostReaderItems(): void
+    {
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
+            ->expects($this->once())
+            ->method('trans')
+            ->with(
+                'MSC.vsau_plan_limit_truncated_items',
+                ['20', '1', '300'],
+                'contao_default',
+            )
+            ->willReturn('1 page (300 entries) was not synced (limit 20).')
+        ;
+
+        $service = new VectorStoreSyncMessageTranslator($translator);
+
+        $this->assertSame(
+            '1 page (300 entries) was not synced (limit 20).',
+            $service->translate('MSC.vsau_plan_limit_truncated_items|1|20|300'),
+        );
+    }
+
+    public function testExpandsItemBudgetExceededMessage(): void
+    {
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
+            ->expects($this->once())
+            ->method('trans')
+            ->with(
+                'MSC.vsau_plan_item_limit_exceeded',
+                ['50', '63'],
+                'contao_default',
+            )
+            ->willReturn('63 entries present, plan allows 50.')
+        ;
+
+        $service = new VectorStoreSyncMessageTranslator($translator);
+
+        $this->assertSame(
+            '63 entries present, plan allows 50.',
+            $service->translate('MSC.vsau_plan_item_limit_exceeded|63|50'),
+        );
+    }
+
     public function testExpandsCompoundMessageWithBothReasons(): void
     {
         $translator = $this->createMock(TranslatorInterface::class);

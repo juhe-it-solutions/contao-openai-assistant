@@ -264,6 +264,17 @@ class LicenseValidationServiceTest extends TestCase
         $this->assertNull(LicenseValidationService::resolvePageLimit('', 0));
     }
 
+    public function testResolveItemLimitComesFromThePlanAlone(): void
+    {
+        // Unlike the page limit there is no server-delivered per-license override, so the
+        // plan name is the only input.
+        $this->assertSame(50, LicenseValidationService::resolveItemLimit('starter'));
+        $this->assertSame(300, LicenseValidationService::resolveItemLimit('business'));
+        $this->assertNull(LicenseValidationService::resolveItemLimit('enterprise'));
+        $this->assertNull(LicenseValidationService::resolveItemLimit(''), 'An unknown plan must never be treated as limited.');
+        $this->assertNull(LicenseValidationService::resolveItemLimit('does-not-exist'));
+    }
+
     /**
      * @param array<string, int|string> $overrides
      *

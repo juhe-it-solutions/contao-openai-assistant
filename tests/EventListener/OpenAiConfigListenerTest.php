@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\EventListener;
 
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
+use Contao\CoreBundle\Routing\ScopeMatcher;
 use Contao\DataContainer;
 use Contao\System;
 use Doctrine\DBAL\Connection;
@@ -30,7 +31,10 @@ use Symfony\Component\Asset\Packages;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\Routing\RouterInterface;
 
 class OpenAiConfigListenerTest extends TestCase
@@ -413,18 +417,131 @@ class OpenAiConfigListenerTest extends TestCase
      * System::loadLanguageFile() (used to resolve the validation message) needs a
      * container with kernel dirs. A pre-created cache file makes it skip the
      * resource finder, so two parameters are all the container has to provide.
+     *
+     * Contao\Message additionally needs a request stack with a session (it writes to
+     * the flash bag) and the scope matcher it uses to pick the message scope.
      */
-    private function bootMinimalContaoContainer(): void
+    private function bootMinimalContaoContainer(): RequestStack
     {
         $cacheDir = sys_get_temp_dir().'/oaa-test-'.uniqid('', true);
         mkdir($cacheDir.'/contao/languages/en', 0777, true);
         file_put_contents($cacheDir.'/contao/languages/en/tl_openai_config.php', "<?php\n");
 
+        $session = new Session(new MockArraySessionStorage());
+        $request = new Request();
+        $request->setSession($session);
+
+        $requestStack = new RequestStack();
+        $requestStack->push($request);
+
+        $scopeMatcher = $this->createMock(ScopeMatcher::class);
+        $scopeMatcher->method('isBackendRequest')->willReturn(true);
+
         $container = new Container();
         $container->setParameter('kernel.project_dir', $cacheDir);
         $container->setParameter('kernel.cache_dir', $cacheDir);
+        $container->set('request_stack', $requestStack);
+        $container->set('contao.routing.scope_matcher', $scopeMatcher);
 
         System::setContainer($container);
+
+        return $requestStack;
+    }
+
+    public function testPageOverflowBlocksTheSave(): void
+    {
+        $listener = $this->createLimitListener(['pages' => 25, 'items' => 0]);
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        $listener->enforceCrawlPageLimit(serialize([1, 2, 3]), $this->createLimitDc());
+    }
+
+    public function testItemOverflowOnlyWarnsAndNeverBlocksTheSave(): void
+    {
+        // This callback runs whenever the page-selection field is submitted, i.e. on every
+        // save of a premium configuration. Throwing on an item overflow would lock the
+        // customer out of their API key, prompt and schedule as soon as an editor
+        // published one news item too many - and unlike pages there is often no selection
+        // left to reduce.
+        $requestStack = $this->bootMinimalContaoContainer();
+        $session = $requestStack->getCurrentRequest()->getSession();
+        $listener = $this->createLimitListener(['pages' => 5, 'items' => 63], $requestStack);
+        $value = serialize([1, 2, 3]);
+
+        $this->assertSame(
+            $value,
+            $listener->enforceCrawlPageLimit($value, $this->createLimitDc()),
+            'An item overflow must leave the save untouched; the sync reports it instead.',
+        );
+
+        // Asserting the notice really fired: without this the branch could silently
+        // degrade into a no-op and the test would still pass.
+        $this->assertNotSame(
+            [],
+            $session->getFlashBag()->peekAll(),
+            'The customer must be told about the item overflow.',
+        );
+    }
+
+    public function testStayingWithinBothBudgetsSavesUnchanged(): void
+    {
+        $requestStack = $this->bootMinimalContaoContainer();
+        $session = $requestStack->getCurrentRequest()->getSession();
+        $listener = $this->createLimitListener(['pages' => 5, 'items' => 21], $requestStack);
+        $value = serialize([1, 2, 3]);
+
+        $this->assertSame($value, $listener->enforceCrawlPageLimit($value, $this->createLimitDc()));
+        $this->assertSame([], $session->getFlashBag()->peekAll(), 'No notice while inside both budgets.');
+    }
+
+    /**
+     * @param array{pages: int, items: int} $scope
+     */
+    private function createLimitListener(array $scope, RequestStack|null $requestStack = null): OpenAiConfigListener
+    {
+        $licenseValidation = $this->createMock(LicenseValidationService::class);
+        $licenseValidation->method('isLicenseActive')->willReturn(true);
+
+        $autoUpdate = $this->createMock(VectorStoreAutoUpdateService::class);
+        $autoUpdate->method('countScopeBreakdown')->willReturn($scope);
+
+        return new OpenAiConfigListener(
+            new MockHttpClient(),
+            new NullLogger(),
+            $this->createMock(ContaoCsrfTokenManager::class),
+            'REQUEST_TOKEN',
+            $requestStack ?? new RequestStack(),
+            $this->createMock(Connection::class),
+            $this->createMock(EncryptionService::class),
+            $this->createMock(LicensePortalUrlService::class),
+            $licenseValidation,
+            $this->createMock(OpenAiModelCatalogService::class),
+            $autoUpdate,
+            $this->createMock(VectorStoreFileSync::class),
+            $this->createMock(RouterInterface::class),
+            $this->createMock(CronHealthService::class),
+            $this->createMock(Packages::class),
+        );
+    }
+
+    private function createLimitDc(): DataContainer
+    {
+        $dc = $this->createMock(DataContainer::class);
+        $dc
+            ->method('__get')
+            ->willReturnMap([
+                ['id', 7],
+                ['activeRecord', (object) [
+                    'premium_license_plan' => 'starter',
+                    'premium_license_max_pages' => 20,
+                    // Fresh, so the callback does not try to re-fetch the plan remotely.
+                    'premium_license_checked_at' => time(),
+                ]],
+            ])
+        ;
+
+        return $dc;
     }
 
     private function createModelValidationDc(bool $autoUpdateEnabled): DataContainer

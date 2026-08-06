@@ -220,7 +220,7 @@
                 <target>Hinweise</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_hint">
-                <source>Enter your license key below and validate it with “Check key” before saving.</source>
+                <source>Enter your license key below and validate it with "Check key" before saving.</source>
                 <target>Geben Sie unten Ihren Lizenzschlüssel ein und validieren Sie ihn mit „Schlüssel prüfen”, bevor Sie speichern.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_hint_active">
@@ -386,7 +386,7 @@
                 <target>Indexierungsmodus</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_mode.1">
-                <source><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen - ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung.</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite.]]></source>
+                <source><![CDATA[<strong>Faithful (recommended).</strong> Every selected page is uploaded as its own document with no character or page limit. Navigation, menus and footers that repeat across pages are removed automatically, but your real content is never altered or shortened. No AI cost.<br><br><strong>AI polish.</strong> Each page is additionally rewritten by an AI model into a denser knowledge document before upload. Because the model only ever sees one page at a time, it can never drop or confuse content from other pages. This can improve answers on messy sources but costs tokens per page.]]></source>
                 <target><![CDATA[<strong>Originalgetreu (empfohlen).</strong> Jede ausgewählte Seite wird als eigenes Dokument hochgeladen - ohne Zeichen- oder Seitenbegrenzung. Navigation, Menüs und Fußzeilen, die sich über viele Seiten wiederholen, werden automatisch entfernt, Ihr eigentlicher Inhalt wird jedoch nie verändert oder gekürzt. Keine KI-Kosten.<br><br><strong>KI-Aufbereitung.</strong> Jede Seite wird zusätzlich von einem KI-Modell in ein kompakteres Wissensdokument umgeschrieben. Da das Modell immer nur eine Seite sieht, kann es niemals Inhalte anderer Seiten weglassen oder vermischen. Das kann bei unsauberen Quellen die Antworten verbessern, kostet aber Tokens pro Seite.]]></target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_mode_ref.faithful">
@@ -426,23 +426,27 @@
                 <target>Seiten auswählen, deren Inhalt im Vector Store automatisch aktualisiert werden soll</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_site_root.1">
-                <source><![CDATA[Select the pages whose content should be synced into the chatbot's knowledge base.<br>The total number of selected pages must not exceed your subscription's page limit.<br>For installations with exactly one website root you can leave this field empty to use the entire website.<br>Important: the website root needs a domain name so the crawler can index the pages for the sync.]]></source>
-                <target><![CDATA[Wählen Sie die Seiten, deren Inhalte in die Wissensdatenbank des Chatbots übernommen werden sollen.<br>Die Gesamtzahl der ausgewählten Seiten darf das Seitenlimit Ihres Abos nicht überschreiten.<br>Bei Installationen mit genau einem Webseiten-Startpunkt können Sie das Feld leer lassen, um die gesamte Website zu verwenden.<br>Wichtig: Der Startpunkt der Webseite benötigt einen ausgefüllten Domainnamen, damit der Crawler die Seiten für die Synchronisierung indexieren kann.]]></target>
+                <source><![CDATA[Select the pages whose content should be synced into the chatbot's knowledge base.<br>The number of selected pages must not exceed your subscription's page limit; the news, FAQ and event entries rendered on them have a separate limit.<br>For installations with exactly one website root you can leave this field empty to use the entire website.<br>Important: the website root needs a domain name so the crawler can index the pages for the sync.]]></source>
+                <target><![CDATA[Wählen Sie die Seiten, deren Inhalte in die Wissensdatenbank des Chatbots übernommen werden sollen.<br>Die Anzahl der ausgewählten Seiten darf das Seitenlimit Ihres Abos nicht überschreiten; die darauf ausgegebenen Nachrichten-, FAQ- und Termin-Beiträge haben ein eigenes Limit.<br>Bei Installationen mit genau einem Webseiten-Startpunkt können Sie das Feld leer lassen, um die gesamte Website zu verwenden.<br>Wichtig: Der Startpunkt der Webseite benötigt einen ausgefüllten Domainnamen, damit der Crawler die Seiten für die Synchronisierung indexieren kann.]]></target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_pages_over_limit">
-                <source>Your selection covers %1$s pages (including subpages), but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.</source>
+                <source>Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.</source>
                 <target>Ihre Auswahl umfasst %1$s Seiten, Ihr aktueller Tarif erlaubt jedoch höchstens %2$s. Reduzieren Sie die Auswahl oder führen Sie ein Tarif-Upgrade durch; die vorherige Auswahl wurde beibehalten.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_pages_none_selected_limit">
                 <source>No pages selected - all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.</source>
                 <target>Keine Seiten ausgewählt - alle %1$s Unterseiten des einzigen Webseiten-Startpunkts würden automatisch synchronisiert. Ihr aktueller Tarif erlaubt jedoch höchstens %2$s Seiten. Bitte wählen Sie gezielt Seiten aus oder führen Sie ein Tarif-Upgrade durch.</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_items_over_limit">
+                <source>The selected pages render %1$s news, FAQ and event entries, but your current plan allows at most %2$s. Everything is still synced for now - please upgrade your plan.</source>
+                <target>Auf den ausgewählten Seiten werden %1$s Nachrichten-, FAQ- und Termin-Beiträge ausgegeben, Ihr aktueller Tarif erlaubt jedoch höchstens %2$s. Es wird vorerst weiterhin alles synchronisiert - bitte erweitern Sie Ihren Tarif.</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_include_links.0">
                 <source>Collect links from the page contents</source>
                 <target>Links aus den Seiteninhalten übernehmen</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_include_links.1">
-                <source><![CDATA[Collects links contained in your pages - to other pages, to documents such as PDFs, and to external websites - and adds them to each page's knowledge document.]]></source>
+                <source><![CDATA[Collects links contained in your pages (links to other pages, to documents such as PDFs and links to external websites), and adds them to each page's knowledge document. The chatbot can then answer with a real, working link instead of merely describing where something is.<br>Navigation, breadcrumb, footer and other links that repeat across the site are removed automatically, and links inside protected (members-only) areas are never collected.<br><strong>Note:</strong> switching this option on changes every page document, so the next synchronisation uploads all pages once.]]></source>
                 <target><![CDATA[Sammelt Links, die in Seiteninhalten enthalten sind (Links auf andere Seiten, auf Dokumente wie z.B. PDFs und Links auf externe Webseiten), und ergänzt sie im Wissensdokument jeder Seite. Der Chatbot kann dann mit einem echten, funktionierenden Link antworten, anstatt nur zu beschreiben, wo etwas zu finden ist.<br>Navigation, Breadcrumb, Fußzeile und andere seitenübergreifend wiederkehrende Links werden automatisch entfernt; Links aus geschützten (nur für Mitglieder sichtbaren) Bereichen werden nie gesammelt.<br><strong>Hinweis:</strong> Das Aktivieren dieser Option verändert jedes Seitendokument - die nächste Synchronisierung lädt daher einmalig alle Seiten neu hoch.]]></target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_link_types.0">
@@ -478,7 +482,7 @@
                 <target>Links ausschließen (ein Muster pro Zeile)</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_link_exclude.1">
-                <source><![CDATA[Links whose address matches one of these patterns are never handed to the chatbot.]]></source>
+                <source><![CDATA[Links whose address matches one of these patterns are never handed to the chatbot. Use "*" as a wildcard, one pattern per line, for example:<br><code>*/impressum*</code><br><code>https://www.facebook.com/*</code><br><br>Lines starting with "#" are ignored, so you can add your own notes.]]></source>
                 <target><![CDATA[Links, deren Adresse auf eines dieser Muster passt, werden dem Chatbot nie übergeben. „*" dient als Platzhalter, ein Muster pro Zeile, zum Beispiel:<br><code>*/impressum*</code><br><code>https://www.facebook.com/*</code><br><br>Zeilen, die mit „#" beginnen, werden ignoriert - so können Sie eigene Notizen ergänzen.]]></target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_link_index.0">
@@ -486,8 +490,8 @@
                 <target>Link- und Dokumentenverzeichnis anlegen</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_link_index.1">
-                <source>Uploads one additional document listing every page and every document found on your website.</source>
-                <target>Lädt ein zusätzliches Dokument hoch, das alle Seiten und alle auf Ihrer Website gefundenen Dokumente auflistet - samt der Seiten, die darauf verweisen. Es hilft dem Chatbot bei Fragen wie „Gibt es dazu ein PDF?", auch wenn die einzelne Seite nicht gefunden wird. Es zählt nicht zum Seitenlimit Ihres Tarifs.</target>
+                <source>Uploads one additional document listing every page and every document found on your website, including which pages link to them. It helps the chatbot answer questions such as "do you have a PDF about ...?" even when it does not retrieve the individual page. It counts towards neither the page nor the item limit of your plan.</source>
+                <target>Lädt ein zusätzliches Dokument hoch, das alle Seiten und alle auf Ihrer Website gefundenen Dokumente auflistet - samt der Seiten, die darauf verweisen. Es hilft dem Chatbot bei Fragen wie „Gibt es dazu ein PDF?", auch wenn die einzelne Seite nicht gefunden wird. Es zählt weder zum Seiten- noch zum Beitrags-Limit Ihres Tarifs.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.0">
                 <source>System prompt for AI processing of the content</source>
