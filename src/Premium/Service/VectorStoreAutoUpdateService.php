@@ -607,8 +607,11 @@ class VectorStoreAutoUpdateService
             return $selectedPageIds;
         }
 
+        // Unpublished roots do not count: a theme demo tree that still carries a domain
+        // name would otherwise make a single-domain installation look like a multi-domain
+        // one and block the whole-website fallback for no reason.
         $roots = $this->connection->fetchAllAssociative(
-            "SELECT id FROM tl_page WHERE type = 'root' AND dns != ''",
+            "SELECT id FROM tl_page WHERE type = 'root' AND dns != '' AND published = '1'",
         );
 
         if (1 !== \count($roots)) {
@@ -879,6 +882,17 @@ class VectorStoreAutoUpdateService
         $process = $this->processUtil->createSymfonyConsoleProcess(
             'contao:crawl',
             '--subscribers=search-index',
+            // Contao's own default is "--max-depth=3" (CrawlCommand::configure()), which
+            // stops the crawl three link hops from the site root. That is fine for the
+            // back end's crawl tool, but not here: the second page of a news list sits at
+            // depth 3 and every item behind it at depth 4, so those items never reach
+            // tl_search and therefore never reach the vector store - while the run still
+            // reports "success". A store that is meant to mirror the site must not carry
+            // a depth cap. Deliberately NOT paired with "--max-requests": that would only
+            // trade one silent truncation for another. The crawl is bounded by the site
+            // itself, and Contao already marks the endless link sources (the mini
+            // calendar's month arrows) with data-skip-search-index.
+            '--max-depth=0',
             '--no-interaction',
         );
 
@@ -1090,8 +1104,11 @@ class VectorStoreAutoUpdateService
             $pageIds = $existingIds;
         } else {
             // Empty selection - fall back to the whole website (single site root + subtree).
+            // Unpublished roots are ignored here for the same reason as in
+            // resolveScopePageIds(): a leftover theme root with a domain name must not
+            // make this look like a multi-domain installation.
             $roots = $this->connection->fetchAllAssociative(
-                "SELECT id FROM tl_page WHERE type = 'root' AND dns != ''",
+                "SELECT id FROM tl_page WHERE type = 'root' AND dns != '' AND published = '1'",
             );
 
             if (1 === \count($roots)) {
