@@ -167,6 +167,43 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
         $this->assertSame([[1, 2, 3]], $params);
     }
 
+    public function testWholeSiteFallbackOnlyCountsLiveSiteRoots(): void
+    {
+        $connection = $this->createMock(Connection::class);
+
+        $captured = null;
+        $connection
+            ->method('fetchFirstColumn')
+            ->willReturnCallback(
+                static function (string $sql, array $params = []) use (&$captured): array {
+                    // The root lookup; anything else is collectPageSubtreeIds() asking
+                    // for children, which this fixture does not have.
+                    if (str_contains($sql, "type = 'root'")) {
+                        $captured = [$sql, $params];
+
+                        return [42];
+                    }
+
+                    return [];
+                },
+            )
+        ;
+
+        $pageIds = $this->createService($connection)->resolveScopePageIds(null);
+
+        $this->assertSame([42], $pageIds);
+        $this->assertNotNull($captured, 'An empty page selection must resolve the scope through the site roots.');
+
+        [$sql, $params] = $captured;
+        $this->assertStringContainsString("published = '1'", $sql);
+        $this->assertStringContainsString("start = '' OR start <= ?", $sql, 'A root whose start date lies in the future is not live yet.');
+        $this->assertStringContainsString("stop = '' OR stop > ?", $sql, 'A root whose stop date has passed is no longer live.');
+
+        $this->assertCount(2, $params);
+        $this->assertSame($params[0], $params[1], 'Both window bounds must be compared against the same instant.');
+        $this->assertSame(0, $params[0] % 60, 'The instant must be floored to a full minute, like Contao Date::floorToMinute().');
+    }
+
     public function testReconcileStaleRunsDoesNothingWithoutStaleRows(): void
     {
         $connection = $this->createMock(Connection::class);

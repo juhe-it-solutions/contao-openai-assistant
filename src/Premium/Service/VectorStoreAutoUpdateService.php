@@ -607,18 +607,13 @@ class VectorStoreAutoUpdateService
             return $selectedPageIds;
         }
 
-        // Unpublished roots do not count: a theme demo tree that still carries a domain
-        // name would otherwise make a single-domain installation look like a multi-domain
-        // one and block the whole-website fallback for no reason.
-        $roots = $this->connection->fetchAllAssociative(
-            "SELECT id FROM tl_page WHERE type = 'root' AND dns != '' AND published = '1'",
-        );
+        $roots = $this->publishedRootPageIds();
 
         if (1 !== \count($roots)) {
             return [];
         }
 
-        return array_values(array_unique($this->collectPageSubtreeIds((int) $roots[0]['id'])));
+        return array_values(array_unique($this->collectPageSubtreeIds($roots[0])));
     }
 
     /**
@@ -1104,15 +1099,10 @@ class VectorStoreAutoUpdateService
             $pageIds = $existingIds;
         } else {
             // Empty selection - fall back to the whole website (single site root + subtree).
-            // Unpublished roots are ignored here for the same reason as in
-            // resolveScopePageIds(): a leftover theme root with a domain name must not
-            // make this look like a multi-domain installation.
-            $roots = $this->connection->fetchAllAssociative(
-                "SELECT id FROM tl_page WHERE type = 'root' AND dns != '' AND published = '1'",
-            );
+            $roots = $this->publishedRootPageIds();
 
             if (1 === \count($roots)) {
-                $pageIds = $this->collectPageSubtreeIds((int) $roots[0]['id']);
+                $pageIds = $this->collectPageSubtreeIds($roots[0]);
             } elseif (\count($roots) > 1) {
                 throw new \RuntimeException('MSC.vsau_err_multiple_roots');
             } else {
@@ -1211,6 +1201,42 @@ class VectorStoreAutoUpdateService
         }
 
         return null;
+    }
+
+    /**
+     * Ids of the site roots that carry a domain name and are actually live.
+     *
+     * "Live" follows Contao's own definition of a published page
+     * (PageModel::findPublishedById): the published flag AND the optional
+     * start/stop window, with the current time floored to the minute exactly as
+     * Date::floorToMinute() does it, and with "stop" compared strictly greater.
+     * Checking only the flag would still count a root whose stop date has passed -
+     * or whose start date has not been reached yet - as a second live site, which
+     * is enough to block the whole-website fallback on an installation that really
+     * has just one.
+     *
+     * The minute is floored in PHP rather than through Contao's Date class so this
+     * service keeps needing nothing but the database connection.
+     *
+     * @return list<int>
+     */
+    private function publishedRootPageIds(): array
+    {
+        $now = time();
+        $time = $now - $now % 60;
+
+        return array_map(
+            intval(...),
+            $this->connection->fetchFirstColumn(
+                "SELECT id FROM tl_page
+                 WHERE type = 'root'
+                   AND dns != ''
+                   AND published = '1'
+                   AND (start = '' OR start <= ?)
+                   AND (stop = '' OR stop > ?)",
+                [$time, $time],
+            ),
+        );
     }
 
     /**
