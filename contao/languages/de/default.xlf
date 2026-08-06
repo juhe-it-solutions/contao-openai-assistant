@@ -363,6 +363,10 @@
                 <source>Pages</source>
                 <target>Seiten</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_col_items">
+                <source>Entries (news/FAQ/events)</source>
+                <target>Beiträge (News/FAQ/Events)</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_col_tokens_in">
                 <source>Tokens in</source>
                 <target>Token (Eingabe)</target>
