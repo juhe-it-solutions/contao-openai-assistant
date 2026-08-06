@@ -44,7 +44,7 @@ $GLOBALS['TL_DCA']['tl_openai_sync_log'] = [
             'panelLayout' => 'sort,search,limit',
         ],
         'label' => [
-            'fields'      => ['run_at', 'status', 'trigger_source', 'model', 'pages', 'tokens_in', 'tokens_out', 'pages_added', 'pages_updated', 'pages_removed', 'pages_unchanged', 'files_uploaded', 'files_failed', 'duration', 'message'],
+            'fields'      => ['run_at', 'status', 'trigger_source', 'model', 'pages', 'items', 'tokens_in', 'tokens_out', 'pages_added', 'pages_updated', 'pages_removed', 'pages_unchanged', 'files_uploaded', 'files_failed', 'duration', 'message'],
             'showColumns' => true,
         ],
         // "download" links to the auto-sync controller's document-download route
@@ -92,6 +92,13 @@ $GLOBALS['TL_DCA']['tl_openai_sync_log'] = [
         ],
         'pages' => [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['pages'],
+            'sql'   => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+        ],
+        // News, FAQ and event entries rendered on the synced pages. Counted separately
+        // from "pages" because they have their own subscription allowance; rows written
+        // before this column existed simply show 0.
+        'items' => [
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_sync_log']['items'],
             'sql'   => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
         'tokens_in' => [

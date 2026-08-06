@@ -592,6 +592,7 @@ class VectorStoreAutoUpdateService
                 // per-page mode has no single file id
                 [
                     'pages' => $contentPageCount,
+                    'items' => $itemsInScope,
                     'tokens_in' => $tokensIn,
                     'tokens_out' => $tokensOut,
                     'duration' => time() - $start,
@@ -1620,9 +1621,9 @@ class VectorStoreAutoUpdateService
     }
 
     /**
-     * @param string|null                                                                                                                                                                                                                        $fileId null = leave auto_update_file_id unchanged (failed runs must not
-     *                                                                                                                                                                                                                                                   discard a still-uncleaned legacy file id)
-     * @param array{pages?: int, tokens_in?: int, tokens_out?: int, duration?: int, model?: string, document?: string, sync?: array{added: int, updated: int, removed: int, unchanged: int, files_uploaded: int, files_failed: int, bytes: int}} $stats
+     * @param string|null                                                                                                                                                                                                                                     $fileId null = leave auto_update_file_id unchanged (failed runs must not
+     *                                                                                                                                                                                                                                                                discard a still-uncleaned legacy file id)
+     * @param array{pages?: int, items?: int, tokens_in?: int, tokens_out?: int, duration?: int, model?: string, document?: string, sync?: array{added: int, updated: int, removed: int, unchanged: int, files_uploaded: int, files_failed: int, bytes: int}} $stats
      */
     private function persistResult(int $configId, string $status, string|null $fileId, array $stats, string $message = '', string $triggerSource = self::SOURCE_CLI): void
     {
@@ -1653,6 +1654,7 @@ class VectorStoreAutoUpdateService
             'trigger_source' => $triggerSource,
             'model' => (string) ($stats['model'] ?? ''),
             'pages' => $stats['pages'] ?? 0,
+            'items' => $stats['items'] ?? 0,
             'tokens_in' => $stats['tokens_in'] ?? 0,
             'tokens_out' => $stats['tokens_out'] ?? 0,
             'file_id' => $fileId ?? '',

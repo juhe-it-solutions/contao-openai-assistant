@@ -580,6 +580,7 @@
                             <th>{{ 'MSC.vsau_col_mode'|trans({}, 'contao_default') }}</th>
                             <th>{{ 'MSC.vsau_col_model'|trans({}, 'contao_default') }}</th>
                             <th>{{ 'MSC.vsau_col_pages'|trans({}, 'contao_default') }}</th>
+                            <th>{{ 'MSC.vsau_col_items'|trans({}, 'contao_default') }}</th>
                             <th>
                                 {{ 'MSC.vsau_col_tokens_in'|trans({}, 'contao_default') }}
                                 <span class="vsau-info">
@@ -634,6 +635,7 @@
                                 </td>
                                 <td>{{ row.model ?: '–' }}</td>
                                 <td>{{ row.pages }}</td>
+                                <td>{{ row.items }}</td>
                                 <td>{{ row.tokens_in }}</td>
                                 <td>{{ row.tokens_out }}</td>
                                 <td>{{ '%02d:%02d:%02d'|format(row.duration // 3600, (row.duration // 60) % 60, row.duration % 60) }}</td>

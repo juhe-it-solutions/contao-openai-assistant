@@ -204,7 +204,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         // Do not select the (potentially large) document blob for the list — only a
         // flag of whether a downloadable copy exists for each row.
         $log = $this->connection->fetchAllAssociative(
-            "SELECT id, pid, run_at, status, trigger_source, model, pages, tokens_in, tokens_out, file_id, duration, message,
+            "SELECT id, pid, run_at, status, trigger_source, model, pages, items, tokens_in, tokens_out, file_id, duration, message,
                     (document IS NOT NULL AND document <> '') AS has_document
              FROM tl_openai_sync_log ORDER BY run_at DESC LIMIT 10",
         );

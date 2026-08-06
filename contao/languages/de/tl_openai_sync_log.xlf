@@ -50,6 +50,10 @@
                 <source>Pages</source>
                 <target>Seiten</target>
             </trans-unit>
+            <trans-unit id="tl_openai_sync_log.items">
+                <source>Entries (news/FAQ/events)</source>
+                <target>Beiträge (News/FAQ/Events)</target>
+            </trans-unit>
             <trans-unit id="tl_openai_sync_log.tokens_in">
                 <source>Tokens in</source>
                 <target>Token (Eingabe)</target>
