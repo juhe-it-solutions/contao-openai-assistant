@@ -23,6 +23,7 @@ This directory documents the current Contao OpenAI Assistant 2.x codebase. The e
 - [Link shortening (shorten plain URLs)](features/link-shortening.md)
 - [Link target (where chat links open)](features/link-target.md)
 - [Page links: answering with real links and documents (premium)](features/page-links.md)
+- [What gets indexed: pages, news, FAQs and events (premium)](features/indexing.md)
 - [HTTP/API reference](development/api-reference.md)
 - [Troubleshooting and upgrades](development/troubleshooting.md)
 - [Backend icon notes](backend-icon.md)
