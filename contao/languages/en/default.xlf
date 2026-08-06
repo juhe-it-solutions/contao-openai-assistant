@@ -515,6 +515,14 @@
                 <source>Your plan allows at most %1$s pages, so %2$s additional page(s) - including %3$s news, FAQ and event entries - were not synced. Reduce the selected pages or upgrade your plan to include them.</source>
                 <target>Your plan allows at most %1$s pages, so %2$s additional page(s) - including %3$s news, FAQ and event entries - were not synced. Reduce the selected pages or upgrade your plan to include them.</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_notice_no_root_domain">
+                <source>The website root of the selected pages has no domain name. The synchronisation crawls your website from a command-line process, which cannot determine the address without it and would try "localhost". Enter the domain name in the site root (page settings).</source>
+                <target>The website root of the selected pages has no domain name. The synchronisation crawls your website from a command-line process, which cannot determine the address without it and would try "localhost". Enter the domain name in the site root (page settings).</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_no_crawl_uri">
+                <source>The synchronisation found no address to crawl. Please check that a published website root with a domain name exists.</source>
+                <target>The synchronisation found no address to crawl. Please check that a published website root with a domain name exists.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_notice_item_limit_exceeded">
                 <source>Your plan allows %2$s news, FAQ and event entries, but the selected pages currently hold %1$s. Everything is still being synced - please upgrade your plan.</source>
                 <target>Your plan allows %2$s news, FAQ and event entries, but the selected pages currently hold %1$s. Everything is still being synced - please upgrade your plan.</target>

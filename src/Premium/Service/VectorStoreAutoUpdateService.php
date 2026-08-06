@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Premium\Service;
 
+use Contao\CoreBundle\Crawl\Escargot\Factory as EscargotFactory;
 use Contao\CoreBundle\Util\ProcessUtil;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
@@ -134,6 +135,7 @@ class VectorStoreAutoUpdateService
         private readonly LinkSectionBuilder $linkSection,
         private readonly LinkIndexDocumentBuilder $linkIndex,
         private readonly ReaderItemCounter $readerItems,
+        private readonly EscargotFactory $escargotFactory,
     ) {
     }
 
@@ -1004,6 +1006,31 @@ class VectorStoreAutoUpdateService
 
     private function spawnCrawl(int $configId): void
     {
+        // The exact start URLs contao:crawl will use - resolved here, in the same CLI
+        // process, so this is what the crawl really sees rather than a guess made from
+        // the page tree. Logged because a crawl that reaches nothing still exits 0:
+        // Escargot reports "Finished crawling! Sent 1 request(s)." after a refused
+        // connection, so without this line a completely failed crawl is invisible and
+        // the run goes on to upload whatever stale rows tl_search happens to hold.
+        //
+        // The classic cause is a root page without a domain name: with no request
+        // context, Contao's URL generator falls back to the router default and the
+        // crawl ends up at "https://localhost/...". Not turned into a hard failure on
+        // purpose - "localhost" is legitimate on a local install, and an installation
+        // may set framework.router.default_uri instead of a page domain - so this
+        // reports rather than blocks.
+        $baseUris = $this->escargotFactory->getCrawlUriCollection();
+
+        if (0 === \count($baseUris)) {
+            throw new \RuntimeException('MSC.vsau_err_no_crawl_uri');
+        }
+
+        $this->logger->notice(\sprintf(
+            'VectorStoreAutoUpdate: crawl for config %d starts at %s.',
+            $configId,
+            implode(', ', array_map(strval(...), $baseUris->all())),
+        ));
+
         $process = $this->processUtil->createSymfonyConsoleProcess(
             'contao:crawl',
             '--subscribers=search-index',
@@ -1018,6 +1045,9 @@ class VectorStoreAutoUpdateService
             // itself, and Contao already marks the endless link sources (the mini
             // calendar's month arrows) with data-skip-search-index.
             '--max-depth=0',
+            // Nothing reads a progress bar in a detached background process, and it
+            // would drown the summary this method logs below.
+            '--no-progress',
             '--no-interaction',
         );
 
@@ -1034,6 +1064,20 @@ class VectorStoreAutoUpdateService
 
         if (!$process->isSuccessful()) {
             throw new \RuntimeException('MSC.vsau_err_crawl_failed|'.$process->getErrorOutput());
+        }
+
+        // Logged on success too, not just on failure: the crawl's own summary ("Sent N
+        // request(s)", broken-link notices) is the only place a connection problem shows
+        // up, and a zero exit code hides it completely. Capped so a large crawl cannot
+        // flood the log.
+        $summary = trim($process->getOutput()."\n".$process->getErrorOutput());
+
+        if ('' !== $summary) {
+            $this->logger->notice(\sprintf(
+                'VectorStoreAutoUpdate: crawl finished for config %d: %s',
+                $configId,
+                mb_substr($summary, 0, 4000),
+            ));
         }
     }
 

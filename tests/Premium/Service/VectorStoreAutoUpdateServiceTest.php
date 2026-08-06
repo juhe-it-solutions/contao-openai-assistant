@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Service;
 
+use Contao\CoreBundle\Crawl\Escargot\Factory as EscargotFactory;
 use Contao\CoreBundle\Util\ProcessUtil;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\BoilerplateFilter;
@@ -618,6 +619,7 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
             new LinkSectionBuilder(),
             new LinkIndexDocumentBuilder(),
             $readerItems ?? $this->createMock(ReaderItemCounter::class),
+            $this->createMock(EscargotFactory::class),
         );
     }
 }
