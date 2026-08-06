@@ -460,8 +460,8 @@
                 <target>Manual sync dispatched to CLI. Refresh this page in a few minutes.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_no_indexed_pages">
-                <source>No indexed pages found for this site root (tl_search is empty). Run System → Maintenance → "Update the search index". If pages are still missing, check whether they carry robots=noindex or Search indexer=Never index - set Search indexer=Always index on those page records to force-include them in both Contao search and the vector store.</source>
-                <target>No indexed pages found for this site root (tl_search is empty). Run System → Maintenance → "Update the search index". If pages are still missing, check whether they carry robots=noindex or Search indexer=Never index - set Search indexer=Always index on those page records to force-include them in both Contao search and the vector store.</target>
+                <source>No indexed pages found for this site root (tl_search is empty). Make sure the website root's domain name matches exactly the address your website runs on (including "www." if your site is served under www). Run System → Maintenance → "Update the search index". If pages are still missing, check whether they carry robots=noindex or Search indexer=Never index - set Search indexer=Always index on those page records to force-include them in both Contao search and the vector store.</source>
+                <target>No indexed pages found for this site root (tl_search is empty). Make sure the website root's domain name matches exactly the address your website runs on (including "www." if your site is served under www). Run System → Maintenance → "Update the search index". If pages are still missing, check whether they carry robots=noindex or Search indexer=Never index - set Search indexer=Always index on those page records to force-include them in both Contao search and the vector store.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_empty_document_raw">
                 <source>No page content found to upload; aborting before replacing the existing file.</source>
@@ -472,8 +472,8 @@
                 <target>The model returned an empty document; aborting before replacing the existing file.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_selected_not_indexed">
-                <source>None of the selected pages were found in the search index. Make sure the website root has a domain name, update the search index under System → Maintenance → "Update the search index", and check the page settings "Robots tag" (or "Search indexer" in Contao 5.7) on the affected pages.</source>
-                <target>None of the selected pages were found in the search index. Make sure the website root has a domain name, update the search index under System → Maintenance → "Update the search index", and check the page settings "Robots tag" (or "Search indexer" in Contao 5.7) on the affected pages.</target>
+                <source>None of the selected pages were found in the search index. Make sure the website root has a domain name and that it matches exactly the address your website runs on - including "www." if your site is served under www, without it otherwise; even that difference stops everything from being indexed. Then update the search index under System → Maintenance → "Update the search index" and check the page settings "Robots tag" (or "Search indexer" in Contao 5.7) on the affected pages.</source>
+                <target>None of the selected pages were found in the search index. Make sure the website root has a domain name and that it matches exactly the address your website runs on - including "www." if your site is served under www, without it otherwise; even that difference stops everything from being indexed. Then update the search index under System → Maintenance → "Update the search index" and check the page settings "Robots tag" (or "Search indexer" in Contao 5.7) on the affected pages.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_no_vector_store_sync">
                 <source>No vector store ID configured. Complete the file upload workflow or set a vector store ID first.</source>
@@ -518,6 +518,10 @@
             <trans-unit id="MSC.vsau_notice_no_root_domain">
                 <source>The website root of the selected pages has no domain name. The synchronisation crawls your website from a command-line process, which cannot determine the address without it and would try "localhost". Enter the domain name in the site root (page settings).</source>
                 <target>The website root of the selected pages has no domain name. The synchronisation crawls your website from a command-line process, which cannot determine the address without it and would try "localhost". Enter the domain name in the site root (page settings).</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_crawl_result">
+                <source>Result of the crawl: %s</source>
+                <target>Result of the crawl: %s</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_no_crawl_uri">
                 <source>The synchronisation found no address to crawl. Please check that a published website root with a domain name exists.</source>

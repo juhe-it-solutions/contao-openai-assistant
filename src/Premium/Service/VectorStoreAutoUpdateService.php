@@ -107,6 +107,13 @@ class VectorStoreAutoUpdateService
     private const PROGRESS_RESET_SQL = "auto_update_progress_phase = '', auto_update_progress_current = 0, auto_update_progress_total = 0";
 
     /**
+     * Crawler summary of the current run ("Indexed N URI(s)...", broken-link notices).
+     * Quoted in the "nothing was indexed" errors, where it is the single most useful
+     * piece of information and otherwise only reachable from the log.
+     */
+    private string $lastCrawlSummary = '';
+
+    /**
      * Unix time of the last lease refresh in the current run; reset by markRunning().
      */
     private int $lastHeartbeatAt = 0;
@@ -380,8 +387,17 @@ class VectorStoreAutoUpdateService
                 // the index may have rows, just none for the picked pages. Report the
                 // selection-scoped cause (usually a missing root domain name) instead.
                 $hasSelection = [] !== self::parseConfiguredPageIds($config['auto_update_site_root'] ?? null);
+                $reason = $hasSelection ? 'MSC.vsau_err_selected_not_indexed' : 'MSC.vsau_err_no_indexed_pages';
 
-                throw new \RuntimeException($hasSelection ? 'MSC.vsau_err_selected_not_indexed' : 'MSC.vsau_err_no_indexed_pages');
+                // Append what the crawler itself reported. "Indexed 0 URI(s), 1 skipped"
+                // is the decisive clue for the usual causes (a domain that does not match
+                // the address the site really runs on, robots.txt, noindex), and without
+                // this it is only visible to someone reading the log.
+                if ('' !== $this->lastCrawlSummary) {
+                    $reason .= VectorStoreSyncMessageTranslator::COMPOUND_SEPARATOR.'MSC.vsau_crawl_result|'.$this->lastCrawlSummary;
+                }
+
+                throw new \RuntimeException($reason);
             }
 
             // Safe boilerplate removal: only strips text repeated across many pages.
@@ -1071,6 +1087,7 @@ class VectorStoreAutoUpdateService
         // up, and a zero exit code hides it completely. Capped so a large crawl cannot
         // flood the log.
         $summary = trim($process->getOutput()."\n".$process->getErrorOutput());
+        $this->lastCrawlSummary = $summary;
 
         if ('' !== $summary) {
             $this->logger->notice(\sprintf(
