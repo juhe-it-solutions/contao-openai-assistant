@@ -142,6 +142,15 @@ class VectorStoreSyncMessageTranslator
             }
         }
 
+        if (str_starts_with($message, 'MSC.vsau_crawl_result|')) {
+            // substr(), not a regex: the crawler summary is free text and may contain "|".
+            return $this->translator->trans(
+                'MSC.vsau_crawl_result',
+                [substr($message, \strlen('MSC.vsau_crawl_result|'))],
+                self::DOMAIN,
+            );
+        }
+
         if (str_starts_with($message, 'MSC.vsau_plan_limit_truncated_items|')) {
             $rest = substr($message, \strlen('MSC.vsau_plan_limit_truncated_items|'));
             if (preg_match('/^(\d+)\|(\d+)\|(\d+)$/', $rest, $matches)) {

@@ -84,6 +84,44 @@ class VectorStoreSyncMessageTranslatorTest extends TestCase
         );
     }
 
+    public function testAppendsTheCrawlerSummaryToANothingIndexedError(): void
+    {
+        // The summary is free text straight from contao:crawl and routinely contains
+        // "|", so it must not be parsed like the numeric keyed messages.
+        $summary = 'search-index | [OK] Indexed 0 URI(s) successfully. 0 failed. | [WARNING] 1 URI(s) were skipped.';
+
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
+            ->method('trans')
+            ->willReturnCallback(
+                static function (string $id, array $params = []) use ($summary): string {
+                    if ('MSC.vsau_err_selected_not_indexed' === $id) {
+                        return 'None of the selected pages were found.';
+                    }
+
+                    if ('MSC.vsau_crawl_result' === $id) {
+                        self::assertSame([$summary], $params, 'The whole summary must survive, pipes included.');
+
+                        return 'Result of the crawl: '.$params[0];
+                    }
+
+                    return $id;
+                },
+            )
+        ;
+
+        $service = new VectorStoreSyncMessageTranslator($translator);
+
+        $this->assertSame(
+            'None of the selected pages were found. Result of the crawl: '.$summary,
+            $service->translate(
+                'MSC.vsau_err_selected_not_indexed'
+                .VectorStoreSyncMessageTranslator::COMPOUND_SEPARATOR
+                .'MSC.vsau_crawl_result|'.$summary,
+            ),
+        );
+    }
+
     public function testExpandsCompoundMessageWithBothReasons(): void
     {
         $translator = $this->createMock(TranslatorInterface::class);
