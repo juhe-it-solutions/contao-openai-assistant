@@ -43,6 +43,29 @@ class LicenseValidationService
         'business' => 50,
     ];
 
+    /**
+     * Item limits per subscription plan: news entries, FAQ entries and events, added
+     * up across all of them.
+     *
+     * These have their own budget rather than counting against PLAN_PAGE_LIMITS,
+     * because the two grow completely differently. Pages are added deliberately and
+     * rarely; items pile up on their own as an editor keeps publishing. Charging them
+     * against the same budget would mean a customer's page selection silently runs
+     * out of room because somebody wrote a news post.
+     *
+     * Derived from the plan name alone - unlike the page limit there is no
+     * server-delivered per-license override yet. The plan name itself comes from the
+     * licensing server, so an upgrade still takes effect within the hour.
+     *
+     * Kept in sync by hand with maxReaderItemsForPlan() in the juhe-reviews licensing
+     * app (src/shared/billing/openaiAssistantPlans.ts), which drives checkout, help and
+     * billing e-mail copy. Change both or customers are quoted a limit we do not apply.
+     */
+    public const PLAN_ITEM_LIMITS = [
+        'starter' => 50,
+        'business' => 300,
+    ];
+
     private const VALIDATION_URL = 'https://licenses.juhe-it-solutions.at/api/openai-assistant/validate';
 
     private const DEACTIVATE_URL = 'https://licenses.juhe-it-solutions.at/api/openai-assistant/deactivate';
@@ -383,6 +406,19 @@ class LicenseValidationService
         }
 
         return self::PLAN_PAGE_LIMITS[$plan] ?? null;
+    }
+
+    /**
+     * Number of news/FAQ/event items the plan allows, or NULL for "no limit"
+     * (enterprise, or a plan that is not known yet).
+     */
+    public static function resolveItemLimit(string $plan): int|null
+    {
+        if ('' === $plan || 'enterprise' === $plan) {
+            return null;
+        }
+
+        return self::PLAN_ITEM_LIMITS[$plan] ?? null;
     }
 
     /**

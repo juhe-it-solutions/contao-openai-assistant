@@ -410,11 +410,17 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         }
 
         $name = $this->translator->trans('MSC.vsau_plan_'.$plan, [], 'contao_default');
+        $maxPages = (int) ($config['premium_license_max_pages'] ?? 0);
+        // News, FAQ and event entries have their own allowance, so showing only the page
+        // cap here would leave an admin guessing where a "plan limit" warning came from.
+        $maxItems = LicenseValidationService::resolveItemLimit($plan);
 
         if ('enterprise' === $plan) {
             $limit = $this->translator->trans('MSC.vsau_plan_unlimited', [], 'contao_default');
-        } elseif ((int) ($config['premium_license_max_pages'] ?? 0) > 0) {
-            $limit = $this->translator->trans('MSC.vsau_plan_pages', [(int) $config['premium_license_max_pages']], 'contao_default');
+        } elseif ($maxPages > 0 && null !== $maxItems) {
+            $limit = $this->translator->trans('MSC.vsau_plan_pages_items', [$maxPages, $maxItems], 'contao_default');
+        } elseif ($maxPages > 0) {
+            $limit = $this->translator->trans('MSC.vsau_plan_pages', [$maxPages], 'contao_default');
         } else {
             return $name;
         }
@@ -584,6 +590,24 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         if (0 === $indexed) {
             $key = $hasStartPage ? 'MSC.vsau_notice_selected_not_indexed' : 'MSC.vsau_notice_no_indexed_pages';
             $notices[] = $this->translator->trans($key, [], 'contao_default');
+        }
+
+        // Standing reminder while the item allowance is exceeded. The run message alone
+        // makes one item over budget look exactly like a thousand: it scrolls away with
+        // the run history, and nothing on the dashboard says how far over the site is.
+        // Nothing is ever dropped, so this stays a notice rather than a warning.
+        $itemLimit = LicenseValidationService::resolveItemLimit((string) ($config['premium_license_plan'] ?? ''));
+
+        if (null !== $itemLimit && !empty($config['license_active'])) {
+            $items = $this->service->countScopeBreakdown($config['auto_update_site_root'] ?? null)['items'];
+
+            if ($items > $itemLimit) {
+                $notices[] = $this->translator->trans(
+                    'MSC.vsau_notice_item_limit_exceeded',
+                    [$items, $itemLimit],
+                    'contao_default',
+                );
+            }
         }
 
         return $notices;

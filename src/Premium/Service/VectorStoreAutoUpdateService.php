@@ -133,6 +133,7 @@ class VectorStoreAutoUpdateService
         private readonly PageLinkFilter $linkFilter,
         private readonly LinkSectionBuilder $linkSection,
         private readonly LinkIndexDocumentBuilder $linkIndex,
+        private readonly ReaderItemCounter $readerItems,
     ) {
     }
 
@@ -384,8 +385,15 @@ class VectorStoreAutoUpdateService
             // Safe boilerplate removal: only strips text repeated across many pages.
             $texts = [];
 
+            // How many URLs each page has in the freshly refreshed search index. Counted
+            // from the raw rows (before boilerplate cleaning drops chrome-only ones), so
+            // the reader-item cap below measures what Contao really indexed.
+            $indexedRows = [];
+
             foreach ($rows as $i => $row) {
                 $texts[$i] = self::decodeBasicEntities((string) $row['text']);
+                $pageId = (int) $row['page_id'];
+                $indexedRows[$pageId] = ($indexedRows[$pageId] ?? 0) + 1;
             }
             $clean = $this->boilerplate->clean($texts);
 
@@ -423,16 +431,45 @@ class VectorStoreAutoUpdateService
             // pages beyond the cap are dropped here AND their vector-store files are
             // removed by the reconcile below, so the run is reported "partial" with the
             // skipped count rather than a silent, arbitrary "success".
-            $planLimitSkipped = 0;
-            if ($planPageLimit > 0 && \count($byPage) > $planPageLimit) {
-                ksort($byPage);
-                $planLimitSkipped = \count($byPage) - $planPageLimit;
-                $byPage = \array_slice($byPage, 0, $planPageLimit, true);
+            // Counted once, before the cap, so the items lost with a dropped page can be
+            // named in the result message: "1 page not synced" badly understates the loss
+            // when that page was a reader page carrying three hundred news entries.
+            $itemCounts = $this->readerItems->countByPage(array_keys($byPage), $indexedRows);
+
+            $capped = $this->applyPlanPageLimit($byPage, $planPageLimit);
+            $planLimitSkipped = $capped['skipped'];
+            $byPage = $capped['pages'];
+
+            $droppedItems = 0;
+
+            foreach ($capped['dropped'] as $pageId) {
+                $droppedItems += $itemCounts[$pageId] ?? 0;
+            }
+
+            if ($planLimitSkipped > 0) {
                 $this->logger->notice(\sprintf(
-                    'VectorStoreAutoUpdate: plan page limit %d applied for config %d; %d content page(s) skipped.',
+                    'VectorStoreAutoUpdate: plan page limit %d applied for config %d; %d content page(s) and %d reader item(s) skipped.',
                     $planPageLimit,
                     $configId,
                     $planLimitSkipped,
+                    $droppedItems,
+                ));
+            }
+
+            // News/FAQ/event items have their own budget. Exceeding it never removes
+            // content - it only marks the run "partial" and asks for an upgrade, so a
+            // customer who publishes one item too many does not lose the whole news
+            // section from the chatbot.
+            $planItemLimit = LicenseValidationService::resolveItemLimit((string) ($config['premium_license_plan'] ?? '')) ?? 0;
+            $itemsInScope = array_sum(array_intersect_key($itemCounts, $byPage));
+            $itemBudgetExceeded = $planItemLimit > 0 && $itemsInScope > $planItemLimit;
+
+            if ($itemBudgetExceeded) {
+                $this->logger->notice(\sprintf(
+                    'VectorStoreAutoUpdate: plan item limit %d exceeded for config %d; %d item(s) present, nothing was dropped.',
+                    $planItemLimit,
+                    $configId,
+                    $itemsInScope,
                 ));
             }
 
@@ -521,23 +558,14 @@ class VectorStoreAutoUpdateService
                 },
             );
 
-            // A run is "partial" when some files failed to upload OR the plan cap dropped
-            // pages the customer expected to be synced — both mean the store is not a
-            // complete mirror of the selected scope.
-            $status = $syncStats['files_failed'] > 0 || $planLimitSkipped > 0 ? 'partial' : 'success';
-
-            // Surface EVERY reason a run is partial, not just the first: a run can hit the
-            // plan cap AND have upload failures at once. Each note is a keyed message the
-            // translator expands; the notes are joined with the translator's compound
-            // separator so the dashboard/log show one line per reason.
-            $notes = [];
-            if ($planLimitSkipped > 0) {
-                $notes[] = 'MSC.vsau_plan_limit_truncated|'.$planLimitSkipped.'|'.$planPageLimit;
-            }
-            if ($syncStats['files_failed'] > 0) {
-                $notes[] = 'MSC.vsau_partial_files_failed|'.$syncStats['files_failed'];
-            }
-            $resultMessage = implode(VectorStoreSyncMessageTranslator::COMPOUND_SEPARATOR, $notes);
+            [$status, $resultMessage] = $this->summariseRun([
+                'files_failed' => $syncStats['files_failed'],
+                'pages_skipped' => $planLimitSkipped,
+                'page_limit' => $planPageLimit,
+                'dropped_items' => $droppedItems,
+                'items_in_scope' => $itemsInScope,
+                'item_limit' => $itemBudgetExceeded ? $planItemLimit : 0,
+            ]);
 
             $this->persistResult(
                 $configId,
@@ -587,9 +615,103 @@ class VectorStoreAutoUpdateService
      * selection resolves to the whole website (single site root + subtree) when
      * exactly one root exists, else returns 0.
      */
-    public function countScopePages(mixed $configValue): int
+    /**
+     * Size of the configured sync scope, in the two units the subscription budgets
+     * separately: content pages, and the news/FAQ/event items rendered on them.
+     *
+     * They are kept apart rather than added up because they behave differently. A
+     * page is added deliberately and rarely; items accumulate on their own as an
+     * editor keeps publishing. A single combined number would also read like a bug
+     * in the back end - "301" next to a page tree showing one page.
+     *
+     * @return array{pages: int, items: int}
+     */
+    public function countScopeBreakdown(mixed $configValue): array
     {
-        return $this->countContentPages($this->resolveScopePageIds($configValue));
+        $pageIds = $this->contentPageIds($this->resolveScopePageIds($configValue));
+
+        return [
+            'pages' => \count($pageIds),
+            'items' => array_sum($this->readerItems->countByPage($pageIds)),
+        ];
+    }
+
+    /**
+     * Final status of a run plus the message explaining it.
+     *
+     * A run is "partial" when some files failed to upload, the plan cap dropped pages
+     * the customer expected to be synced, or the item budget is exceeded. The first two
+     * mean the store is not a complete mirror of the selected scope; the third does not
+     * remove anything, but the customer still has to act, so it must not be reported as
+     * a plain "success" either.
+     *
+     * EVERY reason is surfaced, not just the first: a run can hit the plan cap AND have
+     * upload failures at once. Each note is a keyed message the translator expands, and
+     * they are joined with the translator's compound separator so the dashboard and the
+     * log show one line per reason.
+     *
+     * Public so the status/message combinations can be tested without a database, an
+     * HTTP client and a crawl subprocess.
+     *
+     * @param array{files_failed: int, pages_skipped: int, page_limit: int, dropped_items: int, items_in_scope: int, item_limit: int} $run
+     *
+     * @return array{0: string, 1: string}
+     */
+    public function summariseRun(array $run): array
+    {
+        $notes = [];
+
+        if ($run['pages_skipped'] > 0) {
+            // The variant naming the lost items is used only when there were any, so an
+            // ordinary page overflow keeps its shorter, unchanged wording.
+            $notes[] = $run['dropped_items'] > 0
+                ? 'MSC.vsau_plan_limit_truncated_items|'.$run['pages_skipped'].'|'.$run['page_limit'].'|'.$run['dropped_items']
+                : 'MSC.vsau_plan_limit_truncated|'.$run['pages_skipped'].'|'.$run['page_limit'];
+        }
+
+        if ($run['item_limit'] > 0) {
+            $notes[] = 'MSC.vsau_plan_item_limit_exceeded|'.$run['items_in_scope'].'|'.$run['item_limit'];
+        }
+
+        if ($run['files_failed'] > 0) {
+            $notes[] = 'MSC.vsau_partial_files_failed|'.$run['files_failed'];
+        }
+
+        return [
+            [] === $notes ? 'success' : 'partial',
+            implode(VectorStoreSyncMessageTranslator::COMPOUND_SEPARATOR, $notes),
+        ];
+    }
+
+    /**
+     * Drop the pages beyond the subscription's page limit.
+     *
+     * Deterministic by page id so the surviving set is stable from run to run.
+     * Only pages are capped here - news/FAQ/event items have their own budget and
+     * are never dropped; exceeding it just marks the run "partial".
+     *
+     * Public so the behaviour can be tested without running a full sync.
+     *
+     * @param array<int, mixed> $byPage page id => page data
+     *
+     * @return array{pages: array<int, mixed>, skipped: int, dropped: list<int>}
+     */
+    public function applyPlanPageLimit(array $byPage, int $limit): array
+    {
+        if ($limit <= 0 || \count($byPage) <= $limit) {
+            return ['pages' => $byPage, 'skipped' => 0, 'dropped' => []];
+        }
+
+        ksort($byPage);
+
+        $kept = \array_slice($byPage, 0, $limit, true);
+
+        return [
+            'pages' => $kept,
+            'skipped' => \count($byPage) - $limit,
+            // Reported so the caller can say how many reader items went with them.
+            'dropped' => array_values(array_diff(array_keys($byPage), array_keys($kept))),
+        ];
     }
 
     /**
@@ -754,29 +876,37 @@ class VectorStoreAutoUpdateService
     }
 
     /**
-     * Count only the pages that can actually produce an indexed document: published, and
+     * Keep only the pages that can actually produce an indexed document: published, and
      * not one of the structural/utility page types (site root, forward, redirect, logout,
      * error pages) that never carry standalone body content. This keeps the save-time plan
      * limit aligned with what the sync really uploads, so a customer is not blocked by pages
      * that would never become vector-store documents anyway.
      *
+     * Returns the ids rather than a count because the reader items rendered on them have
+     * to be counted per page afterwards.
+     *
      * @param array<int, int> $pageIds
+     *
+     * @return list<int>
      */
-    private function countContentPages(array $pageIds): int
+    private function contentPageIds(array $pageIds): array
     {
         $pageIds = array_values(array_filter(array_map(intval(...), $pageIds)));
 
         if ([] === $pageIds) {
-            return 0;
+            return [];
         }
 
-        return (int) $this->connection->fetchOne(
-            "SELECT COUNT(*) FROM tl_page
-             WHERE id IN (?)
-               AND published = '1'
-               AND type NOT IN ('root', 'forward', 'redirect', 'logout', 'error_401', 'error_403', 'error_404', 'error_503')",
-            [$pageIds],
-            [ArrayParameterType::INTEGER],
+        return array_map(
+            intval(...),
+            $this->connection->fetchFirstColumn(
+                "SELECT id FROM tl_page
+                 WHERE id IN (?)
+                   AND published = '1'
+                   AND type NOT IN ('root', 'forward', 'redirect', 'logout', 'error_401', 'error_403', 'error_404', 'error_503')",
+                [$pageIds],
+                [ArrayParameterType::INTEGER],
+            ),
         );
     }
 

@@ -85,8 +85,90 @@ one item saved with an empty robots field silently drops out.
 
 All items behind a reader page share that page's `tl_page` id, and the
 synchronisation aggregates by page id. They become **one** vector-store document
-citing a single item URL, and consume **one** page of the plan quota rather than
-one per item.
+citing a single item URL.
+
+## How the plan limits are counted
+
+The subscription has **two independent budgets**:
+
+| Plan | Pages | News/FAQ/event items |
+| --- | --- | --- |
+| Starter | 20 | 50 |
+| Business | 50 | 300 |
+| Enterprise | unlimited | unlimited |
+
+They are budgeted separately rather than added up because they behave
+differently. A page is added deliberately and rarely; items accumulate on their
+own as an editor keeps publishing. Charging both against one budget would mean a
+customer's page selection silently runs out of room because somebody wrote a
+news post.
+
+Counting `tl_page` rows alone was the loophole: an installation consisting of a
+single published page carrying a news reader module with hundreds of items
+counted as **one** page and stayed inside the smallest plan while putting the
+content of hundreds of items into the knowledge base.
+
+Note what an item is and is not. Each item **is** its own document in Contao's
+search index (its own URL, its own `tl_search` row), but it does **not** become
+its own file in the vector store — see "One merged document" above. The page
+budget therefore meters files; the item budget meters content volume. Copy aimed
+at customers must not imply the two work the same way.
+
+### Counted from what is actually indexed
+
+The raw number of published items would over-charge: a list module showing 5 of
+300 news items without pagination means 295 of them are never crawled and never
+reach the chatbot. The count is therefore capped at the number of URLs the page
+actually has in `tl_search`:
+
+```
+items(page) = min(published items in the database, indexed URLs of that page)
+```
+
+A consequence worth knowing: before the first crawl nothing is indexed, so the
+item count reads 0. That is honest — nothing is in the knowledge base yet — and
+the number that matters commercially is the one computed during a run, where the
+crawl has just refreshed the index.
+
+`ReaderItemCounter` derives the item count from the three content bundles:
+
+| Reader page found via | Items counted from |
+| --- | --- |
+| `tl_news_archive.jumpTo` | `tl_news` |
+| `tl_faq_category.jumpTo` | `tl_faq` |
+| `tl_calendar.jumpTo` | `tl_calendar_events` |
+
+Only items that really become a document are counted — published including the
+start/stop window, and not redirecting elsewhere via `source`. All three bundles
+are optional, so tables and columns are schema-guarded (`tl_faq` has neither a
+start/stop window nor a `source`).
+
+Page and item limits resolve through `LicenseValidationService::resolvePageLimit()`
+and `resolveItemLimit()`. The page limit can be overridden per license by the
+licensing server (`max_crawl_pages`); the item limit is derived from the plan
+name alone, so a per-license override would need a new field on both sides.
+
+Enforcement differs between the two, deliberately:
+
+- **On save** (`enforceCrawlPageLimit()`) a selection over the **page** budget is
+  rejected and the previous selection is kept. An **item** overflow only adds a
+  `Message::addInfo()` notice — the callback runs on every save of the
+  configuration, not only when the selection changes, so throwing would lock the
+  customer out of their API key, prompt and schedule the moment an editor
+  published one item too many. Unlike pages there is usually no selection left to
+  reduce either: the reader page *is* the content.
+- **During a run**, pages beyond the page limit are dropped
+  (`applyPlanPageLimit()`, deterministic by page id) and the run is reported
+  `partial`. When a dropped page carried reader items, the message names them
+  (`MSC.vsau_plan_limit_truncated_items`) — "1 page was not synced" badly
+  understates the loss when that page held three hundred news entries.
+- **During a run, an item overage never removes anything.**
+  All items behind a reader page end up in **one**
+  document, so there is no way to leave out just the excess — dropping the page
+  would take the items that are within the limit with it and strip the chatbot
+  of the whole news section at once. Publishing one item too many must not have
+  that effect, so everything is synced and the run is flagged `partial` with a
+  message asking for an upgrade.
 
 ## Unpublishing does not remove indexed content
 

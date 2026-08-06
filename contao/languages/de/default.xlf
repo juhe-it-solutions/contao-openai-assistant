@@ -511,6 +511,18 @@
                 <source>Your plan allows at most %1$s pages, so %2$s additional page(s) were not synced. Reduce the selected pages or upgrade your plan to include them.</source>
                 <target>Ihr Tarif erlaubt höchstens %1$s Seiten, daher wurden %2$s weitere Seite(n) nicht synchronisiert. Reduzieren Sie die ausgewählten Seiten oder erweitern Sie Ihren Tarif, um sie einzuschließen.</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_plan_limit_truncated_items">
+                <source>Your plan allows at most %1$s pages, so %2$s additional page(s) - including %3$s news, FAQ and event entries - were not synced. Reduce the selected pages or upgrade your plan to include them.</source>
+                <target>Ihr Tarif erlaubt höchstens %1$s Seiten, daher wurden %2$s weitere Seite(n) - darunter %3$s Nachrichten-, FAQ- und Termin-Beiträge - nicht synchronisiert. Reduzieren Sie die ausgewählten Seiten oder erweitern Sie Ihren Tarif, um sie einzuschließen.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_notice_item_limit_exceeded">
+                <source>Your plan allows %2$s news, FAQ and event entries, but the selected pages currently hold %1$s. Everything is still being synced - please upgrade your plan.</source>
+                <target>Ihr Tarif erlaubt %2$s Nachrichten-, FAQ- und Termin-Beiträge, auf den ausgewählten Seiten sind es derzeit %1$s. Es wird weiterhin alles synchronisiert - bitte erweitern Sie Ihren Tarif.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_plan_item_limit_exceeded">
+                <source>Your plan allows at most %1$s news, FAQ and event entries, but %2$s are currently in the synced pages. Everything was synced this time; please upgrade your plan.</source>
+                <target>Ihr Tarif erlaubt höchstens %1$s Nachrichten-, FAQ- und Termin-Beiträge, aktuell sind es %2$s in den synchronisierten Seiten. Es wurde diesmal alles übertragen; bitte erweitern Sie Ihren Tarif.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_partial_files_failed">
                 <source>%1$s file upload(s) failed and will be retried on the next run.</source>
                 <target>%1$s Datei-Upload(s) sind fehlgeschlagen und werden beim nächsten Lauf erneut versucht.</target>
@@ -642,6 +654,10 @@
             <trans-unit id="MSC.vsau_plan_pages">
                 <source>up to %s pages</source>
                 <target>bis %s Seiten</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_plan_pages_items">
+                <source>up to %1$s pages and %2$s entries</source>
+                <target>bis %1$s Seiten und %2$s Beiträge</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_setup_todo">
                 <source>To do before the first sync:</source>

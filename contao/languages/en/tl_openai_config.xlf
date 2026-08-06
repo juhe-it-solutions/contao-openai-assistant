@@ -426,8 +426,8 @@
                 <target>Select the pages whose content should be updated automatically in the vector store</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_site_root.1">
-                <source><![CDATA[Select the pages whose content should be synced into the chatbot's knowledge base.<br>The total number of selected pages must not exceed your subscription's page limit.<br>For installations with exactly one website root you can leave this field empty to use the entire website.<br>Important: the website root needs a domain name so the crawler can index the pages for the sync.]]></source>
-                <target><![CDATA[Select the pages whose content should be synced into the chatbot's knowledge base.<br>The total number of selected pages must not exceed your subscription's page limit.<br>For installations with exactly one website root you can leave this field empty to use the entire website.<br>Important: the website root needs a domain name so the crawler can index the pages for the sync.]]></target>
+                <source><![CDATA[Select the pages whose content should be synced into the chatbot's knowledge base.<br>The number of selected pages must not exceed your subscription's page limit; the news, FAQ and event entries rendered on them have a separate limit.<br>For installations with exactly one website root you can leave this field empty to use the entire website.<br>Important: the website root needs a domain name so the crawler can index the pages for the sync.]]></source>
+                <target><![CDATA[Select the pages whose content should be synced into the chatbot's knowledge base.<br>The number of selected pages must not exceed your subscription's page limit; the news, FAQ and event entries rendered on them have a separate limit.<br>For installations with exactly one website root you can leave this field empty to use the entire website.<br>Important: the website root needs a domain name so the crawler can index the pages for the sync.]]></target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_pages_over_limit">
                 <source>Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.</source>
@@ -436,6 +436,10 @@
             <trans-unit id="tl_openai_config.auto_update_pages_none_selected_limit">
                 <source>No pages selected - all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.</source>
                 <target>No pages selected - all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_items_over_limit">
+                <source>The selected pages render %1$s news, FAQ and event entries, but your current plan allows at most %2$s. Everything is still synced for now - please upgrade your plan.</source>
+                <target>The selected pages render %1$s news, FAQ and event entries, but your current plan allows at most %2$s. Everything is still synced for now - please upgrade your plan.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_include_links.0">
                 <source>Collect links from the page contents</source>
@@ -486,8 +490,8 @@
                 <target>Add a link and document directory</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_link_index.1">
-                <source>Uploads one additional document listing every page and every document found on your website, including which pages link to them. It helps the chatbot answer questions such as "do you have a PDF about ...?" even when it does not retrieve the individual page. It does not count towards your plan's page limit.</source>
-                <target>Uploads one additional document listing every page and every document found on your website, including which pages link to them. It helps the chatbot answer questions such as "do you have a PDF about ...?" even when it does not retrieve the individual page. It does not count towards your plan's page limit.</target>
+                <source>Uploads one additional document listing every page and every document found on your website, including which pages link to them. It helps the chatbot answer questions such as "do you have a PDF about ...?" even when it does not retrieve the individual page. It counts towards neither the page nor the item limit of your plan.</source>
+                <target>Uploads one additional document listing every page and every document found on your website, including which pages link to them. It helps the chatbot answer questions such as "do you have a PDF about ...?" even when it does not retrieve the individual page. It counts towards neither the page nor the item limit of your plan.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_prompt_template.0">
                 <source>System prompt for AI processing of the content</source>

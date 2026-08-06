@@ -21,8 +21,10 @@ use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LinkSectionBuilder;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageLink;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageLinkFilter;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageLinkRepository;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\ReaderItemCounter;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreAutoUpdateService;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreFileSync;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreSyncMessageTranslator;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -147,24 +149,162 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
 
         $captured = null;
         $connection
-            ->method('fetchOne')
+            ->method('fetchFirstColumn')
             ->willReturnCallback(
-                static function (string $sql, array $params = []) use (&$captured): int {
+                static function (string $sql, array $params = []) use (&$captured): array {
                     $captured = [$sql, $params];
 
-                    return 2;
+                    return [1, 2];
                 },
             )
         ;
 
-        $count = $this->createService($connection)->countScopePages([1, 2, 3]);
+        $scope = $this->createService($connection)->countScopeBreakdown([1, 2, 3]);
 
-        $this->assertSame(2, $count);
+        $this->assertSame(2, $scope['pages'], 'Only the published, non-structural pages count.');
+        $this->assertSame(0, $scope['items'], 'No reader items in this fixture.');
         $this->assertNotNull($captured);
         [$sql, $params] = $captured;
         $this->assertStringContainsString("published = '1'", $sql);
         $this->assertStringContainsString('type NOT IN', $sql);
         $this->assertSame([[1, 2, 3]], $params);
+    }
+
+    public function testCountScopeBreakdownReportsPagesAndItemsSeparately(): void
+    {
+        // The loophole this guards: one published page carrying a news reader module
+        // with hundreds of items counted as a single page, so an installation could put
+        // the content of hundreds of items into the knowledge base on the smallest plan.
+        // Pages and items are budgeted separately, so both numbers have to be reported.
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchFirstColumn')
+            ->willReturn([277])
+        ;
+
+        $readerItems = $this->createMock(ReaderItemCounter::class);
+        $readerItems
+            ->method('countByPage')
+            ->with([277])
+            ->willReturn([277 => 300])
+        ;
+
+        $breakdown = $this->createService($connection, $readerItems)->countScopeBreakdown([277]);
+
+        $this->assertSame(1, $breakdown['pages'], 'One page against the page budget.');
+        $this->assertSame(300, $breakdown['items'], 'But 300 items against the item budget.');
+    }
+
+    public function testItemBudgetOverageMakesTheRunPartialWithoutLosingContent(): void
+    {
+        $service = $this->createService($this->createMock(Connection::class));
+
+        [$status, $message] = $service->summariseRun([
+            'files_failed' => 0,
+            'pages_skipped' => 0,
+            'page_limit' => 20,
+            'dropped_items' => 0,
+            'items_in_scope' => 63,
+            'item_limit' => 50,
+        ]);
+
+        $this->assertSame('partial', $status, 'An item overage must not be reported as a plain success.');
+        $this->assertSame('MSC.vsau_plan_item_limit_exceeded|63|50', $message);
+    }
+
+    public function testTruncationMessageNamesTheReaderItemsLostWithADroppedPage(): void
+    {
+        $service = $this->createService($this->createMock(Connection::class));
+
+        [, $message] = $service->summariseRun([
+            'files_failed' => 0,
+            'pages_skipped' => 1,
+            'page_limit' => 20,
+            'dropped_items' => 300,
+            'items_in_scope' => 0,
+            'item_limit' => 0,
+        ]);
+
+        $this->assertSame(
+            'MSC.vsau_plan_limit_truncated_items|1|20|300',
+            $message,
+            '"1 page was not synced" badly understates a page that held 300 entries.',
+        );
+    }
+
+    public function testTruncationKeepsTheShorterWordingWhenNoItemsWereLost(): void
+    {
+        $service = $this->createService($this->createMock(Connection::class));
+
+        [, $message] = $service->summariseRun([
+            'files_failed' => 0,
+            'pages_skipped' => 2,
+            'page_limit' => 20,
+            'dropped_items' => 0,
+            'items_in_scope' => 0,
+            'item_limit' => 0,
+        ]);
+
+        $this->assertSame('MSC.vsau_plan_limit_truncated|2|20', $message);
+    }
+
+    public function testEveryReasonIsReportedAndACleanRunIsSuccess(): void
+    {
+        $service = $this->createService($this->createMock(Connection::class));
+
+        [$status, $message] = $service->summariseRun([
+            'files_failed' => 3,
+            'pages_skipped' => 1,
+            'page_limit' => 20,
+            'dropped_items' => 0,
+            'items_in_scope' => 63,
+            'item_limit' => 50,
+        ]);
+
+        $this->assertSame('partial', $status);
+        $this->assertSame(
+            [
+                'MSC.vsau_plan_limit_truncated|1|20',
+                'MSC.vsau_plan_item_limit_exceeded|63|50',
+                'MSC.vsau_partial_files_failed|3',
+            ],
+            explode(VectorStoreSyncMessageTranslator::COMPOUND_SEPARATOR, $message),
+            'A run can hit several limits at once; all of them must be surfaced.',
+        );
+
+        [$clean, $noMessage] = $service->summariseRun([
+            'files_failed' => 0,
+            'pages_skipped' => 0,
+            'page_limit' => 20,
+            'dropped_items' => 0,
+            'items_in_scope' => 21,
+            'item_limit' => 0,
+        ]);
+
+        $this->assertSame('success', $clean);
+        $this->assertSame('', $noMessage);
+    }
+
+    public function testPlanPageLimitDropsOnlyThePagesBeyondTheCap(): void
+    {
+        $service = $this->createService($this->createMock(Connection::class));
+
+        $result = $service->applyPlanPageLimit([3 => 'c', 1 => 'a', 2 => 'b'], 2);
+
+        $this->assertSame([1 => 'a', 2 => 'b'], $result['pages'], 'Deterministic by page id.');
+        $this->assertSame(1, $result['skipped']);
+        $this->assertSame([3], $result['dropped'], 'The dropped ids are reported so their reader items can be counted.');
+    }
+
+    public function testPlanPageLimitIsIgnoredWithoutALimit(): void
+    {
+        $service = $this->createService($this->createMock(Connection::class));
+
+        $result = $service->applyPlanPageLimit([1 => 'a', 2 => 'b'], 0);
+
+        $this->assertSame([1 => 'a', 2 => 'b'], $result['pages'], 'Enterprise (no limit) must never drop a page.');
+        $this->assertSame(0, $result['skipped']);
+        $this->assertSame([], $result['dropped']);
     }
 
     public function testWholeSiteFallbackOnlyCountsLiveSiteRoots(): void
@@ -462,7 +602,7 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
         $this->assertSame('', $method->invoke(null, null), 'An unset template stays empty.');
     }
 
-    private function createService(Connection $connection): VectorStoreAutoUpdateService
+    private function createService(Connection $connection, ReaderItemCounter|null $readerItems = null): VectorStoreAutoUpdateService
     {
         return new VectorStoreAutoUpdateService(
             $connection,
@@ -477,6 +617,7 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
             new PageLinkFilter(),
             new LinkSectionBuilder(),
             new LinkIndexDocumentBuilder(),
+            $readerItems ?? $this->createMock(ReaderItemCounter::class),
         );
     }
 }

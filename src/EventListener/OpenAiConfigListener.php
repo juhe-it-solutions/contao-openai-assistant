@@ -963,22 +963,48 @@ class OpenAiConfigListener
         }
 
         $limit = $this->resolvePageLimit($plan, $maxPages);
+        $itemLimit = LicenseValidationService::resolveItemLimit($plan);
 
-        if (null === $limit) {
+        if (null === $limit && null === $itemLimit) {
             return $value; // unlimited (enterprise) or plan still unknown
         }
 
         $selectedIds = VectorStoreAutoUpdateService::parseConfiguredPageIds($value);
-        $count = $this->autoUpdateService->countScopePages($value);
+        $scope = $this->autoUpdateService->countScopeBreakdown($value);
 
-        if ($count > $limit) {
+        if (null !== $limit && $scope['pages'] > $limit) {
             if ([] === $selectedIds) {
-                // Empty selection with a single root: countScopePages counted the full subtree,
+                // Empty selection with a single root: the scope counted the full subtree,
                 // which IS what would be synced. Explain the implicit all-pages behaviour.
-                throw new \InvalidArgumentException(\sprintf($this->getConfigLangString('auto_update_pages_none_selected_limit', 'No pages selected — all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.'), $count, $limit));
+                throw new \InvalidArgumentException(\sprintf($this->getConfigLangString('auto_update_pages_none_selected_limit', 'No pages selected — all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.'), $scope['pages'], $limit));
             }
 
-            throw new \InvalidArgumentException(\sprintf($this->getConfigLangString('auto_update_pages_over_limit', 'Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.'), $count, $limit));
+            throw new \InvalidArgumentException(\sprintf($this->getConfigLangString('auto_update_pages_over_limit', 'Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.'), $scope['pages'], $limit));
+        }
+
+        // News, FAQ and event items have their own budget: they are rendered by a single
+        // reader page and all end up in ONE vector-store document, but each adds its own
+        // content to it - so a page selection that looks tiny can still carry hundreds of
+        // entries' worth of text.
+        //
+        // Deliberately a notice, never an exception. This callback runs whenever the page
+        // selection field is submitted - i.e. on every save of a premium configuration,
+        // not only when the selection actually changes - so throwing here
+        // would lock the customer out of their own settings (API key, prompt, schedule)
+        // the moment an editor publishes one news item too many, and unlike pages there
+        // is often no selection to reduce: the reader page IS the content. The
+        // synchronisation reports the same overage and keeps syncing everything, so
+        // nothing is lost while the customer decides to upgrade.
+        // addInfo, not addError: the save succeeded and nothing is broken, so a red error
+        // box would misrepresent what happened. (Contao's Message has no "warning" type -
+        // addError, addConfirmation, addNew, addInfo, addRaw.)
+        //
+        // Guarded by the request check because Message writes to the session flash bag:
+        // unlike the error paths elsewhere in this class, this branch fires during
+        // ordinary operation, so a save without a request (CLI, migration, import) would
+        // otherwise turn a plan notice into a fatal.
+        if (null !== $itemLimit && $scope['items'] > $itemLimit && $this->hasSessionForMessages()) {
+            Message::addInfo(\sprintf($this->getConfigLangString('auto_update_items_over_limit', 'The selected pages render %1$s news, FAQ and event entries, but your current plan allows at most %2$s. Everything is still synced for now - please upgrade your plan.'), $scope['items'], $itemLimit));
         }
 
         return $value;
@@ -1150,6 +1176,17 @@ class OpenAiConfigListener
                 'After the first successful sync you can delete the initially uploaded file in «File upload» so its content does not influence the chatbot’s answers.',
             ), ENT_QUOTES),
         );
+    }
+
+    /**
+     * Whether Contao\Message can be used right now: it writes to the session flash bag,
+     * which needs a current request that actually carries a session.
+     */
+    private function hasSessionForMessages(): bool
+    {
+        $request = $this->requestStack->getCurrentRequest();
+
+        return null !== $request && $request->hasSession();
     }
 
     /**
