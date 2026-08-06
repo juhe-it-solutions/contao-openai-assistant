@@ -515,6 +515,14 @@
                 <source>Your plan allows at most %1$s pages, so %2$s additional page(s) - including %3$s news, FAQ and event entries - were not synced. Reduce the selected pages or upgrade your plan to include them.</source>
                 <target>Ihr Tarif erlaubt höchstens %1$s Seiten, daher wurden %2$s weitere Seite(n) - darunter %3$s Nachrichten-, FAQ- und Termin-Beiträge - nicht synchronisiert. Reduzieren Sie die ausgewählten Seiten oder erweitern Sie Ihren Tarif, um sie einzuschließen.</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_notice_no_root_domain">
+                <source>The website root of the selected pages has no domain name. The synchronisation crawls your website from a command-line process, which cannot determine the address without it and would try "localhost". Enter the domain name in the site root (page settings).</source>
+                <target>Der Webseiten-Startpunkt der ausgewählten Seiten hat keinen Domainnamen. Die Synchronisierung durchsucht Ihre Webseite über einen Kommandozeilen-Prozess, der die Adresse ohne Domainnamen nicht ermitteln kann und „localhost“ verwenden würde. Bitte tragen Sie den Domainnamen im Webseiten-Startpunkt ein.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_err_no_crawl_uri">
+                <source>The synchronisation found no address to crawl. Please check that a published website root with a domain name exists.</source>
+                <target>Die Synchronisierung hat keine Adresse zum Durchsuchen gefunden. Bitte prüfen Sie, ob ein veröffentlichter Webseiten-Startpunkt mit Domainnamen existiert.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_notice_item_limit_exceeded">
                 <source>Your plan allows %2$s news, FAQ and event entries, but the selected pages currently hold %1$s. Everything is still being synced - please upgrade your plan.</source>
                 <target>Ihr Tarif erlaubt %2$s Nachrichten-, FAQ- und Termin-Beiträge, auf den ausgewählten Seiten sind es derzeit %1$s. Es wird weiterhin alles synchronisiert - bitte erweitern Sie Ihren Tarif.</target>

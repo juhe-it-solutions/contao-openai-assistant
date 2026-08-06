@@ -535,8 +535,12 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         }
 
         $hasStartPage = [] !== VectorStoreAutoUpdateService::parseConfiguredPageIds($config['auto_update_site_root'] ?? null);
+        // Same predicate as VectorStoreAutoUpdateService::resolveScopePageIds(), including
+        // the published check: an unpublished site root left behind by a theme import can
+        // still carry a domain name, and counting it here would block a single-site
+        // installation that the sync itself resolves perfectly well.
         $hasDomain = (int) $this->connection->fetchOne(
-            "SELECT COUNT(*) FROM tl_page WHERE type = 'root' AND dns != ''",
+            "SELECT COUNT(*) FROM tl_page WHERE type = 'root' AND dns != '' AND published = '1'",
         );
         if (!$hasStartPage && 1 !== $hasDomain) {
             $warnings[] = $this->translator->trans('MSC.vsau_warn_no_crawl_page', [], 'contao_default');
@@ -590,6 +594,20 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         if (0 === $indexed) {
             $key = $hasStartPage ? 'MSC.vsau_notice_selected_not_indexed' : 'MSC.vsau_notice_no_indexed_pages';
             $notices[] = $this->translator->trans($key, [], 'contao_default');
+        }
+
+        // The sync crawls from a CLI process, which has no request to take the host from.
+        // Without a domain on the site root, Contao's URL generator falls back to the
+        // router default and the crawl ends up at "https://localhost/..." - it then
+        // reaches nothing while still exiting successfully.
+        //
+        // Only ever a notice: an installation can set framework.router.default_uri
+        // instead of a page domain, and on a local install "localhost" is correct. The
+        // prerequisiteWarnings() counterpart already blocks the case where no pages are
+        // selected AND no single domain root exists, so this covers the remaining one -
+        // pages selected, but their roots carry no domain.
+        if ($hasStartPage && [] === $this->service->resolveScopeRootDomains($config['auto_update_site_root'] ?? null)) {
+            $notices[] = $this->translator->trans('MSC.vsau_notice_no_root_domain', [], 'contao_default');
         }
 
         // Standing reminder while the item allowance is exceeded. The run message alone

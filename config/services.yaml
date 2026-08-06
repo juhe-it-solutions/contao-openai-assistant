@@ -239,6 +239,9 @@ services:
             $connection: '@doctrine.dbal.default_connection'
             $http: '@http_client'
             $logger: '@monolog.logger.contao'
+            # Same factory contao:crawl uses, so the sync can log (and sanity-check) the
+            # exact start URLs the crawl will use. Public service in 5.3, 5.7 and 6.0.
+            $escargotFactory: '@contao.crawl.escargot.factory'
 
     # VectorStoreAutoUpdateCron — #[AsCronJob] handles registration; only $connection overridden
     JuheItSolutions\ContaoOpenaiAssistant\Premium\Cron\VectorStoreAutoUpdateCron:
