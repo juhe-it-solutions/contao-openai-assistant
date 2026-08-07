@@ -576,6 +576,11 @@ class VectorStoreAutoUpdateService
                 },
             );
 
+            // Per-page outcome + file ids: manifest material only, never persisted as sync
+            // counters, so it is split off before the stats array reaches persistResult().
+            $pageStates = $syncStats['page_states'];
+            unset($syncStats['page_states']);
+
             [$status, $resultMessage] = $this->summariseRun([
                 'files_failed' => $syncStats['files_failed'],
                 'pages_skipped' => $planLimitSkipped,
@@ -597,7 +602,7 @@ class VectorStoreAutoUpdateService
                     'tokens_out' => $tokensOut,
                     'duration' => time() - $start,
                     'model' => $model,
-                    'document' => $this->buildManifest($pages, $syncStats, $linksEnabled ? $linkStats : null),
+                    'document' => $this->buildManifest($pages, $syncStats, $pageStates, $linksEnabled ? $linkStats : null),
                     'sync' => $syncStats,
                 ],
                 $resultMessage,
@@ -1560,11 +1565,16 @@ class VectorStoreAutoUpdateService
      * uploaded content concatenated. This is NOT what gets uploaded (each page is its own
      * vector-store file now) - it exists only so operators can review what was indexed.
      *
+     * Every page block names the vector-store file(s) that hold it and what happened to the
+     * page in this run, so a file id seen in the OpenAI platform can be traced back to a
+     * page (and vice versa) - the uploaded files themselves carry no such index.
+     *
      * @param list<array{page_id: int, url: string, title: string, content: string}>                                            $pages
      * @param array{added: int, updated: int, removed: int, unchanged: int, files_uploaded: int, files_failed: int, bytes: int} $sync
-     * @param array{total: int, dropped_policy: int, dropped_boilerplate: int}|null                                             $links null = link collection disabled
+     * @param array<int, array{state: string, files: list<string>}>                                                             $pageStates page_id => outcome + file ids of this run
+     * @param array{total: int, dropped_policy: int, dropped_boilerplate: int}|null                                             $links      null = link collection disabled
      */
-    private function buildManifest(array $pages, array $sync, array|null $links = null): string
+    private function buildManifest(array $pages, array $sync, array $pageStates, array|null $links = null): string
     {
         $lines = [
             '# Vector store sync manifest',
@@ -1592,6 +1602,11 @@ class VectorStoreAutoUpdateService
         $lines = [
             ...$lines,
             '',
+            '_Every page below names the OpenAI vector-store file that holds it. Unchanged pages keep '
+                .'the file an earlier run uploaded, which is why the file count is usually lower than '
+                .'the page count. The same mapping is browsable in the backend under "OpenAI vector '
+                .'store files"._',
+            '',
             '---',
             '',
         ];
@@ -1607,7 +1622,9 @@ class VectorStoreAutoUpdateService
 
         foreach ($pages as $page) {
             $title = '' !== trim($page['title']) ? $page['title'] : $page['url'];
-            $block = '## '.$title."\nURL: ".$page['url']."\n\n".$page['content']."\n\n---\n\n";
+            $block = '## '.$title."\nURL: ".$page['url']."\n"
+                .$this->manifestFileLine($page['page_id'], $pageStates)
+                ."\n\n".$page['content']."\n\n---\n\n";
 
             if (\strlen($manifest) + \strlen($block) > $maxBytes) {
                 $manifest .= "\n_(Manifest truncated for storage; full content is in the vector store.)_\n";
@@ -1618,6 +1635,45 @@ class VectorStoreAutoUpdateService
         }
 
         return $manifest;
+    }
+
+    /**
+     * One manifest line per page: what happened to it and which vector-store file(s) hold it.
+     * A page with no recorded state (only possible if the sync never reached it) still shows
+     * its id, so the block is never silently ambiguous.
+     *
+     * @param array<int, array{state: string, files: list<string>}> $pageStates
+     */
+    private function manifestFileLine(int $pageId, array $pageStates): string
+    {
+        // page_id 0 is the synthetic site-wide link directory, not a real Contao page.
+        $line = 0 === $pageId ? 'Page ID: – (link directory)' : 'Page ID: '.$pageId;
+
+        $state = $pageStates[$pageId] ?? null;
+
+        if (null === $state) {
+            return $line;
+        }
+
+        $line .= ' | Status: '.$state['state'];
+
+        if ([] === $state['files']) {
+            return $line."\nVector store file: – (not indexed)";
+        }
+
+        $count = \count($state['files']);
+
+        if (1 === $count) {
+            return $line."\nVector store file: ".$state['files'][0];
+        }
+
+        $parts = [];
+
+        foreach ($state['files'] as $i => $fileId) {
+            $parts[] = \sprintf('%s (part %d/%d)', $fileId, $i + 1, $count);
+        }
+
+        return $line."\nVector store files: ".implode(', ', $parts);
     }
 
     /**

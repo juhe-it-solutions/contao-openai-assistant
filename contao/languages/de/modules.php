@@ -22,6 +22,9 @@ $GLOBALS['TL_LANG']['MOD']['vector_store_auto_update.1'] = 'Status, Protokoll un
 $GLOBALS['TL_LANG']['MOD']['openai_sync_log']   = ['OpenAI Sync-Protokoll', 'Verlauf der automatischen Vector-Store-Synchronisierung verwalten'];
 $GLOBALS['TL_LANG']['MOD']['openai_sync_log.0'] = 'OpenAI Sync-Protokoll';
 $GLOBALS['TL_LANG']['MOD']['openai_sync_log.1'] = 'Verlauf der automatischen Vector-Store-Synchronisierung verwalten';
+$GLOBALS['TL_LANG']['MOD']['openai_vector_file']   = ['OpenAI Vector-Store-Dateien', 'Welche OpenAI-Datei enthält welche Seite'];
+$GLOBALS['TL_LANG']['MOD']['openai_vector_file.0'] = 'OpenAI Vector-Store-Dateien';
+$GLOBALS['TL_LANG']['MOD']['openai_vector_file.1'] = 'Welche OpenAI-Datei enthält welche Seite';
 
 // Module group (used in module creation)
 $GLOBALS['TL_LANG']['FMD']['ai_tools'] = 'KI-Tools';

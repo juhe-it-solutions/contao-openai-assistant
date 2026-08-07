@@ -603,6 +603,62 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
         $this->assertSame('', $method->invoke(null, null), 'An unset template stays empty.');
     }
 
+    /**
+     * The downloadable manifest is the only artefact that ties a page to the OpenAI file
+     * holding it - the uploaded files carry no index and the platform shows ids only.
+     */
+    public function testManifestNamesTheVectorStoreFileOfEveryPage(): void
+    {
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'buildManifest');
+
+        $manifest = $method->invoke(
+            $this->createService($this->createMock(Connection::class)),
+            [
+                ['page_id' => 7, 'url' => 'https://example.com/preise', 'title' => 'Preise', 'content' => 'Inhalt A'],
+                ['page_id' => 8, 'url' => 'https://example.com/lang', 'title' => 'Langtext', 'content' => 'Inhalt B'],
+                ['page_id' => 0, 'url' => 'https://example.com/', 'title' => 'Linkverzeichnis', 'content' => 'Inhalt C'],
+            ],
+            ['added' => 1, 'updated' => 0, 'removed' => 0, 'unchanged' => 1, 'files_uploaded' => 3, 'files_failed' => 0, 'bytes' => 42],
+            [
+                7 => ['state' => 'added', 'files' => ['file-aaa']],
+                8 => ['state' => 'unchanged', 'files' => ['file-bbb', 'file-ccc']],
+                0 => ['state' => 'added', 'files' => ['file-ddd']],
+            ],
+            null,
+        );
+
+        $this->assertStringContainsString("Page ID: 7 | Status: added\nVector store file: file-aaa", $manifest);
+        $this->assertStringContainsString(
+            "Page ID: 8 | Status: unchanged\nVector store files: file-bbb (part 1/2), file-ccc (part 2/2)",
+            $manifest,
+        );
+        // The synthetic link directory is not a Contao page, so it must not claim an id.
+        $this->assertStringContainsString("Page ID: – (link directory) | Status: added\nVector store file: file-ddd", $manifest);
+    }
+
+    /**
+     * A page the sync never reached (or one whose upload failed with nothing in the store)
+     * must still be identifiable in the manifest instead of silently claiming a file.
+     */
+    public function testManifestStaysHonestWithoutAFileForThePage(): void
+    {
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'buildManifest');
+
+        $manifest = $method->invoke(
+            $this->createService($this->createMock(Connection::class)),
+            [
+                ['page_id' => 7, 'url' => 'https://example.com/a', 'title' => 'A', 'content' => 'Inhalt A'],
+                ['page_id' => 9, 'url' => 'https://example.com/b', 'title' => 'B', 'content' => 'Inhalt B'],
+            ],
+            ['added' => 0, 'updated' => 0, 'removed' => 0, 'unchanged' => 0, 'files_uploaded' => 0, 'files_failed' => 1, 'bytes' => 0],
+            [7 => ['state' => 'failed', 'files' => []]],
+            null,
+        );
+
+        $this->assertStringContainsString("Page ID: 7 | Status: failed\nVector store file: – (not indexed)", $manifest);
+        $this->assertStringContainsString("URL: https://example.com/b\nPage ID: 9\n", $manifest);
+    }
+
     private function createService(Connection $connection, ReaderItemCounter|null $readerItems = null): VectorStoreAutoUpdateService
     {
         return new VectorStoreAutoUpdateService(

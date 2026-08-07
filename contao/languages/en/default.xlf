@@ -339,6 +339,14 @@
                 <source>Full history</source>
                 <target>Full history</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_show_files">
+                <source>Show indexed files</source>
+                <target>Show indexed files</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_show_files_hint">
+                <source>The indexed files list shows which OpenAI vector store file holds which page. In the OpenAI platform the files are only identifiable by their file ID, so use this list to match them up.</source>
+                <target>The indexed files list shows which OpenAI vector store file holds which page. In the OpenAI platform the files are only identifiable by their file ID, so use this list to match them up.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_recent_runs">
                 <source>Last 10 syncs</source>
                 <target>Last 10 syncs</target>

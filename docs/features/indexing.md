@@ -208,6 +208,39 @@ SELECT
 is indexed too. A shortfall points at discovery (linking, `nofollow`, list
 limits) rather than at robots settings.
 
+## Which OpenAI file holds which page
+
+Every page is uploaded as its own vector-store file, so a site with 21 pages ends
+up with 21 files - while a single run only uploads the pages that changed. The
+OpenAI platform lists those files by id, which by itself says nothing about the
+page behind it. Two places close that gap:
+
+- **Backend → AI Tools → "OpenAI Vector-Store-Dateien"** (`tl_openai_vector_file`)
+  is the live map: page id, title, URL, part, size, OpenAI file id and status,
+  searchable by file id. The page id links into the site structure, the URL opens
+  the live page. The auto-sync dashboard links straight to the list of one
+  configuration via "Indexierte Dateien anzeigen".
+- **The downloadable run manifest** names the file(s) of every page in the run,
+  together with what happened to the page (`added`, `updated`, `unchanged`,
+  `failed`):
+
+  ```
+  ## Preise
+  URL: https://example.com/preise
+  Page ID: 7 | Status: added
+  Vector store file: file-abc123
+  ```
+
+Uploads also carry a speaking file name (`seite-7-preise.md`, and
+`seite-7-preise-teil-1-von-2.md` for a page split across several files), so the
+OpenAI file list is readable without a lookup. Files uploaded by an earlier
+version keep their previous random name until the page changes and is re-uploaded.
+
+The list is machine state: rows are created and removed by the synchronisation
+itself and cannot be edited or deleted by hand. Deleting a row would make the
+next run upload the page a second time and leave the first file orphaned in the
+store.
+
 ## Whole-website scope
 
 With no explicit page selection the synchronisation covers the whole website,

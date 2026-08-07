@@ -173,6 +173,11 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
 
         $hasActiveConfig = false;
 
+        // The "Show indexed files" button leads into a second backend module, which a user
+        // group may not have. Checked once: without access the button (and its count query)
+        // is skipped rather than linking into an access-denied screen.
+        $canListFiles = $this->isGranted(ContaoCorePermissions::USER_CAN_ACCESS_MODULE, 'openai_vector_file');
+
         foreach ($configs as &$config) {
             // Cache-only check on render: never block the dashboard load on a licensing
             // HTTP call. Every POST action above re-checks with the authoritative
@@ -197,6 +202,10 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             // Display-ready "Last sync" box fields; the same struct is served by the JSON
             // status endpoint, so the initial render and the poller can never disagree.
             $config['status_view'] = $this->statusView($config);
+            // "Which OpenAI file holds which page" for THIS config — the file list is the
+            // only place that mapping is visible, since the uploaded files carry no index.
+            $config['files_url'] = $this->generateUrl('contao_backend', ['do' => 'openai_vector_file', 'pid' => (int) $config['id']]);
+            $config['files_count'] = $canListFiles ? $this->indexedFileCount((int) $config['id']) : 0;
             $hasActiveConfig = $hasActiveConfig || $config['license_active'];
         }
         unset($config);
@@ -391,6 +400,25 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
                 'X-Content-Type-Options' => 'nosniff',
             ],
         );
+    }
+
+    /**
+     * How many files this config currently keeps in the vector store. Drives the
+     * "Show indexed files" button, which is hidden while nothing is indexed.
+     *
+     * Fails soft: on an install whose schema update has not run yet the table does not
+     * exist, and a missing count must never break the dashboard.
+     */
+    private function indexedFileCount(int $configId): int
+    {
+        try {
+            return (int) $this->connection->fetchOne(
+                'SELECT COUNT(*) FROM tl_openai_vector_file WHERE pid = ?',
+                [$configId],
+            );
+        } catch (\Throwable) {
+            return 0;
+        }
     }
 
     /**
