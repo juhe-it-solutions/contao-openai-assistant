@@ -575,6 +575,10 @@
                 <source>contao:crawl failed: %1$s</source>
                 <target>contao:crawl fehlgeschlagen: %1$s</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_err_crawl_cache_rebuilt">
+                <source>The crawl was stopped because the server rebuilt its cache while it was running - nothing was indexed and nothing in the vector store was changed. This usually happens when the site is updated or deployed during a synchronisation, or when the command line uses a different PHP version than the website. Simply start the synchronisation again; the full error output is in the system log.</source>
+                <target>Die Suchindizierung wurde abgebrochen, weil der Server während des Laufs seinen Cache neu aufgebaut hat - es wurde nichts indexiert und nichts im Vector Store verändert. Das passiert meist, wenn die Website während einer Synchronisierung aktualisiert wird, oder wenn die Kommandozeile eine andere PHP-Version verwendet als die Website. Starten Sie die Synchronisierung einfach erneut; die vollständige Fehlerausgabe steht im System-Log.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_err_openai_chat">
                 <source>OpenAI chat completion failed (HTTP %1$s): %2$s</source>
                 <target>OpenAI-Chat-Completion fehlgeschlagen (HTTP %1$s): %2$s</target>

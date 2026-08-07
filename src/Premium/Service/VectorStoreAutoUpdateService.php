@@ -1062,6 +1062,16 @@ class VectorStoreAutoUpdateService
         }
 
         if (!$process->isSuccessful()) {
+            // Logged as well as stored: the backend renders some crawl failures as a named
+            // cause rather than as raw output (see VectorStoreSyncMessageTranslator), so the
+            // log is where the full text stays readable for diagnosis.
+            $this->logger->error(\sprintf(
+                'VectorStoreAutoUpdate: contao:crawl failed for config %d (exit code %s): %s',
+                $configId,
+                var_export($process->getExitCode(), true),
+                trim($process->getErrorOutput()),
+            ));
+
             throw new \RuntimeException('MSC.vsau_err_crawl_failed|'.$process->getErrorOutput());
         }
 

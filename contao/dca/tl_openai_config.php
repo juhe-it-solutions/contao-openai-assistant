@@ -73,10 +73,10 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
                           '</div>';
                 Message::addRaw($message);
             },
-            ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener', 'onLoadCallback'],
-        ],
-        'ondelete_callback' => [
-            ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener', 'deleteVectorStore'],
+            // onLoadCallback and deleteVectorStore are registered as contao.callback
+            // services (config/services.yaml) so they run once, with their dependencies
+            // injected. Listing them here as well would not replace that registration -
+            // Contao appends tagged callbacks to the DCA array - it would run them twice.
         ],
         'sql' => [
             'keys' => [
@@ -184,9 +184,11 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
                 'maxlength' => 255,
                 'tl_class'  => 'w50',
             ],
-            'save_callback' => [
-                ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener', 'processApiKeyForStorage'],
-            ],
+            // save_callback comes from the contao.callback service tag. Declaring it here
+            // too made it run TWICE per save, and it validates the key against OpenAI on
+            // every run - the second call stalled on the reused connection until its
+            // 15-second timeout, so every save took ~15s longer and logged a bogus
+            // "API key validation failed during save: Idle timeout reached".
             'sql' => [
                 'type'    => 'string',
                 'length'  => 1024,

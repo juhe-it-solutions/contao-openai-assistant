@@ -258,7 +258,13 @@ class OpenAiConfigListener
                 ],
             );
 
-            if (200 !== $response->getStatusCode()) {
+            $statusCode = $response->getStatusCode();
+
+            // Release the connection instead of leaving the body unread - see the note in
+            // ApiValidationController::validateApiKey. Only the status matters here.
+            $response->cancel();
+
+            if (200 !== $statusCode) {
                 Message::addError($this->getConfigLangString(
                     'api_key_check_failed',
                     'API key validation failed. Please check your API key.',
@@ -454,6 +460,7 @@ class OpenAiConfigListener
                     );
 
                     $status = $response->getStatusCode();
+                    $response->cancel(); // only the status matters; do not leave the body unread
 
                     if (404 === $status) {
                         $this->logger->info(
@@ -515,6 +522,8 @@ class OpenAiConfigListener
                 );
 
                 $status = $response->getStatusCode();
+                $response->cancel(); // only the status matters; do not leave the body unread
+
                 if (404 === $status) {
                     $this->logger->info(
                         'Vector store already deleted from OpenAI platform',

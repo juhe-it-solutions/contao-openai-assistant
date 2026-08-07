@@ -96,7 +96,7 @@ class VectorStoreSyncMessageTranslator
         }
 
         if (preg_match('/^contao:crawl failed: (.*)$/s', $message, $matches)) {
-            return $this->translator->trans('MSC.vsau_err_crawl_failed', [$matches[1]], self::DOMAIN);
+            return $this->crawlFailureMessage($matches[1]);
         }
 
         if (preg_match('/^OpenAI chat completion failed \(HTTP (\d+)\): (.*)$/s', $message, $matches)) {
@@ -108,6 +108,33 @@ class VectorStoreSyncMessageTranslator
         }
 
         return $message;
+    }
+
+    /**
+     * Render a failed contao:crawl. Its error output is raw PHP/console text, so the one
+     * failure that is not about the site at all gets named instead of dumped.
+     *
+     * Symfony keeps the compiled prod container in var/cache/<env>/Container<hash>/ and
+     * requires those service files lazily. Rebuilding the container writes a NEW hash
+     * directory and deletes the old one - so a crawl that is still running loses the
+     * directory underneath it and dies on the next require. Typical causes are a
+     * deployment during the run, or a CLI PHP version different from the website's (the
+     * two SAPIs then invalidate each other's container). The failing service name in the
+     * output is meaningless: it is simply whichever one was needed first afterwards.
+     *
+     * The stored message keeps the full output either way - only what the operator is
+     * shown changes.
+     */
+    private function crawlFailureMessage(string $error): string
+    {
+        $missingFile = str_contains($error, 'Failed opening required')
+            || str_contains($error, 'Failed to open stream');
+
+        if ($missingFile && preg_match('#/cache/[^\s\'"]*Container\w+#', $error)) {
+            return $this->translator->trans('MSC.vsau_err_crawl_cache_rebuilt', [], self::DOMAIN);
+        }
+
+        return $this->translator->trans('MSC.vsau_err_crawl_failed', [$error], self::DOMAIN);
     }
 
     private function translateKeyedMessage(string $message): string
@@ -124,11 +151,9 @@ class VectorStoreSyncMessageTranslator
         }
 
         if (str_starts_with($message, 'MSC.vsau_err_crawl_failed|')) {
-            return $this->translator->trans(
-                'MSC.vsau_err_crawl_failed',
-                [substr($message, \strlen('MSC.vsau_err_crawl_failed|'))],
-                self::DOMAIN,
-            );
+            // substr(), not a regex: the crawler's error output is free text and may
+            // contain "|".
+            return $this->crawlFailureMessage(substr($message, \strlen('MSC.vsau_err_crawl_failed|')));
         }
 
         if (str_starts_with($message, 'MSC.vsau_plan_limit_truncated|')) {
