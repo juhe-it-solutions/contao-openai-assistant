@@ -69,6 +69,11 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             return $this->downloadDocument((int) $request->query->get('download'));
         }
 
+        // Show the indexed text of a single page, linked from the vector-store file list.
+        if ($request->isMethod('GET') && null !== $request->query->get('page_content')) {
+            return $this->pageContent((int) $request->query->get('page_content'));
+        }
+
         // Manual trigger (PRG) — the route's _token_check validates REQUEST_TOKEN.
         if ($request->isMethod('POST')) {
             $configId = (int) $request->request->get('config_id');
@@ -403,6 +408,96 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
                 'X-Content-Type-Options' => 'nosniff',
             ],
         );
+    }
+
+    /**
+     * Serve the indexed text of one page (one row of tl_openai_vector_file) as plain text.
+     *
+     * The uploaded files cannot be read back from OpenAI - the Files API refuses to return
+     * the content of purpose=assistants files - so the text comes from our own copy: the
+     * newest run manifest of that configuration, which contains a block per page. Blocks are
+     * matched by page id and, for manifests written before that line existed, by URL.
+     */
+    private function pageContent(int $vectorFileId): Response
+    {
+        $file = $vectorFileId > 0
+            ? $this->connection->fetchAssociative(
+                'SELECT pid, page_id, url FROM tl_openai_vector_file WHERE id = ?',
+                [$vectorFileId],
+            )
+            : null;
+
+        if (empty($file)) {
+            Message::addError($this->translator->trans('MSC.vsau_page_content_missing', [], 'contao_default'));
+
+            return $this->redirectToRoute('vector_store_auto_update');
+        }
+
+        $manifest = (string) $this->connection->fetchOne(
+            "SELECT document FROM tl_openai_sync_log
+             WHERE pid = ? AND document IS NOT NULL AND document <> ''
+             ORDER BY run_at DESC, id DESC LIMIT 1",
+            [(int) $file['pid']],
+        );
+
+        $block = '' !== $manifest
+            ? $this->extractPageBlock($manifest, (int) $file['page_id'], (string) $file['url'])
+            : null;
+
+        if (null === $block) {
+            Message::addError($this->translator->trans('MSC.vsau_page_content_missing', [], 'contao_default'));
+
+            return $this->redirectToRoute('vector_store_auto_update');
+        }
+
+        return new Response(
+            $block,
+            Response::HTTP_OK,
+            [
+                // Plain text, so the browser shows it instead of downloading it; nosniff keeps
+                // any markup inside a page's text from ever being rendered as HTML.
+                'Content-Type' => 'text/plain; charset=UTF-8',
+                'X-Content-Type-Options' => 'nosniff',
+                'Content-Disposition' => 'inline',
+            ],
+        );
+    }
+
+    /**
+     * Pull one page's block out of a run manifest. buildManifest() joins the blocks with a
+     * "\n\n---\n\n" separator and heads each one with "## title", "URL: …" and (since the
+     * page-to-file mapping was added) "Page ID: …".
+     */
+    private function extractPageBlock(string $manifest, int $pageId, string $url): string|null
+    {
+        // Split only where the separator is followed by the next page heading: a page whose
+        // own text contains a "---" line must not cut its block short.
+        $blocks = preg_split('/\n\n---\n\n(?=## )/', $manifest) ?: [];
+
+        foreach ($blocks as $block) {
+            if (!str_starts_with($block, '## ')) {
+                // The summary header in front of the first page block.
+                continue;
+            }
+
+            $head = substr($block, 0, (int) strpos($block."\n\n", "\n\n"));
+
+            // (\D|$) so page 7 never matches the block of page 70.
+            $matchesPage = $pageId > 0 && 1 === preg_match('/^Page ID: '.$pageId.'(\D|$)/m', $head);
+            // Older manifests carry no page id, and the link-directory document has none at
+            // all - the URL line identifies those blocks.
+            $matchesUrl = '' !== $url && 1 === preg_match('/^URL: '.preg_quote($url, '/').'\s*$/m', $head);
+
+            if ($matchesPage || $matchesUrl) {
+                // The last block of a manifest keeps its trailing separator, because nothing
+                // follows it to anchor the split - drop it so the output ends with the text.
+                $block = rtrim($block);
+
+                return rtrim(preg_replace('/\n+---$/', '', $block) ?? $block)."\n";
+            }
+        }
+
+        return null;
     }
 
     /**

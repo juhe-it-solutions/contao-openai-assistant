@@ -20,6 +20,7 @@ use Contao\DataContainer;
 use Contao\Input;
 use Contao\Message;
 use Contao\System;
+use Doctrine\DBAL\Connection;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\RouterInterface;
@@ -43,6 +44,8 @@ class OpenAiVectorFileListener
         'failed' => 'red',
     ];
 
+    private const CONTENT_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:middle;fill:currentColor" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>';
+
     /**
      * Cut-off for the displayed URL text; the full URL stays in the link target and the
      * title attribute. Long query strings would otherwise stretch the column.
@@ -57,20 +60,34 @@ class OpenAiVectorFileListener
         'link_index' => 'Link directory (not a page)',
         'edit_page' => 'Edit page in the site structure',
         'open_url' => 'Open page in a new tab',
+        'show_content' => 'Show the indexed content of this page',
+        'intro_hint' => 'This list shows only the files the automatic synchronisation manages itself - '
+            .'one file per indexed page. Files you uploaded by hand (OpenAI Dashboard → File upload) are '
+            .'not listed here and are never touched by the sync. Entries disappear on their own as soon '
+            .'as a page leaves the synchronisation, which is why nothing can be deleted here by hand.',
         'filtered_hint' => 'Showing the files of one OpenAI configuration only.',
         'filtered_reset' => 'Show all configurations',
     ];
+
+    /**
+     * Indexed URL count per page id, loaded once per request. A normal page has one; a
+     * reader page has one per news/FAQ/event entry that Contao indexed.
+     *
+     * @var array<int, int>|null
+     */
+    private array|null $indexedUrls = null;
 
     public function __construct(
         private readonly Security $security,
         private readonly RouterInterface $router,
         private readonly RequestStack $requestStack,
+        private readonly Connection $connection,
     ) {
     }
 
     /**
-     * Load the shared read-only-listing stylesheet and, when a "pid" is given, scope the
-     * list to that OpenAI configuration.
+     * Load the shared read-only-listing stylesheet, explain what the list is, and - when a
+     * "pid" is given - scope it to that OpenAI configuration.
      */
     #[AsCallback(table: 'tl_openai_vector_file', target: 'config.onload')]
     public function prepareListing(): void
@@ -81,31 +98,37 @@ class OpenAiVectorFileListener
         $param = Input::get('pid');
         $pid = \is_scalar($param) ? (int) $param : 0;
 
-        if ($pid < 1) {
-            return;
+        if ($pid > 0) {
+            // Bound as a prepared-statement value by DC_Table (never interpolated). Added
+            // only once: a second DataContainer for the same table in one request would
+            // otherwise stack the condition (harmless in SQL, but pointless).
+            $filters = &$GLOBALS['TL_DCA']['tl_openai_vector_file']['list']['sorting']['filter'];
+
+            if (!\is_array($filters)) {
+                $filters = [];
+            }
+
+            if (!\in_array(['pid=?', $pid], $filters, true)) {
+                $filters[] = ['pid=?', $pid];
+            }
+
+            unset($filters);
         }
-
-        // Bound as a prepared-statement value by DC_Table (never interpolated). Added only
-        // once: a second DataContainer for the same table in one request would otherwise
-        // stack the condition (harmless in SQL, but pointless).
-        $filters = &$GLOBALS['TL_DCA']['tl_openai_vector_file']['list']['sorting']['filter'];
-
-        if (!\is_array($filters)) {
-            $filters = [];
-        }
-
-        if (!\in_array(['pid=?', $pid], $filters, true)) {
-            $filters[] = ['pid=?', $pid];
-        }
-
-        unset($filters);
 
         $request = $this->requestStack->getCurrentRequest();
 
-        // A silently filtered list looks like data loss, so say so - with a way back. Only
-        // on a plain page load: panel submits (POST) redirect without rendering, and their
-        // message would just pile a duplicate onto the following request.
+        // Messages only on a plain page load: panel submits (POST) redirect without
+        // rendering, and their message would just pile a duplicate onto the next request.
         if (null === $request || !$request->isMethod('GET') || $request->isXmlHttpRequest()) {
+            return;
+        }
+
+        Message::addInfo(htmlspecialchars($this->trans('intro_hint'), ENT_QUOTES));
+
+        // An install has exactly one OpenAI configuration by design, so the scoping is
+        // invisible there and saying "one configuration only" would just confuse. Only a
+        // legacy install carrying several configs gets the note - and a way back.
+        if ($pid < 1 || $this->configCount() < 2) {
             return;
         }
 
@@ -168,11 +191,12 @@ class OpenAiVectorFileListener
         if (isset($index['status'])) {
             $status = (string) ($row['status'] ?? '');
             $color = self::STATUS_BADGES[$status] ?? 'grey';
-            // The DCA "reference" already turned the raw value into a label; fall back to the
-            // raw status for a value no reference covers (e.g. the legacy "orphan").
-            $text = (string) ($args[$index['status']] ?? '');
-            $text = '' !== $text ? $text : $status;
-            $args[$index['status']] = '<span class="vsau-badge '.$color.'">'.htmlspecialchars($text, ENT_QUOTES).'</span>';
+            // The label is resolved from the DCA reference here rather than reused from
+            // $args: Contao 6 hands the callback pre-escaped column values while 5.3 and 5.7
+            // hand over raw ones, so reusing them would double-encode on one version or stay
+            // unescaped on the other. A status no reference covers keeps its raw value.
+            $args[$index['status']] = '<span class="vsau-badge '.$color.'">'
+                .htmlspecialchars($this->statusLabel($status), ENT_QUOTES).'</span>';
         }
 
         if (isset($index['chunk_index'])) {
@@ -189,7 +213,93 @@ class OpenAiVectorFileListener
             $args[$index['openai_file_id']] = '' !== $fileId ? '<code>'.htmlspecialchars($fileId, ENT_QUOTES).'</code>' : '–';
         }
 
+        // Virtual column (no database field): how many indexed URLs were merged into this
+        // page's document. News, FAQ and event entries have no page of their own - they all
+        // sit behind one reader page and become a single document - so this is the only
+        // place where their volume becomes visible at all.
+        if (isset($index['indexed_urls'])) {
+            $pageId = (int) ($row['page_id'] ?? 0);
+            // The link directory is built from the other pages' links, not from an indexed
+            // URL of its own - a count would be meaningless there.
+            $args[$index['indexed_urls']] = $pageId > 0 ? (string) $this->indexedUrlCount($pageId) : '–';
+        }
+
         return $args;
+    }
+
+    /**
+     * button_callback for the "content" row operation: link to the indexed text of this
+     * page. The content is served by the auto-sync controller out of the stored run
+     * manifest, so the button only shows for a user who may open that module.
+     *
+     * Only the record ($row) is typed: Contao passes further positional arguments (href,
+     * label, title, icon, attributes, …) which PHP ignores. This keeps the callback working
+     * unchanged on Contao 5.3/5.7 and 6.0, where those arguments differ in count.
+     *
+     * @param array<string, mixed> $row
+     */
+    #[AsCallback(table: 'tl_openai_vector_file', target: 'list.operations.content.button_callback')]
+    public function contentButton(array $row): string
+    {
+        $id = (int) ($row['id'] ?? 0);
+
+        if ($id < 1 || !$this->security->isGranted(ContaoCorePermissions::USER_CAN_ACCESS_MODULE, 'vector_store_auto_update')) {
+            return '';
+        }
+
+        return \sprintf(
+            '<a href="%s" title="%s" target="_blank" rel="noopener noreferrer">%s</a> ',
+            htmlspecialchars($this->router->generate('vector_store_auto_update', ['page_content' => $id]), ENT_QUOTES),
+            htmlspecialchars($this->trans('show_content'), ENT_QUOTES),
+            self::CONTENT_ICON,
+        );
+    }
+
+    /**
+     * Number of indexed URLs behind one page, counted from Contao's search index - the same
+     * source the synchronisation reads. Loaded in a single grouped query on first use.
+     */
+    private function indexedUrlCount(int $pageId): int
+    {
+        if (null === $this->indexedUrls) {
+            try {
+                // Same predicate the synchronisation applies: protected URLs never reach the
+                // vector store, so counting them here would overstate what a document holds.
+                $rows = $this->connection->fetchAllKeyValue(
+                    'SELECT pid, COUNT(*) FROM tl_search WHERE COALESCE(protected, 0) = 0 GROUP BY pid',
+                );
+                $this->indexedUrls = array_map('intval', $rows);
+            } catch (\Throwable) {
+                // No search index (or no table yet): the column simply stays empty.
+                $this->indexedUrls = [];
+            }
+        }
+
+        return $this->indexedUrls[$pageId] ?? 0;
+    }
+
+    /**
+     * Translate a stored status through the DCA reference ("uploaded" -> "Hochgeladen"),
+     * falling back to the raw value for anything the reference does not cover.
+     */
+    private function statusLabel(string $status): string
+    {
+        $reference = $GLOBALS['TL_DCA']['tl_openai_vector_file']['fields']['status']['reference'][$status] ?? null;
+
+        if (\is_array($reference)) {
+            $reference = $reference[0] ?? null;
+        }
+
+        return \is_string($reference) && '' !== $reference ? $reference : $status;
+    }
+
+    private function configCount(): int
+    {
+        try {
+            return (int) $this->connection->fetchOne('SELECT COUNT(*) FROM tl_openai_config');
+        } catch (\Throwable) {
+            return 0;
+        }
     }
 
     /**

@@ -418,30 +418,7 @@ class VectorStoreAutoUpdateService
             // Aggregate by page id: a page can be indexed under several URLs (e.g. paginated
             // readers), producing multiple tl_search rows. We want exactly one document per
             // page, so the cleaned text of all its rows is concatenated.
-            $byPage = [];
-
-            foreach ($rows as $i => $row) {
-                $content = trim($clean['texts'][$i] ?? '');
-                if ('' === $content) {
-                    // Pure chrome collapses to nothing after de-dup - carries no information.
-                    continue;
-                }
-
-                $pageId = (int) $row['page_id'];
-                if (!isset($byPage[$pageId])) {
-                    $byPage[$pageId] = [
-                        'page_id' => $pageId,
-                        'url' => (string) $row['url'],
-                        'title' => (string) $row['title'],
-                        'language' => (string) $row['language'],
-                        'contents' => [],
-                        'checksums' => [],
-                    ];
-                }
-
-                $byPage[$pageId]['contents'][] = $content;
-                $byPage[$pageId]['checksums'][] = (string) ($row['checksum'] ?? '');
-            }
+            $byPage = $this->aggregateByPage($rows, $clean['texts']);
 
             // Enforce the subscription page cap on the actual content pages (after
             // boilerplate cleaning, so pages that collapsed to nothing are already gone).
@@ -1329,15 +1306,78 @@ class VectorStoreAutoUpdateService
         // page's document from the customer's vector store. The column is
         // "boolean NOT NULL default false" in Contao 5.3, 5.7 and 6.0 alike, so NULL
         // should be impossible — this is a guard against schema drift, not a hypothesis.
+        // p.title is joined so a merged document can be named after the page itself. The
+        // indexed s.title is the <title> tag of one crawled URL - on a reader page that is
+        // one news/FAQ/event entry, i.e. an arbitrary one of many, and it survives in the
+        // index after that entry is gone. LEFT JOIN: a search row whose page row vanished
+        // still carries its own title as a fallback.
         return $this->connection->fetchAllAssociative(
-            'SELECT s.pid AS page_id, s.url, s.title, s.text, s.language, s.checksum
+            'SELECT s.pid AS page_id, s.url, s.title, s.text, s.language, s.checksum, p.title AS page_title
              FROM tl_search s
+             LEFT JOIN tl_page p ON p.id = s.pid
              WHERE s.pid IN (?)
                AND COALESCE(s.protected, 0) = 0
              ORDER BY s.pid, s.url',
             [$pageIds],
             [ArrayParameterType::INTEGER],
         );
+    }
+
+    /**
+     * Merge the search-index rows of a page into one document per page.
+     *
+     * A page can hold several indexed URLs - paginated lists, and above all a reader page,
+     * where every news/FAQ/event entry is its own URL under the same page id. Two values
+     * therefore cannot simply be taken from the first row:
+     *
+     * - the title comes from the page itself (tl_page.title), because the indexed <title>
+     *   of the first row names one arbitrary entry and keeps naming it after that entry is
+     *   deleted, until the index is rebuilt;
+     * - the URL is the shortest of the page's indexed URLs, which is the page itself: an
+     *   entry only ever adds a path segment or a query parameter to it.
+     *
+     * @param list<array<string, mixed>> $rows  search-index rows, ordered by page and URL
+     * @param array<int, string>         $texts boilerplate-cleaned text per row index
+     *
+     * @return array<int, array{page_id: int, url: string, title: string, language: string, contents: list<string>, checksums: list<string>}>
+     */
+    private function aggregateByPage(array $rows, array $texts): array
+    {
+        $byPage = [];
+
+        foreach ($rows as $i => $row) {
+            $content = trim($texts[$i] ?? '');
+
+            if ('' === $content) {
+                // Pure chrome collapses to nothing after de-dup - carries no information.
+                continue;
+            }
+
+            $pageId = (int) $row['page_id'];
+            $url = (string) $row['url'];
+
+            if (!isset($byPage[$pageId])) {
+                $byPage[$pageId] = [
+                    'page_id' => $pageId,
+                    'url' => $url,
+                    'title' => '' !== trim((string) ($row['page_title'] ?? ''))
+                        ? (string) $row['page_title']
+                        : (string) $row['title'],
+                    'language' => (string) $row['language'],
+                    'contents' => [],
+                    'checksums' => [],
+                ];
+            }
+
+            if (mb_strlen($url) < mb_strlen($byPage[$pageId]['url'])) {
+                $byPage[$pageId]['url'] = $url;
+            }
+
+            $byPage[$pageId]['contents'][] = $content;
+            $byPage[$pageId]['checksums'][] = (string) ($row['checksum'] ?? '');
+        }
+
+        return $byPage;
     }
 
     /**

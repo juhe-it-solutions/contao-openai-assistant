@@ -339,6 +339,10 @@
                 <source>Full history</source>
                 <target>Full history</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_page_content_missing">
+                <source>The indexed text of this page is not available: no synchronisation has stored a document for it yet.</source>
+                <target>The indexed text of this page is not available: no synchronisation has stored a document for it yet.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_show_files">
                 <source>Show indexed files</source>
                 <target>Show indexed files</target>

@@ -15,6 +15,7 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Service;
 use Contao\CoreBundle\Crawl\Escargot\Factory as EscargotFactory;
 use Contao\CoreBundle\Util\ProcessUtil;
 use Doctrine\DBAL\Connection;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Controller\BackendModule\VectorStoreAutoUpdateController;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\BoilerplateFilter;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicenseValidationService;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LinkIndexDocumentBuilder;
@@ -657,6 +658,100 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
 
         $this->assertStringContainsString("Page ID: 7 | Status: failed\nVector store file: – (not indexed)", $manifest);
         $this->assertStringContainsString("URL: https://example.com/b\nPage ID: 9\n", $manifest);
+    }
+
+    /**
+     * A reader page carries one indexed URL per news/FAQ/event entry. Naming the merged
+     * document after the first of them is arbitrary - and stays wrong once that entry is
+     * deleted, because its search-index row outlives it.
+     */
+    public function testAReaderPageIsNamedAfterThePageNotAfterOneEntry(): void
+    {
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'aggregateByPage');
+
+        $rows = [
+            // Ordered by URL, exactly as readAllPages() returns them.
+            ['page_id' => 7, 'url' => 'https://example.com/aktuelles.html', 'title' => 'Aktuelles - Beispiel GmbH', 'page_title' => 'Aktuelles', 'language' => 'de', 'checksum' => 'a'],
+            ['page_id' => 7, 'url' => 'https://example.com/aktuelles/artikel-a.html', 'title' => 'Artikel A - Beispiel GmbH', 'page_title' => 'Aktuelles', 'language' => 'de', 'checksum' => 'b'],
+            ['page_id' => 7, 'url' => 'https://example.com/aktuelles/artikel-b.html', 'title' => 'Artikel B - Beispiel GmbH', 'page_title' => 'Aktuelles', 'language' => 'de', 'checksum' => 'c'],
+        ];
+
+        $out = $method->invoke($this->createService($this->createMock(Connection::class)), $rows, ['Übersicht', 'Text A', 'Text B']);
+
+        $this->assertSame('Aktuelles', $out[7]['title'], 'The page name must win over one entry\'s <title>.');
+        $this->assertSame('https://example.com/aktuelles.html', $out[7]['url'], 'The merged document must cite the reader page.');
+        $this->assertSame(['Übersicht', 'Text A', 'Text B'], $out[7]['contents']);
+    }
+
+    /**
+     * Even when the bare reader page itself was not indexed, the shortest entry URL is a
+     * better citation than whichever row happened to sort first.
+     */
+    public function testTheShortestIndexedUrlWinsAndAMissingPageRowFallsBackToTheIndexedTitle(): void
+    {
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'aggregateByPage');
+
+        $rows = [
+            ['page_id' => 9, 'url' => 'https://example.com/a/lange-unterseite.html', 'title' => 'Lang - Beispiel', 'page_title' => null, 'language' => 'de', 'checksum' => 'a'],
+            ['page_id' => 9, 'url' => 'https://example.com/a.html', 'title' => 'Kurz - Beispiel', 'page_title' => '', 'language' => 'de', 'checksum' => 'b'],
+        ];
+
+        $out = $method->invoke($this->createService($this->createMock(Connection::class)), $rows, ['Text 1', 'Text 2']);
+
+        $this->assertSame('https://example.com/a.html', $out[9]['url']);
+        $this->assertSame('Lang - Beispiel', $out[9]['title'], 'Without a page row the indexed title remains the only name.');
+    }
+
+    /**
+     * The backend list serves a page's indexed text out of the stored manifest, because the
+     * uploaded files cannot be read back from OpenAI. Blocks are cut by page id.
+     */
+    public function testExtractsOnePagesBlockFromTheManifest(): void
+    {
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateController::class, 'extractPageBlock');
+        $controller = (new \ReflectionClass(VectorStoreAutoUpdateController::class))->newInstanceWithoutConstructor();
+
+        $manifest = "# Vector store sync manifest\n\n- Pages indexed: 2\n\n---\n\n"
+            ."## Preise\nURL: https://example.com/preise\nPage ID: 7 | Status: added\nVector store file: file-aaa\n\nInhalt A\n\n---\n\n"
+            ."## Team\nURL: https://example.com/team\nPage ID: 70 | Status: unchanged\nVector store file: file-bbb\n\nInhalt B\n\n---\n\n";
+
+        $this->assertSame(
+            "## Preise\nURL: https://example.com/preise\nPage ID: 7 | Status: added\nVector store file: file-aaa\n\nInhalt A\n",
+            $method->invoke($controller, $manifest, 7, 'https://example.com/preise'),
+        );
+
+        // Page 7 must never be answered with the block of page 70.
+        $this->assertStringContainsString('Inhalt B', (string) $method->invoke($controller, $manifest, 70, ''));
+        $this->assertNull($method->invoke($controller, $manifest, 99, 'https://example.com/unknown'));
+
+        // A page whose own text contains a "---" line keeps its full block.
+        $withRule = "# Manifest\n\n---\n\n"
+            ."## Preise\nURL: https://example.com/preise\nPage ID: 7 | Status: added\nVector store file: file-aaa\n\n"
+            ."Oben\n\n---\n\nUnten\n\n---\n\n"
+            ."## Team\nURL: https://example.com/team\nPage ID: 8 | Status: added\nVector store file: file-bbb\n\nInhalt B\n\n---\n\n";
+
+        $block = (string) $method->invoke($controller, $withRule, 7, 'https://example.com/preise');
+        $this->assertStringContainsString('Oben', $block);
+        $this->assertStringContainsString('Unten', $block);
+        $this->assertStringNotContainsString('Inhalt B', $block);
+    }
+
+    /**
+     * Manifests written before the page id was part of a block - and the link directory,
+     * which has no page id at all - are matched by their URL line.
+     */
+    public function testFallsBackToTheUrlWhenTheManifestHasNoPageId(): void
+    {
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateController::class, 'extractPageBlock');
+        $controller = (new \ReflectionClass(VectorStoreAutoUpdateController::class))->newInstanceWithoutConstructor();
+
+        $manifest = "# Vector store sync manifest\n\n---\n\n"
+            ."## Preise\nURL: https://example.com/preise\n\nAlter Inhalt\n\n---\n\n";
+
+        $this->assertSame(
+            "## Preise\nURL: https://example.com/preise\n\nAlter Inhalt\n",
+            $method->invoke($controller, $manifest, 7, 'https://example.com/preise'),
+        );
     }
 
     private function createService(Connection $connection, ReaderItemCounter|null $readerItems = null): VectorStoreAutoUpdateService
