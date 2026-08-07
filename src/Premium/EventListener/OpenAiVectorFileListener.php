@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Premium\EventListener;
 
+use Contao\CoreBundle\DataContainer\RecordLabel;
 use Contao\CoreBundle\DependencyInjection\Attribute\AsCallback;
 use Contao\CoreBundle\Security\ContaoCorePermissions;
 use Contao\DataContainer;
@@ -118,17 +119,19 @@ class OpenAiVectorFileListener
 
     /**
      * Format the columns of a single list row. In "showColumns" mode the callback receives
-     * the positional $args array and must return it (see DC_Table).
+     * the positional $args array and returns the per-column values.
+     *
+     * Contao 6 auto-encodes plain string/array returns, so the columns (which carry the
+     * page/URL links and the status badge as markup) are wrapped in a RecordLabel to
+     * render as HTML.
      *
      * @param array<string, mixed> $row
      * @param array<int, string>   $args
-     *
-     * @return array<int, string>
      */
     #[AsCallback(table: 'tl_openai_vector_file', target: 'list.label.label_callback')]
-    public function formatRow(array $row, string $label, DataContainer $dc, array $args): array
+    public function formatRow(array $row, string $label, DataContainer $dc, array $args): RecordLabel
     {
-        return $this->formatColumns($row, $args);
+        return RecordLabel::fromHtml($this->formatColumns($row, $args));
     }
 
     /**
