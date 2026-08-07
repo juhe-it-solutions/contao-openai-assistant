@@ -3,11 +3,12 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the JUHE Contao OpenAI Assistant bundle.
+ * This file is part of the JUHE Contao OpenAI Assistant premium add-on.
  *
  * (c) JUHE IT-solutions
  *
- * @license LGPL-3.0-or-later
+ * @license Proprietary - see LICENSE-PREMIUM. Usage of the premium add-on
+ *          requires a valid premium subscription from JUHE IT-solutions.
  */
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\EventListener;
