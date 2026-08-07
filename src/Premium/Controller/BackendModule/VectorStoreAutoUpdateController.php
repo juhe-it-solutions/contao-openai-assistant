@@ -467,6 +467,14 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
      */
     private function extractPageBlock(string $manifest, int $pageId, string $url): string|null
     {
+        // Drop the summary that heads the manifest. Manifests written before the summary was
+        // closed by a blank line carry the first page block glued straight onto their closing
+        // "---", where the split below cannot separate it - cutting the summary off first is
+        // what makes that first page readable in those (already stored) manifests too.
+        if (str_starts_with($manifest, '# ') && false !== ($end = strpos($manifest, "\n---\n"))) {
+            $manifest = ltrim(substr($manifest, $end + \strlen("\n---\n")), "\n");
+        }
+
         // Split only where the separator is followed by the next page heading: a page whose
         // own text contains a "---" line must not cut its block short.
         $blocks = preg_split('/\n\n---\n\n(?=## )/', $manifest) ?: [];
