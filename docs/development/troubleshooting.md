@@ -64,6 +64,57 @@ Useful checks:
 - The first sync is always manual (dashboard button or CLI command); scheduled cron runs apply from the second sync onward.
 - Hosts that disable `proc_open` cannot dispatch manual syncs from the backend; run the CLI command instead.
 
+## Sync Fails With "Failed to open stream" in `var/cache`
+
+A run that ends with a wall of PHP warnings about a missing file under
+`var/cache/<env>/Container<hash>/` was interrupted by a container rebuild, not by
+anything on the website:
+
+```
+Warning: require(.../var/cache/prod/ContainerXE6omHe/getFosHttpCache_....php):
+Failed to open stream: No such file or directory
+```
+
+Symfony keeps the compiled container in `var/cache/<env>/Container<hash>/` and requires
+those service files lazily. Rebuilding the container writes a **new** hash directory and
+deletes the old one — so a `contao:crawl` subprocess that is still running loses the
+directory underneath it and dies on the next `require`. The service named in the error is
+meaningless; it is simply whichever one was needed first afterwards.
+
+The backend reports this case in plain words ("the server rebuilt its cache …"); the full
+output goes to the system log. Nothing is indexed and nothing in the vector store changes,
+so it is always safe to start the synchronisation again.
+
+Two causes, in order of likelihood:
+
+1. **The site was updated or deployed while a sync was running** — a Contao Manager action,
+   `composer install`, or a cache clear. Nothing to fix; run the sync again afterwards.
+2. **The CLI PHP version differs from the website's.** The sync spawns `contao:crawl`
+   through Contao's `ProcessUtil`, which resolves the interpreter with Symfony's
+   `PhpExecutableFinder`. That returns `PHP_BINARY` only for the `cli`/`cli-server`/`phpdbg`
+   SAPIs — so a sync started from the **backend button** runs under FPM, falls through to
+   searching `$PATH`, and can pick a different PHP than the site runs. Both SAPIs share
+   `var/cache`, so each rebuilds the container the other just built, in a loop.
+
+To check the second cause, compare the CLI version with the site's configured version:
+
+```bash
+php -v                    # the CLI in $PATH
+```
+
+If they differ, point the subprocess at the site's PHP. `PhpExecutableFinder` honours the
+`PHP_PATH` environment variable, so setting it in the PHP-FPM pool fixes it for every
+Contao subprocess, not just this extension's:
+
+```ini
+; PHP-FPM pool config (ISPConfig: Sites → Options → PHP directives)
+env[PHP_PATH] = /opt/php-8.3/bin/php   ; the version the SITE runs
+```
+
+Reload PHP-FPM afterwards. Note that running the kernel under a PHP version the Contao
+release does not support (e.g. Contao 5.3 under PHP 8.5) causes trouble beyond this cache
+race, so it is worth aligning regardless.
+
 ## Development Checks
 
 For local development, run:

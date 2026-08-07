@@ -32,11 +32,16 @@ class LicenseHeaderTest extends TestCase
     private const PROPRIETARY_MARKER = '@license Proprietary - see LICENSE-PREMIUM';
 
     /**
-     * Every proprietary source file must say so in its header.
+     * Every proprietary file must say so in its header - the tests included. They are
+     * export-ignored and so never shipped, but they are public in the repository and
+     * carried an LGPL header until 2026-08-07, which said the opposite of what they are.
      */
-    public function testEveryPremiumSourceFileCarriesTheProprietaryHeader(): void
+    public function testEveryPremiumFileCarriesTheProprietaryHeader(): void
     {
-        $files = $this->premiumFiles(__DIR__.'/../../src/Premium');
+        $files = [
+            ...$this->premiumFiles(__DIR__.'/../../src/Premium'),
+            ...$this->premiumFiles(__DIR__.'/../../tests/Premium'),
+        ];
 
         $this->assertNotEmpty($files, 'No premium sources found - the path in this test is wrong.');
 
@@ -54,13 +59,17 @@ class LicenseHeaderTest extends TestCase
      * file. Only the file header is examined - the word may legitimately appear in code
      * or prose further down (this very file is an example).
      *
-     * Scoped to src/, which is what composer ships (.gitattributes export-ignores
-     * /tests). The premium tests are inconsistent about their headers today; that is a
-     * separate decision, not something a build guard should force.
+     * Covers the premium tests as well: they are not in ECS's configured paths, but
+     * "ecs check tests" reaches them and would stamp the LGPL header on just the same.
      */
-    public function testNoPremiumSourceFileClaimsToBeLgpl(): void
+    public function testNoPremiumFileClaimsToBeLgpl(): void
     {
-        foreach ($this->premiumFiles(__DIR__.'/../../src/Premium') as $file) {
+        $files = [
+            ...$this->premiumFiles(__DIR__.'/../../src/Premium'),
+            ...$this->premiumFiles(__DIR__.'/../../tests/Premium'),
+        ];
+
+        foreach ($files as $file) {
             $this->assertStringNotContainsString(
                 'LGPL',
                 $this->header($file),
