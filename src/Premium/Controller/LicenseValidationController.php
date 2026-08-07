@@ -92,6 +92,16 @@ class LicenseValidationController
         // Do not echo remote error details — boolean result only.
         $active = $this->licenseValidation->validatePlainKey($postedKey);
 
+        // null = the licensing server could not be reached. "request_failed" is the same
+        // machine code the API-key endpoint uses, so the button renders "validation
+        // failed" instead of claiming the key is invalid.
+        if (null === $active) {
+            return new JsonResponse([
+                'valid' => false,
+                'message' => 'request_failed',
+            ]);
+        }
+
         return new JsonResponse([
             'valid' => $active,
             'message' => $active ? '' : 'inactive',

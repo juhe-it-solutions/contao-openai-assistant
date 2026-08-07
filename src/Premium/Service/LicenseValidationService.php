@@ -296,8 +296,13 @@ class LicenseValidationService
     /**
      * Remote validation without persisting status (used by the backend "check key"
      * button before the config record is saved).
+     *
+     * Returns null when the licensing server could not be reached or did not answer
+     * with usable JSON. That is deliberately not "false": the caller reports false as
+     * "this licence key is invalid", and telling a paying customer their key is invalid
+     * because their own server was briefly offline is the worse of the two errors.
      */
-    public function validatePlainKey(string $key): bool
+    public function validatePlainKey(string $key): bool|null
     {
         try {
             $response = $this->http->request(
@@ -311,11 +316,26 @@ class LicenseValidationService
                 ],
             );
 
-            $data = $response->toArray(false);
+            // Same trust rule as revalidate() above: only a 2xx carrying a boolean
+            // "valid" is a verdict. A 429 (the endpoint is rate-limited), a 5xx, a
+            // proxy/maintenance page or a body without that field all mean the check did
+            // not happen - and "$data['valid'] ?? false" would have turned every one of
+            // them into "this licence key is invalid".
+            $statusCode = $response->getStatusCode();
 
-            return ($data['valid'] ?? false) === true;
+            if ($statusCode < 200 || $statusCode >= 300) {
+                throw new \RuntimeException(\sprintf('Licensing server returned HTTP %d.', $statusCode));
+            }
+
+            $data = $response->toArray(false); // throws on malformed JSON
+
+            if (!\is_bool($data['valid'] ?? null)) {
+                throw new \RuntimeException('Licensing server response lacks a boolean "valid" field.');
+            }
+
+            return $data['valid'];
         } catch (\Throwable) {
-            return false;
+            return null;
         }
     }
 
