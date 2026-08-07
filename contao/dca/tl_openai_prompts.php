@@ -1,6 +1,5 @@
 <?php
 
-
 declare(strict_types=1);
 
 /*
@@ -13,6 +12,21 @@ declare(strict_types=1);
 
 use Contao\DC_Table;
 
+/*
+ * Where the callbacks below are registered, and why it differs per kind:
+ *
+ * - Every callback is registered ONCE: either in the array here, or as a contao.callback
+ *   in config/services.yaml - never in both. Contao APPENDS a tagged callback to the DCA
+ *   array (DataContainerCallbackListener::addCallbacks), so naming one in both places runs
+ *   it TWICE per save. Which of the two places is used is a per-callback decision; inline
+ *   closures obviously have no service to tag.
+ * - The list callbacks stay HERE. A "list.label" / "list.child_record" tag compiles to
+ *   ['list']['label_callback'] / ['list']['child_record_callback'], but Contao reads them
+ *   from ['list']['label']['label_callback'] (DataContainer::generateRecordLabel) and
+ *   ['list']['sorting']['child_record_callback'] (DC_Table::parentView) - such a tag is
+ *   silently inert. The correct targets would be "list.label.label" and
+ *   "list.sorting.child_record".
+ */
 $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
     'config' => [
         'dataContainer' => DC_Table::class,
@@ -32,6 +46,10 @@ $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
             'fields' => ['name'],
             'headerFields' => ['title'],
             'panelLayout' => 'filter;search,limit',
+            // Registered here, NOT as a contao.callback service: the tag target
+            // "list.child_record" compiles to $GLOBALS['TL_DCA'][...]['list']['child_record_callback'],
+            // while Contao reads it from ['list']['sorting']['child_record_callback']. A tag would
+            // therefore be silently inert - this array is the only registration that runs.
             'child_record_callback' => ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiPromptsListener', 'listPrompts'],
         ],
         'label' => [
@@ -110,8 +128,6 @@ $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_prompts']['model'],
             'exclude' => true,
             'inputType' => 'select',
-            // Registered once, as a contao.callback service (config/services.yaml):
-            // Contao appends a tagged callback to this array, so a second entry here ran it twice.
             'eval' => [
                 'chosen' => true,
                 'tl_class' => 'w50',
@@ -124,8 +140,6 @@ $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_prompts']['model_manual'],
             'exclude' => true,
             'inputType' => 'text',
-            // Registered once, as a contao.callback service (config/services.yaml):
-            // Contao appends a tagged callback to this array, so a second entry here ran it twice.
             'eval' => [
                 'maxlength' => 255,
                 'tl_class' => 'w50',
@@ -162,8 +176,6 @@ $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_prompts']['temperature'],
             'exclude' => true,
             'inputType' => 'text',
-            // Registered once, as a contao.callback service (config/services.yaml):
-            // Contao appends a tagged callback to this array, so a second entry here ran it twice.
             'eval' => [
                 'mandatory' => true,
                 'rgxp' => 'prcnt',
@@ -177,8 +189,6 @@ $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_prompts']['top_p'],
             'exclude' => true,
             'inputType' => 'text',
-            // Registered once, as a contao.callback service (config/services.yaml):
-            // Contao appends a tagged callback to this array, so a second entry here ran it twice.
             'eval' => [
                 'mandatory' => true,
                 'rgxp' => 'prcnt',
@@ -192,8 +202,6 @@ $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_prompts']['system_instructions'],
             'exclude' => true,
             'inputType' => 'textarea',
-            // Registered once, as a contao.callback service (config/services.yaml):
-            // Contao appends a tagged callback to this array, so a second entry here ran it twice.
             'eval' => [
                 'rte' => '',
                 'tl_class' => 'clr',

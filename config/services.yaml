@@ -104,8 +104,11 @@ services:
             - { name: contao.callback, table: tl_openai_config, target: config.onload, method: onLoadCallback }
             - { name: contao.callback, table: tl_openai_config, target: edit.buttons, method: removeSingleRecordCreateButtons }
             - { name: contao.callback, table: tl_openai_config, target: fields.api_key.load, method: processApiKeyForDisplay }
-            - { name: contao.callback, table: tl_openai_config, target: list.label, method: addIcon }
             - { name: contao.callback, table: tl_openai_config, target: fields.api_key.save, method: processApiKeyForStorage }
+            # No list.label / list.child_record tags: the compiler turns those targets into
+            # ['list']['label_callback'] / ['list']['child_record_callback'], but Contao reads
+            # ['list']['label']['label_callback'] and ['list']['sorting']['child_record_callback'].
+            # Such a tag is silently inert, so these two stay in the DCA arrays.
             - { name: contao.callback, table: tl_openai_config, target: config.ondelete, method: deleteVectorStore }
             # Premium license + auto-update (registered ONLY here — not in the DCA arrays — to run once via DI)
             - { name: contao.callback, table: tl_openai_config, target: config.onsubmit, method: validatePremiumLicenseOnSave }
@@ -151,7 +154,10 @@ services:
         public: true
         tags:
             - { name: contao.callback, table: tl_openai_files, target: fields.file_upload.save, method: uploadToOpenAI }
-            - { name: contao.callback, table: tl_openai_files, target: list.child_record, method: listFiles }
+            # No list.label / list.child_record tags: the compiler turns those targets into
+            # ['list']['label_callback'] / ['list']['child_record_callback'], but Contao reads
+            # ['list']['label']['label_callback'] and ['list']['sorting']['child_record_callback'].
+            # Such a tag is silently inert, so these two stay in the DCA arrays.
             - { name: contao.callback, table: tl_openai_files, target: config.ondelete, method: deleteFromOpenAI }
 
     # OpenAiPromptsListener
@@ -168,13 +174,15 @@ services:
         tags:
             - { name: contao.callback, table: tl_openai_prompts, target: config.onload, method: onLoadCallback }
             - { name: contao.callback, table: tl_openai_prompts, target: fields.model.options, method: getAvailableModels }
+            # No list.label / list.child_record tags: the compiler turns those targets into
+            # ['list']['label_callback'] / ['list']['child_record_callback'], but Contao reads
+            # ['list']['label']['label_callback'] and ['list']['sorting']['child_record_callback'].
+            # Such a tag is silently inert, so these two stay in the DCA arrays.
             - { name: contao.callback, table: tl_openai_prompts, target: fields.model.save, method: validateModel }
             - { name: contao.callback, table: tl_openai_prompts, target: fields.model_manual.save, method: validateManualModel }
             - { name: contao.callback, table: tl_openai_prompts, target: fields.system_instructions.save, method: normalizeSystemInstructions }
             - { name: contao.callback, table: tl_openai_prompts, target: fields.top_p.save, method: validateTopP }
             - { name: contao.callback, table: tl_openai_prompts, target: fields.temperature.save, method: validateTemperature }
-            - { name: contao.callback, table: tl_openai_prompts, target: list.label, method: listPrompts }
-            - { name: contao.callback, table: tl_openai_prompts, target: list.child_record, method: listPrompts }
 
     # No security voter for /ai-chat/*: the endpoints are anonymous by design (a
     # public chatbot answers visitors who are not logged in), and the voter that

@@ -91,8 +91,12 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'panelLayout' => 'filter;search,limit',
         ],
         'label' => [
-            'fields'         => ['title', 'api_key'],
-            'format'         => '%s <span style="color:#999;">[%s]</span>',
+            'fields' => ['title', 'api_key'],
+            'format' => '%s <span style="color:#999;">[%s]</span>',
+            // Registered here, NOT as a contao.callback service: the tag target
+            // "list.label" compiles to $GLOBALS['TL_DCA'][...]['list']['label_callback'],
+            // while Contao reads it from ['list']['label']['label_callback']. A tag would
+            // therefore be silently inert - this array is the only registration that runs.
             'label_callback' => ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener', 'addIcon'],
         ],
         'global_operations' => [

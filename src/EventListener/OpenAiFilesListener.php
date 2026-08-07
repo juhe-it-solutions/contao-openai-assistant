@@ -13,7 +13,6 @@ declare(strict_types=1);
 namespace JuheItSolutions\ContaoOpenaiAssistant\EventListener;
 
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
-use Contao\CoreBundle\DependencyInjection\Attribute\AsCallback;
 use Contao\CoreBundle\Monolog\ContaoContext;
 use Contao\DataContainer;
 use Contao\FilesModel;
@@ -357,7 +356,12 @@ class OpenAiFilesListener
         return $value;
     }
 
-    #[AsCallback(table: 'tl_openai_files', target: 'list.child_record')]
+    /**
+     * Registered in contao/dca/tl_openai_files.php, not by an attribute: "list.child_record"
+     * compiles to ['list']['child_record_callback'], while Contao reads the callback from
+     * ['list']['sorting']['child_record_callback'] (DC_Table::parentView). The attribute was
+     * therefore inert - and with autoconfigure enabled it added a second, equally inert tag.
+     */
     public function listFiles($row): string
     {
         // Contao auto-loads the tl_openai_files language file for this DCA, so the
