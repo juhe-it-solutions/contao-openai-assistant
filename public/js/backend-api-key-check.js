@@ -184,30 +184,58 @@
                 button.disabled = false;
                 button.textContent = labels.check;
 
-                try {
-                    var result = JSON.parse(xhr.responseText || "{}");
+                // Only a 200 carrying a JSON object may produce a verdict about the key.
+                // Everything else means the check did not happen: status 0 (offline, DNS
+                // failure, backend unreachable, blocked by an extension), 403 (expired
+                // backend token, missing permission), 404, a 5xx, or a login/maintenance
+                // page returned instead of JSON. Every real verdict this endpoint gives -
+                // valid, empty, invalid_format, inactive, request_failed - is answered
+                // with 200, so nothing legitimate is lost by requiring it.
+                //
+                // The body must be checked too: "" || "{}" parses cleanly, and
+                // JSON.parse("null") yields null, on which reading .valid would throw.
+                var couldNotCheck = 200 !== xhr.status;
+                var result = {};
 
-                    if (result.valid) {
-                        resultSpan.innerHTML = '<span style="color:green;">✓ ' + labels.valid + '</span>';
-                        input.style.backgroundColor = "lightgreen";
-                        input.style.color = "#121212";
-                        return;
+                if (!couldNotCheck) {
+                    try {
+                        result = JSON.parse(xhr.responseText || "{}");
+                    } catch (e) {
+                        couldNotCheck = true;
                     }
 
-                    // The endpoint returns machine codes, never raw exception text.
-                    // "request_failed" (the call did not complete) and "access_denied"
-                    // (missing backend permission) are not statements about the key, so
-                    // they must not be reported as "the key is invalid".
-                    var couldNotCheck = 'request_failed' === result.message || 'access_denied' === result.message;
-
-                    resultSpan.innerHTML = couldNotCheck
-                        ? '<span style="color:red;">✗ ' + labels.error + '</span>'
-                        : '<span style="color:red;">✗ ' + labels.invalid + '</span>';
-                    input.style.backgroundColor = "lightcoral";
-                    input.style.color = "#121212";
-                } catch (e) {
-                    resultSpan.innerHTML = '<span style="color:red;">✗ ' + labels.error + '</span>';
+                    // Mirrors the server-side rule (is_bool($data['valid'])): only a
+                    // boolean "valid" is a verdict. One condition covers null (on which
+                    // reading .valid would throw), arrays, primitives, and a body that
+                    // simply does not carry the field.
+                    if (!result || "boolean" !== typeof result.valid) {
+                        couldNotCheck = true;
+                        result = {};
+                    }
                 }
+
+                if (result.valid) {
+                    resultSpan.innerHTML = '<span style="color:green;">✓ ' + labels.valid + '</span>';
+                    input.style.backgroundColor = "lightgreen";
+                    input.style.color = "#121212";
+                    return;
+                }
+
+                // The endpoint returns machine codes, never raw exception text.
+                // "request_failed" (the call did not complete) and "access_denied"
+                // (missing backend permission) are not statements about the key, so they
+                // must not be reported as "the key is invalid" - and neither is a request
+                // that produced no answer at all. The field keeps its colour in that case:
+                // colouring it red would assert something about the key that no check
+                // established.
+                if (couldNotCheck || 'request_failed' === result.message || 'access_denied' === result.message) {
+                    resultSpan.innerHTML = '<span style="color:red;">✗ ' + labels.error + '</span>';
+                    return;
+                }
+
+                resultSpan.innerHTML = '<span style="color:red;">✗ ' + labels.invalid + '</span>';
+                input.style.backgroundColor = "lightcoral";
+                input.style.color = "#121212";
             };
 
             xhr.send("action=validateApiKey&key=" + encodeURIComponent(apiKey) + "&REQUEST_TOKEN=" + encodeURIComponent(requestToken));
@@ -276,26 +304,51 @@
                 button.disabled = false;
                 button.textContent = labels.check || button.dataset.checkLabel || "Check key";
 
-                try {
-                    var result = JSON.parse(xhr.responseText || "{}");
+                // Same rule as the API-key button above: only a 200 carrying a JSON object
+                // is a verdict. It matters more here - a customer whose server is briefly
+                // offline would otherwise be told their valid licence key is invalid.
+                var couldNotCheck = 200 !== xhr.status;
+                var result = {};
 
-                    if (result.valid) {
-                        resultSpan.innerHTML = '<span style="color:green;">✓ ' + (labels.valid || "License key is valid!") + '</span>';
-                        input.style.backgroundColor = "lightgreen";
-                        input.style.color = "#121212";
-                        setLicenseOverride(true);
-                        setAutoUpdateFieldsEnabled(true);
-                        return;
+                if (!couldNotCheck) {
+                    try {
+                        result = JSON.parse(xhr.responseText || "{}");
+                    } catch (e) {
+                        couldNotCheck = true;
                     }
 
-                    resultSpan.innerHTML = '<span style="color:red;">✗ ' + (labels.invalid || "License key is invalid!") + '</span>';
-                    input.style.backgroundColor = "lightcoral";
-                    input.style.color = "#121212";
-                    setLicenseOverride(false);
-                    setAutoUpdateFieldsEnabled(false);
-                } catch (e) {
-                    resultSpan.innerHTML = '<span style="color:red;">✗ ' + (labels.error || "Validation failed.") + '</span>';
+                    // Mirrors the server-side rule (is_bool($data['valid'])): only a
+                    // boolean "valid" is a verdict. One condition covers null (on which
+                    // reading .valid would throw), arrays, primitives, and a body that
+                    // simply does not carry the field.
+                    if (!result || "boolean" !== typeof result.valid) {
+                        couldNotCheck = true;
+                        result = {};
+                    }
                 }
+
+                if (result.valid) {
+                    resultSpan.innerHTML = '<span style="color:green;">✓ ' + (labels.valid || "License key is valid!") + '</span>';
+                    input.style.backgroundColor = "lightgreen";
+                    input.style.color = "#121212";
+                    setLicenseOverride(true);
+                    setAutoUpdateFieldsEnabled(true);
+                    return;
+                }
+
+                // A check that did not happen must leave the form as it was: flipping the
+                // licence override off here would disable the auto-update fields on the
+                // strength of an answer nobody received.
+                if (couldNotCheck || 'request_failed' === result.message || 'access_denied' === result.message) {
+                    resultSpan.innerHTML = '<span style="color:red;">✗ ' + (labels.error || "Validation failed.") + '</span>';
+                    return;
+                }
+
+                resultSpan.innerHTML = '<span style="color:red;">✗ ' + (labels.invalid || "License key is invalid!") + '</span>';
+                input.style.backgroundColor = "lightcoral";
+                input.style.color = "#121212";
+                setLicenseOverride(false);
+                setAutoUpdateFieldsEnabled(false);
             };
 
             xhr.send(

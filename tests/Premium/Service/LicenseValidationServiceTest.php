@@ -255,6 +255,46 @@ class LicenseValidationServiceTest extends TestCase
         $this->assertFalse($service->isLicenseActive(1));
     }
 
+    /**
+     * The backend "check key" button reports false as "this licence key is invalid". An
+     * unreachable licensing server must therefore not answer false - a customer whose own
+     * server is briefly offline would be told their valid key is invalid.
+     */
+    public function testValidatePlainKeySeparatesUnreachableFromInvalid(): void
+    {
+        $this->assertNull(
+            $this->createService($this->licenseRow([]), unreachable: true)->validatePlainKey('JUHE-AI-TESTKEY1'),
+            'A transport failure is not a statement about the key.',
+        );
+
+        $this->assertNull(
+            $this->createService($this->licenseRow([]), rawResponse: new MockResponse('<html>502 Bad Gateway</html>'))->validatePlainKey('JUHE-AI-TESTKEY1'),
+            'A non-JSON body means the answer could not be read, not that the key is bad.',
+        );
+
+        $this->assertNull(
+            $this->createService(
+                $this->licenseRow([]),
+                rawResponse: new MockResponse(json_encode(['valid' => false], JSON_THROW_ON_ERROR), ['http_code' => 429]),
+            )->validatePlainKey('JUHE-AI-TESTKEY1'),
+            'A rate-limit answer is not a verdict, even when its body looks like one.',
+        );
+
+        $this->assertNull(
+            $this->createService($this->licenseRow([]), serverResponse: ['valid' => 'no'])->validatePlainKey('JUHE-AI-TESTKEY1'),
+            'A non-boolean "valid" field means the schema was not understood.',
+        );
+
+        $this->assertFalse(
+            $this->createService($this->licenseRow([]), serverResponse: ['valid' => false])->validatePlainKey('JUHE-AI-TESTKEY1'),
+            'An explicit "valid: false" is the only thing that may report an invalid key.',
+        );
+
+        $this->assertTrue(
+            $this->createService($this->licenseRow([]), serverResponse: ['valid' => true])->validatePlainKey('JUHE-AI-TESTKEY1'),
+        );
+    }
+
     public function testResolvePageLimitFallsBackToPlanDefaults(): void
     {
         $this->assertSame(20, LicenseValidationService::resolvePageLimit('starter', 0));
