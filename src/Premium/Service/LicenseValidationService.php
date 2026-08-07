@@ -183,7 +183,12 @@ class LicenseValidationService
             // them into the same grace handling as an unreachable endpoint, instead of
             // overwriting a valid cached license with "inactive".
             $statusCode = $response->getStatusCode();
+
             if ($statusCode < 200 || $statusCode >= 300) {
+                // Release the connection before bailing out; the 2xx path below consumes
+                // the body through toArray(), this path would leave it half-read.
+                $response->cancel();
+
                 throw new \RuntimeException(\sprintf('Licensing server returned HTTP %d.', $statusCode));
             }
 
@@ -324,6 +329,11 @@ class LicenseValidationService
             $statusCode = $response->getStatusCode();
 
             if ($statusCode < 200 || $statusCode >= 300) {
+                // Release the connection before bailing out: the 2xx path consumes the body
+                // through toArray(), this path would leave it half-read and the pooled
+                // connection dirty for whatever request comes next.
+                $response->cancel();
+
                 throw new \RuntimeException(\sprintf('Licensing server returned HTTP %d.', $statusCode));
             }
 

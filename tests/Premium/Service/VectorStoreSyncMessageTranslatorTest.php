@@ -18,6 +18,84 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 class VectorStoreSyncMessageTranslatorTest extends TestCase
 {
+    /**
+     * The one crawl failure that is not about the site: Symfony rebuilt the compiled
+     * container while the crawl was running and deleted the directory it was still
+     * requiring service files from. Dumping that PHP output into a backend table tells an
+     * operator nothing, so the cause is named instead.
+     */
+    public function testNamesTheCauseWhenTheContainerCacheWasRebuiltMidCrawl(): void
+    {
+        $error = <<<'ERR'
+            21:04:19 WARNING [php] Warning: require(/var/www/site/var/cache/prod/ContainerXE6omHe/getFosHttpCache_EventListener_InvalidationService.php): Failed to open stream: No such file or directory
+            In Contao_ManagerBundle_HttpKernel_ContaoKernelProdContainer.php line 720:
+            Failed opening required '/var/www/site/var/cache/prod/ContainerXE6omHe/getFosHttpCache_EventListener_InvalidationService.php'
+            ERR;
+
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
+            ->expects($this->once())
+            ->method('trans')
+            ->with('MSC.vsau_err_crawl_cache_rebuilt', [], 'contao_default')
+            ->willReturn('The server rebuilt its cache during the crawl. Start the synchronisation again.')
+        ;
+
+        $service = new VectorStoreSyncMessageTranslator($translator);
+
+        $this->assertSame(
+            'The server rebuilt its cache during the crawl. Start the synchronisation again.',
+            $service->translate('MSC.vsau_err_crawl_failed|'.$error),
+        );
+    }
+
+    /**
+     * Legacy rows stored the failure as plain English text; they must be recognised too.
+     */
+    public function testRecognisesTheCacheRebuildInALegacyStoredMessage(): void
+    {
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
+            ->method('trans')
+            ->willReturnCallback(static fn (string $key): string => $key)
+        ;
+
+        $service = new VectorStoreSyncMessageTranslator($translator);
+
+        $this->assertSame(
+            'MSC.vsau_err_crawl_cache_rebuilt',
+            $service->translate(
+                "contao:crawl failed: Failed opening required '/srv/web/var/cache/prod/ContainerAbc123/getSomeService.php'",
+            ),
+        );
+    }
+
+    /**
+     * A real crawl problem must keep reaching the operator verbatim - the cache-rebuild
+     * branch must not swallow anything that merely mentions a missing file.
+     */
+    public function testAnOrdinaryCrawlFailureIsStillReportedInFull(): void
+    {
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
+            ->method('trans')
+            ->willReturnCallback(static fn (string $key, array $args): string => $key.'|'.($args[0] ?? ''))
+        ;
+
+        $service = new VectorStoreSyncMessageTranslator($translator);
+
+        // Missing file, but not a compiled-container path.
+        $this->assertSame(
+            'MSC.vsau_err_crawl_failed|Failed to open stream: No such file or directory in /srv/web/templates/foo.html5',
+            $service->translate('MSC.vsau_err_crawl_failed|Failed to open stream: No such file or directory in /srv/web/templates/foo.html5'),
+        );
+
+        // A container path, but no missing-file error - a different problem entirely.
+        $this->assertSame(
+            'MSC.vsau_err_crawl_failed|Connection refused while loading /var/cache/prod/ContainerAbc/x.php',
+            $service->translate('MSC.vsau_err_crawl_failed|Connection refused while loading /var/cache/prod/ContainerAbc/x.php'),
+        );
+    }
+
     public function testExpandsPlanLimitTruncatedMessageWithSkippedAndLimit(): void
     {
         $translator = $this->createMock(TranslatorInterface::class);

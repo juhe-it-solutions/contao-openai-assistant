@@ -97,6 +97,12 @@ class ApiValidationController
             // If we get here, the request was successful
             $valid = 200 === $response->getStatusCode();
 
+            // Release the connection instead of leaving the body unread. Symfony's client
+            // is lazy: reading only the status leaves the response - and the pooled
+            // connection behind it - half-consumed, and a later request that reuses it can
+            // sit there until its idle timeout. Nothing here needs the body.
+            $response->cancel();
+
             // Log successful validation
             if ($valid) {
                 $this->logger->info(

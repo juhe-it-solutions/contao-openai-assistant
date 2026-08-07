@@ -114,7 +114,8 @@ $GLOBALS['TL_DCA']['tl_openai_files'] = [
                 'tl_class'   => 'clr',
                 'orderField' => 'orderSRC',
             ],
-            'save_callback' => [['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiFilesListener', 'uploadToOpenAI']],
+            // Registered once, as a contao.callback service (config/services.yaml):
+            // Contao appends a tagged callback to this array, so a second entry here ran it twice.
             'sql'           => 'blob NULL',
         ],
         'openai_file_id' => [

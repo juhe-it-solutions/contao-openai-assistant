@@ -350,7 +350,13 @@ class OpenAiPromptsListener
             );
 
             $status = $response->getStatusCode();
+
             if ($status >= 200 && $status < 300) {
+                // Release the connection: on success nothing reads the body, and leaving it
+                // unread keeps the pooled connection half-consumed for the next request.
+                // NOT cancelled on the error path below - that one still needs getContent().
+                $response->cancel();
+
                 return true;
             }
 

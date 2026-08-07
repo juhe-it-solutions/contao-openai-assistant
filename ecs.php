@@ -31,10 +31,20 @@ return ECSConfig::configure()
         // annotations are kept because they aid PHPStan. Re-enable once the upstream
         // fixer bug is fixed.
         CommentLengthFixer::class,
-        // Premium add-on files carry a proprietary header (see LICENSE-PREMIUM);
-        // the HeaderCommentFixer would overwrite it with the LGPL header.
+        // Premium add-on files carry a proprietary header (see LICENSE-PREMIUM); the
+        // HeaderCommentFixer would overwrite it with the LGPL header, i.e. rewrite a
+        // licence grant.
+        //
+        // The directory path, NOT a glob: "src/Premium/*" left 11 of the 23 files
+        // unprotected (verified by running the fixer both ways), so "ecs --fix" would
+        // have relicensed them. LicenseHeaderTest asserts the outcome independently of
+        // whatever this pattern happens to match.
         HeaderCommentFixer::class => [
-            __DIR__.'/src/Premium/*',
+            __DIR__.'/src/Premium',
+            // Not covered by withPaths(), so a plain "ecs check" never reaches these -
+            // but "ecs check tests" does, and it would stamp the LGPL header onto the
+            // premium test files just the same.
+            __DIR__.'/tests/Premium',
         ],
     ])
     ->withConfiguredRule(HeaderCommentFixer::class, [

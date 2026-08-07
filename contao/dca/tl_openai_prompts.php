@@ -110,10 +110,8 @@ $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_prompts']['model'],
             'exclude' => true,
             'inputType' => 'select',
-            'options_callback' => ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiPromptsListener', 'getAvailableModels'],
-            'save_callback' => [
-                ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiPromptsListener', 'validateModel'],
-            ],
+            // Registered once, as a contao.callback service (config/services.yaml):
+            // Contao appends a tagged callback to this array, so a second entry here ran it twice.
             'eval' => [
                 'chosen' => true,
                 'tl_class' => 'w50',
@@ -126,9 +124,8 @@ $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_prompts']['model_manual'],
             'exclude' => true,
             'inputType' => 'text',
-            'save_callback' => [
-                ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiPromptsListener', 'validateManualModel'],
-            ],
+            // Registered once, as a contao.callback service (config/services.yaml):
+            // Contao appends a tagged callback to this array, so a second entry here ran it twice.
             'eval' => [
                 'maxlength' => 255,
                 'tl_class' => 'w50',
@@ -165,9 +162,8 @@ $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_prompts']['temperature'],
             'exclude' => true,
             'inputType' => 'text',
-            'save_callback' => [
-                ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiPromptsListener', 'validateTemperature'],
-            ],
+            // Registered once, as a contao.callback service (config/services.yaml):
+            // Contao appends a tagged callback to this array, so a second entry here ran it twice.
             'eval' => [
                 'mandatory' => true,
                 'rgxp' => 'prcnt',
@@ -181,9 +177,8 @@ $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_prompts']['top_p'],
             'exclude' => true,
             'inputType' => 'text',
-            'save_callback' => [
-                ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiPromptsListener', 'validateTopP'],
-            ],
+            // Registered once, as a contao.callback service (config/services.yaml):
+            // Contao appends a tagged callback to this array, so a second entry here ran it twice.
             'eval' => [
                 'mandatory' => true,
                 'rgxp' => 'prcnt',
@@ -197,9 +192,8 @@ $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
             'label' => &$GLOBALS['TL_LANG']['tl_openai_prompts']['system_instructions'],
             'exclude' => true,
             'inputType' => 'textarea',
-            'save_callback' => [
-                ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiPromptsListener', 'normalizeSystemInstructions'],
-            ],
+            // Registered once, as a contao.callback service (config/services.yaml):
+            // Contao appends a tagged callback to this array, so a second entry here ran it twice.
             'eval' => [
                 'rte' => '',
                 'tl_class' => 'clr',
