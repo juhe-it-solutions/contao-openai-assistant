@@ -50,6 +50,22 @@
                 <source>Last error</source>
                 <target>Last error</target>
             </trans-unit>
+            <trans-unit id="tl_openai_vector_file.indexed_urls">
+                <source>Indexed URLs</source>
+                <target>Indexed URLs</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.content">
+                <source>Show content</source>
+                <target>Show content</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.show_content">
+                <source>Show the indexed content of this page</source>
+                <target>Show the indexed content of this page</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.intro_hint">
+                <source>This list shows only the files the automatic synchronisation manages itself - one file per indexed page. Files you uploaded by hand (OpenAI Dashboard → File upload) are not listed here and are never touched by the sync. Entries disappear on their own as soon as a page leaves the synchronisation, which is why nothing can be deleted here by hand.</source>
+                <target>This list shows only the files the automatic synchronisation manages itself - one file per indexed page. Files you uploaded by hand (OpenAI Dashboard → File upload) are not listed here and are never touched by the sync. Entries disappear on their own as soon as a page leaves the synchronisation, which is why nothing can be deleted here by hand.</target>
+            </trans-unit>
             <trans-unit id="tl_openai_vector_file.edit_page">
                 <source>Edit page in the site structure</source>
                 <target>Edit page in the site structure</target>

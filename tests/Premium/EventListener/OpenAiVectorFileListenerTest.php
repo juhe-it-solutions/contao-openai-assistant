@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\EventListener;
 
+use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\EventListener\OpenAiVectorFileListener;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -30,7 +31,14 @@ class OpenAiVectorFileListenerTest extends TestCase
         $this->dcaBackup = $GLOBALS['TL_DCA'] ?? [];
 
         $GLOBALS['TL_DCA']['tl_openai_vector_file']['list']['label']['fields'] = [
-            'page_id', 'title', 'url', 'status', 'chunk_index', 'bytes', 'openai_file_id', 'tstamp',
+            'page_id', 'title', 'url', 'indexed_urls', 'status', 'chunk_index', 'bytes', 'openai_file_id', 'tstamp',
+        ];
+
+        // The status label comes from the DCA reference, never from the pre-formatted
+        // column value - Contao 6 hands those over already escaped.
+        $GLOBALS['TL_DCA']['tl_openai_vector_file']['fields']['status']['reference'] = [
+            'uploaded' => 'Hochgeladen',
+            'failed' => 'Fehlgeschlagen',
         ];
     }
 
@@ -49,9 +57,10 @@ class OpenAiVectorFileListenerTest extends TestCase
             '<a href="https://example.test/preise" target="_blank" rel="noopener noreferrer" title="Open page in a new tab">https://example.test/preise</a>',
             $args[2],
         );
-        $this->assertSame('<span class="vsau-badge green">Uploaded</span>', $args[3]);
-        $this->assertSame('2/3', $args[4]);
-        $this->assertSame('<code>file-abc123</code>', $args[6]);
+        $this->assertSame('47', $args[3], 'A reader page must show how many indexed URLs went into its one document.');
+        $this->assertSame('<span class="vsau-badge green">Hochgeladen</span>', $args[4]);
+        $this->assertSame('2/3', $args[5]);
+        $this->assertSame('<code>file-abc123</code>', $args[7]);
     }
 
     /**
@@ -71,7 +80,7 @@ class OpenAiVectorFileListenerTest extends TestCase
 
         $this->assertStringNotContainsString('<script>', $args[1]);
         $this->assertStringNotContainsString('<script>', $args[2]);
-        $this->assertStringNotContainsString('<img', $args[6]);
+        $this->assertStringNotContainsString('<img', $args[7]);
         $this->assertStringContainsString('&lt;script&gt;', $args[1]);
     }
 
@@ -122,14 +131,21 @@ class OpenAiVectorFileListenerTest extends TestCase
             )
         ;
 
-        $listener = new OpenAiVectorFileListener($security, $router, new RequestStack());
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchAllKeyValue')
+            // tl_search rows per page: the reader page 42 merged 47 news/FAQ/event URLs.
+            ->willReturn(['42' => '47', '43' => '1'])
+        ;
+
+        $listener = new OpenAiVectorFileListener($security, $router, new RequestStack(), $connection);
 
         // DC_Table hands over the pre-formatted column values; only the ones the callback
         // rewrites matter here. formatColumns() is the version-independent half of the
         // label callback, so this test holds on Contao 5 and 6 alike.
         return $listener->formatColumns(
             $row,
-            ['42', 'Preise', 'https://example.test/preise', 'Uploaded', '1', '2048', 'file-abc123', '01.08.2026 12:00'],
+            ['42', 'Preise', 'https://example.test/preise', '', 'Uploaded', '1', '2048', 'file-abc123', '01.08.2026 12:00'],
         );
     }
 

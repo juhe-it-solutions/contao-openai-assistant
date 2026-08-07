@@ -84,8 +84,19 @@ one item saved with an empty robots field silently drops out.
 ### One merged document
 
 All items behind a reader page share that page's `tl_page` id, and the
-synchronisation aggregates by page id. They become **one** vector-store document
-citing a single item URL.
+synchronisation aggregates by page id. They become **one** vector-store document.
+
+That document is named after the **page** (`tl_page.title`, what you see in the
+site structure) and cites the page's own URL — not the `<title>` and URL of one
+entry. The indexed `<title>` of a single row would name an arbitrary entry, and
+would keep naming it after that entry is deleted, because the row in `tl_search`
+outlives it. The page's URL is identified as the shortest of its indexed URLs: an
+entry only ever adds a path segment or a query parameter to it. Only when the page
+row itself is gone does the indexed title remain as a fallback.
+
+A page whose title or URL changes this way is re-uploaded on the next run even if
+its text is unchanged — the title heads the uploaded document and travels as a
+file attribute, so the store would otherwise keep the old heading.
 
 ## How the plan limits are counted
 
@@ -216,10 +227,26 @@ OpenAI platform lists those files by id, which by itself says nothing about the
 page behind it. Two places close that gap:
 
 - **Backend → AI Tools → "OpenAI Vector-Store-Dateien"** (`tl_openai_vector_file`)
-  is the live map: page id, title, URL, part, size, OpenAI file id and status,
-  searchable by file id. The page id links into the site structure, the URL opens
-  the live page. The auto-sync dashboard links straight to the list of one
+  is the live map: page id, title, URL, indexed URLs, part, size, OpenAI file id
+  and status, searchable by file id. The page id links into the site structure,
+  the URL opens the live page, and "Inhalt anzeigen" shows the indexed text of
+  that page. The auto-sync dashboard links straight to the list of one
   configuration via "Indexierte Dateien anzeigen".
+
+  The list covers **only** the files the synchronisation manages. Files uploaded
+  by hand (OpenAI Dashboard → File upload) are not part of it and are never
+  touched by a sync.
+
+  **Indexed URLs** is the answer to "where did my news entries go": an ordinary
+  page has one, a reader page has one per indexed entry, and all of them merge
+  into that page's single document (see "One merged document"). The number is
+  read live from `tl_search`, so it reflects the current index rather than the
+  moment of the last run.
+
+  **Inhalt anzeigen** serves the page's block out of the newest stored run
+  manifest — OpenAI refuses to return the content of `purpose=assistants` files,
+  so the local copy is the only source. Pages that the manifest had to drop at
+  its 8 MB cap have no block and report that instead.
 - **The downloadable run manifest** names the file(s) of every page in the run,
   together with what happened to the page (`added`, `updated`, `unchanged`,
   `failed`):
@@ -237,9 +264,11 @@ OpenAI file list is readable without a lookup. Files uploaded by an earlier
 version keep their previous random name until the page changes and is re-uploaded.
 
 The list is machine state: rows are created and removed by the synchronisation
-itself and cannot be edited or deleted by hand. Deleting a row would make the
-next run upload the page a second time and leave the first file orphaned in the
-store.
+itself and cannot be edited or deleted by hand. It therefore never grows past the
+number of indexed pages — a page that leaves the scope takes its row (and its
+remote file) with it on the next run. Deleting a row by hand would make the next
+run upload the page a second time and leave the first file orphaned in the store,
+which is why the table has no delete operation.
 
 ## Whole-website scope
 

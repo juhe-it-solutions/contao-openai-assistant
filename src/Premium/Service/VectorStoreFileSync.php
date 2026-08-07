@@ -130,7 +130,16 @@ class VectorStoreFileSync
             $current = $existing[$pageId] ?? null;
 
             // Unchanged: same content already uploaded successfully -> skip (incremental).
-            if (null !== $current && $current['content_hash'] === $contentHash && 'uploaded' === $current['status']) {
+            // Title and URL are compared too: they head the uploaded document and travel as
+            // file attributes, so a page renamed without a text change must still be
+            // re-uploaded - the hash alone would keep the stale heading in the store forever.
+            if (
+                null !== $current
+                && $current['content_hash'] === $contentHash
+                && 'uploaded' === $current['status']
+                && $current['title'] === $this->storedTitle($page['title'])
+                && $current['url'] === $this->storedUrl($page['url'])
+            ) {
                 ++$stats['unchanged'];
                 $stats['page_states'][$pageId] = ['state' => 'unchanged', 'files' => $current['files']];
                 ++$pagesDone;
@@ -252,12 +261,12 @@ class VectorStoreFileSync
     }
 
     /**
-     * @return array<int, array{content_hash: string, status: string, files: list<string>}>
+     * @return array<int, array{content_hash: string, title: string, url: string, status: string, files: list<string>}>
      */
     private function loadState(int $configId): array
     {
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT page_id, content_hash, status, openai_file_id FROM tl_openai_vector_file WHERE pid = ?',
+            'SELECT page_id, content_hash, title, url, status, openai_file_id FROM tl_openai_vector_file WHERE pid = ?',
             [$configId],
         );
 
@@ -268,6 +277,8 @@ class VectorStoreFileSync
             if (!isset($state[$pageId])) {
                 $state[$pageId] = [
                     'content_hash' => (string) $row['content_hash'],
+                    'title' => (string) $row['title'],
+                    'url' => (string) $row['url'],
                     'status' => (string) $row['status'],
                     'files' => [],
                 ];
@@ -315,8 +326,8 @@ class VectorStoreFileSync
             'pid' => $configId,
             'tstamp' => time(),
             'page_id' => $page['page_id'],
-            'url' => mb_substr($page['url'], 0, 2048),
-            'title' => mb_substr($page['title'], 0, 512),
+            'url' => $this->storedUrl($page['url']),
+            'title' => $this->storedTitle($page['title']),
             'language' => mb_substr($page['language'], 0, 5),
             'search_checksum' => mb_substr($page['search_checksum'], 0, 32),
             'content_hash' => $contentHash,
@@ -327,6 +338,21 @@ class VectorStoreFileSync
             'status' => $status,
             'last_error' => $error,
         ]);
+    }
+
+    /**
+     * The column widths of tl_openai_vector_file. Comparing a fresh value against a stored
+     * one has to apply the same cut, or an over-long title would look "changed" on every
+     * single run and re-upload the page forever.
+     */
+    private function storedTitle(string $title): string
+    {
+        return mb_substr($title, 0, 512);
+    }
+
+    private function storedUrl(string $url): string
+    {
+        return mb_substr($url, 0, 2048);
     }
 
     /**

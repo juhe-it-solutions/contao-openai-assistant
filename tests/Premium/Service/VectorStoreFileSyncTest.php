@@ -263,6 +263,51 @@ class VectorStoreFileSyncTest extends TestCase
         $this->assertSame([[0, 2], [1, 2], [2, 2]], $calls);
     }
 
+    /**
+     * The title heads the uploaded document and travels as a file attribute, so a page that
+     * only got a new title must be re-uploaded - otherwise the vector store keeps the old
+     * heading until the text happens to change.
+     */
+    public function testARenamedPageIsReUploadedEvenWithUnchangedText(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+        $this->insertVectorFile($rows, 'old_file', hash('sha256', 'same content'), 'uploaded');
+
+        $client = new MockHttpClient(
+            static function (string $method, string $url): MockResponse {
+                if ('POST' === $method && 'https://api.openai.com/v1/files' === $url) {
+                    return new MockResponse('{"id":"new_file"}');
+                }
+
+                if ('POST' === $method && str_contains($url, '/vector_stores/vs_123/files')) {
+                    return new MockResponse('{}');
+                }
+
+                if ('GET' === $method && str_ends_with($url, '/vector_stores/vs_123/files/new_file')) {
+                    return new MockResponse('{"status":"completed"}');
+                }
+
+                if ('DELETE' === $method) {
+                    return new MockResponse('{}');
+                }
+
+                self::fail('Unexpected request: '.$method.' '.$url);
+            },
+        );
+
+        $stats = (new VectorStoreFileSync($connection, $client, new NullLogger()))->sync(
+            'sk-test',
+            'vs_123',
+            7,
+            [array_merge($this->page('same content'), ['title' => 'Aktuelles'])],
+        );
+
+        $this->assertSame(1, $stats['updated'], 'A new title alone must count as a change.');
+        $this->assertSame(0, $stats['unchanged']);
+        $this->assertSame('Aktuelles', $rows[0]['title']);
+    }
+
     public function testUploadUsesASpeakingFilename(): void
     {
         $rows = [];
@@ -394,10 +439,13 @@ class VectorStoreFileSyncTest extends TestCase
             ->method('fetchAllAssociative')
             ->willReturnCallback(
                 static function () use (&$rows): array {
+                    // Mirrors the column list loadState() selects.
                     return array_map(
                         static fn (array $row): array => [
                             'page_id' => $row['page_id'],
                             'content_hash' => $row['content_hash'],
+                            'title' => $row['title'],
+                            'url' => $row['url'],
                             'status' => $row['status'],
                             'openai_file_id' => $row['openai_file_id'],
                         ],

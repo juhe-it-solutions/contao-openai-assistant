@@ -53,8 +53,18 @@ $GLOBALS['TL_DCA']['tl_openai_vector_file'] = [
             'panelLayout' => 'filter;sort,search,limit',
         ],
         'label' => [
-            'fields'      => ['page_id', 'title', 'url', 'status', 'chunk_index', 'bytes', 'openai_file_id', 'tstamp'],
+            'fields'      => ['page_id', 'title', 'url', 'indexed_urls', 'status', 'chunk_index', 'bytes', 'openai_file_id', 'tstamp'],
             'showColumns' => true,
+        ],
+        // "content" shows the indexed text of one page, served by the auto-sync controller
+        // from the stored run manifest (button_callback in OpenAiVectorFileListener). The
+        // default show operation is auto-appended by Contao's DefaultOperationsListener;
+        // edit/copy/delete are all disabled by the config flags above.
+        'operations' => [
+            'content' => [
+                'label' => &$GLOBALS['TL_LANG']['tl_openai_vector_file']['content'],
+                'icon'  => 'show.svg',
+            ],
         ],
     ],
     'fields' => [
@@ -94,6 +104,13 @@ $GLOBALS['TL_DCA']['tl_openai_vector_file'] = [
             'label'  => &$GLOBALS['TL_LANG']['tl_openai_vector_file']['language'],
             'filter' => true,
             'sql'    => ['type' => 'string', 'length' => 5, 'default' => ''],
+        ],
+        // Virtual column - deliberately without an "sql" key, so Contao's schema sync never
+        // creates a database field for it. The label callback fills it by counting the page's
+        // rows in tl_search: 1 for an ordinary page, one per indexed news/FAQ/event entry on a
+        // reader page. Never made sortable/searchable/filterable - there is no column to query.
+        'indexed_urls' => [
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_vector_file']['indexed_urls'],
         ],
         // Copy of tl_search.checksum, kept for reference/debugging only.
         'search_checksum' => [
