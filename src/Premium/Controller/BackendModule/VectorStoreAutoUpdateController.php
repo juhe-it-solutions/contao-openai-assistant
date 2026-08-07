@@ -425,7 +425,9 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             return $name;
         }
 
-        return $name.' ('.$limit.')';
+        // Dash instead of brackets: the limit string carries its own parenthetical
+        // ("… Beiträge (News/FAQ/Events)"), and nesting those reads badly in the chip.
+        return $name.' – '.$limit;
     }
 
     /**

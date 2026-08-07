@@ -364,8 +364,12 @@
                 <target>Pages</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_col_items">
-                <source>Entries (news/FAQ/events)</source>
-                <target>Entries (news/FAQ/events)</target>
+                <source>Entries</source>
+                <target>Entries</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_col_items_tooltip">
+                <source>News/FAQ/Events</source>
+                <target>News/FAQ/Events</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_col_tokens_in">
                 <source>Tokens in</source>
@@ -672,8 +676,8 @@
                 <target>up to %s pages</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_plan_pages_items">
-                <source>up to %1$s pages and %2$s entries</source>
-                <target>up to %1$s pages and %2$s entries</target>
+                <source>up to %1$s pages and %2$s entries (news/FAQ/events)</source>
+                <target>up to %1$s pages and %2$s entries (news/FAQ/events)</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_setup_todo">
                 <source>To do before the first sync:</source>
