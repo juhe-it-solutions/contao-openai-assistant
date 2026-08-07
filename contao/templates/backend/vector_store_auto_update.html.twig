@@ -186,6 +186,11 @@
         .vsau-dl { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 11px; text-decoration: underline; white-space: nowrap; }
         .vsau-dl svg { width: 12px; height: 12px; fill: currentColor; }
 
+        /* Keeps a column label and its info icon on one line instead of letting the
+           icon wrap below the label in a narrow column. */
+        .vsau-th { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+        .vsau-th .vsau-info { margin-left: 0; }
+
         .vsau-info { position: relative; display: inline-flex; align-items: center; margin-left: 5px; vertical-align: middle; }
         .vsau-info-icon { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; padding: 0; border: 0; background: none; cursor: help; color: var(--text-secondary, #9aa0ad); }
         .vsau-info-icon svg { width: 14px; height: 14px; fill: currentColor; }
@@ -580,28 +585,44 @@
                             <th>{{ 'MSC.vsau_col_mode'|trans({}, 'contao_default') }}</th>
                             <th>{{ 'MSC.vsau_col_model'|trans({}, 'contao_default') }}</th>
                             <th>{{ 'MSC.vsau_col_pages'|trans({}, 'contao_default') }}</th>
-                            <th>{{ 'MSC.vsau_col_items'|trans({}, 'contao_default') }}</th>
                             <th>
-                                {{ 'MSC.vsau_col_tokens_in'|trans({}, 'contao_default') }}
-                                <span class="vsau-info">
-                                    <button type="button" class="vsau-info-icon" aria-label="{{ 'MSC.vsau_cost_tooltip'|trans({}, 'contao_default') }}">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                                    </button>
-                                    <span class="vsau-info-pop" role="tooltip">
-                                        {{ 'MSC.vsau_cost_tooltip'|trans({}, 'contao_default') }}
-                                        <a href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">{{ 'MSC.vsau_cost_tooltip_link'|trans({}, 'contao_default') }}</a>
+                                <span class="vsau-th">
+                                    {{ 'MSC.vsau_col_items'|trans({}, 'contao_default') }}
+                                    <span class="vsau-info">
+                                        <button type="button" class="vsau-info-icon" aria-label="{{ 'MSC.vsau_col_items_tooltip'|trans({}, 'contao_default') }}">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                                        </button>
+                                        <span class="vsau-info-pop" role="tooltip">
+                                            {{ 'MSC.vsau_col_items_tooltip'|trans({}, 'contao_default') }}
+                                        </span>
                                     </span>
                                 </span>
                             </th>
                             <th>
-                                {{ 'MSC.vsau_col_tokens_out'|trans({}, 'contao_default') }}
-                                <span class="vsau-info">
-                                    <button type="button" class="vsau-info-icon" aria-label="{{ 'MSC.vsau_cost_tooltip'|trans({}, 'contao_default') }}">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                                    </button>
-                                    <span class="vsau-info-pop" role="tooltip">
-                                        {{ 'MSC.vsau_cost_tooltip'|trans({}, 'contao_default') }}
-                                        <a href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">{{ 'MSC.vsau_cost_tooltip_link'|trans({}, 'contao_default') }}</a>
+                                <span class="vsau-th">
+                                    {{ 'MSC.vsau_col_tokens_in'|trans({}, 'contao_default') }}
+                                    <span class="vsau-info">
+                                        <button type="button" class="vsau-info-icon" aria-label="{{ 'MSC.vsau_cost_tooltip'|trans({}, 'contao_default') }}">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                                        </button>
+                                        <span class="vsau-info-pop" role="tooltip">
+                                            {{ 'MSC.vsau_cost_tooltip'|trans({}, 'contao_default') }}
+                                            <a href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">{{ 'MSC.vsau_cost_tooltip_link'|trans({}, 'contao_default') }}</a>
+                                        </span>
+                                    </span>
+                                </span>
+                            </th>
+                            <th>
+                                <span class="vsau-th">
+                                    {{ 'MSC.vsau_col_tokens_out'|trans({}, 'contao_default') }}
+                                    <span class="vsau-info">
+                                        <button type="button" class="vsau-info-icon" aria-label="{{ 'MSC.vsau_cost_tooltip'|trans({}, 'contao_default') }}">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                                        </button>
+                                        <span class="vsau-info-pop" role="tooltip">
+                                            {{ 'MSC.vsau_cost_tooltip'|trans({}, 'contao_default') }}
+                                            <a href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">{{ 'MSC.vsau_cost_tooltip_link'|trans({}, 'contao_default') }}</a>
+                                        </span>
                                     </span>
                                 </span>
                             </th>
