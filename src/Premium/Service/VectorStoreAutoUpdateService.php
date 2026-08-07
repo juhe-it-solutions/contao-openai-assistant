@@ -1649,6 +1649,10 @@ class VectorStoreAutoUpdateService
             '',
             '---',
             '',
+            // Blank line: the summary must be closed by the same "\n\n---\n\n" that separates
+            // two page blocks, otherwise the first block is glued to the summary and cannot be
+            // cut out again (that is how the backend serves a single page's indexed text).
+            '',
         ];
 
         $manifest = implode("\n", $lines);

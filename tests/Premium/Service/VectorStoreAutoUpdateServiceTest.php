@@ -737,6 +737,41 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
     }
 
     /**
+     * The extraction must work on what buildManifest() really writes, not on a hand-built
+     * fixture: a summary that did not end in a blank line glued the first page block to it,
+     * so exactly one page per run answered "no document stored yet" in the backend.
+     */
+    public function testEveryPageOfARealManifestCanBeReadBackIncludingTheFirst(): void
+    {
+        $build = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'buildManifest');
+        $extract = new \ReflectionMethod(VectorStoreAutoUpdateController::class, 'extractPageBlock');
+        $controller = (new \ReflectionClass(VectorStoreAutoUpdateController::class))->newInstanceWithoutConstructor();
+
+        $manifest = $build->invoke(
+            $this->createService($this->createMock(Connection::class)),
+            [
+                ['page_id' => 246, 'url' => 'https://example.com/home.html', 'title' => 'Home', 'content' => 'Inhalt A'],
+                ['page_id' => 250, 'url' => 'https://example.com/impressum.html', 'title' => 'Impressum', 'content' => 'Inhalt B'],
+                ['page_id' => 0, 'url' => 'https://example.com/', 'title' => 'Linkverzeichnis', 'content' => 'Inhalt C'],
+            ],
+            ['added' => 3, 'updated' => 0, 'removed' => 0, 'unchanged' => 0, 'files_uploaded' => 3, 'files_failed' => 0, 'bytes' => 42],
+            [],
+            null,
+        );
+
+        $first = (string) $extract->invoke($controller, $manifest, 246, 'https://example.com/home.html');
+        $this->assertStringStartsWith('## Home', $first);
+        $this->assertStringContainsString('Inhalt A', $first);
+        $this->assertStringNotContainsString('Inhalt B', $first);
+        // The summary belongs to the run, not to the page.
+        $this->assertStringNotContainsString('Pages indexed', $first);
+
+        $this->assertStringContainsString('Inhalt B', (string) $extract->invoke($controller, $manifest, 250, 'https://example.com/impressum.html'));
+        // The link directory has no page id and is matched by its URL alone.
+        $this->assertStringContainsString('Inhalt C', (string) $extract->invoke($controller, $manifest, 0, 'https://example.com/'));
+    }
+
+    /**
      * Manifests written before the page id was part of a block - and the link directory,
      * which has no page id at all - are matched by their URL line.
      */

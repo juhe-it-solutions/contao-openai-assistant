@@ -63,8 +63,10 @@
                 <target>Indexierten Inhalt dieser Seite anzeigen</target>
             </trans-unit>
             <trans-unit id="tl_openai_vector_file.intro_hint">
-                <source>This list shows only the files the automatic synchronisation manages itself - one file per indexed page. Files you uploaded by hand (OpenAI Dashboard → File upload) are not listed here and are never touched by the sync. Entries disappear on their own as soon as a page leaves the synchronisation, which is why nothing can be deleted here by hand.</source>
-                <target>Diese Liste zeigt nur die Dateien, die die automatische Synchronisierung selbst verwaltet – pro indexierter Seite eine Datei. Manuell hochgeladene Dateien (OpenAI-Dashboard → Datei-Upload) erscheinen hier nicht und werden von der Synchronisierung nie verändert. Einträge verschwinden automatisch, sobald eine Seite nicht mehr synchronisiert wird – deshalb lässt sich hier nichts von Hand löschen.</target>
+                <source>This list shows only the files the automatic synchronisation manages itself - one file per indexed page.
+                Files you uploaded by hand (OpenAI Dashboard → File upload) are not listed here and are never touched by the sync. Entries disappear on their own as soon as a page leaves the synchronisation.</source>
+                <target>Diese Liste zeigt nur die Dateien, die die automatische Synchronisierung selbst verwaltet - pro indexierter Seite eine Datei.
+                Manuell hochgeladene Dateien (OpenAI-Dashboard → Datei-Upload) erscheinen hier nicht und werden von der Synchronisierung nie verändert. Einträge verschwinden automatisch, sobald eine Seite nicht mehr synchronisiert wird.</target>
             </trans-unit>
             <trans-unit id="tl_openai_vector_file.edit_page">
                 <source>Edit page in the site structure</source>

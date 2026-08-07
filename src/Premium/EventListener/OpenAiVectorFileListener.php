@@ -62,9 +62,10 @@ class OpenAiVectorFileListener
         'open_url' => 'Open page in a new tab',
         'show_content' => 'Show the indexed content of this page',
         'intro_hint' => 'This list shows only the files the automatic synchronisation manages itself - '
-            .'one file per indexed page. Files you uploaded by hand (OpenAI Dashboard → File upload) are '
-            .'not listed here and are never touched by the sync. Entries disappear on their own as soon '
-            .'as a page leaves the synchronisation, which is why nothing can be deleted here by hand.',
+            ."one file per indexed page.\n"
+            .'Files you uploaded by hand (OpenAI Dashboard → File upload) are not listed here and are '
+            .'never touched by the sync. Entries disappear on their own as soon as a page leaves the '
+            .'synchronisation.',
         'filtered_hint' => 'Showing the files of one OpenAI configuration only.',
         'filtered_reset' => 'Show all configurations',
     ];
@@ -123,7 +124,12 @@ class OpenAiVectorFileListener
             return;
         }
 
-        Message::addInfo(htmlspecialchars($this->trans('intro_hint'), ENT_QUOTES));
+        // The hint covers two separate things and is broken into two lines in the language
+        // files. Messages are rendered raw, so the text is escaped first and only then is the
+        // break turned into a <br> - together with the indentation the XLIFF file carries.
+        $hint = htmlspecialchars($this->trans('intro_hint'), ENT_QUOTES);
+
+        Message::addInfo((string) preg_replace('/[ \t]*\R[ \t]*/u', '<br>', $hint));
 
         // An install has exactly one OpenAI configuration by design, so the scoping is
         // invisible there and saying "one configuration only" would just confuse. Only a
