@@ -26,6 +26,13 @@ $GLOBALS['BE_MOD']['ai_tools'] = [
         'tables' => ['tl_openai_sync_log'],
         'icon'   => 'bundles/contaocore/icons/modules.svg',
     ],
+    // Read-only map of "which OpenAI vector store file holds which page". The uploaded
+    // files are only identifiable by id in the OpenAI platform, so this list is the way
+    // back from a file id to a page (and forward from a page to its file id).
+    'openai_vector_file' => [
+        'tables' => ['tl_openai_vector_file'],
+        'icon'   => 'bundles/contaocore/icons/modules.svg',
+    ],
 ];
 
 // Load backend CSS for AI Tools menu icon (Contao 5 official way)

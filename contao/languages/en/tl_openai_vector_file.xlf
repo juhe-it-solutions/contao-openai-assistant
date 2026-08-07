@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+    <file source-language="en" target-language="en" datatype="plaintext" original="tl_openai_vector_file.xlf">
+        <body>
+            <trans-unit id="tl_openai_vector_file.page_id">
+                <source>Page ID</source>
+                <target>Page ID</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.title">
+                <source>Title</source>
+                <target>Title</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.url">
+                <source>URL</source>
+                <target>URL</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.language">
+                <source>Language</source>
+                <target>Language</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.status">
+                <source>Status</source>
+                <target>Status</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.status_ref.uploaded">
+                <source>Uploaded</source>
+                <target>Uploaded</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.status_ref.failed">
+                <source>Failed</source>
+                <target>Failed</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.chunk">
+                <source>Part</source>
+                <target>Part</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.bytes">
+                <source>Size</source>
+                <target>Size</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.openai_file_id">
+                <source>OpenAI file ID</source>
+                <target>OpenAI file ID</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.tstamp">
+                <source>Uploaded on</source>
+                <target>Uploaded on</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.last_error">
+                <source>Last error</source>
+                <target>Last error</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.edit_page">
+                <source>Edit page in the site structure</source>
+                <target>Edit page in the site structure</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.open_url">
+                <source>Open page in a new tab</source>
+                <target>Open page in a new tab</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.link_index">
+                <source>Link directory (not a page)</source>
+                <target>Link directory (not a page)</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.filtered_hint">
+                <source>Showing the files of one OpenAI configuration only.</source>
+                <target>Showing the files of one OpenAI configuration only.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.filtered_reset">
+                <source>Show all configurations</source>
+                <target>Show all configurations</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

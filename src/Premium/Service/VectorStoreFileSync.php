@@ -57,6 +57,29 @@ class VectorStoreFileSync
      */
     private const MAX_BACKOFF_SECONDS = 60;
 
+    /**
+     * Latin letters with diacritics mapped to ASCII for the upload file name. German
+     * umlauts follow the DIN convention (ä -> ae) because that is what a German page title
+     * is expected to look like; the rest is a plain accent strip.
+     */
+    private const TRANSLITERATION = [
+        'ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'ß' => 'ss',
+        'Ä' => 'Ae', 'Ö' => 'Oe', 'Ü' => 'Ue',
+        'á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a', 'å' => 'a', 'æ' => 'ae',
+        'Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Å' => 'A', 'Æ' => 'Ae',
+        'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+        'É' => 'E', 'È' => 'E', 'Ê' => 'E', 'Ë' => 'E',
+        'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
+        'Í' => 'I', 'Ì' => 'I', 'Î' => 'I', 'Ï' => 'I',
+        'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'õ' => 'o', 'ø' => 'oe',
+        'Ó' => 'O', 'Ò' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ø' => 'Oe',
+        'ú' => 'u', 'ù' => 'u', 'û' => 'u',
+        'Ú' => 'U', 'Ù' => 'U', 'Û' => 'U',
+        'ç' => 'c', 'Ç' => 'C', 'ñ' => 'n', 'Ñ' => 'N',
+        'ý' => 'y', 'ÿ' => 'y', 'Ý' => 'Y',
+        'š' => 's', 'Š' => 'S', 'ž' => 'z', 'Ž' => 'Z', 'č' => 'c', 'Č' => 'C',
+    ];
+
     public function __construct(
         private readonly Connection $connection,
         private readonly HttpClientInterface $http,
@@ -68,7 +91,7 @@ class VectorStoreFileSync
      * @param list<array{page_id: int, url: string, title: string, language: string, content: string, search_checksum: string}> $pages
      * @param (callable(int, int):void)|null                                                                                    $progress called with (pages done, pages total) once before the loop and after every processed page, so the orchestrator can publish live progress and refresh the run lease during a long sync
      *
-     * @return array{added: int, updated: int, removed: int, unchanged: int, files_uploaded: int, files_failed: int, bytes: int}
+     * @return array{added: int, updated: int, removed: int, unchanged: int, files_uploaded: int, files_failed: int, bytes: int, page_states: array<int, array{state: string, files: list<string>}>} page_states maps every page in scope to what happened to it and which vector-store file(s) now hold it - the orchestrator writes it into the downloadable manifest so operators can match a page to a file id in the OpenAI platform
      */
     public function sync(string $apiKey, string $vectorStoreId, int $configId, array $pages, string $legacyFileId = '', callable|null $progress = null): array
     {
@@ -88,6 +111,7 @@ class VectorStoreFileSync
             'files_uploaded' => 0,
             'files_failed' => 0,
             'bytes' => 0,
+            'page_states' => [],
         ];
 
         $seenPageIds = [];
@@ -108,6 +132,7 @@ class VectorStoreFileSync
             // Unchanged: same content already uploaded successfully -> skip (incremental).
             if (null !== $current && $current['content_hash'] === $contentHash && 'uploaded' === $current['status']) {
                 ++$stats['unchanged'];
+                $stats['page_states'][$pageId] = ['state' => 'unchanged', 'files' => $current['files']];
                 ++$pagesDone;
                 if (null !== $progress) {
                     $progress($pagesDone, $pagesTotal);
@@ -127,7 +152,7 @@ class VectorStoreFileSync
                 $bytes = \strlen($document);
 
                 try {
-                    $fileId = $this->uploadFile($apiKey, $document);
+                    $fileId = $this->uploadFile($apiKey, $document, $this->buildFilename($page, $i, $chunkCount));
                     $replacementFileIds[] = $fileId;
                     $this->attachToStore($apiKey, $vectorStoreId, $fileId, $page, $contentHash, $i, $chunkCount);
                     $this->waitForIngestion($apiKey, $vectorStoreId, $fileId);
@@ -165,13 +190,24 @@ class VectorStoreFileSync
                     }
                 }
 
+                $stats['page_states'][$pageId] = [
+                    'state' => null === $current ? 'added' : 'updated',
+                    'files' => $replacementFileIds,
+                ];
+
                 null === $current ? ++$stats['added'] : ++$stats['updated'];
-            } elseif ([] !== $replacementFileIds) {
-                // Partial replacement files would duplicate old knowledge for changed pages
-                // (or leave orphan chunks for new pages), so remove them best-effort.
-                foreach ($replacementFileIds as $replacementFileId) {
-                    $this->detachAndDelete($apiKey, $vectorStoreId, $replacementFileId);
+            } else {
+                if ([] !== $replacementFileIds) {
+                    // Partial replacement files would duplicate old knowledge for changed pages
+                    // (or leave orphan chunks for new pages), so remove them best-effort.
+                    foreach ($replacementFileIds as $replacementFileId) {
+                        $this->detachAndDelete($apiKey, $vectorStoreId, $replacementFileId);
+                    }
                 }
+
+                // The swap never happened, so whatever the store held before this run still
+                // answers queries for this page - nothing at all for a brand-new page.
+                $stats['page_states'][$pageId] = ['state' => 'failed', 'files' => $current['files'] ?? []];
             }
 
             ++$pagesDone;
@@ -349,12 +385,65 @@ class VectorStoreFileSync
         return $chunks;
     }
 
-    private function uploadFile(string $apiKey, string $content): string
+    /**
+     * Build the name the file is uploaded under. OpenAI shows it verbatim in the platform's
+     * file list, and it is the only human-readable handle there - so it carries the page id
+     * (the key into tl_openai_vector_file and the manifest) plus a slug of the title.
+     *
+     * @param array{page_id: int, url: string, title: string} $page
+     */
+    private function buildFilename(array $page, int $chunkIndex, int $chunkCount): string
     {
-        $tmpPath = sys_get_temp_dir().'/contao_vs_page_'.bin2hex(random_bytes(16)).'.md';
+        $source = trim($page['title']);
+
+        if ('' === $source) {
+            // Fall back to the URL path; a page with neither title nor path keeps the id alone.
+            $source = trim((string) parse_url($page['url'], PHP_URL_PATH), '/');
+        }
+
+        // ASCII only: the multipart filename travels in a header, and a transliterated slug
+        // stays readable in the OpenAI UI where raw UTF-8 may not. Everything the map does
+        // not cover (Greek, Cyrillic, CJK, …) collapses into separators below - the page id
+        // in front of the slug remains the reliable identifier either way.
+        $slug = strtolower(strtr($source, self::TRANSLITERATION));
+        $slug = (string) preg_replace('/[^a-z0-9]+/', '-', $slug);
+        $slug = trim($slug, '-');
+
+        if (mb_strlen($slug) > 60) {
+            $slug = rtrim(mb_substr($slug, 0, 60), '-');
+        }
+
+        // page_id 0 is the synthetic site-wide link directory, not a real page.
+        $name = 0 === $page['page_id'] ? 'seite-index' : 'seite-'.$page['page_id'];
+
+        if ('' !== $slug) {
+            $name .= '-'.$slug;
+        }
+
+        if ($chunkCount > 1) {
+            $name .= \sprintf('-teil-%d-von-%d', $chunkIndex + 1, $chunkCount);
+        }
+
+        return $name.'.md';
+    }
+
+    private function uploadFile(string $apiKey, string $content, string $filename): string
+    {
+        // Symfony's multipart encoder takes the upload filename from the stream's path, and
+        // OpenAI stores that name. The uniqueness suffix therefore goes on a throwaway
+        // DIRECTORY rather than the file, so it never leaks into what operators see.
+        $dir = sys_get_temp_dir().'/contao_vs_'.bin2hex(random_bytes(16));
+
+        if (!@mkdir($dir, 0700) && !is_dir($dir)) {
+            throw new \RuntimeException('Could not create temp directory for upload.');
+        }
+
+        $tmpPath = $dir.'/'.$filename;
 
         $handle = @fopen($tmpPath, 'x+');
         if (false === $handle) {
+            @rmdir($dir);
+
             throw new \RuntimeException('Could not create temp file for upload.');
         }
 
@@ -392,6 +481,7 @@ class VectorStoreFileSync
                 fclose($handle);
             }
             @unlink($tmpPath);
+            @rmdir($dir);
         }
     }
 

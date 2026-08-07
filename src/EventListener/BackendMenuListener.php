@@ -29,11 +29,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * the MenuEvent. The entry is hidden for users without module access (the entry
  * is also enforced server-side in the controller).
  *
- * Both this entry and the "openai_sync_log" entry are hidden entirely only when no
- * license key has ever been stored — they are meaningless then. Once a key exists they
- * stay visible even if the subscription has lapsed, because the dashboard is where the
- * "Refresh license status" button and the "why did sync stop" explanation live; hiding
- * them would strip a paying-but-lapsed customer of the very path back to an active state.
+ * This entry and the "openai_sync_log" / "openai_vector_file" entries are hidden entirely
+ * only when no license key has ever been stored — they are meaningless then (the tables
+ * stay empty without the premium sync). Once a key exists they stay visible even if the
+ * subscription has lapsed, because the dashboard is where the "Refresh license status"
+ * button and the "why did sync stop" explanation live; hiding them would strip a
+ * paying-but-lapsed customer of the very path back to an active state.
  */
 #[AsEventListener(ContaoCoreEvents::BACKEND_MENU_BUILD, priority: -255)]
 class BackendMenuListener
@@ -62,6 +63,7 @@ class BackendMenuListener
         if (!$this->hasStoredLicenseKey()) {
             $categoryNode->removeChild('vector_store_auto_update');
             $categoryNode->removeChild('openai_sync_log');
+            $categoryNode->removeChild('openai_vector_file');
 
             return;
         }

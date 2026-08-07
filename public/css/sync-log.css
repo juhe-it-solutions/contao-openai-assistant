@@ -1,8 +1,10 @@
 /*
- * Styling for the read-only "OpenAI Sync-Protokoll" listing (tl_openai_sync_log).
- * Loaded only on that backend page (see OpenAiSyncLogListener::loadStylesheet) so
- * these rules never affect other DC_Table listings. The look mirrors the
- * "Letzte Synchronisierungen" card on the vector-store-auto-update dashboard.
+ * Styling for the two read-only listings of the vector store sync: the run history
+ * ("OpenAI Sync-Protokoll", tl_openai_sync_log) and the page-to-file map ("OpenAI
+ * Vector-Store-Dateien", tl_openai_vector_file). Loaded only on those two backend
+ * pages (see OpenAiSyncLogListener / OpenAiVectorFileListener) so these rules never
+ * affect other DC_Table listings. The look mirrors the "Letzte Synchronisierungen"
+ * card on the vector-store-auto-update dashboard.
  */
 
 /* Card around the whole listing */
@@ -62,9 +64,24 @@ html[lang|='de'] #tl_listing table.tl_listing.showColumns thead th.tl_right_nowr
     word-break: break-word;
 }
 /* File IDs are long unbroken tokens - let them wrap rather than widen the column */
-#tl_listing table.tl_listing.showColumns td.col_file_id {
+#tl_listing table.tl_listing.showColumns td.col_file_id,
+#tl_listing table.tl_listing.showColumns td.col_openai_file_id {
     overflow-wrap: anywhere;
     word-break: break-word;
+}
+
+/* Page-to-file map (tl_openai_vector_file): the title and the (shortened) URL are the
+   two free-text columns, so cap them instead of letting one long page path push the
+   file id off screen. */
+#tl_listing table.tl_listing.showColumns td.col_title,
+#tl_listing table.tl_listing.showColumns td.col_url {
+    max-width: 320px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+#tl_listing table.tl_listing.showColumns td.col_openai_file_id code {
+    font-size: 12px;
 }
 
 /* Status badge - mirrors .vsau-badge on the dashboard */

@@ -535,10 +535,20 @@
                             {{ 'MSC.vsau_run_now'|trans({}, 'contao_default') }}
                         </button>
                     </form>
+                    {# Page ↔ OpenAI file mapping for this config. Hidden until something is
+                       indexed, because an empty list explains nothing. #}
+                    {% if config.files_count > 0 %}
+                        <a href="{{ config.files_url }}" class="tl_submit">
+                            {{ 'MSC.vsau_show_files'|trans({}, 'contao_default') }} ({{ config.files_count }})
+                        </a>
+                    {% endif %}
                     {% if config.blocking %}
                         <span class="vsau-actions-hint">{{ 'MSC.vsau_run_now_blocked_hint'|trans({}, 'contao_default') }}</span>
                     {% endif %}
                 </div>
+                {% if config.files_count > 0 %}
+                    <p class="vsau-actions-hint" style="margin-top: 10px;">{{ 'MSC.vsau_show_files_hint'|trans({}, 'contao_default') }}</p>
+                {% endif %}
 
             {% else %}
 

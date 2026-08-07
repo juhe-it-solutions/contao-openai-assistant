@@ -21,7 +21,13 @@ use Contao\DC_Table;
  *
  * The table is internal machine state - created/maintained by Contao's Doctrine schema sync
  * (no migration), like tl_openai_sync_log. It is registered as a closed, read-only DC_Table
- * so operators can inspect it, but it is never edited by hand.
+ * (BE_MOD ai_tools.openai_vector_file) so operators can look up which OpenAI file holds
+ * which page - the uploaded files carry no such index - but it is never edited by hand.
+ *
+ * Rows are not deletable either: deleting one would drop the sync's memory of an existing
+ * remote file, so the next run would upload the page a second time and leave the first file
+ * orphaned in the store. Removal happens through the sync itself (page out of scope) or by
+ * resetting the feature on the config.
  */
 $GLOBALS['TL_DCA']['tl_openai_vector_file'] = [
     'config' => [
@@ -29,6 +35,7 @@ $GLOBALS['TL_DCA']['tl_openai_vector_file'] = [
         'closed'           => true,
         'notCopyable'      => true,
         'notEditable'      => true,
+        'notDeletable'     => true,
         'enableVersioning' => false,
         'sql' => [
             'keys' => [
@@ -43,10 +50,10 @@ $GLOBALS['TL_DCA']['tl_openai_vector_file'] = [
         'sorting' => [
             'mode'        => 2,
             'fields'      => ['page_id'],
-            'panelLayout' => 'sort,search,limit',
+            'panelLayout' => 'filter;sort,search,limit',
         ],
         'label' => [
-            'fields'      => ['page_id', 'title', 'url', 'status', 'bytes', 'openai_file_id'],
+            'fields'      => ['page_id', 'title', 'url', 'status', 'chunk_index', 'bytes', 'openai_file_id', 'tstamp'],
             'showColumns' => true,
         ],
     ],
@@ -59,20 +66,34 @@ $GLOBALS['TL_DCA']['tl_openai_vector_file'] = [
             'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
         'tstamp' => [
-            'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+            'label'   => &$GLOBALS['TL_LANG']['tl_openai_vector_file']['tstamp'],
+            'sorting' => true,
+            'flag'    => 6,
+            'eval'    => ['rgxp' => 'datim'],
+            'sql'     => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
         // Source tl_page id (0 if the content is not bound to a single page).
         'page_id' => [
-            'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+            'label'   => &$GLOBALS['TL_LANG']['tl_openai_vector_file']['page_id'],
+            'sorting' => true,
+            'search'  => true,
+            'sql'     => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
         'url' => [
-            'sql' => ['type' => 'string', 'length' => 2048, 'default' => ''],
+            'label'  => &$GLOBALS['TL_LANG']['tl_openai_vector_file']['url'],
+            'search' => true,
+            'sql'    => ['type' => 'string', 'length' => 2048, 'default' => ''],
         ],
         'title' => [
-            'sql' => ['type' => 'string', 'length' => 512, 'default' => ''],
+            'label'   => &$GLOBALS['TL_LANG']['tl_openai_vector_file']['title'],
+            'sorting' => true,
+            'search'  => true,
+            'sql'     => ['type' => 'string', 'length' => 512, 'default' => ''],
         ],
         'language' => [
-            'sql' => ['type' => 'string', 'length' => 5, 'default' => ''],
+            'label'  => &$GLOBALS['TL_LANG']['tl_openai_vector_file']['language'],
+            'filter' => true,
+            'sql'    => ['type' => 'string', 'length' => 5, 'default' => ''],
         ],
         // Copy of tl_search.checksum, kept for reference/debugging only.
         'search_checksum' => [
@@ -82,25 +103,35 @@ $GLOBALS['TL_DCA']['tl_openai_vector_file'] = [
         'content_hash' => [
             'sql' => ['type' => 'string', 'length' => 64, 'default' => ''],
         ],
-        // Chunk position for the rare page that exceeds the OpenAI per-file limit.
+        // Chunk position for the rare page that exceeds the OpenAI per-file limit. Rendered
+        // as "1/2" by the label callback, hence only chunk_index appears in the column list.
         'chunk_index' => [
-            'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_vector_file']['chunk'],
+            'sql'   => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
         'chunk_count' => [
             'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 1],
         ],
         'openai_file_id' => [
-            'sql' => ['type' => 'string', 'length' => 255, 'default' => ''],
+            'label'  => &$GLOBALS['TL_LANG']['tl_openai_vector_file']['openai_file_id'],
+            'search' => true,
+            'sql'    => ['type' => 'string', 'length' => 255, 'default' => ''],
         ],
         'bytes' => [
-            'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+            'label'   => &$GLOBALS['TL_LANG']['tl_openai_vector_file']['bytes'],
+            'sorting' => true,
+            'sql'     => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
         // uploaded | failed | orphan
         'status' => [
-            'sql' => ['type' => 'string', 'length' => 20, 'default' => ''],
+            'label'     => &$GLOBALS['TL_LANG']['tl_openai_vector_file']['status'],
+            'filter'    => true,
+            'reference' => &$GLOBALS['TL_LANG']['tl_openai_vector_file']['status_ref'],
+            'sql'       => ['type' => 'string', 'length' => 20, 'default' => ''],
         ],
         'last_error' => [
-            'sql' => ['type' => 'text', 'notnull' => false],
+            'label' => &$GLOBALS['TL_LANG']['tl_openai_vector_file']['last_error'],
+            'sql'   => ['type' => 'text', 'notnull' => false],
         ],
     ],
 ];

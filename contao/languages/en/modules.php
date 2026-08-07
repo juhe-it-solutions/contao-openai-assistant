@@ -21,6 +21,9 @@ $GLOBALS['TL_LANG']['MOD']['vector_store_auto_update.1'] = 'Status, log and manu
 $GLOBALS['TL_LANG']['MOD']['openai_sync_log']   = ['OpenAI sync log', 'Manage the automatic vector store sync history'];
 $GLOBALS['TL_LANG']['MOD']['openai_sync_log.0'] = 'OpenAI sync log';
 $GLOBALS['TL_LANG']['MOD']['openai_sync_log.1'] = 'Manage the automatic vector store sync history';
+$GLOBALS['TL_LANG']['MOD']['openai_vector_file']   = ['OpenAI vector store files', 'Which OpenAI file holds which page'];
+$GLOBALS['TL_LANG']['MOD']['openai_vector_file.0'] = 'OpenAI vector store files';
+$GLOBALS['TL_LANG']['MOD']['openai_vector_file.1'] = 'Which OpenAI file holds which page';
 $GLOBALS['TL_LANG']['MOD']['ai_chat']            = 'AI-Chatbot';
 
 // Module group (used in module creation)

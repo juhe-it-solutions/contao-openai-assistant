@@ -263,6 +263,111 @@ class VectorStoreFileSyncTest extends TestCase
         $this->assertSame([[0, 2], [1, 2], [2, 2]], $calls);
     }
 
+    public function testUploadUsesASpeakingFilename(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+
+        $filenames = [];
+        $client = new MockHttpClient(
+            function (string $method, string $url, array $options = []) use (&$filenames): MockResponse {
+                if ('POST' === $method && 'https://api.openai.com/v1/files' === $url) {
+                    // OpenAI shows this name in its file list, so it must identify the page.
+                    preg_match('/filename="([^"]+)"/', $this->readBody($options), $matches);
+                    $filenames[] = $matches[1] ?? '';
+
+                    return new MockResponse('{"id":"new_file"}');
+                }
+
+                if ('POST' === $method && str_contains($url, '/vector_stores/vs_123/files')) {
+                    return new MockResponse('{}');
+                }
+
+                if ('GET' === $method && str_ends_with($url, '/vector_stores/vs_123/files/new_file')) {
+                    return new MockResponse('{"status":"completed"}');
+                }
+
+                self::fail('Unexpected request: '.$method.' '.$url);
+            },
+        );
+
+        (new VectorStoreFileSync($connection, $client, new NullLogger()))->sync(
+            'sk-test',
+            'vs_123',
+            7,
+            [array_merge($this->page('content'), ['title' => 'Über uns & Kontakt'])],
+        );
+
+        $this->assertSame(['seite-42-ueber-uns-kontakt.md'], $filenames);
+    }
+
+    public function testPageStatesMapEveryPageToItsVectorStoreFile(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+        // Page 42 already uploaded with identical content -> unchanged, keeps its old file.
+        $this->insertVectorFile($rows, 'old_file', hash('sha256', 'same content'), 'uploaded');
+
+        $client = new MockHttpClient(
+            static function (string $method, string $url): MockResponse {
+                if ('POST' === $method && 'https://api.openai.com/v1/files' === $url) {
+                    return new MockResponse('{"id":"new_file"}');
+                }
+
+                if ('POST' === $method && str_contains($url, '/vector_stores/vs_123/files')) {
+                    return new MockResponse('{}');
+                }
+
+                if ('GET' === $method && str_ends_with($url, '/vector_stores/vs_123/files/new_file')) {
+                    return new MockResponse('{"status":"completed"}');
+                }
+
+                self::fail('Unexpected request: '.$method.' '.$url);
+            },
+        );
+
+        $stats = (new VectorStoreFileSync($connection, $client, new NullLogger()))->sync(
+            'sk-test',
+            'vs_123',
+            7,
+            [
+                $this->page('same content'),
+                array_merge($this->page('new content'), ['page_id' => 43, 'url' => 'https://example.test/other']),
+            ],
+        );
+
+        $this->assertSame(
+            [
+                42 => ['state' => 'unchanged', 'files' => ['old_file']],
+                43 => ['state' => 'added', 'files' => ['new_file']],
+            ],
+            $stats['page_states'],
+        );
+    }
+
+    /**
+     * Consume a normalized multipart request body so the test can assert on the part
+     * headers (Symfony hands the callback a chunk generator, not a plain string).
+     *
+     * @param array<string, mixed> $options
+     */
+    private function readBody(array $options): string
+    {
+        $body = $options['body'] ?? '';
+
+        if (!\is_callable($body)) {
+            return (string) $body;
+        }
+
+        $result = '';
+
+        while ('' !== ($chunk = (string) $body(8192))) {
+            $result .= $chunk;
+        }
+
+        return $result;
+    }
+
     /**
      * @param list<array<string, mixed>> $rows
      */
