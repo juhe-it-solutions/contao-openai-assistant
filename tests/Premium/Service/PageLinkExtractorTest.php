@@ -239,6 +239,46 @@ class PageLinkExtractorTest extends TestCase
         $this->assertSame(PageLink::TYPE_PAGE, $byUrl['https://example.com/suche.html?f=bericht.pdf']->type);
     }
 
+    /**
+     * Regression, found live on Contao 5.3 (08.08.2026): FileDownloadHelper writes
+     * the "p" parameter relative to the UPLOAD DIRECTORY ("p=downloads/preisliste.pdf"),
+     * not to the project root. The fixture above uses "p=files/handbuch.docx", which
+     * no Contao version actually emits - so the missing-prefix case went untested and
+     * every real Download element ended up without a file path, and therefore without
+     * a size or MIME type in the link block.
+     */
+    public function testResolvesDownloadQueryPathsRelativeToTheUploadDirectory(): void
+    {
+        $links = $this->extract(self::page(
+            '<a href="/linktest?_hash=abc&amp;d=attachment&amp;f=preisliste.pdf&amp;p=downloads%2Fpreisliste.pdf">Preisliste</a>',
+        ));
+
+        $this->assertCount(1, $links);
+        $this->assertSame(PageLink::TYPE_FILE, $links[0]->type);
+        $this->assertSame('files/downloads/preisliste.pdf', $links[0]->filePath);
+    }
+
+    /**
+     * Prepending the upload path must not become a way out of it: "." and ".." are
+     * collapsed BEFORE the prefix is checked, so "p=../../.env" normalises to ".env",
+     * fails the prefix test and yields no file path at all.
+     *
+     * Only filePath is asserted. The link is still TYPED as a file, because
+     * classify() takes that hint from the "f" parameter regardless of whether the
+     * path resolves (PageLinkExtractor.php:439) - pre-existing behaviour, and
+     * harmless: with no file path nothing outside the upload directory is ever
+     * stat-ed or read, and no size or MIME is reported.
+     */
+    public function testDownloadQueryPathsCannotEscapeTheUploadDirectory(): void
+    {
+        $links = $this->extract(self::page(
+            '<a href="/linktest?_hash=abc&amp;d=attachment&amp;f=env&amp;p=..%2F..%2F.env">Geheim</a>',
+        ));
+
+        $this->assertCount(1, $links);
+        $this->assertSame('', $links[0]->filePath);
+    }
+
     public function testDownloadQueryUrlsUseTheFileNameAsLabelFallback(): void
     {
         $links = $this->extract(self::page('<a href="/download-center.html?file=files/quartalsbericht.pdf"></a>'));
@@ -421,6 +461,40 @@ class PageLinkExtractorTest extends TestCase
         ));
 
         $this->assertSame(['https://example.com/andere.html'], self::urls($links));
+    }
+
+    /**
+     * Regression, found live on Contao 5.3 (08.08.2026): self-link detection used
+     * to compare against the <base href>, and Contao's fe_page.html5 emits the SITE
+     * ROOT there - so on every stock install the yardstick was "https://example.com/"
+     * instead of the page's own URL, and no self-link was ever dropped.
+     *
+     * Every fixture in this class renders without a <base>, which is precisely why
+     * 193 tests went green while the live site collected self-links.
+     */
+    public function testSkipsSelfLinksEvenWhenThePageEmitsABaseHref(): void
+    {
+        $links = $this->extract(self::page(
+            '<a href="/leistungen.html">Diese Seite</a>'
+            .'<a href="/andere.html">Andere</a>',
+            '<base href="https://example.com/">',
+        ));
+
+        $this->assertSame(['https://example.com/andere.html'], self::urls($links));
+    }
+
+    /**
+     * The other half of the same bug: with the site root as the yardstick, a genuine
+     * link TO the home page looked like a self-link and vanished from every page.
+     */
+    public function testKeepsLinksToTheHomePageWhenThePageEmitsABaseHref(): void
+    {
+        $links = $this->extract(self::page(
+            '<a href="/">Startseite</a>',
+            '<base href="https://example.com/">',
+        ));
+
+        $this->assertSame(['https://example.com/'], self::urls($links));
     }
 
     // ------------------------------------------------------------- classification

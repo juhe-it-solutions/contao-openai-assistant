@@ -191,7 +191,15 @@ class PageLinkExtractor
         // A <base href> changes how every relative href resolves. Contao does not
         // emit one by default, but a custom template may.
         $base = $this->resolveBaseHref($crawler, $baseUrl);
-        $ownUrl = $this->normaliseHttpUrl($base);
+
+        // The page's own identity is the URL Contao indexed it under - NEVER the
+        // <base href>. Contao's fe_page.html5 emits the SITE ROOT there
+        // ("https://example.com/"), so deriving $ownUrl from it would compare every
+        // link against the root instead of the page: self-links would all survive,
+        // and on a site whose root page resolves to "/" every genuine link to the
+        // home page would be dropped as a self-link. $base stays the resolution
+        // base for relative hrefs, which is the one job it is right for.
+        $ownUrl = $this->normaliseHttpUrl($baseUrl);
         $hosts = $this->buildHostSet($base, $siteHosts);
 
         $root = $crawler->filterXPath('//main | //*[@role="main"] | //*[@id="main"]');
@@ -329,7 +337,7 @@ class PageLinkExtractor
         // Contao serves some downloads through a query parameter rather than a
         // file path; resolving it gives those links a size and a type hint too.
         if ('' === $filePath && $isOwnHost) {
-            $filePath = $this->normaliseUploadPath($this->downloadQueryPath($url)['path']);
+            $filePath = $this->normaliseDownloadQueryPath($this->downloadQueryPath($url)['path']);
         }
         $type = $this->classify($node, $url, $isOwnHost, '' !== $filePath);
 
@@ -545,6 +553,37 @@ class PageLinkExtractor
     private function resolveUploadPath(string $url): string
     {
         return $this->normaliseUploadPath(rawurldecode((string) parse_url($url, PHP_URL_PATH)));
+    }
+
+    /**
+     * Upload path of a download served through a query parameter, in either of the
+     * two spellings Contao uses.
+     *
+     * The legacy element writes the full project-relative path
+     * ("?file=files/downloads/preisliste.pdf"), while FileDownloadHelper (5.3+)
+     * writes a path relative to the UPLOAD DIRECTORY
+     * ("?p=downloads/preisliste.pdf&f=…&_hash=…") - without the "files/" prefix
+     * normaliseUploadPath() insists on. Taking only the first spelling left every
+     * Download element without a file path, and therefore without a size or MIME
+     * type in the link block.
+     *
+     * Prefixing is traversal-safe because normaliseUploadPath() collapses "."/".."
+     * BEFORE it checks the prefix: "p=../../.env" becomes "files/../../.env",
+     * normalises to ".env", fails the prefix test and is rejected.
+     */
+    private function normaliseDownloadQueryPath(string $path): string
+    {
+        if ('' === $path) {
+            return '';
+        }
+
+        $direct = $this->normaliseUploadPath($path);
+
+        if ('' !== $direct) {
+            return $direct;
+        }
+
+        return $this->normaliseUploadPath(trim($this->uploadPath, '/').'/'.ltrim($path, '/'));
     }
 
     /**
