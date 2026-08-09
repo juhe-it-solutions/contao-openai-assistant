@@ -219,6 +219,10 @@
                 <source>Last activity %s min ago</source>
                 <target>Letzte Aktivität vor %s Min.</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_progress_indeterminate">
+                <source>In progress</source>
+                <target>Wird ausgeführt …</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_status_started_at">
                 <source>Started %s</source>
                 <target>Gestartet: %s</target>

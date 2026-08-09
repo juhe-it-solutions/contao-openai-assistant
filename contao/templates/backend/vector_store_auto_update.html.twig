@@ -31,8 +31,38 @@
         /* Explicit rule needed: the class display overrides the UA's [hidden] default. */
         .vsau-spinner[hidden] { display: none; }
         @keyframes vsau-spin { to { transform: rotate(360deg); } }
+
+        .vsau-bar {
+            margin-top: 8px;
+            height: 6px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.28);
+            overflow: hidden;
+        }
+        .vsau-bar[hidden] { display: none; }
+        .vsau-bar-fill {
+            height: 100%;
+            width: 0;
+            border-radius: inherit;
+            background: #43a047;
+            transition: width 0.4s ease;
+        }
+        /* No total to divide by (the crawl): the fill spans the track and a lighter
+           band sweeps across it, so the bar reads as "working" rather than "almost done". */
+        .vsau-bar--indeterminate .vsau-bar-fill {
+            width: 100% !important;
+            background: linear-gradient(90deg, #2f6f33 0%, #2f6f33 35%, #66bb6a 50%, #2f6f33 65%, #2f6f33 100%);
+            background-size: 260% 100%;
+            animation: vsau-bar-sweep 1.4s linear infinite;
+            transition: none;
+        }
+        @keyframes vsau-bar-sweep { from { background-position: 130% 0; } to { background-position: -130% 0; } }
+
         @media (prefers-reduced-motion: reduce) {
             .vsau-spinner { animation-duration: 2s; }
+            /* Keep the state legible without motion: a flat band, no sweep, no width tween. */
+            .vsau-bar--indeterminate .vsau-bar-fill { animation: none; background: #2f6f33; }
+            .vsau-bar-fill { transition: none; }
         }
 
         .vsau-toolbar {
@@ -138,7 +168,10 @@
 
         .vsau-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            /* min() guards the narrowest phones: a bare minmax(230px, 1fr) keeps a 230px
+               track even when the container is narrower, which pushes the card into a
+               horizontal scroll. Capping the minimum at 100% lets the track shrink instead. */
+            grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
             gap: 1rem;
             margin-bottom: 1.25rem;
         }
@@ -460,6 +493,20 @@
                                 <span data-vsau-badge-label>{{ config.status_view.badge_label }}</span>
                             </span>
                             <span class="vsau-sub" data-vsau-progress>{{ config.status_view.progress_text }}</span>
+                            {# Determinate while pages are counted against a total, animated
+                               while the crawl runs (no total exists there). Both states are
+                               driven from status_view, so the poller only mirrors them. #}
+                            <div class="vsau-bar{% if config.status_view.bar_percent is null %} vsau-bar--indeterminate{% endif %}"
+                                 data-vsau-bar
+                                 role="progressbar"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100"
+                                 {% if config.status_view.bar_percent is not null %}aria-valuenow="{{ config.status_view.bar_percent }}"{% endif %}
+                                 aria-valuetext="{{ config.status_view.bar_text }}"
+                                 {% if not config.status_view.bar_visible %}hidden{% endif %}>
+                                <div class="vsau-bar-fill" data-vsau-bar-fill
+                                     style="width: {{ config.status_view.bar_percent is null ? 100 : config.status_view.bar_percent }}%"></div>
+                            </div>
                             <span class="vsau-sub" data-vsau-started>{{ config.status_view.started_text }}</span>
                             <span class="vsau-sub" data-vsau-activity>{{ config.status_view.activity_text }}</span>
                             <span class="vsau-sub" data-vsau-lastrun>{{ config.status_view.last_run_formatted }}</span>
@@ -771,6 +818,23 @@
                 }
                 setText(box, '[data-vsau-badge-label]', data.badge_label);
                 setText(box, '[data-vsau-progress]', data.progress_text);
+
+                var bar = box.querySelector('[data-vsau-bar]');
+                if (bar) {
+                    var fill = bar.querySelector('[data-vsau-bar-fill]');
+                    // A null percent means "no total to divide by" — animate instead.
+                    var indeterminate = data.bar_percent === null || data.bar_percent === undefined;
+                    bar.hidden = !data.bar_visible;
+                    bar.classList.toggle('vsau-bar--indeterminate', indeterminate);
+                    bar.setAttribute('aria-valuetext', data.bar_text || '');
+                    if (indeterminate) {
+                        bar.removeAttribute('aria-valuenow');
+                    } else {
+                        bar.setAttribute('aria-valuenow', String(data.bar_percent));
+                    }
+                    if (fill) { fill.style.width = (indeterminate ? 100 : data.bar_percent) + '%'; }
+                }
+
                 setText(box, '[data-vsau-started]', data.started_text);
                 setText(box, '[data-vsau-activity]', data.activity_text);
                 setText(box, '[data-vsau-lastrun]', data.last_run_formatted);
