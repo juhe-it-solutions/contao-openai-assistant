@@ -460,6 +460,7 @@
                                 <span data-vsau-badge-label>{{ config.status_view.badge_label }}</span>
                             </span>
                             <span class="vsau-sub" data-vsau-progress>{{ config.status_view.progress_text }}</span>
+                            <span class="vsau-sub" data-vsau-started>{{ config.status_view.started_text }}</span>
                             <span class="vsau-sub" data-vsau-activity>{{ config.status_view.activity_text }}</span>
                             <span class="vsau-sub" data-vsau-lastrun>{{ config.status_view.last_run_formatted }}</span>
                             <span class="vsau-sub" data-vsau-message>{{ config.status_view.message }}</span>
@@ -770,6 +771,7 @@
                 }
                 setText(box, '[data-vsau-badge-label]', data.badge_label);
                 setText(box, '[data-vsau-progress]', data.progress_text);
+                setText(box, '[data-vsau-started]', data.started_text);
                 setText(box, '[data-vsau-activity]', data.activity_text);
                 setText(box, '[data-vsau-lastrun]', data.last_run_formatted);
                 setText(box, '[data-vsau-message]', data.message);
