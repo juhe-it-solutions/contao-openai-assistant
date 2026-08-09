@@ -430,6 +430,11 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         $total = (int) ($config['auto_update_progress_total'] ?? 0);
 
         return match (true) {
+            // The crawl has no total to count against, but it does report how many pages
+            // it has indexed so far - a moving number is far more reassuring than a bare
+            // "crawling…" on a site that takes minutes. Falls back to the plain text until
+            // the first page lands.
+            'crawl' === $phase && $current > 0 => $this->translator->trans('MSC.vsau_progress_crawl_count', [$current], 'contao_default'),
             'crawl' === $phase => $this->translator->trans('MSC.vsau_progress_crawl', [], 'contao_default'),
             'polish' === $phase && $total > 0 => $this->translator->trans('MSC.vsau_progress_polish', [$current, $total], 'contao_default'),
             'upload' === $phase && $total > 0 => $this->translator->trans('MSC.vsau_progress_upload', [$current, $total], 'contao_default'),
