@@ -303,7 +303,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
      *
      * @param array<string, mixed> $config
      *
-     * @return array{active: bool, badge_label: string, badge_class: string, spinner: bool, progress_text: string|null, activity_text: string|null, started_text: string|null, last_run_formatted: string|null, message: string|null}
+     * @return array{active: bool, badge_label: string, badge_class: string, spinner: bool, progress_text: string|null, bar_visible: bool, bar_percent: int|null, bar_text: string, activity_text: string|null, started_text: string|null, last_run_formatted: string|null, message: string|null}
      */
     private function statusView(array $config): array
     {
@@ -315,6 +315,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         // badge so the user can tell a fresh dispatch from one going a while.
         $ageMinutes = (int) floor(max(0, time() - $lastRun) / 60);
         [$badgeLabel, $badgeClass] = $this->statusBadge($status);
+        $percent = $this->progressPercent($config);
 
         return [
             'active' => $active,
@@ -322,6 +323,21 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             'badge_class' => $badgeClass,
             'spinner' => 'running' === $status,
             'progress_text' => $this->progressText($config),
+            // Shown for exactly the in-flight statuses, i.e. the same set the poller
+            // treats as active. A queued run gets the indeterminate bar too: work IS
+            // pending, and the moment after pressing "sync now" is when feedback matters
+            // most. Terminal statuses get none - a full bar next to "error" would be a
+            // lie, and next to "success" it is noise the finish time already covers.
+            'bar_visible' => $active,
+            // null = indeterminate. The crawl phase has no page total to divide by (it
+            // runs as one blocking subprocess), so the bar animates instead of inventing
+            // a percentage that would jump to 100 the moment a total appears.
+            'bar_percent' => $percent,
+            // Screen readers get the percentage or an explicit "in progress"; the visual
+            // percentage sits in progress_text, which already names the phase.
+            'bar_text' => null !== $percent
+                ? $percent.' %'
+                : $this->translator->trans('MSC.vsau_progress_indeterminate', [], 'contao_default'),
             'activity_text' => $active ? $this->translator->trans('MSC.vsau_status_last_activity', [$ageMinutes], 'contao_default') : null,
             'started_text' => $this->startedText($status, $started),
             // While running, auto_update_last_run is the heartbeat, not a completion time,
@@ -419,6 +435,43 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             'upload' === $phase && $total > 0 => $this->translator->trans('MSC.vsau_progress_upload', [$current, $total], 'contao_default'),
             default => null,
         };
+    }
+
+    /**
+     * Completion of the running sync as a whole percentage, or null when it cannot be
+     * known and the bar has to stay indeterminate.
+     *
+     * Only the polish and upload phases count pages against a total. The crawl does not:
+     * contao:crawl runs as one blocking subprocess with --no-progress, so its page count
+     * is unknown until it exits (VectorStoreAutoUpdateService.php:1049-1065). Estimating
+     * it from the previous run was considered and rejected - a bar that tracks a guess is
+     * worse than one that honestly says "working".
+     *
+     * Capped at 100 rather than trusting the arithmetic: current may briefly exceed total
+     * if the page set grows between the total being written and the loop finishing, and a
+     * bar wider than its track is a visible glitch.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function progressPercent(array $config): int|null
+    {
+        if ('running' !== (string) ($config['auto_update_last_status'] ?? '')) {
+            return null;
+        }
+
+        if (!\in_array((string) ($config['auto_update_progress_phase'] ?? ''), ['polish', 'upload'], true)) {
+            return null;
+        }
+
+        $total = (int) ($config['auto_update_progress_total'] ?? 0);
+
+        if ($total <= 0) {
+            return null;
+        }
+
+        $current = max(0, (int) ($config['auto_update_progress_current'] ?? 0));
+
+        return min(100, (int) floor($current / $total * 100));
     }
 
     /**
