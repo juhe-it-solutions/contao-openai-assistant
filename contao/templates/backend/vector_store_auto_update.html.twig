@@ -47,21 +47,25 @@
             background: #43a047;
             transition: width 0.4s ease;
         }
-        /* No total to divide by (the crawl): the fill spans the track and a lighter
-           band sweeps across it, so the bar reads as "working" rather than "almost done". */
+        /* No total to divide by: a NARROW band travels along an otherwise empty track.
+           A full-width fill would be read as "finished" — the one thing an unknown
+           amount of remaining work must never look like. */
         .vsau-bar--indeterminate .vsau-bar-fill {
-            width: 100% !important;
-            background: linear-gradient(90deg, #2f6f33 0%, #2f6f33 35%, #66bb6a 50%, #2f6f33 65%, #2f6f33 100%);
-            background-size: 260% 100%;
-            animation: vsau-bar-sweep 1.4s linear infinite;
+            width: 30% !important;
+            animation: vsau-bar-slide 1.6s ease-in-out infinite;
             transition: none;
         }
-        @keyframes vsau-bar-sweep { from { background-position: 130% 0; } to { background-position: -130% 0; } }
+        @keyframes vsau-bar-slide {
+            from { transform: translateX(-100%); }
+            to   { transform: translateX(333%); }
+        }
 
         @media (prefers-reduced-motion: reduce) {
             .vsau-spinner { animation-duration: 2s; }
-            /* Keep the state legible without motion: a flat band, no sweep, no width tween. */
-            .vsau-bar--indeterminate .vsau-bar-fill { animation: none; background: #2f6f33; }
+            /* Without motion a travelling band is impossible, so show a short static stub
+               parked at the start: unmistakably "not finished", and it does not imply a
+               position it cannot know. */
+            .vsau-bar--indeterminate .vsau-bar-fill { animation: none; width: 20% !important; }
             .vsau-bar-fill { transition: none; }
         }
 
