@@ -16,6 +16,9 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Service;
 use Contao\CoreBundle\Crawl\Escargot\Factory as EscargotFactory;
 use Contao\CoreBundle\Util\ProcessUtil;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Types\IntegerType;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Controller\BackendModule\VectorStoreAutoUpdateController;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\BoilerplateFilter;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicenseValidationService;
@@ -919,6 +922,83 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
         $result = $method->invoke($service, 'sk-test', 'gpt-4o-mini', 'Aktuelles', 'https://example.com/aktuelles', 'Text', null);
 
         $this->assertSame('## Aktuelles', $result['text']);
+    }
+
+    /**
+     * The run-state columns did not all arrive in the same release: an installation
+     * updated from 2.1.x has the progress columns and not auto_update_run_started. If
+     * the gate only asked about the older ones it would wave that install through, and
+     * the first run-state UPDATE would fail on an unknown column - inside a method whose
+     * contract is to never throw.
+     */
+    public function testRunIsSkippedWhenTheNewestRunStateColumnIsMissing(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('createSchemaManager')->willReturn($this->schemaManager([
+            'auto_update_progress_phase',
+            'auto_update_progress_current',
+            'auto_update_progress_total',
+        ]));
+        $connection->expects($this->never())->method('executeStatement');
+
+        $this->assertSame('skipped', $this->createService($connection)->run(7));
+    }
+
+    /**
+     * The manual button writes the same columns, so it needs the same guard - phrased as
+     * an error the operator can act on rather than an SQL exception.
+     */
+    public function testManualDispatchRefusesAnOutdatedSchema(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('createSchemaManager')->willReturn($this->schemaManager([
+            'auto_update_progress_phase',
+            'auto_update_progress_current',
+            'auto_update_progress_total',
+        ]));
+        $connection->expects($this->never())->method('executeStatement');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('MSC.vsau_err_schema_outdated');
+
+        $this->createService($connection)->dispatchRun(7);
+    }
+
+    /**
+     * Counter-test: a migrated install must pass the gate. It stops at the license check
+     * right after it, which is how we can tell the schema was not what refused it.
+     */
+    public function testManualDispatchPassesTheSchemaGateOnAMigratedInstall(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('createSchemaManager')->willReturn($this->schemaManager([
+            'auto_update_progress_phase',
+            'auto_update_progress_current',
+            'auto_update_progress_total',
+            'auto_update_run_started',
+        ]));
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('MSC.vsau_err_no_license');
+
+        $this->createService($connection)->dispatchRun(7);
+    }
+
+    /**
+     * @param list<string> $columns columns tl_openai_config is reported to have
+     */
+    private function schemaManager(array $columns): AbstractSchemaManager
+    {
+        $schemaManager = $this->createMock(AbstractSchemaManager::class);
+        $schemaManager->method('tablesExist')->willReturn(true);
+        $schemaManager->method('listTableColumns')->willReturn(
+            array_combine(
+                $columns,
+                array_map(static fn (string $name): Column => new Column($name, new IntegerType()), $columns),
+            ),
+        );
+
+        return $schemaManager;
     }
 
     private function createService(Connection $connection, ReaderItemCounter|null $readerItems = null, MockHttpClient|null $http = null): VectorStoreAutoUpdateService

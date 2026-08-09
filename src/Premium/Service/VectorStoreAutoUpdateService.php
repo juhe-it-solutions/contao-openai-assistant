@@ -115,6 +115,18 @@ class VectorStoreAutoUpdateService
     private const PROGRESS_RESET_SQL = "auto_update_progress_phase = '', auto_update_progress_current = 0, auto_update_progress_total = 0";
 
     /**
+     * Every tl_openai_config column the run-state UPDATEs write, and therefore every
+     * column contao:migrate must have created before a sync may start. Reads elsewhere
+     * tolerate a missing column (SELECT * plus a null coalesce); writes cannot.
+     */
+    private const RUN_STATE_COLUMNS = [
+        'auto_update_progress_phase',
+        'auto_update_progress_current',
+        'auto_update_progress_total',
+        'auto_update_run_started',
+    ];
+
+    /**
      * Crawler summary of the current run ("Indexed N URI(s)...", broken-link notices).
      * Quoted in the "nothing was indexed" errors, where it is the single most useful
      * piece of information and otherwise only reachable from the log.
@@ -161,6 +173,13 @@ class VectorStoreAutoUpdateService
     {
         if ($configId <= 0) {
             throw new \InvalidArgumentException('Invalid configuration ID.');
+        }
+
+        // Before anything else, for the same reason run() checks it first: the UPDATE
+        // below writes the run-state columns, so on a code update without contao:migrate
+        // the button would answer with a raw SQL error about an unknown column.
+        if (!$this->isRunStateSchemaCurrent()) {
+            throw new \RuntimeException('MSC.vsau_err_schema_outdated');
         }
 
         if (!$this->licenseValidation->isLicenseActive($configId)) {
@@ -304,13 +323,9 @@ class VectorStoreAutoUpdateService
 
         // Guard against running before contao:migrate has created the extension tables
         // (e.g. CLI command invoked on a fresh install before the install wizard finishes)
-        // or before it has added the progress columns after a bundle update — the run-state
+        // or before it has added the run-state columns after a bundle update — the
         // UPDATEs below reference them, and run() must never throw.
-        $schemaManager = $this->connection->createSchemaManager();
-        if (
-            !$schemaManager->tablesExist(['tl_openai_config'])
-            || !isset($schemaManager->listTableColumns('tl_openai_config')['auto_update_progress_phase'])
-        ) {
+        if (!$this->isRunStateSchemaCurrent()) {
             $this->logger->notice('VectorStoreAutoUpdate skipped for config '.$configId.': database schema not up to date (run contao:migrate).');
 
             return 'skipped';
@@ -917,6 +932,35 @@ class VectorStoreAutoUpdateService
         ];
 
         return $pages;
+    }
+
+    /**
+     * Whether tl_openai_config carries every column the run state is written to.
+     *
+     * Both entry points (the CLI run and the backend dispatch) check this, because both
+     * write the same set and neither may answer a pending migration with an SQL error.
+     * The list is exhaustive on purpose: checking only one column was enough while they
+     * all arrived together, but auto_update_run_started shipped after the progress
+     * columns, so an install updated from 2.1.x has the latter and not the former -
+     * exactly the case a single-column check waves through.
+     */
+    private function isRunStateSchemaCurrent(): bool
+    {
+        $schemaManager = $this->connection->createSchemaManager();
+
+        if (!$schemaManager->tablesExist(['tl_openai_config'])) {
+            return false;
+        }
+
+        $columns = $schemaManager->listTableColumns('tl_openai_config');
+
+        foreach (self::RUN_STATE_COLUMNS as $column) {
+            if (!isset($columns[$column])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

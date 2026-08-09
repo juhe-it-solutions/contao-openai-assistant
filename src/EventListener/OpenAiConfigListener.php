@@ -573,11 +573,29 @@ class OpenAiConfigListener
             );
         } finally {
             $this->connection->executeStatement('DELETE FROM tl_openai_vector_file WHERE pid = ?', [$configId]);
+
             // The AI-rewrite cache is per configuration too, and it holds a full copy of
             // every page's text. Without this it would survive the configuration that
             // produced it, with nothing left to prune it: the sync-time prune only ever
             // runs for a configuration that still exists.
-            $this->connection->executeStatement('DELETE FROM tl_openai_polish_cache WHERE pid = ?', [$configId]);
+            //
+            // Soft-failed, unlike the line above: this table is newer than the released
+            // ones, so a code update without contao:migrate can reach here with the table
+            // missing. Throwing out of an ondelete_callback aborts the deletion AFTER the
+            // tl_undo row was written and after the remote vector store was already gone -
+            // leaving a configuration that points at nothing. Orphan cache rows are the
+            // cheaper failure, and the next migrate plus sync-time prune clears them.
+            try {
+                $this->connection->executeStatement('DELETE FROM tl_openai_polish_cache WHERE pid = ?', [$configId]);
+            } catch (\Throwable $e) {
+                $this->logger->warning(
+                    'Could not delete the AI-rewrite cache of the removed configuration: '.$e->getMessage(),
+                    [
+                        'contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR),
+                        'config_id' => $configId,
+                    ],
+                );
+            }
         }
     }
 

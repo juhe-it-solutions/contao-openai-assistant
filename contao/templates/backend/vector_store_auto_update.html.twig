@@ -508,9 +508,10 @@
                                 <span data-vsau-badge-label>{{ config.status_view.badge_label }}</span>
                             </span>
                             <span class="vsau-sub" data-vsau-progress>{{ config.status_view.progress_text }}</span>
-                            {# Determinate while pages are counted against a total, animated
-                               while the crawl runs (no total exists there). Both states are
-                               driven from status_view, so the poller only mirrors them. #}
+                            {# Determinate whenever a total exists - including the crawl, which
+                               measures itself against the previous index size. Animated only
+                               when none does (a first-ever crawl). Both states are driven from
+                               status_view, so the poller only mirrors them. #}
                             <div class="vsau-bar{% if config.status_view.bar_percent is null %} vsau-bar--indeterminate{% endif %}"
                                  data-vsau-bar
                                  role="progressbar"
