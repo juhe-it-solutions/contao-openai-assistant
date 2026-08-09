@@ -226,10 +226,9 @@ class PageLinkRepository
             // repeat it.
             if (isset($byPage[$pageId][$key])) {
                 $existing = $byPage[$pageId][$key];
-                $label = mb_strlen($link->label) > mb_strlen($existing->label) ? $link->label : $existing->label;
                 $byPage[$pageId][$key] = $existing
                     ->withOccurrences($existing->occurrences + $link->occurrences)
-                    ->withLabel($label)
+                    ->withLabel(PageLink::betterLabel($existing->label, $link->label, $existing->url))
                 ;
 
                 continue;

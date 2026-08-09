@@ -232,9 +232,14 @@ class PageLinkExtractor
 
             if (isset($byUrl[$key])) {
                 $existing = $byUrl[$key];
-                // Keep the most descriptive label of all occurrences.
-                $better = mb_strlen($link->label) > mb_strlen($existing->label) ? $link->label : $existing->label;
-                $byUrl[$key] = $existing->withOccurrences($existing->occurrences + 1)->withLabel($better);
+
+                // Two anchors pointing at the same document - which happens for an
+                // ordinary link and an anchor link to a section of the same page, since
+                // the fragment is dropped above. Keep the most descriptive of the labels.
+                $byUrl[$key] = $existing
+                    ->withOccurrences($existing->occurrences + 1)
+                    ->withLabel(PageLink::betterLabel($existing->label, $link->label, $existing->url))
+                ;
 
                 continue;
             }

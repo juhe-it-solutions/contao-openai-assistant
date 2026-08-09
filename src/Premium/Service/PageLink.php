@@ -95,6 +95,34 @@ final class PageLink
     }
 
     /**
+     * Pick the better of two labels found for the SAME target, used wherever
+     * duplicates of one link are merged.
+     *
+     * Length alone used to decide it, on the reasoning that a longer label is the
+     * more descriptive one - which is true against "mehr" or "weiterlesen", the case
+     * the rule was written for, and wrong in three shapes that are longer without
+     * saying more: anchor text ("#kontakt" beats a page called "Kontakt" by one
+     * character), a pasted address (long by nature, and it only repeats the
+     * destination the line already carries), and the host/path or file name the
+     * extractor synthesises for an anchor that has no text at all - an invented
+     * label outranking a human-written one.
+     *
+     * So: rank first, length only within a rank. Ties keep the incumbent, which
+     * makes the first occurrence in document order win, as before.
+     */
+    public static function betterLabel(string $current, string $candidate, string $url): string
+    {
+        $currentRank = self::labelRank($current, $url);
+        $candidateRank = self::labelRank($candidate, $url);
+
+        if ($currentRank !== $candidateRank) {
+            return $candidateRank > $currentRank ? $candidate : $current;
+        }
+
+        return mb_strlen($candidate) > mb_strlen($current) ? $candidate : $current;
+    }
+
+    /**
      * Reduce a page's links to at most $max, keeping the most useful ones.
      *
      * Selection is by type preference (documents first), NOT by document order -
@@ -209,5 +237,50 @@ final class PageLink
             (int) ($row['position'] ?? 0),
             max(1, (int) ($row['occurrences'] ?? 1)),
         );
+    }
+
+    /**
+     * 1 for a label a human wrote, 0 for one that only restates the target.
+     *
+     * The "restates the target" test recomputes the shapes PageLinkExtractor's
+     * fallbackLabel() produces, rather than asking it: this has to work in the
+     * repository too, where the labels come back out of the database and the
+     * extractor is not in play. It misses one shape - the file name taken from a
+     * download query - and that is deliberate, because missing a demotion only
+     * leaves the previous length comparison in charge.
+     */
+    private static function labelRank(string $label, string $url): int
+    {
+        $label = trim($label);
+
+        if ('' === $label) {
+            return 0;
+        }
+
+        // Names a section of the target, not the target.
+        if (str_starts_with($label, '#')) {
+            return 0;
+        }
+
+        if (1 === preg_match('#^(https?://|www\.)#i', $label)) {
+            return 0;
+        }
+
+        $host = (string) parse_url($url, PHP_URL_HOST);
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        $trimmedPath = trim($path, '/');
+
+        $synthesised = [
+            '' !== $trimmedPath ? $host.'/'.$trimmedPath : $host,
+            rawurldecode(basename($path)),
+        ];
+
+        foreach ($synthesised as $shape) {
+            if ('' !== $shape && 0 === strcasecmp($label, $shape)) {
+                return 0;
+            }
+        }
+
+        return 1;
     }
 }
