@@ -306,12 +306,13 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
      *
      * @param array<string, mixed> $config
      *
-     * @return array{active: bool, badge_label: string, badge_class: string, spinner: bool, progress_text: string|null, activity_text: string|null, last_run_formatted: string|null, message: string|null}
+     * @return array{active: bool, badge_label: string, badge_class: string, spinner: bool, progress_text: string|null, activity_text: string|null, started_text: string|null, last_run_formatted: string|null, message: string|null}
      */
     private function statusView(array $config): array
     {
         $status = (string) ($config['auto_update_last_status'] ?? '');
         $lastRun = (int) ($config['auto_update_last_run'] ?? 0);
+        $started = (int) ($config['auto_update_run_started'] ?? 0);
         $active = \in_array($status, ['queued', 'running'], true);
         // Age of an in-flight run in whole minutes, shown next to the queued/running
         // badge so the user can tell a fresh dispatch from one going a while.
@@ -325,11 +326,57 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             'spinner' => 'running' === $status,
             'progress_text' => $this->progressText($config),
             'activity_text' => $active ? $this->translator->trans('MSC.vsau_status_last_activity', [$ageMinutes], 'contao_default') : null,
-            // While running, auto_update_last_run is the heartbeat, not a completion time —
-            // still shown (matches the pre-live-update behavior), but hidden while queued.
-            'last_run_formatted' => $lastRun > 0 && 'queued' !== $status ? date('d.m.Y H:i:s', $lastRun) : null,
+            'started_text' => $this->startedText($status, $started),
+            // While running, auto_update_last_run is the heartbeat, not a completion time,
+            // so it is suppressed there: the start line above says when the run began and
+            // the activity line says how fresh it is. A terminal status shows the finish
+            // time, followed by the duration once a start time is on record.
+            'last_run_formatted' => $lastRun > 0 && !$active
+                ? date('d.m.Y H:i:s', $lastRun).$this->durationSuffix($started, $lastRun)
+                : null,
             'message' => $this->syncMessages->translate(isset($config['auto_update_last_message']) ? (string) $config['auto_update_last_message'] : null),
         ];
+    }
+
+    /**
+     * "Started HH:MM:SS" / "Queued HH:MM:SS" for an in-flight run, or null.
+     *
+     * Only in-flight statuses get this line. For a finished run the interesting number
+     * is how long it took, which durationSuffix() appends to the completion time instead.
+     * Null while the column is still 0 - a run dispatched before the column existed, or
+     * before contao:migrate ran.
+     */
+    private function startedText(string $status, int $started): string|null
+    {
+        if ($started <= 0 || !\in_array($status, ['queued', 'running'], true)) {
+            return null;
+        }
+
+        $key = 'queued' === $status ? 'MSC.vsau_status_queued_at' : 'MSC.vsau_status_started_at';
+
+        return $this->translator->trans($key, [date('d.m.Y H:i:s', $started)], 'contao_default');
+    }
+
+    /**
+     * " (took 12 min 36 s)" for a finished run, or '' when it cannot be computed.
+     *
+     * Guards against a start that is missing (pre-migration rows) or later than the end
+     * (a clock change, or a terminal state written by reconcileStaleRuns() for a run
+     * whose heartbeat predates the takeover) - in those cases no duration is better than
+     * a nonsensical one.
+     */
+    private function durationSuffix(int $started, int $finished): string
+    {
+        if ($started <= 0 || $finished < $started) {
+            return '';
+        }
+
+        $seconds = $finished - $started;
+        $text = $seconds < 60
+            ? $this->translator->trans('MSC.vsau_status_duration_seconds', [$seconds], 'contao_default')
+            : $this->translator->trans('MSC.vsau_status_duration', [intdiv($seconds, 60), $seconds % 60], 'contao_default');
+
+        return ' ('.$text.')';
     }
 
     /**

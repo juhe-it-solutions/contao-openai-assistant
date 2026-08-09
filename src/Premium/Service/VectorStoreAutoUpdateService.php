@@ -162,14 +162,14 @@ class VectorStoreAutoUpdateService
         $now = time();
         $queued = $this->connection->executeStatement(
             "UPDATE tl_openai_config
-                SET auto_update_last_run = ?, auto_update_last_status = 'queued', auto_update_last_message = ?
+                SET auto_update_last_run = ?, auto_update_run_started = ?, auto_update_last_status = 'queued', auto_update_last_message = ?
                 WHERE id = ?
                     AND auto_update_enabled = '1'
                     AND (
                         COALESCE(auto_update_last_status, '') NOT IN ('running', 'queued')
                         OR COALESCE(auto_update_last_run, 0) < ?
                     )",
-            [$now, 'MSC.vsau_dispatched_manual', $configId, $now - self::STALE_RUN_SECONDS],
+            [$now, $now, 'MSC.vsau_dispatched_manual', $configId, $now - self::STALE_RUN_SECONDS],
         );
 
         if (0 === $queued) {
@@ -940,11 +940,14 @@ class VectorStoreAutoUpdateService
             ? "(auto_update_last_status = 'queued' OR COALESCE(auto_update_last_status, '') NOT IN ('running', 'queued') OR COALESCE(auto_update_last_run, 0) < ?)"
             : "(COALESCE(auto_update_last_status, '') NOT IN ('running', 'queued') OR COALESCE(auto_update_last_run, 0) < ?)";
 
+        // auto_update_run_started is (re)stamped here, not carried over from the queued
+        // dispatch: this is when work actually begins, so a run that sat in the queue
+        // does not inflate its own duration.
         $updated = $this->connection->executeStatement(
             "UPDATE tl_openai_config
-                SET auto_update_last_run = ?, auto_update_last_status = 'running', auto_update_last_message = NULL, ".self::PROGRESS_RESET_SQL.'
+                SET auto_update_last_run = ?, auto_update_run_started = ?, auto_update_last_status = 'running', auto_update_last_message = NULL, ".self::PROGRESS_RESET_SQL.'
                 WHERE id = ? AND '.$statusPredicate,
-            [$now, $configId, $staleBefore],
+            [$now, $now, $configId, $staleBefore],
         );
 
         if (0 === $updated) {

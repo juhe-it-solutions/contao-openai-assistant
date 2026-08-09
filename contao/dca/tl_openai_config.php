@@ -436,6 +436,14 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         'auto_update_last_run' => [
             'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
         ],
+        // When the CURRENT run began. auto_update_last_run cannot answer that: while a
+        // sync is in flight it doubles as the heartbeat/lease and is overwritten every
+        // minute, so it reads as "a moment ago" throughout a run and as the finish time
+        // afterwards. Kept separate so the dashboard can show a start time while running
+        // and a duration once finished.
+        'auto_update_run_started' => [
+            'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+        ],
         'auto_update_last_status' => [
             'sql' => ['type' => 'string', 'length' => 20, 'default' => ''],
         ],

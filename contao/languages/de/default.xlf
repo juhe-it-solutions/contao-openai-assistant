@@ -219,6 +219,22 @@
                 <source>Last activity %s min ago</source>
                 <target>Letzte Aktivität vor %s Min.</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_status_started_at">
+                <source>Started %s</source>
+                <target>Gestartet: %s</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_status_queued_at">
+                <source>Queued %s</source>
+                <target>Eingereiht: %s</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_status_duration">
+                <source>took %s min %s s</source>
+                <target>Dauer %s Min. %s Sek.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_status_duration_seconds">
+                <source>took %s s</source>
+                <target>Dauer %s Sek.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_sync_never">
                 <source>never run</source>
                 <target>Noch nie ausgeführt</target>
