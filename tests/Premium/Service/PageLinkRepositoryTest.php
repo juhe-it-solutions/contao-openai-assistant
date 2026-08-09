@@ -84,6 +84,26 @@ class PageLinkRepositoryTest extends TestCase
         $this->assertSame(3, $links[7][0]->occurrences, 'sums the occurrences');
     }
 
+    /**
+     * The merge here reads labels back out of the database, so it applies the same
+     * ranking the extractor does: a label that only restates the target loses to one
+     * a human wrote, however much longer it is.
+     */
+    public function testMergeDoesNotPreferALabelThatOnlyRestatesTheTarget(): void
+    {
+        $repository = $this->createRepository([
+            self::row(['label' => 'Anfahrt']),
+            self::row(['label' => 'example.com/a.html']),
+            self::row(['label' => '#lageplan']),
+        ]);
+
+        $links = $repository->findForPages([7]);
+
+        $this->assertCount(1, $links[7]);
+        $this->assertSame('Anfahrt', $links[7][0]->label);
+        $this->assertSame(3, $links[7][0]->occurrences);
+    }
+
     public function testCapsLinksPerPage(): void
     {
         $rows = [];

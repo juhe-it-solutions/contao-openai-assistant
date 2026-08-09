@@ -687,6 +687,80 @@ class PageLinkExtractorTest extends TestCase
         $this->assertSame('Ausführlicher Linktext', $links[0]->label);
     }
 
+    /**
+     * The fragment is dropped, so a link to a section of a page merges with a plain
+     * link to that page - and the anchor text must not win the merge. "#kontakt" is
+     * one character longer than "Kontakt" and says less: it names a place inside the
+     * target rather than the target, which is what the chatbot reads out.
+     */
+    public function testAnchorTextNeverBeatsARealLabelForTheSameTarget(): void
+    {
+        $links = $this->extract(self::page(
+            '<p>Siehe <a href="/kontakt.html">Kontakt</a>, '
+            .'oder springe zu <a href="/kontakt.html#formular">#formular</a>.</p>',
+        ));
+
+        $this->assertCount(1, $links);
+        $this->assertSame('https://example.com/kontakt.html', $links[0]->url);
+        $this->assertSame('Kontakt', $links[0]->label);
+        $this->assertSame(2, $links[0]->occurrences);
+    }
+
+    /**
+     * Order must not decide it either: the anchor link coming first would previously
+     * make its text the incumbent that nothing shorter could displace.
+     */
+    public function testAnchorTextLosesEvenWhenItComesFirst(): void
+    {
+        $links = $this->extract(self::page(
+            '<a href="/kontakt.html#formular">#formular</a><a href="/kontakt.html">Kontakt</a>',
+        ));
+
+        $this->assertSame('Kontakt', $links[0]->label);
+    }
+
+    /**
+     * A pasted address is long by nature and only repeats the destination, which the
+     * rendered line already carries.
+     */
+    public function testAPastedUrlLosesToAWrittenLabel(): void
+    {
+        $links = $this->extract(self::page(
+            '<a href="/preise.html">Preise</a>'
+            .'<a href="/preise.html">https://example.com/preise.html</a>',
+        ));
+
+        $this->assertSame('Preise', $links[0]->label);
+    }
+
+    /**
+     * The host/path label the extractor synthesises for an anchor with no text at all
+     * must not outrank one a human wrote, however much longer it is.
+     */
+    public function testASynthesisedLabelLosesToAWrittenOne(): void
+    {
+        $links = $this->extract(self::page(
+            '<a href="/unternehmen/geschichte.html"><img src="/x.png" alt=""></a>'
+            .'<a href="/unternehmen/geschichte.html">Historie</a>',
+        ));
+
+        $this->assertCount(1, $links);
+        $this->assertSame('Historie', $links[0]->label);
+    }
+
+    /**
+     * The rule the length comparison was written for still holds between two labels
+     * that both say something.
+     */
+    public function testTheLongerLabelStillWinsBetweenTwoRealOnes(): void
+    {
+        $links = $this->extract(self::page(
+            '<a href="/preise.html">mehr</a><a href="/preise.html">Preise und Konditionen</a>',
+        ));
+
+        $this->assertSame('Preise und Konditionen', $links[0]->label);
+    }
+
     public function testUsesLabelFallbackChain(): void
     {
         $links = $this->extract(self::page(
