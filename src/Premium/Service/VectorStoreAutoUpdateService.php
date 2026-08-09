@@ -966,6 +966,25 @@ class VectorStoreAutoUpdateService
      * simply collects no links and caches no rewrites), so requiring them would turn a
      * graceful degradation into a hard stop.
      */
+    /**
+     * How many site roots are live right now, by the sync's own definition (see
+     * publishedRootPageIds()).
+     *
+     * The dashboard blocks "Run sync now" when an empty page selection cannot resolve to
+     * exactly one website, and it has to answer that question the same way the run does.
+     * It used to carry its own copy of the query, counting every published root and
+     * ignoring the start/stop window - which disagreed with the sync in both directions:
+     * a second root scheduled outside its window blocked a run that would have succeeded,
+     * and a single root outside its window passed the check and then failed the run.
+     *
+     * Only the count is exposed, not the ids: deciding what a scope resolves to stays in
+     * this service, where resolveScopePageIds() applies the same predicate.
+     */
+    public function liveRootPageCount(): int
+    {
+        return \count($this->publishedRootPageIds());
+    }
+
     public function isSchemaCurrent(): bool
     {
         $schemaManager = $this->connection->createSchemaManager();
@@ -1663,6 +1682,9 @@ class VectorStoreAutoUpdateService
      *
      * The minute is floored in PHP rather than through Contao's Date class so this
      * service keeps needing nothing but the database connection.
+     *
+     * Exposed to the dashboard through liveRootPageCount(), which is the only question
+     * it has to ask.
      *
      * @return list<int>
      */

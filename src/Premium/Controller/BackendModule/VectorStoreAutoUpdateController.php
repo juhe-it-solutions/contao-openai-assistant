@@ -807,14 +807,15 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         }
 
         $hasStartPage = [] !== VectorStoreAutoUpdateService::parseConfiguredPageIds($config['auto_update_site_root'] ?? null);
-        // Same predicate as VectorStoreAutoUpdateService::resolveScopePageIds(), including
-        // the published check: an unpublished site root left behind by a theme import can
-        // still carry a domain name, and counting it here would block a single-site
-        // installation that the sync itself resolves perfectly well.
-        $hasDomain = (int) $this->connection->fetchOne(
-            "SELECT COUNT(*) FROM tl_page WHERE type = 'root' AND dns != '' AND published = '1'",
-        );
-        if (!$hasStartPage && 1 !== $hasDomain) {
+        // Ask the sync itself instead of repeating its query here. A duplicated predicate
+        // drifted once already: this check counted every published root, while the sync
+        // also honours the start/stop window - so a root left behind by a theme import
+        // and scheduled out of its window blocked the button on an installation the sync
+        // resolves perfectly well, and a single root outside its window passed the check
+        // and then failed the run. One definition of "live root", one place.
+        $liveRoots = $this->service->liveRootPageCount();
+
+        if (!$hasStartPage && 1 !== $liveRoots) {
             $warnings[] = $this->translator->trans('MSC.vsau_warn_no_crawl_page', [], 'contao_default');
         }
 
