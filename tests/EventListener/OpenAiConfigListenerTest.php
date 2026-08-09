@@ -261,9 +261,31 @@ class OpenAiConfigListenerTest extends TestCase
 
         $this->assertContains('DELETE https://api.openai.com/v1/vector_stores/vs_123', $requests);
         $this->assertContains(['DELETE FROM tl_openai_sync_log WHERE pid = ?', [7]], $executedStatements);
+
+        // Both local tables are cleared, and only AFTER the remote purge: the file rows are
+        // what tells us which files to delete at OpenAI, so dropping them first would strand
+        // the files there. The rewrite cache holds a copy of every page's text and has no
+        // other owner once the configuration is gone - the sync-time prune only ever runs
+        // for a configuration that still exists.
+        $localDeletes = array_values(array_filter(
+            $executedStatements,
+            static fn (array $s): bool => \in_array($s[0], [
+                'DELETE FROM tl_openai_vector_file WHERE pid = ?',
+                'DELETE FROM tl_openai_polish_cache WHERE pid = ?',
+            ], true),
+        ));
+
         $this->assertSame(
-            ['DELETE FROM tl_openai_vector_file WHERE pid = ?', [7]],
-            $executedStatements[array_key_last($executedStatements)],
+            [
+                ['DELETE FROM tl_openai_vector_file WHERE pid = ?', [7]],
+                ['DELETE FROM tl_openai_polish_cache WHERE pid = ?', [7]],
+            ],
+            $localDeletes,
+        );
+        $this->assertSame(
+            \count($executedStatements) - 2,
+            array_search($localDeletes[0], $executedStatements, true),
+            'The local tracking rows are the last thing removed.',
         );
     }
 

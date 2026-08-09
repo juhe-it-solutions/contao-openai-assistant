@@ -573,6 +573,11 @@ class OpenAiConfigListener
             );
         } finally {
             $this->connection->executeStatement('DELETE FROM tl_openai_vector_file WHERE pid = ?', [$configId]);
+            // The AI-rewrite cache is per configuration too, and it holds a full copy of
+            // every page's text. Without this it would survive the configuration that
+            // produced it, with nothing left to prune it: the sync-time prune only ever
+            // runs for a configuration that still exists.
+            $this->connection->executeStatement('DELETE FROM tl_openai_polish_cache WHERE pid = ?', [$configId]);
         }
     }
 

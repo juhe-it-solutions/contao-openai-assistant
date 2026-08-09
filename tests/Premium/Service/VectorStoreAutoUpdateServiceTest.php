@@ -32,6 +32,7 @@ use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\HttpClient\MockHttpClient;
+use Symfony\Component\HttpClient\Response\MockResponse;
 
 class VectorStoreAutoUpdateServiceTest extends TestCase
 {
@@ -790,11 +791,141 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
         );
     }
 
-    private function createService(Connection $connection, ReaderItemCounter|null $readerItems = null): VectorStoreAutoUpdateService
+
+    /**
+     * A rewrite is reused only when NOTHING that could change it has changed. The source
+     * text is the obvious half; the model and the prompt are the half that is easy to
+     * forget, and forgetting it would mean a corrected prompt never reaches the pages it
+     * was written to fix.
+     */
+    public function testCachedPolishOnlyHitsWhenSourceAndParametersBothMatch(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchOne')
+            ->willReturnCallback(
+                static fn (string $sql, array $params): string|false => ['sum-a', 'fp-a'] === [$params[2], $params[3]]
+                    ? 'cached document'
+                    : false,
+            )
+        ;
+
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'cachedPolish');
+        $service = $this->createService($connection);
+
+        $this->assertSame('cached document', $method->invoke($service, 1, 7, 'sum-a', 'fp-a'));
+        $this->assertNull($method->invoke($service, 1, 7, 'sum-CHANGED', 'fp-a'), 'Edited page must be polished again.');
+        $this->assertNull($method->invoke($service, 1, 7, 'sum-a', 'fp-CHANGED'), 'New model or prompt must be polished again.');
+    }
+
+    /**
+     * The cache key is a hash of the text actually sent to the model, NOT of the page's
+     * search-index checksums. BoilerplateFilter decides what counts as chrome from how
+     * often a block occurs ACROSS the pages in scope, so adding or removing one page can
+     * change what is stripped from a DIFFERENT page whose own tl_search rows never moved.
+     * Keyed on those checksums, the cache would then hand back a rewrite of text that is
+     * no longer the input.
+     */
+    public function testCacheKeyFollowsTheTextSentToTheModel(): void
+    {
+        $seen = [];
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchOne')
+            ->willReturnCallback(
+                static function (string $sql, array $params) use (&$seen): string|false {
+                    $seen[] = $params[2];
+
+                    return false;
+                },
+            )
+        ;
+
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'cachedPolish');
+        $service = $this->createService($connection);
+
+        $before = hash('sha256', "Impressum\n\nEchter Inhalt");
+        $after = hash('sha256', 'Echter Inhalt');
+
+        $method->invoke($service, 1, 7, $before, 'fp');
+        $method->invoke($service, 1, 7, $after, 'fp');
+
+        $this->assertSame([$before, $after], $seen, 'A different filtered text must be a different key.');
+        $this->assertNotSame($before, $after);
+    }
+
+    /**
+     * A cache that cannot be read costs tokens, never correctness - so it must degrade to
+     * "polish it again", which is exactly what happened before the cache existed.
+     */
+    public function testCachedPolishFallsBackToPolishingWhenTheCacheCannotBeRead(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('fetchOne')->willThrowException(new \RuntimeException('table missing'));
+
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'cachedPolish');
+
+        $this->assertNull($method->invoke($this->createService($connection), 1, 7, 'sum', 'fp'));
+    }
+
+    /**
+     * An empty cached document must never be served: it would upload an empty knowledge
+     * document for a page that has content.
+     */
+    public function testCachedPolishIgnoresAnEmptyStoredDocument(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('fetchOne')->willReturn("   \n  ");
+
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'cachedPolish');
+
+        $this->assertNull($method->invoke($this->createService($connection), 1, 7, 'sum', 'fp'));
+    }
+
+    /**
+     * A response the model cut off at its output limit arrives as a perfectly valid 200
+     * with a document that stops mid-sentence - the failure mode of a long reader page.
+     * It must be discarded so the caller falls back to the complete faithful text, and so
+     * it never reaches the cache, where the truncation would become permanent.
+     */
+    public function testTruncatedRewriteIsDiscardedButStillReportsItsTokens(): void
+    {
+        $http = new MockHttpClient(new MockResponse(json_encode([
+            'choices' => [['finish_reason' => 'length', 'message' => ['content' => '## Aktuelles\n\nErster Artikel, abgeschn']]],
+            'usage' => ['prompt_tokens' => 900, 'completion_tokens' => 16384],
+        ], JSON_THROW_ON_ERROR)));
+
+        $service = $this->createService($this->createMock(Connection::class), null, $http);
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'polishPage');
+        $result = $method->invoke($service, 'sk-test', 'gpt-4o-mini', 'Aktuelles', 'https://example.com/aktuelles', 'Text', null);
+
+        $this->assertSame('', $result['text'], 'A truncated document must not be used.');
+        $this->assertSame(900, $result['tokens_in'], 'The tokens were spent and must still be reported.');
+        $this->assertSame(16384, $result['tokens_out']);
+    }
+
+    /**
+     * The complementary case: a complete response is used as-is.
+     */
+    public function testCompleteRewriteIsUsed(): void
+    {
+        $http = new MockHttpClient(new MockResponse(json_encode([
+            'choices' => [['finish_reason' => 'stop', 'message' => ['content' => '## Aktuelles']]],
+            'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 5],
+        ], JSON_THROW_ON_ERROR)));
+
+        $service = $this->createService($this->createMock(Connection::class), null, $http);
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'polishPage');
+        $result = $method->invoke($service, 'sk-test', 'gpt-4o-mini', 'Aktuelles', 'https://example.com/aktuelles', 'Text', null);
+
+        $this->assertSame('## Aktuelles', $result['text']);
+    }
+
+    private function createService(Connection $connection, ReaderItemCounter|null $readerItems = null, MockHttpClient|null $http = null): VectorStoreAutoUpdateService
     {
         return new VectorStoreAutoUpdateService(
             $connection,
-            new MockHttpClient(),
+            $http ?? new MockHttpClient(),
             new NullLogger(),
             $this->createMock(EncryptionService::class),
             $this->createMock(ProcessUtil::class),

@@ -17,6 +17,7 @@ use Contao\CoreBundle\Crawl\Escargot\Factory as EscargotFactory;
 use Contao\CoreBundle\Util\ProcessUtil;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Process;
@@ -494,15 +495,44 @@ class VectorStoreAutoUpdateService
                 $this->progress($configId, 'polish', 0, $polishTotal);
             }
 
+            // Identifies the rewrite parameters, so a changed model or prompt invalidates
+            // every cached document at once. Computed here rather than per page: it is the
+            // same for the whole run.
+            $polishFingerprint = self::MODE_LLM_POLISH === $mode
+                ? hash('sha256', $model."\0".($promptTpl ?? VectorStoreDocumentPrompt::DEFAULT_TEMPLATE))
+                : '';
+
             foreach ($byPage as $page) {
                 $content = implode("\n\n", $page['contents']);
 
                 if (self::MODE_LLM_POLISH === $mode) {
-                    $polished = $this->polishPage($apiKey, $model, $page['title'], $page['url'], $content, $promptTpl);
-                    $tokensIn += $polished['tokens_in'];
-                    $tokensOut += $polished['tokens_out'];
-                    // Never drop a page: fall back to the faithful text if the LLM returns nothing.
-                    $content = '' !== trim($polished['text']) ? $polished['text'] : $content;
+                    // Hash the text that is about to be sent, not the page's search-index
+                    // checksums: BoilerplateFilter decides what counts as chrome from how
+                    // often a block occurs across the pages in scope, so this text can
+                    // change when a DIFFERENT page joins or leaves the selection, with this
+                    // page's own checksums untouched. Hashing the input covers that and
+                    // every other cause at once.
+                    $sourceHash = hash('sha256', $content);
+                    $cached = $this->cachedPolish($configId, (int) $page['page_id'], $sourceHash, $polishFingerprint);
+
+                    if (null !== $cached) {
+                        // Nothing that could change the rewrite has changed, so re-running it
+                        // would only spend tokens to reproduce this text - and any drift in
+                        // the reproduction would re-upload an unchanged page.
+                        $content = $cached;
+                    } else {
+                        $polished = $this->polishPage($apiKey, $model, $page['title'], $page['url'], $content, $promptTpl);
+                        $tokensIn += $polished['tokens_in'];
+                        $tokensOut += $polished['tokens_out'];
+
+                        // Never drop a page: fall back to the faithful text if the LLM returns
+                        // nothing (an error, or a response truncated at the output limit).
+                        if ('' !== trim($polished['text'])) {
+                            $content = $polished['text'];
+                            $this->storePolish($configId, (int) $page['page_id'], $sourceHash, $polishFingerprint, $content);
+                        }
+                    }
+
                     // Progress doubles as the lease refresh here (it writes the heartbeat too).
                     ++$polishDone;
                     $this->progress($configId, 'polish', $polishDone, $polishTotal);
@@ -529,6 +559,12 @@ class VectorStoreAutoUpdateService
             if (0 === \count($pages)) {
                 throw new \RuntimeException('MSC.vsau_err_empty_document_raw');
             }
+
+            // Forget rewrites of pages that have left this configuration's scope. Done
+            // here, where the processed set is known and complete, and in EVERY mode: a
+            // site switched to "Originalgetreu" would otherwise keep the cached text of
+            // every page it later drops, with nothing to clean it up.
+            $this->prunePolishCache($configId, array_map(static fn (array $p): int => (int) $p['page_id'], $pages));
 
             // Number of real content pages, captured BEFORE the optional directory
             // document is appended: it is what the sync log, the dashboard and the
@@ -1585,6 +1621,93 @@ class VectorStoreAutoUpdateService
      *
      * @return array{text: string, tokens_in: int, tokens_out: int}
      */
+    /**
+     * A previously rewritten document for this page, or null when it must be rewritten.
+     *
+     * Returned only when nothing that could change the output has changed: the page's
+     * source text AND the rewrite parameters (model + prompt). That second half matters
+     * as much as the first - without it a corrected prompt would never reach the pages it
+     * was written to fix.
+     *
+     * Never fails the run: an unreadable cache just means the page is polished again,
+     * which is exactly what used to happen every time anyway.
+     */
+    private function cachedPolish(int $configId, int $pageId, string $sourceHash, string $fingerprint): string|null
+    {
+        if ($pageId <= 0 || '' === $sourceHash || '' === $fingerprint) {
+            return null;
+        }
+
+        try {
+            $content = $this->connection->fetchOne(
+                'SELECT content FROM tl_openai_polish_cache WHERE pid = ? AND page_id = ? AND source_hash = ? AND fingerprint = ?',
+                [$configId, $pageId, $sourceHash, $fingerprint],
+            );
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (!\is_string($content) || '' === trim($content)) {
+            return null;
+        }
+
+        return $content;
+    }
+
+    /**
+     * Remember one rewritten document. Only complete responses reach this method -
+     * polishPage() discards a rewrite the model cut off at its output limit, because
+     * caching a truncated document would make the truncation permanent.
+     *
+     * The upsert is keyed on the unique (pid, page_id) index, so a page that is
+     * re-polished replaces its own row instead of accumulating one per revision.
+     */
+    private function storePolish(int $configId, int $pageId, string $sourceHash, string $fingerprint, string $content): void
+    {
+        if ($pageId <= 0 || '' === $sourceHash || '' === $fingerprint) {
+            return;
+        }
+
+        try {
+            $this->connection->executeStatement(
+                'INSERT INTO tl_openai_polish_cache (pid, tstamp, page_id, source_hash, fingerprint, content)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE tstamp = VALUES(tstamp), source_hash = VALUES(source_hash),
+                        fingerprint = VALUES(fingerprint), content = VALUES(content)',
+                [$configId, time(), $pageId, $sourceHash, $fingerprint, $content],
+            );
+        } catch (\Throwable $e) {
+            // A cache that cannot be written costs tokens on the next run; it never costs
+            // correctness, so it must not end the sync.
+            $this->logger->warning('VectorStoreAutoUpdate: could not cache the rewritten document for page '.$pageId.': '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Drop cached documents for pages that are no longer in this configuration's scope,
+     * so a de-selected or deleted page does not keep a copy of its text forever.
+     *
+     * @param list<int> $pageIds the pages this run actually processed
+     */
+    private function prunePolishCache(int $configId, array $pageIds): void
+    {
+        try {
+            if ([] === $pageIds) {
+                $this->connection->executeStatement('DELETE FROM tl_openai_polish_cache WHERE pid = ?', [$configId]);
+
+                return;
+            }
+
+            $this->connection->executeStatement(
+                'DELETE FROM tl_openai_polish_cache WHERE pid = ? AND page_id NOT IN (?)',
+                [$configId, $pageIds],
+                [ParameterType::INTEGER, ArrayParameterType::INTEGER],
+            );
+        } catch (\Throwable $e) {
+            $this->logger->warning('VectorStoreAutoUpdate: could not prune the rewrite cache for config '.$configId.': '.$e->getMessage());
+        }
+    }
+
     private function polishPage(string $apiKey, string $model, string $title, string $url, string $content, string|null $promptTemplate): array
     {
         $systemPrompt = $promptTemplate ?? VectorStoreDocumentPrompt::DEFAULT_TEMPLATE;
@@ -1617,10 +1740,30 @@ class VectorStoreAutoUpdateService
             return ['text' => '', 'tokens_in' => 0, 'tokens_out' => 0];
         }
 
+        $tokensIn = (int) ($data['usage']['prompt_tokens'] ?? 0);
+        $tokensOut = (int) ($data['usage']['completion_tokens'] ?? 0);
+        $finishReason = (string) ($data['choices'][0]['finish_reason'] ?? '');
+
+        // A rewrite that hit the model's output limit comes back as a valid 200 with a
+        // document cut off mid-sentence - the failure mode of a long page, e.g. a reader
+        // page carrying many news or FAQ entries. Accepting it would upload a truncated
+        // knowledge document and, worse, cache it. Discard it and let the caller fall back
+        // to the faithful text, which is complete by construction. The tokens were still
+        // spent, so they are still reported.
+        if ('length' === $finishReason) {
+            $this->logger->warning(\sprintf(
+                'VectorStoreAutoUpdate: LLM polish for %s was truncated at the model output limit (%d completion tokens); using the unmodified page text instead.',
+                $url,
+                $tokensOut,
+            ));
+
+            return ['text' => '', 'tokens_in' => $tokensIn, 'tokens_out' => $tokensOut];
+        }
+
         return [
             'text' => (string) ($data['choices'][0]['message']['content'] ?? ''),
-            'tokens_in' => (int) ($data['usage']['prompt_tokens'] ?? 0),
-            'tokens_out' => (int) ($data['usage']['completion_tokens'] ?? 0),
+            'tokens_in' => $tokensIn,
+            'tokens_out' => $tokensOut,
         ];
     }
 
