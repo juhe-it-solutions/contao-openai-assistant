@@ -450,11 +450,12 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
      * Completion of the running sync as a whole percentage, or null when it cannot be
      * known and the bar has to stay indeterminate.
      *
-     * Only the polish and upload phases count pages against a total. The crawl does not:
+     * The polish and upload phases count pages against a real total. The crawl cannot:
      * contao:crawl runs as one blocking subprocess with --no-progress, so its page count
-     * is unknown until it exits (VectorStoreAutoUpdateService.php:1049-1065). Estimating
-     * it from the previous run was considered and rejected - a bar that tracks a guess is
-     * worse than one that honestly says "working".
+     * is unknown until it exits. Its total is therefore the size of the previous index -
+     * an expectation, not a promise - which is why it is capped below and why a first-ever
+     * crawl (nothing to compare against) still returns null and leaves the bar
+     * indeterminate.
      *
      * Capped at 100 rather than trusting the arithmetic: current may briefly exceed total
      * if the page set grows between the total being written and the loop finishing, and a

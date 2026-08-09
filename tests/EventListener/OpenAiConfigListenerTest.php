@@ -289,6 +289,47 @@ class OpenAiConfigListenerTest extends TestCase
         );
     }
 
+    /**
+     * tl_openai_polish_cache is newer than the rest, so a code update without
+     * contao:migrate can reach the delete with the table missing. This runs in an
+     * ondelete_callback: throwing there aborts the deletion after tl_undo was written
+     * and after the remote vector store is already gone, leaving a configuration that
+     * points at nothing. Orphan cache rows are the cheaper failure.
+     */
+    public function testConfigDeleteSurvivesAMissingRewriteCacheTable(): void
+    {
+        $executedStatements = [];
+
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('executeStatement')
+            ->willReturnCallback(
+                static function (string $sql, array $params = []) use (&$executedStatements): int {
+                    $executedStatements[] = [$sql, $params];
+
+                    if (str_contains($sql, 'tl_openai_polish_cache')) {
+                        throw new \RuntimeException("Base table or view not found: 1146 Table 'tl_openai_polish_cache' doesn't exist");
+                    }
+
+                    return 1;
+                },
+            )
+        ;
+
+        // No vector store id: the remote branch returns early, leaving the finally block
+        // as the whole point of the test.
+        $dc = (object) [
+            'id' => 7,
+            'activeRecord' => (object) ['vector_store_id' => ''],
+        ];
+
+        $this->createListener($connection)->deleteVectorStore($dc);
+
+        $this->assertContains(['DELETE FROM tl_openai_sync_log WHERE pid = ?', [7]], $executedStatements);
+        $this->assertContains(['DELETE FROM tl_openai_vector_file WHERE pid = ?', [7]], $executedStatements);
+        $this->assertContains(['DELETE FROM tl_openai_polish_cache WHERE pid = ?', [7]], $executedStatements);
+    }
+
     public function testValidateAutoUpdateModelRejectsEmptySelectionWhenModelsWereAvailable(): void
     {
         $this->bootMinimalContaoContainer();
