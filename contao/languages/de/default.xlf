@@ -203,6 +203,10 @@
                 <source>Queued</source>
                 <target>In Warteschlange</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_progress_crawl_count">
+                <source>Crawling and indexing the website … %s pages so far</source>
+                <target>Website wird gecrawlt und indexiert … %s Seiten erfasst</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_progress_crawl">
                 <source>Crawling and indexing the website …</source>
                 <target>Website wird gecrawlt und indexiert …</target>

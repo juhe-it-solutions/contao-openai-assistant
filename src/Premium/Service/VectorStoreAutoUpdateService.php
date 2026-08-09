@@ -93,6 +93,13 @@ class VectorStoreAutoUpdateService
     private const PROGRESS_INTERVAL = 1;
 
     /**
+     * How often the crawl counts the pages it has indexed so far, in seconds. Matched to
+     * the dashboard's poll interval: counting more often is work nobody ever sees, and
+     * the count is a table scan rather than a single-row read.
+     */
+    private const CRAWL_PROGRESS_INTERVAL = 5;
+
+    /**
      * How many sync-log rows to keep per configuration. Each row can hold a multi-MB
      * inspection manifest, so unbounded history would bloat the database; the dashboard
      * only ever displays the newest 20. 30 ≈ one month of daily syncs. Pruned after every
@@ -1006,6 +1013,32 @@ class VectorStoreAutoUpdateService
         );
     }
 
+    /**
+     * How many pages the running crawl has already written to Contao's search index.
+     *
+     * Search::indexPage() stamps tstamp = time() into the same $arrSet it uses for both
+     * the INSERT and the UPDATE branch (core-bundle/contao/library/Contao/Search.php:42,
+     * :220, :229), so every row touched since the crawl began is one the crawl has just
+     * indexed - re-indexed pages included, which is what we want to show.
+     *
+     * Site-wide on purpose: so is the crawl. The number is therefore shared if two
+     * configurations happen to crawl at the same moment, which is acceptable for a
+     * progress reading and cannot affect what gets synced.
+     *
+     * Never fails the run: a progress number is not worth an exception.
+     */
+    private function countIndexedSince(int $since): int
+    {
+        try {
+            return (int) $this->connection->fetchOne(
+                'SELECT COUNT(*) FROM tl_search WHERE tstamp >= ?',
+                [$since],
+            );
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
     private function spawnCrawl(int $configId): void
     {
         // The exact start URLs contao:crawl will use - resolved here, in the same CLI
@@ -1057,10 +1090,28 @@ class VectorStoreAutoUpdateService
         // (a few thousand pages can take many minutes). No process timeout: the crawl must run
         // to completion, however long it legitimately takes.
         $process->setTimeout(null);
+        // Read BEFORE the process starts, so no page indexed by the crawl can slip in
+        // ahead of the reference point and go uncounted.
+        $crawlStartedAt = time();
         $process->start();
 
+        $lastReport = 0;
+
         while ($process->isRunning()) {
-            $this->heartbeat($configId);
+            $now = time();
+
+            // Report how many pages the crawl has indexed so far. There is no total to
+            // divide by - contao:crawl discovers the site as it goes and reports nothing
+            // until it exits - so this is a count, not a percentage, and the dashboard
+            // keeps its bar indeterminate (progress_total stays 0). Counted no more often
+            // than the dashboard polls; heartbeat() keeps the lease alive in between.
+            if ($now - $lastReport >= self::CRAWL_PROGRESS_INTERVAL) {
+                $lastReport = $now;
+                $this->progress($configId, 'crawl', $this->countIndexedSince($crawlStartedAt), 0);
+            } else {
+                $this->heartbeat($configId);
+            }
+
             usleep(2_000_000);
         }
 
