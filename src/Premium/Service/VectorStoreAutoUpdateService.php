@@ -1094,20 +1094,26 @@ class VectorStoreAutoUpdateService
     }
 
     /**
-     * How many URLs the running crawl has already written to Contao's search index.
+     * How many pages the running crawl has written to Contao's search index - which is
+     * NOT how many pages it has visited, and the difference is the whole story here.
      *
-     * Search::indexPage() stamps tstamp = time() into the same $arrSet it uses for both
-     * the INSERT and the UPDATE branch (core-bundle/contao/library/Contao/Search.php:42,
-     * :220, :229), so every row touched since the crawl began is one the crawl has just
-     * indexed - re-indexed pages included, which is what we want to show.
+     * Search::indexPage() computes a checksum of the page text and returns early when a
+     * row with that checksum already exists for the URL, before writing anything at all
+     * (core-bundle/contao/library/Contao/Search.php:173-182, identical in 5.3, 5.7 and
+     * 6.0). Only a page whose content actually changed reaches the INSERT/UPDATE that
+     * stamps tstamp = time() (:42, :220, :229). So on a crawl of a site nobody has
+     * edited, this counts zero however many thousand URLs the crawler fetches.
      *
-     * Site-wide on purpose: so is the crawl. The number is therefore shared if two
-     * configurations happen to crawl at the same moment, which is acceptable for a
-     * progress reading and cannot affect what gets synced.
+     * That makes it a fair "new or changed pages so far" reading and a false one for
+     * anything else - in particular it must never be divided by the size of the index to
+     * form a percentage.
+     *
+     * Site-wide, like the crawl itself, so two configurations crawling at the same moment
+     * share the number. Acceptable for a display, and it cannot affect what gets synced.
      *
      * Never fails the run: a progress number is not worth an exception.
      *
-     * @param int $since unix time to count from; 0 counts the whole table
+     * @param int $since unix time to count from
      */
     private function countIndexedSince(int $since): int
     {
@@ -1172,19 +1178,16 @@ class VectorStoreAutoUpdateService
         // (a few thousand pages can take many minutes). No process timeout: the crawl must run
         // to completion, however long it legitimately takes.
         $process->setTimeout(null);
-        // Both readings are taken BEFORE the process starts, so no page the crawl indexes
-        // can slip in ahead of the reference point and go uncounted.
+        // Read BEFORE the process starts, so no page the crawl indexes can slip in ahead
+        // of the reference point and go uncounted.
         //
-        // The expected size of this crawl is how many URLs the search index already holds:
-        // contao:crawl walks the same site again, so it re-indexes essentially that set.
-        // Comparing rows against rows is what makes this sound - counting URLs against a
-        // page count would be wrong on any site with news, FAQ or event entries, where one
-        // page carries many indexed URLs. It is an expectation, not a promise: a grown site
-        // overshoots (the percentage is capped below 100 while running) and a shrunken one
-        // stops short, which the phase change resolves a moment later. A first-ever crawl
-        // finds 0 here, and the dashboard falls back to a bar with no percentage.
+        // No total accompanies this count, and there is no honest way to produce one: what
+        // it measures is pages Contao actually (re)wrote, which on a crawl of an unchanged
+        // site is nothing at all - see countIndexedSince(). Measuring that against the size
+        // of the index produced "1 von ca. 1072 Seiten" on a site where exactly one page
+        // had been edited: a true numerator and a true denominator that count different
+        // populations. The crawl bar therefore stays indeterminate.
         $crawlStartedAt = time();
-        $expectedUrls = $this->countIndexedSince(0);
         $process->start();
 
         $lastReport = 0;
@@ -1196,7 +1199,7 @@ class VectorStoreAutoUpdateService
             // alive on the ticks in between.
             if ($now - $lastReport >= self::CRAWL_PROGRESS_INTERVAL) {
                 $lastReport = $now;
-                $this->progress($configId, 'crawl', $this->countIndexedSince($crawlStartedAt), $expectedUrls);
+                $this->progress($configId, 'crawl', $this->countIndexedSince($crawlStartedAt), 0);
             } else {
                 $this->heartbeat($configId);
             }

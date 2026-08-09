@@ -430,12 +430,12 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         $total = (int) ($config['auto_update_progress_total'] ?? 0);
 
         return match (true) {
-            // "N of about M" while a previous crawl gives us something to expect, a bare
-            // count on a first-ever crawl, and the plain sentence until the first page
-            // lands. "about" is not hedging for its own sake: the site may have grown or
-            // shrunk since the last crawl, and the number says so honestly.
-            'crawl' === $phase && $current > 0 && $total > 0 => $this->translator->trans('MSC.vsau_progress_crawl_of', [$current, $total], 'contao_default'),
-            'crawl' === $phase && $current > 0 => $this->translator->trans('MSC.vsau_progress_crawl_count', [$current], 'contao_default'),
+            // The crawl's number is how many pages Contao has newly indexed, not how many
+            // it has visited: an unchanged page is skipped before it is written, so a crawl
+            // of a quiet site legitimately reports nothing for minutes. Named for what it
+            // is, and never turned into "N of M" - see countIndexedSince() for why there is
+            // no honest denominator.
+            'crawl' === $phase && $current > 0 => $this->translator->trans('MSC.vsau_progress_crawl_indexed', [$current], 'contao_default'),
             'crawl' === $phase => $this->translator->trans('MSC.vsau_progress_crawl', [], 'contao_default'),
             'polish' === $phase && $total > 0 => $this->translator->trans('MSC.vsau_progress_polish', [$current, $total], 'contao_default'),
             'upload' === $phase && $total > 0 => $this->translator->trans('MSC.vsau_progress_upload', [$current, $total], 'contao_default'),
@@ -447,12 +447,13 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
      * Completion of the running sync as a whole percentage, or null when it cannot be
      * known and the bar has to stay indeterminate.
      *
-     * The polish and upload phases count pages against a real total. The crawl cannot:
-     * contao:crawl runs as one blocking subprocess with --no-progress, so its page count
-     * is unknown until it exits. Its total is therefore the size of the previous index -
-     * an expectation, not a promise - which is why it is capped below and why a first-ever
-     * crawl (nothing to compare against) still returns null and leaves the bar
-     * indeterminate.
+     * Only the polish and upload phases can answer this: each counts pages it has finished
+     * against a set it holds in memory. The crawl cannot, and an earlier attempt to give it
+     * a scale was wrong rather than merely rough - it divided the pages Contao had newly
+     * indexed by the total size of the search index, two different populations, which on a
+     * site with one edited page and 1072 indexed URLs displayed "1 of about 1072". The
+     * crawl now reports a count and no total, so it lands on the null below and the bar
+     * stays indeterminate for its whole duration.
      *
      * Capped at 100 rather than trusting the arithmetic: current may briefly exceed total
      * if the page set grows between the total being written and the loop finishing, and a
@@ -468,25 +469,21 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
 
         $phase = (string) ($config['auto_update_progress_phase'] ?? '');
 
-        if (!\in_array($phase, ['crawl', 'polish', 'upload'], true)) {
+        // The crawl is excluded by name, not merely by having no total written: nothing
+        // that lands in its progress columns may ever be read as a fraction of the work.
+        if (!\in_array($phase, ['polish', 'upload'], true)) {
             return null;
         }
 
         $total = (int) ($config['auto_update_progress_total'] ?? 0);
 
-        // A first-ever crawl has nothing to compare against; the bar stays indeterminate.
         if ($total <= 0) {
             return null;
         }
 
         $current = max(0, (int) ($config['auto_update_progress_current'] ?? 0));
-        $percent = (int) floor($current / $total * 100);
 
-        // The crawl's total is what the previous crawl found, so it is an expectation, not
-        // a count-down: a site that grew would sit at 100 % while still working. Capped at
-        // 99 until the phase itself changes. polish and upload count against a real total
-        // and may legitimately reach 100.
-        return 'crawl' === $phase ? min(99, $percent) : min(100, $percent);
+        return min(100, (int) floor($current / $total * 100));
     }
 
     /**

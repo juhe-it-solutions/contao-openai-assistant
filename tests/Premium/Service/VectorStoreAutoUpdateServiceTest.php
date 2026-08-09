@@ -794,6 +794,61 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
         );
     }
 
+    /**
+     * The crawl must never produce a percentage, whatever sits in its progress columns.
+     *
+     * It once did: the number of pages Contao had newly indexed was divided by the size of
+     * the whole search index. Both numbers are true and they count different populations -
+     * an unchanged page is skipped before it is written (Search::indexPage()), so a live
+     * site with one edited page and 1072 indexed URLs displayed "1 of about 1072" and a bar
+     * that could not move. A guard by phase name, so writing a total into those columns
+     * again cannot resurrect the bar.
+     */
+    public function testTheCrawlNeverYieldsAPercentage(): void
+    {
+        $percent = new \ReflectionMethod(VectorStoreAutoUpdateController::class, 'progressPercent');
+        $controller = (new \ReflectionClass(VectorStoreAutoUpdateController::class))->newInstanceWithoutConstructor();
+
+        $crawl = static fn (int $current, int $total): array => [
+            'auto_update_last_status' => 'running',
+            'auto_update_progress_phase' => 'crawl',
+            'auto_update_progress_current' => $current,
+            'auto_update_progress_total' => $total,
+        ];
+
+        $this->assertNull($percent->invoke($controller, $crawl(1, 1072)));
+        $this->assertNull($percent->invoke($controller, $crawl(0, 0)));
+        $this->assertNull($percent->invoke($controller, $crawl(500, 500)));
+    }
+
+    /**
+     * The phases that do count pages against a set they hold in memory keep their bar.
+     */
+    public function testPolishAndUploadStillReportAPercentage(): void
+    {
+        $percent = new \ReflectionMethod(VectorStoreAutoUpdateController::class, 'progressPercent');
+        $controller = (new \ReflectionClass(VectorStoreAutoUpdateController::class))->newInstanceWithoutConstructor();
+
+        $phase = static fn (string $phase, int $current, int $total): array => [
+            'auto_update_last_status' => 'running',
+            'auto_update_progress_phase' => $phase,
+            'auto_update_progress_current' => $current,
+            'auto_update_progress_total' => $total,
+        ];
+
+        $this->assertSame(25, $percent->invoke($controller, $phase('polish', 5, 20)));
+        $this->assertSame(100, $percent->invoke($controller, $phase('upload', 20, 20)));
+        // A page set that grew mid-run must not render a bar wider than its track.
+        $this->assertSame(100, $percent->invoke($controller, $phase('upload', 21, 20)));
+        // Nothing is reported for a run that is not in flight.
+        $this->assertNull($percent->invoke($controller, [
+            'auto_update_last_status' => 'success',
+            'auto_update_progress_phase' => 'polish',
+            'auto_update_progress_current' => 5,
+            'auto_update_progress_total' => 20,
+        ]));
+    }
+
 
     /**
      * A rewrite is reused only when NOTHING that could change it has changed. The source
