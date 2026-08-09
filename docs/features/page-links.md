@@ -94,6 +94,53 @@ while leaving the text indexed.
 Whether a link in an answer opens in a new tab is a separate, per-module setting -
 see [Link target](link-target.md).
 
+## Downloads added with Contao's download element
+
+A file linked directly (`/files/downloads/preisliste.pdf`) appears as that
+address. A file offered through Contao's **download element** does not: Contao
+serves those through a signed URL on the page itself, and that is the address the
+extension stores, character for character, like every other link.
+
+```
+https://example.com/preise?p=downloads%2FPreisliste.pdf&f=Preisliste.pdf&d=attachment&ctx=…&_hash=…
+```
+
+| Part | Meaning |
+|---|---|
+| `p` | the file, relative to your upload directory |
+| `f` | the name the browser saves it under |
+| `d` | `attachment` = download, absent = open in the browser |
+| `ctx` | which download element on the page serves the file |
+| `_hash` | Contao's signature over all of the above |
+
+This is safe to hand a visitor, and it is the only form that works:
+
+- **It does not expire.** Contao issues these without a time limit, which matters
+  here because the chatbot may quote a link weeks after the synchronisation.
+- **It is not tied to a session.** Any visitor can open it, exactly like the
+  download button on the page.
+- **It cannot be tampered with.** Contao verifies the signature before anything
+  else and answers "403 Forbidden" if a single character was changed.
+- **It does not open protected content.** The link runs through the page it
+  belongs to, so that page's access rules still apply - and links on protected
+  pages are never collected in the first place (see above).
+
+Resolving `p` against your upload directory is also what lets the entry carry its
+size and file type ("PDF, 459 KB"), which a look at the address alone could not
+provide - the address ends in the page name, not the file name.
+
+> **Changing your installation's `APP_SECRET` invalidates every download link
+> already in the knowledge base.** The signature is computed from that secret, so
+> after it changes the stored links answer "403 Forbidden" until the pages
+> carrying them have been synchronised again. This is a realistic scenario when a
+> website is migrated to a new server or reinstalled, and it is easy to
+> misdiagnose: ordinary links keep working, only downloads fail. **Fix:** run one
+> synchronisation - that is genuinely all. Links are re-collected from every page
+> the crawl visits, whether or not Contao considers the page changed, so a single
+> run replaces every signature at once. On a schedule the next run repairs it on
+> its own within the hour; to fix it immediately, use **"Jetzt manuell
+> synchronisieren"** on the dashboard.
+
 ## Limits
 
 - At most 40 links per page, in document order (documents first).
