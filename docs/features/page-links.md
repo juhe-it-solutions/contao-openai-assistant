@@ -102,16 +102,20 @@ serves those through a signed URL on the page itself, and that is the address th
 extension stores, character for character, like every other link.
 
 ```
-https://example.com/preise?p=downloads%2FPreisliste.pdf&f=Preisliste.pdf&d=attachment&ctx=…&_hash=…
+https://example.com/_file_stream/files/downloads/Preisliste.pdf?d=attachment&ctx=…&_hash=…
 ```
 
 | Part | Meaning |
 |---|---|
-| `p` | the file, relative to your upload directory |
-| `f` | the name the browser saves it under |
+| `/_file_stream/…` | the file, as a path in Contao's file storage |
 | `d` | `attachment` = download, absent = open in the browser |
-| `ctx` | which download element on the page serves the file |
+| `ctx` | which download element serves the file |
 | `_hash` | Contao's signature over all of the above |
+
+Older Contao versions put the file in a `p=` query parameter on the page's own
+address instead. The extension reads both, so a website upgraded to Contao 6
+keeps working without a rebuild - the addresses simply change shape at the next
+synchronisation.
 
 This is safe to hand a visitor, and it is the only form that works:
 
@@ -121,13 +125,12 @@ This is safe to hand a visitor, and it is the only form that works:
   download button on the page.
 - **It cannot be tampered with.** Contao verifies the signature before anything
   else and answers "403 Forbidden" if a single character was changed.
-- **It does not open protected content.** The link runs through the page it
-  belongs to, so that page's access rules still apply - and links on protected
-  pages are never collected in the first place (see above).
+- **It does not open protected content.** Links on protected pages are never
+  collected in the first place (see above), so a member-only download never
+  reaches the knowledge base to begin with.
 
-Resolving `p` against your upload directory is also what lets the entry carry its
-size and file type ("PDF, 459 KB"), which a look at the address alone could not
-provide - the address ends in the page name, not the file name.
+Reading that path is also what lets the entry carry its size and file type
+("PDF, 459 KB") - information the address alone does not state.
 
 > **Changing your installation's `APP_SECRET` invalidates every download link
 > already in the knowledge base.** The signature is computed from that secret, so
