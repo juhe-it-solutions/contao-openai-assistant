@@ -1014,7 +1014,7 @@ class VectorStoreAutoUpdateService
     }
 
     /**
-     * How many pages the running crawl has already written to Contao's search index.
+     * How many URLs the running crawl has already written to Contao's search index.
      *
      * Search::indexPage() stamps tstamp = time() into the same $arrSet it uses for both
      * the INSERT and the UPDATE branch (core-bundle/contao/library/Contao/Search.php:42,
@@ -1026,6 +1026,8 @@ class VectorStoreAutoUpdateService
      * progress reading and cannot affect what gets synced.
      *
      * Never fails the run: a progress number is not worth an exception.
+     *
+     * @param int $since unix time to count from; 0 counts the whole table
      */
     private function countIndexedSince(int $since): int
     {
@@ -1090,9 +1092,19 @@ class VectorStoreAutoUpdateService
         // (a few thousand pages can take many minutes). No process timeout: the crawl must run
         // to completion, however long it legitimately takes.
         $process->setTimeout(null);
-        // Read BEFORE the process starts, so no page indexed by the crawl can slip in
-        // ahead of the reference point and go uncounted.
+        // Both readings are taken BEFORE the process starts, so no page the crawl indexes
+        // can slip in ahead of the reference point and go uncounted.
+        //
+        // The expected size of this crawl is how many URLs the search index already holds:
+        // contao:crawl walks the same site again, so it re-indexes essentially that set.
+        // Comparing rows against rows is what makes this sound - counting URLs against a
+        // page count would be wrong on any site with news, FAQ or event entries, where one
+        // page carries many indexed URLs. It is an expectation, not a promise: a grown site
+        // overshoots (the percentage is capped below 100 while running) and a shrunken one
+        // stops short, which the phase change resolves a moment later. A first-ever crawl
+        // finds 0 here, and the dashboard falls back to a bar with no percentage.
         $crawlStartedAt = time();
+        $expectedUrls = $this->countIndexedSince(0);
         $process->start();
 
         $lastReport = 0;
@@ -1100,14 +1112,11 @@ class VectorStoreAutoUpdateService
         while ($process->isRunning()) {
             $now = time();
 
-            // Report how many pages the crawl has indexed so far. There is no total to
-            // divide by - contao:crawl discovers the site as it goes and reports nothing
-            // until it exits - so this is a count, not a percentage, and the dashboard
-            // keeps its bar indeterminate (progress_total stays 0). Counted no more often
-            // than the dashboard polls; heartbeat() keeps the lease alive in between.
+            // Counted no more often than the dashboard polls; heartbeat() keeps the lease
+            // alive on the ticks in between.
             if ($now - $lastReport >= self::CRAWL_PROGRESS_INTERVAL) {
                 $lastReport = $now;
-                $this->progress($configId, 'crawl', $this->countIndexedSince($crawlStartedAt), 0);
+                $this->progress($configId, 'crawl', $this->countIndexedSince($crawlStartedAt), $expectedUrls);
             } else {
                 $this->heartbeat($configId);
             }

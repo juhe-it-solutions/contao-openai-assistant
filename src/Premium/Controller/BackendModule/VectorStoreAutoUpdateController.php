@@ -433,10 +433,11 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         $total = (int) ($config['auto_update_progress_total'] ?? 0);
 
         return match (true) {
-            // The crawl has no total to count against, but it does report how many pages
-            // it has indexed so far - a moving number is far more reassuring than a bare
-            // "crawling…" on a site that takes minutes. Falls back to the plain text until
-            // the first page lands.
+            // "N of about M" while a previous crawl gives us something to expect, a bare
+            // count on a first-ever crawl, and the plain sentence until the first page
+            // lands. "about" is not hedging for its own sake: the site may have grown or
+            // shrunk since the last crawl, and the number says so honestly.
+            'crawl' === $phase && $current > 0 && $total > 0 => $this->translator->trans('MSC.vsau_progress_crawl_of', [$current, $total], 'contao_default'),
             'crawl' === $phase && $current > 0 => $this->translator->trans('MSC.vsau_progress_crawl_count', [$current], 'contao_default'),
             'crawl' === $phase => $this->translator->trans('MSC.vsau_progress_crawl', [], 'contao_default'),
             'polish' === $phase && $total > 0 => $this->translator->trans('MSC.vsau_progress_polish', [$current, $total], 'contao_default'),
@@ -467,19 +468,27 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             return null;
         }
 
-        if (!\in_array((string) ($config['auto_update_progress_phase'] ?? ''), ['polish', 'upload'], true)) {
+        $phase = (string) ($config['auto_update_progress_phase'] ?? '');
+
+        if (!\in_array($phase, ['crawl', 'polish', 'upload'], true)) {
             return null;
         }
 
         $total = (int) ($config['auto_update_progress_total'] ?? 0);
 
+        // A first-ever crawl has nothing to compare against; the bar stays indeterminate.
         if ($total <= 0) {
             return null;
         }
 
         $current = max(0, (int) ($config['auto_update_progress_current'] ?? 0));
+        $percent = (int) floor($current / $total * 100);
 
-        return min(100, (int) floor($current / $total * 100));
+        // The crawl's total is what the previous crawl found, so it is an expectation, not
+        // a count-down: a site that grew would sit at 100 % while still working. Capped at
+        // 99 until the phase itself changes. polish and upload count against a real total
+        // and may legitimately reach 100.
+        return 'crawl' === $phase ? min(99, $percent) : min(100, $percent);
     }
 
     /**
