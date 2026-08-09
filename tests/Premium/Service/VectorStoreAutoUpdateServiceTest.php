@@ -172,9 +172,52 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
         $this->assertSame(0, $scope['items'], 'No reader items in this fixture.');
         $this->assertNotNull($captured);
         [$sql, $params] = $captured;
-        $this->assertStringContainsString("published = '1'", $sql);
-        $this->assertStringContainsString('type NOT IN', $sql);
+        $this->assertStringContainsString("p.published = '1'", $sql);
+        $this->assertStringContainsString('p.type NOT IN', $sql);
         $this->assertSame([[1, 2, 3]], $params);
+    }
+
+    /**
+     * The plan page budget must count what the sync uploads, not what the operator picked.
+     * readAllPages() drops protected search rows outright, so a protected page never
+     * becomes a document - but it used to consume a slot in the budget all the same. With
+     * a 20-page plan and a callback that THROWS, that difference refuses the save of a
+     * configuration whose real upload stays under the limit.
+     *
+     * Asserted on the query rather than on a count because the exclusion has to happen in
+     * SQL: the caller only ever sees the surviving ids.
+     */
+    public function testCountScopePagesExcludesPagesIndexedOnlyAsProtected(): void
+    {
+        $connection = $this->createMock(Connection::class);
+
+        $captured = null;
+        $connection
+            ->method('fetchFirstColumn')
+            ->willReturnCallback(
+                static function (string $sql, array $params = []) use (&$captured): array {
+                    $captured = [$sql, $params];
+
+                    return [1];
+                },
+            )
+        ;
+
+        $this->createService($connection)->countScopeBreakdown([1, 2]);
+
+        $this->assertNotNull($captured);
+        [$sql] = $captured;
+
+        // Read from the resolved flag in Contao's index, not from tl_page.protected:
+        // protection is inherited down the tree, so a protected page's children carry an
+        // empty flag of their own and would slip through.
+        $this->assertStringContainsString('tl_search', $sql, 'Protection is read from the search index, where Contao stores the resolved flag.');
+        $this->assertStringContainsString('s.protected = 1', $sql);
+
+        // A page is only dropped when EVERY indexed row for it is protected. Pages with no
+        // search rows at all must keep counting: before the first crawl the index is empty,
+        // and a rule that required a row would quietly reduce every plan count to zero.
+        $this->assertStringContainsString('COALESCE(s.protected, 0) = 0', $sql, 'A page with any public row still counts.');
     }
 
     public function testCountScopeBreakdownReportsPagesAndItemsSeparately(): void

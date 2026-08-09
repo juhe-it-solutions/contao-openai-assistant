@@ -994,11 +994,30 @@ class VectorStoreAutoUpdateService
     }
 
     /**
-     * Keep only the pages that can actually produce an indexed document: published, and
-     * not one of the structural/utility page types (site root, forward, redirect, logout,
-     * error pages) that never carry standalone body content. This keeps the save-time plan
-     * limit aligned with what the sync really uploads, so a customer is not blocked by pages
-     * that would never become vector-store documents anyway.
+     * Keep only the pages that can actually produce an indexed document: published, not
+     * one of the structural/utility page types (site root, forward, redirect, logout,
+     * error pages) that never carry standalone body content, and not protected. This keeps
+     * the save-time plan limit aligned with what the sync really uploads, so a customer is
+     * not blocked by pages that would never become vector-store documents anyway.
+     *
+     * The protection rule mirrors readAllPages(), which excludes protected search rows
+     * outright - without it the two disagreed, and because enforceCrawlPageLimit() THROWS,
+     * that gap did not merely miscount: on the smallest plan (20 pages) a handful of
+     * member-only pages inside the selection could refuse the save of a configuration
+     * whose real upload stays well under the limit, with nothing in the back end
+     * explaining where the surplus pages went.
+     *
+     * Read from tl_search rather than tl_page.protected on purpose. Contao inherits
+     * protection down the page tree: a child of a protected page carries an empty
+     * "protected" flag of its own and is protected all the same. tl_search.protected is
+     * the RESOLVED flag Contao's own indexer wrote, which is exactly the signal the sync
+     * filters on - so this cannot drift from what actually gets uploaded.
+     *
+     * A page is only dropped when the index proves it is protected: it has search rows and
+     * every one of them is protected. Pages absent from tl_search keep counting, which
+     * matters before the first crawl - an empty index must not silently reduce every plan
+     * count to zero and thereby disable the limit. Counting an unknown page is the
+     * conservative direction; not counting it would give away scope for free.
      *
      * Returns the ids rather than a count because the reader items rendered on them have
      * to be counted per page afterwards.
@@ -1018,10 +1037,14 @@ class VectorStoreAutoUpdateService
         return array_map(
             intval(...),
             $this->connection->fetchFirstColumn(
-                "SELECT id FROM tl_page
-                 WHERE id IN (?)
-                   AND published = '1'
-                   AND type NOT IN ('root', 'forward', 'redirect', 'logout', 'error_401', 'error_403', 'error_404', 'error_503')",
+                "SELECT p.id FROM tl_page p
+                 WHERE p.id IN (?)
+                   AND p.published = '1'
+                   AND p.type NOT IN ('root', 'forward', 'redirect', 'logout', 'error_401', 'error_403', 'error_404', 'error_503')
+                   AND NOT (
+                       EXISTS (SELECT 1 FROM tl_search s WHERE s.pid = p.id AND s.protected = 1)
+                       AND NOT EXISTS (SELECT 1 FROM tl_search s WHERE s.pid = p.id AND COALESCE(s.protected, 0) = 0)
+                   )",
                 [$pageIds],
                 [ArrayParameterType::INTEGER],
             ),
