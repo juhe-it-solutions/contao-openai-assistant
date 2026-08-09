@@ -279,6 +279,62 @@ class PageLinkExtractorTest extends TestCase
         $this->assertSame('', $links[0]->filePath);
     }
 
+    /**
+     * Contao 6 does not use "?p=…" for fragment downloads at all: FileDownloadHelper
+     * generates the "contao_file_stream" route, which carries the storage path as a
+     * ROUTE parameter ("/_file_stream/files/downloads/preisliste.pdf?d=…&ctx=…").
+     * Left untaught, the extractor read that path as "_file_stream/files/…", failed
+     * the upload-path prefix check and gave every 6.0 Download element no size and
+     * no MIME type.
+     */
+    public function testResolvesContao6FileStreamDownloadUrls(): void
+    {
+        $links = $this->extract(self::page(
+            '<a href="/_file_stream/files/downloads/preisliste.pdf?d=attachment&amp;ctx=abc&amp;_hash=xyz">Preisliste</a>',
+        ));
+
+        $this->assertCount(1, $links);
+        $this->assertSame(PageLink::TYPE_FILE, $links[0]->type);
+        $this->assertSame('files/downloads/preisliste.pdf', $links[0]->filePath);
+        $this->assertSame('Preisliste', $links[0]->label);
+    }
+
+    /**
+     * The route is not anchored at the site root: an install served from a
+     * subdirectory prefixes it with the base path.
+     */
+    public function testResolvesFileStreamUrlsOfASubdirectoryInstall(): void
+    {
+        $links = $this->extract(self::page(
+            '<a href="/cms/_file_stream/files/handbuch.docx?d=attachment&amp;ctx=abc">Handbuch</a>',
+        ));
+
+        $this->assertSame('files/handbuch.docx', $links[0]->filePath);
+    }
+
+    /**
+     * The file-stream path is a MountManager path, so it always carries its mount
+     * name. It must NOT be prefixed with the upload path the way "?p=…" is, or the
+     * other mounts would be reported as uploads - and traversal must still be
+     * confined to the upload directory.
+     *
+     * The traversal case is percent-encoded on purpose: UriResolver already collapses
+     * literal ".." while resolving the href, so only "%2E%2E" still reaches the
+     * extractor as a dot segment - which is exactly why the route is stripped BEFORE
+     * the path is decoded.
+     */
+    public function testFileStreamUrlsCannotEscapeTheUploadDirectory(): void
+    {
+        $links = $this->extract(self::page(
+            '<a href="/_file_stream/user_templates/mail.html.twig?ctx=abc">Vorlage</a>'
+            .'<a href="/_file_stream/files/%2E%2E/%2E%2E/.env?d=attachment&amp;ctx=abc">Geheim</a>',
+        ));
+
+        $this->assertCount(2, $links);
+        $this->assertSame('', $links[0]->filePath);
+        $this->assertSame('', $links[1]->filePath);
+    }
+
     public function testDownloadQueryUrlsUseTheFileNameAsLabelFallback(): void
     {
         $links = $this->extract(self::page('<a href="/download-center.html?file=files/quartalsbericht.pdf"></a>'));
