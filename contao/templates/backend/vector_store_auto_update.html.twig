@@ -237,7 +237,10 @@
             bottom: calc(100% + 8px);
             left: 50%;
             transform: translateX(-50%);
-            width: 240px;
+            /* Wide enough for the multi-sentence tooltips, but never wider than the
+               viewport: the popup is centred on a table header near the right edge, so a
+               fixed 320px would hang off screen on a phone. */
+            width: min(320px, 78vw);
             padding: 10px 12px;
             border-radius: 8px;
             background: var(--invert-bg);
@@ -257,6 +260,14 @@
         .vsau-info:hover .vsau-info-pop,
         .vsau-info:focus-within .vsau-info-pop { opacity: 1; visibility: visible; pointer-events: auto; }
         .vsau-info-pop a { color: inherit; text-decoration: underline; }
+        /* Second thought inside a tooltip: separated so it reads as its own point rather
+           than running on from the sentence about the usage dashboard. */
+        .vsau-info-note {
+            display: block;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(127, 127, 127, 0.35);
+        }
 
         .vsau-stat-hint { font-size: 11px; line-height: 1.45; color: var(--text-secondary, #9aa0ad); margin-bottom: 0.7rem; }
 
@@ -670,6 +681,9 @@
                                         <span class="vsau-info-pop" role="tooltip">
                                             {{ 'MSC.vsau_cost_tooltip'|trans({}, 'contao_default') }}
                                             <a href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">{{ 'MSC.vsau_cost_tooltip_link'|trans({}, 'contao_default') }}</a>
+                                            {# Why a run can legitimately report nothing: without this, a 0 in
+                                               "KI-optimiert" reads like the AI step silently failed. #}
+                                            <span class="vsau-info-note">{{ 'MSC.vsau_cost_tooltip_zero'|trans({}, 'contao_default') }}</span>
                                         </span>
                                     </span>
                                 </span>
@@ -684,6 +698,9 @@
                                         <span class="vsau-info-pop" role="tooltip">
                                             {{ 'MSC.vsau_cost_tooltip'|trans({}, 'contao_default') }}
                                             <a href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">{{ 'MSC.vsau_cost_tooltip_link'|trans({}, 'contao_default') }}</a>
+                                            {# Why a run can legitimately report nothing: without this, a 0 in
+                                               "KI-optimiert" reads like the AI step silently failed. #}
+                                            <span class="vsau-info-note">{{ 'MSC.vsau_cost_tooltip_zero'|trans({}, 'contao_default') }}</span>
                                         </span>
                                     </span>
                                 </span>

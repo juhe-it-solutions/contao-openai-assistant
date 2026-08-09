@@ -435,6 +435,10 @@
                 <source>These are token counts. The OpenAI API does not report costs; see your actual billed usage in the OpenAI dashboard.</source>
                 <target>These are token counts. The OpenAI API does not report costs; see your actual billed usage in the OpenAI dashboard.</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_cost_tooltip_zero">
+                <source>0 tokens in "AI-optimised" mode is not an error: pages that have not changed since the last run are not prepared by the AI again, which costs nothing. As soon as you edit a page, it is prepared again.</source>
+                <target>0 tokens in "AI-optimised" mode is not an error: pages that have not changed since the last run are not prepared by the AI again, which costs nothing. As soon as you edit a page, it is prepared again.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_cost_tooltip_link">
                 <source>Open OpenAI usage dashboard</source>
                 <target>Open OpenAI usage dashboard</target>
