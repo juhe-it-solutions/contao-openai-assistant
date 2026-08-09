@@ -127,6 +127,19 @@ class VectorStoreAutoUpdateService
     ];
 
     /**
+     * Every tl_openai_sync_log column written by this version that did not exist in an
+     * earlier one. Checked by the same gate as the run-state columns, because the row is
+     * inserted at the very END of a run: without this, an install whose schema update was
+     * only partially applied (the Contao Manager lets the operator run a subset of the
+     * statements) passes the gate, crawls the whole site, pays the full rewrite bill,
+     * uploads every file - and only then fails on an unknown column, reporting the run as
+     * an error and repeating the same spend on the next schedule.
+     */
+    private const SYNC_LOG_COLUMNS = [
+        'items',
+    ];
+
+    /**
      * Crawler summary of the current run ("Indexed N URI(s)...", broken-link notices).
      * Quoted in the "nothing was indexed" errors, where it is the single most useful
      * piece of information and otherwise only reachable from the log.
@@ -178,7 +191,7 @@ class VectorStoreAutoUpdateService
         // Before anything else, for the same reason run() checks it first: the UPDATE
         // below writes the run-state columns, so on a code update without contao:migrate
         // the button would answer with a raw SQL error about an unknown column.
-        if (!$this->isRunStateSchemaCurrent()) {
+        if (!$this->isSchemaCurrent()) {
             throw new \RuntimeException('MSC.vsau_err_schema_outdated');
         }
 
@@ -325,7 +338,7 @@ class VectorStoreAutoUpdateService
         // (e.g. CLI command invoked on a fresh install before the install wizard finishes)
         // or before it has added the run-state columns after a bundle update — the
         // UPDATEs below reference them, and run() must never throw.
-        if (!$this->isRunStateSchemaCurrent()) {
+        if (!$this->isSchemaCurrent()) {
             $this->logger->notice('VectorStoreAutoUpdate skipped for config '.$configId.': database schema not up to date (run contao:migrate).');
 
             return 'skipped';
@@ -935,20 +948,29 @@ class VectorStoreAutoUpdateService
     }
 
     /**
-     * Whether tl_openai_config carries every column the run state is written to.
+     * Whether the database carries every column this version writes during a run.
      *
-     * Both entry points (the CLI run and the backend dispatch) check this, because both
-     * write the same set and neither may answer a pending migration with an SQL error.
-     * The list is exhaustive on purpose: checking only one column was enough while they
-     * all arrived together, but auto_update_run_started shipped after the progress
-     * columns, so an install updated from 2.1.x has the latter and not the former -
-     * exactly the case a single-column check waves through.
+     * All three entry points check this - the CLI run, the backend dispatch and the
+     * dashboard - because none of them may answer a pending migration with a raw SQL
+     * error. The lists are exhaustive on purpose: checking only one column was enough
+     * while they all arrived together, but auto_update_run_started shipped after the
+     * progress columns, so an install updated from 2.1.x has the latter and not the
+     * former - exactly the case a single-column check waves through.
+     *
+     * Deliberately NOT memoised: a CLI worker can outlive the migration it is waiting
+     * for, and a cached "outdated" would keep it skipping until the process restarts.
+     * Two schema introspections are nothing next to a crawl.
+     *
+     * Only tables and columns whose absence would THROW belong here. tl_openai_page_link
+     * and tl_openai_polish_cache are guarded by their own try/catch (a run without them
+     * simply collects no links and caches no rewrites), so requiring them would turn a
+     * graceful degradation into a hard stop.
      */
-    private function isRunStateSchemaCurrent(): bool
+    public function isSchemaCurrent(): bool
     {
         $schemaManager = $this->connection->createSchemaManager();
 
-        if (!$schemaManager->tablesExist(['tl_openai_config'])) {
+        if (!$schemaManager->tablesExist(['tl_openai_config', 'tl_openai_sync_log'])) {
             return false;
         }
 
@@ -956,6 +978,14 @@ class VectorStoreAutoUpdateService
 
         foreach (self::RUN_STATE_COLUMNS as $column) {
             if (!isset($columns[$column])) {
+                return false;
+            }
+        }
+
+        $logColumns = $schemaManager->listTableColumns('tl_openai_sync_log');
+
+        foreach (self::SYNC_LOG_COLUMNS as $column) {
+            if (!isset($logColumns[$column])) {
                 return false;
             }
         }

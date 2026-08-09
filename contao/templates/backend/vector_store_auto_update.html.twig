@@ -296,7 +296,15 @@
         {{ backend_messages|raw }}
     {% endif %}
 
-    {% if configs is empty %}
+    {# The database is behind the code (update deployed without contao:migrate). The
+       configurations exist but cannot be read, so this replaces the whole page body -
+       including the "no configuration yet" card below, which would otherwise invite the
+       operator to buy a licence they already have. #}
+    {% if schema_outdated|default(false) %}
+        <div class="tl_message" style="margin: 1rem;">
+            <p class="tl_error">{{ 'MSC.vsau_schema_outdated_page'|trans({}, 'contao_default') }}</p>
+        </div>
+    {% elseif configs is empty %}
         <div class="tl_message oaa-info-card oaa-info-card--premium" style="margin: 1rem;">
             <p class="tl_info" style="background: transparent url({{ asset('system/themes/flexible/icons/show.svg') }}) no-repeat 11px 12px;">
                 <strong class="oaa-info-card-heading" style="display: block; font-size: 22px; position: relative; top: -5px;">{{ 'MSC.vsau_premium_heading'|trans({}, 'contao_default') }}</strong>

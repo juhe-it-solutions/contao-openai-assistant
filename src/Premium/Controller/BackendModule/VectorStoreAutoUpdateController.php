@@ -161,6 +161,18 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             return $this->redirectToRoute('vector_store_auto_update');
         }
 
+        // An update deployed without contao:migrate is missing columns this page reads
+        // (tl_openai_sync_log.items) and every run writes. Answer that with the one
+        // sentence that fixes it, instead of a raw "Unknown column" from the SELECT
+        // further down: this is the page an operator opens to find out why the sync
+        // stopped, so it has to survive exactly the state it is there to explain.
+        //
+        // Everything below is skipped rather than guarded individually - a half-rendered
+        // dashboard reading a schema it does not match can only mislead.
+        if (!$this->service->isSchemaCurrent()) {
+            return $this->renderDashboard([], [], false, $request, true);
+        }
+
         // Persist dead runs ('queued'/'running' with a stale heartbeat lease) as errors
         // before rendering — otherwise the badge and the disabled "Run sync now" button
         // would be stuck on a run that will never report back.
@@ -236,30 +248,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         }
         unset($row);
 
-        return $this->render('@Contao/backend/vector_store_auto_update.html.twig', [
-            'headline' => $this->translator->trans('MOD.vector_store_auto_update.0', [], 'contao_modules'),
-            'configs' => $configs,
-            'has_active_config' => $hasActiveConfig,
-            'log' => $log,
-            'purchase_url' => $this->licensePortalUrls->getProductUrl(),
-            'help_url' => $this->licensePortalUrls->getHelpUrl(),
-            'manage_url' => $this->licensePortalUrls->getManageUrl(),
-            'request_token' => $this->csrfTokenManager->getToken($this->csrfTokenName)->getValue(),
-            'manage_log_url' => $this->generateUrl('contao_backend', ['do' => 'openai_sync_log']),
-            // The "Run sync now" button spawns a CLI process via proc_open. Some shared hosts
-            // disable it; warn up front so the user isn't surprised by a failed click.
-            'process_spawning_available' => $this->processSpawningAvailable(),
-            // Session messages (stop confirmation, errors, queue result) rendered here
-            // so they appear on our own page rather than on the Contao backend dashboard.
-            'backend_messages' => Message::generate(),
-            // Inline result of "Lizenz aktualisieren" — passed as query params so it
-            // renders beside the button without going through the session-message queue.
-            'refresh_result' => $request->query->get('refresh_result'),
-            'refresh_config_id' => (int) $request->query->get('refresh_config', 0),
-            'refresh_plan' => $request->query->get('refresh_plan', ''),
-            // Polled by the inline status script for live badge/progress updates.
-            'status_url' => $this->generateUrl('vector_store_auto_update_status'),
-        ]);
+        return $this->renderDashboard($configs, $log, $hasActiveConfig, $request, false);
     }
 
     /**
@@ -294,6 +283,47 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         $response->headers->set('Cache-Control', 'no-store');
 
         return $response;
+    }
+
+    /**
+     * Render the dashboard. Shared by the normal path and by the outdated-schema path, so
+     * the page keeps its toolbar, its session messages and its help links in a state where
+     * no configuration could be read - and so a variable added here can never be missing
+     * from one of the two.
+     *
+     * @param list<array<string, mixed>> $configs
+     * @param list<array<string, mixed>> $log
+     */
+    private function renderDashboard(array $configs, array $log, bool $hasActiveConfig, Request $request, bool $schemaOutdated): Response
+    {
+        return $this->render('@Contao/backend/vector_store_auto_update.html.twig', [
+            'headline' => $this->translator->trans('MOD.vector_store_auto_update.0', [], 'contao_modules'),
+            'configs' => $configs,
+            'has_active_config' => $hasActiveConfig,
+            'log' => $log,
+            // Blocks the page's own "no configuration yet / buy premium" card: an install
+            // whose migration is pending has configurations, they just cannot be read yet,
+            // and inviting the operator to buy what they already own would be absurd.
+            'schema_outdated' => $schemaOutdated,
+            'purchase_url' => $this->licensePortalUrls->getProductUrl(),
+            'help_url' => $this->licensePortalUrls->getHelpUrl(),
+            'manage_url' => $this->licensePortalUrls->getManageUrl(),
+            'request_token' => $this->csrfTokenManager->getToken($this->csrfTokenName)->getValue(),
+            'manage_log_url' => $this->generateUrl('contao_backend', ['do' => 'openai_sync_log']),
+            // The "Run sync now" button spawns a CLI process via proc_open. Some shared hosts
+            // disable it; warn up front so the user isn't surprised by a failed click.
+            'process_spawning_available' => $this->processSpawningAvailable(),
+            // Session messages (stop confirmation, errors, queue result) rendered here
+            // so they appear on our own page rather than on the Contao backend dashboard.
+            'backend_messages' => Message::generate(),
+            // Inline result of "Lizenz aktualisieren" — passed as query params so it
+            // renders beside the button without going through the session-message queue.
+            'refresh_result' => $request->query->get('refresh_result'),
+            'refresh_config_id' => (int) $request->query->get('refresh_config', 0),
+            'refresh_plan' => $request->query->get('refresh_plan', ''),
+            // Polled by the inline status script for live badge/progress updates.
+            'status_url' => $this->generateUrl('vector_store_auto_update_status'),
+        ]);
     }
 
     /**

@@ -551,6 +551,10 @@
                 <source>The database is not up to date for this version of the extension. Run the Contao install tool (or vendor/bin/contao-console contao:migrate) and start the sync again.</source>
                 <target>Die Datenbank ist für diese Version der Erweiterung nicht auf dem aktuellen Stand. Führen Sie das Contao-Install-Tool (oder vendor/bin/contao-console contao:migrate) aus und starten Sie die Synchronisierung erneut.</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_schema_outdated_page">
+                <source>The database is not up to date for this version of the extension, so the synchronisation settings cannot be read yet. Run the Contao install tool (or vendor/bin/contao-console contao:migrate), then reload this page. Your configuration and your indexed pages are unaffected; scheduled syncs pause until the update has been applied.</source>
+                <target>Die Datenbank ist für diese Version der Erweiterung nicht auf dem aktuellen Stand, daher können die Einstellungen der Synchronisierung noch nicht gelesen werden. Führen Sie das Contao-Install-Tool (oder vendor/bin/contao-console contao:migrate) aus und laden Sie diese Seite anschließend neu. Ihre Konfiguration und Ihre indexierten Seiten sind davon nicht betroffen; geplante Synchronisierungen pausieren, bis die Aktualisierung durchgeführt wurde.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_err_dispatch_failed">
                 <source>Could not start the sync process. Your host may disable PHP process spawning (proc_open). Run it from the command line instead: vendor/bin/contao-console contao:openai-vector-sync &lt;id&gt;</source>
                 <target>Der Synchronisierungs-Prozess konnte nicht gestartet werden. Möglicherweise ist das Starten von PHP-Prozessen (proc_open) bei Ihrem Hoster deaktiviert. Führen Sie ihn stattdessen über die Kommandozeile aus: vendor/bin/contao-console contao:openai-vector-sync &lt;id&gt;</target>

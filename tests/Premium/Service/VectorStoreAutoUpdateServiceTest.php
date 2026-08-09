@@ -1020,6 +1020,67 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
     }
 
     /**
+     * The run log row is inserted at the very END of a run. A gate that only asks about
+     * tl_openai_config would let an install whose schema update was applied in parts
+     * crawl the whole site, pay the full rewrite bill and upload every file, only to fail
+     * on the log insert - and repeat that spend on every schedule. The gate therefore
+     * covers the sync-log columns this version writes as well.
+     */
+    public function testRunIsSkippedWhenTheSyncLogIsMissingTheItemsColumn(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('createSchemaManager')->willReturn($this->schemaManager(
+            [
+                'auto_update_progress_phase',
+                'auto_update_progress_current',
+                'auto_update_progress_total',
+                'auto_update_run_started',
+            ],
+            [],
+        ));
+        $connection->expects($this->never())->method('executeStatement');
+
+        $this->assertSame('skipped', $this->createService($connection)->run(7));
+    }
+
+    /**
+     * Same gap, seen from the manual button: it must refuse with the actionable message
+     * rather than let the run start and die at the end.
+     */
+    public function testManualDispatchRefusesASyncLogMissingTheItemsColumn(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('createSchemaManager')->willReturn($this->schemaManager(
+            [
+                'auto_update_progress_phase',
+                'auto_update_progress_current',
+                'auto_update_progress_total',
+                'auto_update_run_started',
+            ],
+            [],
+        ));
+        $connection->expects($this->never())->method('executeStatement');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('MSC.vsau_err_schema_outdated');
+
+        $this->createService($connection)->dispatchRun(7);
+    }
+
+    /**
+     * A fresh install before the very first migrate has no extension tables at all. The
+     * gate must answer that without asking for their columns.
+     */
+    public function testRunIsSkippedBeforeTheExtensionTablesExist(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('createSchemaManager')->willReturn($this->schemaManager([], [], false));
+        $connection->expects($this->never())->method('executeStatement');
+
+        $this->assertSame('skipped', $this->createService($connection)->run(7));
+    }
+
+    /**
      * Counter-test: a migrated install must pass the gate. It stops at the license check
      * right after it, which is how we can tell the schema was not what refused it.
      */
@@ -1040,18 +1101,30 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
     }
 
     /**
-     * @param list<string> $columns columns tl_openai_config is reported to have
+     * @param list<string> $columns     columns tl_openai_config is reported to have
+     * @param list<string> $logColumns  columns tl_openai_sync_log is reported to have;
+     *                                  defaults to the migrated state, so a test that only
+     *                                  varies the config columns still describes an install
+     *                                  whose sync log is current
+     * @param bool         $tablesExist whether both tables exist at all (fresh install)
      */
-    private function schemaManager(array $columns): AbstractSchemaManager
+    private function schemaManager(array $columns, array $logColumns = ['items'], bool $tablesExist = true): AbstractSchemaManager
     {
-        $schemaManager = $this->createMock(AbstractSchemaManager::class);
-        $schemaManager->method('tablesExist')->willReturn(true);
-        $schemaManager->method('listTableColumns')->willReturn(
-            array_combine(
-                $columns,
-                array_map(static fn (string $name): Column => new Column($name, new IntegerType()), $columns),
-            ),
+        $toColumns = static fn (array $names): array => array_combine(
+            $names,
+            array_map(static fn (string $name): Column => new Column($name, new IntegerType()), $names),
         );
+
+        $schemaManager = $this->createMock(AbstractSchemaManager::class);
+        $schemaManager->method('tablesExist')->willReturn($tablesExist);
+        $schemaManager
+            ->method('listTableColumns')
+            ->willReturnCallback(
+                static fn (string $table): array => 'tl_openai_sync_log' === $table
+                    ? $toColumns($logColumns)
+                    : $toColumns($columns),
+            )
+        ;
 
         return $schemaManager;
     }
