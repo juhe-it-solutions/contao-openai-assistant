@@ -552,7 +552,41 @@ class PageLinkExtractor
      */
     private function resolveUploadPath(string $url): string
     {
-        return $this->normaliseUploadPath(rawurldecode((string) parse_url($url, PHP_URL_PATH)));
+        $path = $this->stripFileStreamRoute((string) parse_url($url, PHP_URL_PATH));
+
+        return $this->normaliseUploadPath(rawurldecode($path));
+    }
+
+    /**
+     * Contao 6 serves fragment downloads through the "contao_file_stream" route,
+     * which carries the storage path as a ROUTE parameter instead of a query one:
+     * "/_file_stream/files/downloads/preisliste.pdf?d=attachment&ctx=…&_hash=…"
+     * (contao-core-6.0 core-bundle/src/Controller/FileStreamController.php:20 and
+     * Filesystem/FileDownloadHelper.php:96-115). downloadQueryPath() only knows the
+     * query spellings, so without this the most common way to publish a PDF on 6.0
+     * resolved to no file path, and therefore to no size and no MIME type.
+     *
+     * Unlike "?p=…", this path needs no prefixing: it is a MountManager path, and
+     * the upload directory is mounted under its own name (ContaoCoreExtension.php:242),
+     * so it already starts with "files/". Keeping it strict also stops the other
+     * mounts ("backups", "user_templates") from being mistaken for uploads.
+     *
+     * The route segment is searched for rather than anchored at position 0, so an
+     * install served from a subdirectory ("/cms/_file_stream/…") works too. Stripping
+     * happens BEFORE decoding, so a percent-encoded "%2F_file_stream%2F" inside a
+     * path segment cannot forge the marker - and even if it did, normaliseUploadPath()
+     * still confines the result to the upload directory.
+     */
+    private function stripFileStreamRoute(string $path): string
+    {
+        $marker = '/_file_stream/';
+        $position = strpos($path, $marker);
+
+        if (false === $position) {
+            return $path;
+        }
+
+        return substr($path, $position + \strlen($marker));
     }
 
     /**
