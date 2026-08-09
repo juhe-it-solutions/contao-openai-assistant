@@ -266,21 +266,21 @@ final class PageLink
             return 0;
         }
 
+        // The "host/path" shape fallbackLabel() synthesises for a link whose anchor has
+        // no text at all. Only this one: its FILE variant is the bare file name, and a
+        // file name is a label a human would happily write ("Preisliste.pdf"), so
+        // demoting that would punish good labels to catch a rare bad one.
+        //
+        // Matching the path basename here was tried and was worse than the bug it was
+        // meant to help. Contao page URLs are slugs, so the label of a well-written link
+        // equals the last path segment all the time - "00-Home" on ".../00-home". That
+        // demoted exactly the labels this ranking exists to protect: on the page that
+        // prompted all this, "00-Home" and "#kontakt" both scored 0 and the anchor won
+        // the length tiebreak again, leaving the reported output unchanged.
         $host = (string) parse_url($url, PHP_URL_HOST);
-        $path = (string) parse_url($url, PHP_URL_PATH);
-        $trimmedPath = trim($path, '/');
+        $path = trim((string) parse_url($url, PHP_URL_PATH), '/');
+        $synthesised = '' !== $path ? $host.'/'.$path : $host;
 
-        $synthesised = [
-            '' !== $trimmedPath ? $host.'/'.$trimmedPath : $host,
-            rawurldecode(basename($path)),
-        ];
-
-        foreach ($synthesised as $shape) {
-            if ('' !== $shape && 0 === strcasecmp($label, $shape)) {
-                return 0;
-            }
-        }
-
-        return 1;
+        return '' !== $synthesised && 0 === strcasecmp($label, $synthesised) ? 0 : 1;
     }
 }

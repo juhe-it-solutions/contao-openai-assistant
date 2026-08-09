@@ -707,6 +707,44 @@ class PageLinkExtractorTest extends TestCase
     }
 
     /**
+     * The case from the live site, with its real shape: a Contao page URL is a slug, so
+     * the label of a well-written link is the last path segment give or take its case.
+     *
+     * The first attempt at this ranking demoted any label matching the path basename, on
+     * the theory that it restated the target - which made "00-Home" score as low as
+     * "#kontakt" on ".../00-home", handed the decision back to length, and left the
+     * output byte-for-byte as reported. Anything that treats a page's own name as a
+     * worthless label has misunderstood the problem.
+     */
+    public function testAPageNameThatMatchesItsSlugStillBeatsAnchorText(): void
+    {
+        $links = $this->extract(
+            self::page(
+                '<p>Link auf die Seite <a href="/00-home">00-Home</a></p>'
+                .'<p>Ankerlink auf <a href="/00-home#kontakt">#kontakt</a> der Seite 00-Home</p>',
+            ),
+            'https://example.com/linktest',
+        );
+
+        $this->assertCount(1, $links);
+        $this->assertSame('00-Home', $links[0]->label);
+    }
+
+    /**
+     * A file name is a label a human writes, so it must not be demoted for appearing in
+     * the URL either - the same mistake, one path segment along.
+     */
+    public function testAFileNameLabelIsNotTreatedAsRestatingTheTarget(): void
+    {
+        $links = $this->extract(self::page(
+            '<a href="/files/Preisliste.pdf">Preisliste.pdf</a>'
+            .'<a href="/files/Preisliste.pdf">https://example.com/files/Preisliste.pdf</a>',
+        ));
+
+        $this->assertSame('Preisliste.pdf', $links[0]->label);
+    }
+
+    /**
      * Order must not decide it either: the anchor link coming first would previously
      * make its text the incumbent that nothing shorter could displace.
      */
