@@ -203,13 +203,9 @@
                 <source>Queued</source>
                 <target>Queued</target>
             </trans-unit>
-            <trans-unit id="MSC.vsau_progress_crawl_of">
-                <source>Crawling and indexing the website … %s of about %s pages</source>
-                <target>Crawling and indexing the website … %s of about %s pages</target>
-            </trans-unit>
-            <trans-unit id="MSC.vsau_progress_crawl_count">
-                <source>Crawling and indexing the website … %s pages so far</source>
-                <target>Crawling and indexing the website … %s pages so far</target>
+            <trans-unit id="MSC.vsau_progress_crawl_indexed">
+                <source>Crawling and indexing the website … %s page(s) newly indexed</source>
+                <target>Crawling and indexing the website … %s page(s) newly indexed</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_progress_crawl">
                 <source>Crawling and indexing the website …</source>
