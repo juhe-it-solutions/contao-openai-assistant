@@ -73,6 +73,28 @@ class VectorStoreAutoUpdateService
      */
     public const STALE_QUEUED_SECONDS = 180;
 
+    /**
+     * Crawl the site before reading the index only when something changed ('auto', the
+     * default), on every run ('always', the pre-2.2 behaviour), or never ('never', for
+     * installs that run their own contao:crawl).
+     */
+    public const CRAWL_AUTO = 'auto';
+
+    public const CRAWL_ALWAYS = 'always';
+
+    public const CRAWL_NEVER = 'never';
+
+    /**
+     * The longest a run may go without a full crawl in 'auto' mode.
+     *
+     * The change signature cannot see everything: a page, element or news item with
+     * start/stop dates changes what it publishes without any row being written, and an
+     * insert tag can render differently on its own. This bound means such a change is
+     * picked up within six hours whatever the signature says, so the gate can never
+     * hold a stale knowledge base indefinitely.
+     */
+    public const CRAWL_MAX_AGE_SECONDS = 21600;
+
     private const OPENAI_BASE = 'https://api.openai.com/v1';
 
     /**
@@ -124,6 +146,25 @@ class VectorStoreAutoUpdateService
         'auto_update_progress_current',
         'auto_update_progress_total',
         'auto_update_run_started',
+        'auto_update_last_crawl',
+        'auto_update_crawl_signature',
+    ];
+
+    /**
+     * Tables whose contents can end up in Contao's search index, and therefore in the
+     * knowledge base. Deliberately site-wide rather than scoped to the selected pages:
+     * the sync's crawl is also what keeps Contao's OWN site search current on most
+     * installs, and narrowing it would silently degrade that.
+     *
+     * Optional bundles are simply absent - existence is checked before each is read.
+     */
+    private const CONTENT_TABLES = [
+        'tl_page',
+        'tl_content',
+        'tl_article',
+        'tl_news',
+        'tl_faq',
+        'tl_calendar_events',
     ];
 
     /**
@@ -396,9 +437,38 @@ class VectorStoreAutoUpdateService
             $promptTpl = self::decodeStoredText($config['auto_update_prompt_template'] ?? null) ?: null;
             $legacyFileId = (string) ($config['auto_update_file_id'] ?? '');
 
-            // Crawling has no page total yet — phase-only progress ("crawling…").
-            $this->progress($configId, 'crawl', 0, 0);
-            $this->spawnCrawl($configId);
+            $signature = $this->siteContentSignature();
+
+            if ($this->shouldCrawl($config, $signature)) {
+                // Announced only once the decision is made. Setting it beforehand made the
+                // dashboard claim "Website wird gecrawlt" through a run that then skipped
+                // the crawl entirely - the common case on a quiet site in "auto" mode.
+                // Crawling has no page total yet — phase-only progress ("crawling…").
+                $this->progress($configId, 'crawl', 0, 0);
+                $this->spawnCrawl($configId);
+                // Recorded AFTER the crawl, and only if it did not throw: a crawl that
+                // failed must not satisfy the next run's freshness check. The signature is
+                // the one taken BEFORE the crawl on purpose - an edit made while the crawl
+                // was running may not have been seen by it, so it has to still count as
+                // pending change for the next run.
+                $this->connection->executeStatement(
+                    'UPDATE tl_openai_config SET auto_update_last_crawl = ?, auto_update_crawl_signature = ? WHERE id = ?',
+                    [time(), $signature, $configId],
+                );
+            } else {
+                $this->logger->info(\sprintf(
+                    'VectorStoreAutoUpdate: skipped the crawl for config %d - the website is unchanged since the last one.',
+                    $configId,
+                ));
+            }
+
+            // Everything from here to the first AI/upload step reads and prepares the
+            // indexed pages, which on a large site is not instantaneous. Naming that phase
+            // keeps the dashboard honest in BOTH paths: it used to keep saying "crawling"
+            // after a real crawl had already finished, too. No total exists - the page set
+            // is not known until readAllPages() returns - so the bar stays indeterminate,
+            // which progressPercent() enforces by only ever measuring polish and upload.
+            $this->progress($configId, 'read', 0, 0);
 
             // Drop collected links whose source document has vanished from the
             // search index (page deleted, 404, excluded from indexing). Runs after
@@ -1010,6 +1080,93 @@ class VectorStoreAutoUpdateService
         }
 
         return true;
+    }
+
+    /**
+     * Whether this run has to refresh Contao's search index before reading it.
+     *
+     * Public so the decision can be tested on its own: it is the one place where a wrong
+     * answer is invisible - too eager only costs time, too lazy serves stale answers.
+     *
+     * @param array<string, mixed> $config
+     */
+    public function shouldCrawl(array $config, string $signature): bool
+    {
+        $mode = (string) ($config['auto_update_crawl_mode'] ?? self::CRAWL_AUTO);
+
+        if (self::CRAWL_NEVER === $mode) {
+            return false;
+        }
+
+        if (self::CRAWL_AUTO !== $mode) {
+            return true;
+        }
+
+        $lastCrawl = (int) ($config['auto_update_last_crawl'] ?? 0);
+
+        // Never crawled by this version - includes every installation updating into the
+        // feature, which must crawl once before its signature means anything.
+        if ($lastCrawl <= 0) {
+            return true;
+        }
+
+        // The safety net. Also covers a clock that jumped backwards: a lastCrawl in the
+        // future makes the age negative, which is not "recent enough" by this test.
+        $age = time() - $lastCrawl;
+
+        if ($age >= self::CRAWL_MAX_AGE_SECONDS || $age < 0) {
+            return true;
+        }
+
+        // An unreadable signature (no tables, database error) must never be mistaken for
+        // "nothing changed" - siteContentSignature() returns '' in that case.
+        if ('' === $signature) {
+            return true;
+        }
+
+        return $signature !== (string) ($config['auto_update_crawl_signature'] ?? '');
+    }
+
+    /**
+     * A short hash describing the current state of everything that can reach the search
+     * index, or '' when it cannot be determined.
+     *
+     * Per table: MAX(tstamp) catches edits and additions, COUNT(*) catches deletions -
+     * deleting a record bumps no timestamp anywhere, so a timestamp alone would let a
+     * removed page linger in the knowledge base until the next forced crawl.
+     */
+    public function siteContentSignature(): string
+    {
+        try {
+            $schemaManager = $this->connection->createSchemaManager();
+            $parts = [];
+
+            foreach (self::CONTENT_TABLES as $table) {
+                // Optional bundles (news, calendar, FAQ) may not be installed at all.
+                if (!$schemaManager->tablesExist([$table])) {
+                    continue;
+                }
+
+                $row = $this->connection->fetchAssociative(
+                    \sprintf('SELECT MAX(tstamp) AS ts, COUNT(*) AS rows_count FROM %s', $table),
+                );
+
+                $parts[] = $table.':'.(int) ($row['ts'] ?? 0).':'.(int) ($row['rows_count'] ?? 0);
+            }
+
+            if ([] === $parts) {
+                return '';
+            }
+
+            return hash('sha256', implode('|', $parts));
+        } catch (\Throwable $e) {
+            // Reported rather than swallowed: a permanently unreadable signature means
+            // every run crawls, which is correct but silently costs what this feature
+            // exists to save.
+            $this->logger->warning('VectorStoreAutoUpdate: could not determine the site content signature: '.$e->getMessage());
+
+            return '';
+        }
     }
 
     /**

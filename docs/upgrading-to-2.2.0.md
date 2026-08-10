@@ -61,6 +61,16 @@ than letting the nightly cron discover all of this unattended. On a large
 calendar or a deep page tree the crawl can run for a long time; if your hosting
 kills long-running processes, that is the run where you will find out.
 
+Working the other way, **later runs get cheaper than they were before 2.2.0**.
+The new setting *"Suchindex vor der Synchronisierung aktualisieren"* defaults to
+**Automatisch**, which skips the crawl entirely while the website is unchanged
+and forces one at least every six hours. That crawl always covered the whole
+site - all 2000 pages even when only 30 are selected for the chatbot - so on a
+frequent schedule this is where most of the cost was. The first run after the
+update still crawls: it has no previous state to compare against. Nothing about
+which content reaches the chatbot changes; set the field to **"Bei jedem Lauf"**
+if you want the old behaviour back.
+
 If you would rather not have the link feature yet, switch **"Links aus den Seiteninhalten übernehmen"**
 (and the link directory) off in the OpenAI configuration *before* the first
 synchronisation. The other four causes still apply, so this reduces the cost - it

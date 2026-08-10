@@ -444,8 +444,11 @@
                     </div>
                 {% endif %}
 
-                {# Heartbeat (server cron) not running yet - needed for automatic runs only, not manual #}
-                {% if config.cron_status in ['never', 'no_cli_cron'] and not config.manual_mode %}
+                {# Heartbeat (server cron) not running yet - needed for automatic runs only, not manual.
+                   Suppressed when the sync log proves scheduled runs are happening: telling an
+                   operator to set up a cron that demonstrably works is how the old dashboard sent
+                   people chasing a fault that was not there. #}
+                {% if config.cron_status in ['never', 'no_cli_cron'] and not config.manual_mode and not config.heartbeat_contradicted %}
                     <div class="vsau-setup notice">
                         <h3>{{ 'MSC.vsau_cron_setup_heading'|trans({}, 'contao_default') }} <span class="vsau-badge yellow">{{ 'MSC.vsau_cron_action_required'|trans({}, 'contao_default') }}</span></h3>
                         <ul>
@@ -467,6 +470,7 @@
                                             <span class="vsau-copy-text">{{ 'MSC.vsau_copy'|trans({}, 'contao_default') }}</span>
                                         </button>
                                     </span>
+                                    <span class="vsau-stat-hint" style="margin-top: 8px;">{{ 'MSC.vsau_cron_command_note'|trans({}, 'contao_default') }}</span>
                                     <span class="vsau-stat-hint" style="margin-top: 8px;">{{ 'MSC.vsau_cron_manual_note'|trans({}, 'contao_default') }}</span>
                                 </span>
                             </li>
@@ -486,17 +490,31 @@
                                 <span class="vsau-sub">{{ 'MSC.vsau_cron_not_used_hint'|trans({}, 'contao_default') }}</span>
                             {% elseif config.cron_status == 'never' %}
                                 <span class="vsau-badge red">{{ 'MSC.vsau_cron_never'|trans({}, 'contao_default') }}</span>
-                                <a href="{{ help_url }}" target="_blank" rel="noopener" class="vsau-sub vsau-link">{{ 'MSC.vsau_cron_setup_guide'|trans({}, 'contao_default') }}</a>
                             {% elseif config.cron_status == 'no_cli_cron' %}
                                 <span class="vsau-badge yellow">{{ 'MSC.vsau_cron_no_cli_cron'|trans({}, 'contao_default') }}</span>
                                 <span class="vsau-sub">{{ 'MSC.vsau_cron_no_cli_cron_hint'|trans({}, 'contao_default') }}</span>
-                                <a href="{{ help_url }}" target="_blank" rel="noopener" class="vsau-sub vsau-link">{{ 'MSC.vsau_cron_setup_guide'|trans({}, 'contao_default') }}</a>
                             {% elseif config.cron_status == 'healthy' %}
                                 <span class="vsau-badge green">{{ 'MSC.vsau_cron_healthy'|trans({}, 'contao_default') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_cron_healthy_seen'|trans({}, 'contao_default') }} {{ config.heartbeat_last_run|date('d.m.Y H:i:s') }}</span>
+                            {% elseif config.cron_status == 'unknown' %}
+                                {# The timestamp itself is untrustworthy - a clock/timezone
+                                   disagreement between the CLI process that writes it and the
+                                   backend that reads it. Reported as "cannot tell" rather than
+                                   as a cron fault, because it says nothing about the cron. #}
+                                <span class="vsau-badge grey">{{ 'MSC.vsau_cron_unknown'|trans({}, 'contao_default') }}</span>
+                                <span class="vsau-sub">{{ 'MSC.vsau_cron_unknown_hint'|trans({}, 'contao_default') }}</span>
                                 <span class="vsau-sub">{{ 'MSC.vsau_cron_healthy_seen'|trans({}, 'contao_default') }} {{ config.heartbeat_last_run|date('d.m.Y H:i:s') }}</span>
                             {% else %}
                                 <span class="vsau-badge yellow">{{ 'MSC.vsau_cron_stale'|trans({}, 'contao_default') }}</span>
                                 <span class="vsau-sub">{{ 'MSC.vsau_cron_healthy_seen'|trans({}, 'contao_default') }} {{ config.heartbeat_last_run|date('d.m.Y H:i:s') }}. {{ 'MSC.vsau_cron_stale_hint'|trans({}, 'contao_default') }}</span>
+                            {% endif %}
+
+                            {# One honest reading can still be misleading on its own. When the
+                               sync log proves scheduled runs are happening, say so here instead
+                               of linking to the setup guide - the cron is not what needs fixing. #}
+                            {% if config.heartbeat_contradicted %}
+                                <span class="vsau-sub">{{ 'MSC.vsau_cron_contradicted_hint'|trans({}, 'contao_default') }}{% if config.last_scheduled_run %} {{ 'MSC.vsau_schedule_last_scheduled'|trans({}, 'contao_default') }} {{ config.last_scheduled_run|date('d.m.Y H:i') }}.{% endif %}</span>
+                            {% elseif config.cron_status in ['never', 'no_cli_cron', 'stale'] and not config.manual_mode %}
                                 <a href="{{ help_url }}" target="_blank" rel="noopener" class="vsau-sub vsau-link">{{ 'MSC.vsau_cron_setup_guide'|trans({}, 'contao_default') }}</a>
                             {% endif %}
                         </div>
@@ -543,7 +561,7 @@
                         <div class="vsau-stat-label">{{ 'MSC.vsau_schedule'|trans({}, 'contao_default') }}</div>
                         <div class="vsau-stat-hint">{{ 'MSC.vsau_schedule_hint'|trans({}, 'contao_default') }}</div>
                         <div class="vsau-stat-value">
-                            {% if config.manual_mode %}
+                            {% if config.schedule_status == 'manual' %}
                                 <span class="vsau-badge grey">{{ 'MSC.vsau_schedule_manual'|trans({}, 'contao_default') }}</span>
                                 <span class="vsau-sub">{{ 'MSC.vsau_schedule_manual_hint'|trans({}, 'contao_default') }}</span>
                             {% else %}
@@ -551,19 +569,33 @@
                                 {% if config.schedule_label != config.auto_update_schedule %}
                                     <span class="vsau-cron-mono">({{ config.auto_update_schedule }})</span>
                                 {% endif %}
-                                {# Only surface the concrete next-run time when the server cron is
-                                   healthy — otherwise it will not fire and the timestamp misleads.
-                                   When unhealthy, show a warning badge instead. Manual sync still works. #}
-                                {% if config.cron_status == 'healthy' %}
+
+                                {# Driven by what actually happened (last run with
+                                   trigger_source='cron'), not by the heartbeat. A row there can
+                                   only have been written by the cron job, which refuses web
+                                   scope - so it is proof that a CLI contao:cron fired. #}
+                                {% if config.schedule_status == 'running' %}
+                                    <span class="vsau-sub"><span class="vsau-badge green">{{ 'MSC.vsau_schedule_running'|trans({}, 'contao_default') }}</span></span>
+                                    <span class="vsau-sub">{{ 'MSC.vsau_schedule_last_scheduled'|trans({}, 'contao_default') }} {{ config.last_scheduled_run|date('d.m.Y H:i') }}</span>
                                     {% if config.next_run %}
                                         <span class="vsau-sub">{{ 'MSC.vsau_next_run'|trans({}, 'contao_default') }} {{ config.next_run|date('d.m.Y H:i') }}</span>
-                                    {% elseif config.auto_update_last_run == 0 %}
-                                        <span class="vsau-sub">{{ 'MSC.vsau_schedule_first_manual_hint'|trans({}, 'contao_default') }}</span>
                                     {% endif %}
+                                {% elseif config.schedule_status == 'pending' %}
+                                    {# Synced before, but not yet by the cron. Nothing is wrong;
+                                       the next slot simply has not come round. #}
+                                    {% if config.next_run %}
+                                        <span class="vsau-sub">{{ 'MSC.vsau_next_run'|trans({}, 'contao_default') }} {{ config.next_run|date('d.m.Y H:i') }}</span>
+                                    {% endif %}
+                                {% elseif config.schedule_status == 'awaiting_first' %}
+                                    <span class="vsau-sub">{{ 'MSC.vsau_schedule_first_manual_hint'|trans({}, 'contao_default') }}</span>
+                                {% elseif config.schedule_status == 'overdue' %}
+                                    {# Scheduled runs demonstrably worked and then stopped - a
+                                       different, and much more actionable, statement than
+                                       "never configured". #}
+                                    <span class="vsau-sub"><span class="vsau-badge amber">{{ 'MSC.vsau_schedule_overdue'|trans({}, 'contao_default') }}</span></span>
+                                    <span class="vsau-sub">{{ 'MSC.vsau_schedule_last_scheduled'|trans({}, 'contao_default') }} {{ config.last_scheduled_run|date('d.m.Y H:i') }}. {{ 'MSC.vsau_schedule_overdue_hint'|trans({}, 'contao_default') }}</span>
                                 {% else %}
-                                    <span class="vsau-sub">
-                                        <span class="vsau-badge amber">{{ 'MSC.vsau_schedule_not_running'|trans({}, 'contao_default') }}</span>
-                                    </span>
+                                    <span class="vsau-sub"><span class="vsau-badge amber">{{ 'MSC.vsau_schedule_not_running'|trans({}, 'contao_default') }}</span></span>
                                     <span class="vsau-sub">{{ 'MSC.vsau_schedule_not_running_hint'|trans({}, 'contao_default') }}</span>
                                 {% endif %}
                             {% endif %}

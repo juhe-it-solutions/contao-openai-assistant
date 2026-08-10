@@ -111,6 +111,18 @@
                 <source>Your server cron may have stopped.</source>
                 <target>Ihr Server-Cron könnte gestoppt sein.</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_cron_unknown">
+                <source>Cannot be determined</source>
+                <target>Nicht ermittelbar</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_unknown_hint">
+                <source>The recorded time is implausible, so the state of the server cron cannot be read from it. This usually means the console and the web server use different time zones (date.timezone in php.ini) or the system clock has drifted. It says nothing about whether the cron is running — see the “Schedule” box for that.</source>
+                <target>Der gespeicherte Zeitpunkt ist unplausibel, daher lässt sich der Zustand des Server-Crons daraus nicht ablesen. Meist verwenden Konsole und Webserver unterschiedliche Zeitzonen (date.timezone in der php.ini) oder die Systemuhr ist verstellt. Über den Cron selbst sagt das nichts aus — siehe dazu den Kasten „Zeitplan“.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_contradicted_hint">
+                <source>Scheduled syncs are running nonetheless, so the server cron is working — only this reading is unreliable.</source>
+                <target>Geplante Synchronisierungen laufen dennoch, der Server-Cron arbeitet also — nur dieser Messwert ist unzuverlässig.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_cron_no_cli_cron">
                 <source>Not configured</source>
                 <target>Nicht eingerichtet</target>
@@ -134,6 +146,10 @@
             <trans-unit id="MSC.vsau_cron_action_required">
                 <source>Action required</source>
                 <target>Aktion erforderlich</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_cron_command_note">
+                <source>Replace [php] with the path to your PHP command-line binary and [project] with the path to your Contao installation. On a Contao installed from the Symfony skeleton the console is called bin/console instead of vendor/bin/contao-console. If your hosting only offers cron jobs every 5, 15 or 30 minutes, that is fine — the synchronisation then simply starts at the next possible time.</source>
+                <target>Ersetzen Sie [php] durch den Pfad zu Ihrer PHP-Kommandozeile und [project] durch den Pfad zu Ihrer Contao-Installation. Bei einem aus dem Symfony-Skeleton installierten Contao heißt die Konsole bin/console statt vendor/bin/contao-console. Falls Ihr Hosting nur Cronjobs alle 5, 15 oder 30 Minuten erlaubt, ist das ausreichend — die Synchronisierung startet dann einfach zum nächstmöglichen Zeitpunkt.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_manual_note">
                 <source>A manual sync via "Run manual sync now" works independently of this, as soon as the remaining prerequisites are met.</source>
@@ -211,6 +227,10 @@
                 <source>Crawling and indexing the website …</source>
                 <target>Website wird gecrawlt und indexiert …</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_progress_read">
+                <source>Reading and preparing the indexed pages …</source>
+                <target>Indexierte Seiten werden gelesen und aufbereitet …</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_progress_polish">
                 <source>AI processing: %s of %s pages</source>
                 <target>KI-Aufbereitung: %s von %s Seiten</target>
@@ -266,6 +286,42 @@
             <trans-unit id="MSC.vsau_schedule_not_running_hint">
                 <source>The server cron is not running, so scheduled syncs will not start. Set up or restart the server cron (see the “Server cron” box). You can still sync manually.</source>
                 <target>Der Server-Cron läuft nicht, daher werden geplante Synchronisierungen nicht gestartet. Richten Sie den Server-Cron ein bzw. starten Sie ihn neu (siehe Kasten „Server-Cron“). Eine manuelle Synchronisierung ist weiterhin möglich.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_running">
+                <source>Running</source>
+                <target>Läuft</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_last_scheduled">
+                <source>Last scheduled run:</source>
+                <target>Zuletzt planmäßig:</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_overdue">
+                <source>Overdue</source>
+                <target>Überfällig</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_schedule_overdue_hint">
+                <source>Scheduled syncs were running and have stopped. Check whether the server cron is still active. You can still sync manually.</source>
+                <target>Geplante Synchronisierungen liefen bereits und sind ausgeblieben. Prüfen Sie, ob der Server-Cron noch aktiv ist. Eine manuelle Synchronisierung ist weiterhin möglich.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_notice_crawl_cost_measured">
+                <source>Every sync crawls the entire website again, not just the pages in the sync scope. The last run took %s and the schedule repeats every %s, so the site is under crawl for a large part of the time. A longer interval reduces server load and log volume considerably.</source>
+                <target>Jede Synchronisierung crawlt die gesamte Website neu, nicht nur die Seiten im Sync-Umfang. Der letzte Lauf dauerte %s, der Zeitplan wiederholt sich alle %s — die Website steht damit einen erheblichen Teil der Zeit unter Crawl. Ein größerer Abstand senkt Serverlast und Logvolumen deutlich.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_notice_crawl_cost_generic">
+                <source>Every sync crawls the entire website again, not just the pages in the sync scope. With an interval of %s this happens very often; unless the content really changes that fast, a longer interval reduces server load and log volume considerably.</source>
+                <target>Jede Synchronisierung crawlt die gesamte Website neu, nicht nur die Seiten im Sync-Umfang. Bei einem Abstand von %s geschieht das sehr häufig; sofern sich die Inhalte nicht wirklich so schnell ändern, senkt ein größerer Abstand Serverlast und Logvolumen deutlich.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_interval_seconds">
+                <source>%s sec.</source>
+                <target>%s Sek.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_interval_minutes">
+                <source>%s min.</source>
+                <target>%s Min.</target>
+            </trans-unit>
+            <trans-unit id="MSC.vsau_interval_hours">
+                <source>%s hrs.</source>
+                <target>%s Std.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_plan_prefix">
                 <source>Plan:</source>

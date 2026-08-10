@@ -341,6 +341,26 @@
                 <source>Manual only (no cron, run via button)</source>
                 <target>Manual only (no cron, run via button)</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_crawl_mode.0">
+                <source>Refresh the search index before syncing</source>
+                <target>Refresh the search index before syncing</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_crawl_mode.1">
+                <source><![CDATA[Before reading your pages, a run has Contao call up your website and refresh its search index. This always covers your <strong>entire</strong> website, not only the pages you selected below - Contao's crawler follows links and cannot be told to visit a subset.<br><br><strong>Automatic (recommended):</strong> the website is only called up again once something has actually changed - and at least every six hours in any case. On a site nobody edited, a run then costs practically nothing.<br><br><strong>On every run:</strong> the behaviour of earlier versions. Only makes sense if your pages change in ways Contao does not record, e.g. through content pulled in from elsewhere.<br><br><strong>Never:</strong> the run reads whatever is already in the search index. Choose this only if you refresh the index yourself (own <code>contao:crawl</code> cron job) - otherwise your chatbot will answer from outdated content.]]></source>
+                <target><![CDATA[Before reading your pages, a run has Contao call up your website and refresh its search index. This always covers your <strong>entire</strong> website, not only the pages you selected below - Contao's crawler follows links and cannot be told to visit a subset.<br><br><strong>Automatic (recommended):</strong> the website is only called up again once something has actually changed - and at least every six hours in any case. On a site nobody edited, a run then costs practically nothing.<br><br><strong>On every run:</strong> the behaviour of earlier versions. Only makes sense if your pages change in ways Contao does not record, e.g. through content pulled in from elsewhere.<br><br><strong>Never:</strong> the run reads whatever is already in the search index. Choose this only if you refresh the index yourself (own <code>contao:crawl</code> cron job) - otherwise your chatbot will answer from outdated content.]]></target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_crawl_mode_ref.auto">
+                <source>Automatic (recommended) - only when something changed</source>
+                <target>Automatic (recommended) - only when something changed</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_crawl_mode_ref.always">
+                <source>On every run</source>
+                <target>On every run</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_crawl_mode_ref.never">
+                <source>Never - I refresh the search index myself</source>
+                <target>Never - I refresh the search index myself</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_schedule_hour.0">
                 <source>Hour</source>
                 <target>Hour</target>
@@ -440,6 +460,14 @@
             <trans-unit id="tl_openai_config.auto_update_items_over_limit">
                 <source>The selected pages render %1$s news, FAQ and event entries, but your current plan allows at most %2$s. Everything is still synced for now - please upgrade your plan.</source>
                 <target>The selected pages render %1$s news, FAQ and event entries, but your current plan allows at most %2$s. Everything is still synced for now - please upgrade your plan.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_crawl_cost_measured">
+                <source>Note: every synchronisation crawls the entire website again, not just the selected pages. The last run took %1$s minutes and this schedule repeats every %2$s minutes, so the site would be under crawl for a large part of the time. A longer interval reduces server load and log volume considerably.</source>
+                <target>Note: every synchronisation crawls the entire website again, not just the selected pages. The last run took %1$s minutes and this schedule repeats every %2$s minutes, so the site would be under crawl for a large part of the time. A longer interval reduces server load and log volume considerably.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.auto_update_crawl_cost_generic">
+                <source>Note: every synchronisation crawls the entire website again, not just the selected pages. This schedule repeats every %s minutes; unless your content really changes that fast, a longer interval reduces server load and log volume considerably.</source>
+                <target>Note: every synchronisation crawls the entire website again, not just the selected pages. This schedule repeats every %s minutes; unless your content really changes that fast, a longer interval reduces server load and log volume considerably.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_include_links.0">
                 <source>Collect links from the page contents</source>
