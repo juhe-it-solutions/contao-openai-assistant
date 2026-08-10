@@ -495,7 +495,49 @@ function initAiChat(wrapper) {
   // File extensions labeled "Download" (checked against the URL path only,
   // query/fragment stripped). Everything else gets the "visit page" label.
   const downloadExtensionsRe = /\.(pdf|zip|rar|7z|tar|gz|tgz|doc|docx|xls|xlsx|ppt|pptx|pps|ppsx|csv|txt|rtf|odt|ods|odp|epub|ics|vcf|mp3|m4a|wav|mp4|mov|avi|webm|jpg|jpeg|png|gif|svg|webp)$/i;
-  const isDownloadUrl = (url) => downloadExtensionsRe.test(url.split(/[?#]/)[0]);
+  // Contao Download/Downloads content elements do NOT put the file name in the
+  // path: the URL carries the PAGE path and names the file only in the query
+  // string ("/linktest?_hash=...&p=downloads%2FPreisliste.pdf"), so the extension
+  // test above cannot see them. Recognising them matters twice - such a link gets
+  // the "Download" label instead of "visit page", and in "external_blank" mode it
+  // keeps the new tab instead of being mistaken for an own-site page.
+  //
+  // BOTH dispositions want the new tab. An attachment because it is a download;
+  // an inline file BECAUSE it would otherwise replace the page, and with it the
+  // chat transcript, which lives only in the DOM (nothing but the theme is
+  // persisted). "Im Browser anzeigen" is therefore a reason to open a tab, not a
+  // reason to skip one - so the disposition is detected but not branched on.
+  //
+  // The spellings differ per Contao version - verified against the core mirrors,
+  // and 6.0 genuinely changed here:
+  //   5.3/5.7  inline     -> "?p=...&ctx=..." with NO "d" parameter
+  //                          (FileDownloadHelper::generateInlineUrl(), :61-67)
+  //            attachment -> "?p=...&d=attachment&f=..."   (:75-87)
+  //   6.0      always writes "d", inline included ("d=inline" / "d=attachment"),
+  //            on a "/_file_stream/files/..." path
+  //            (FileDownloadHelper::generateUrl(), :90-98)
+  //   legacy   "?file=files/handbuch.pdf" - the path is a page path too, but the
+  //            extension test never saw it either; the "_hash"+"p" pair below
+  //            does not match it, so it is covered by the "file" parameter rule.
+  // A bare "p" or "file" parameter is far too common on ordinary pages to trust
+  // alone, so it only counts together with the "_hash" signature Contao always
+  // adds to these URLs.
+  const contaoDispositionRe = /[?&]d=(?:attachment|inline)(?:[&#]|$)/i;
+  const contaoSignatureRe = /[?&]_hash=/;
+  const contaoFileParamRe = /[?&](?:p|file)=/;
+  const fileStreamRe = /\/_file_stream\//;
+  const isContaoDownloadUrl = (url) => {
+    // fmt() escapes the message BEFORE it linkifies, so by the time a URL reaches
+    // here its parameter separators are "&amp;", not "&". Undo that for the tests
+    // below - matching on "&" alone would silently only ever see the FIRST query
+    // parameter, and every rule that needs a later one would quietly never fire.
+    const u = url.replace(/&amp;/gi, '&');
+
+    return contaoDispositionRe.test(u)
+      || fileStreamRe.test(u.split(/[?#]/)[0])
+      || (contaoSignatureRe.test(u) && contaoFileParamRe.test(u));
+  };
+  const isDownloadUrl = (url) => downloadExtensionsRe.test(url.split(/[?#]/)[0]) || isContaoDownloadUrl(url);
   // Hostname for the aria-label so screen-reader users know the link target
   // domain even though the visible text is only the generic label. Userinfo
   // ("user:pass@") is dropped - credentials must never reach the aria-label.
