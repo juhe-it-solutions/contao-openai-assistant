@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Service;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Types\BooleanType;
@@ -157,6 +158,63 @@ class PageLinkRepositoryTest extends TestCase
     public function testReturnsNothingWithoutPageIds(): void
     {
         $this->assertSame([], $this->createRepository([self::row()])->findForPages([]));
+    }
+
+    /**
+     * The publish filter in readAllPages() stops an unpublished page from being
+     * uploaded; this set stops the OTHER pages from linking to it. Without it the page
+     * is gone from the chatbot's knowledge while a link block still sends the visitor
+     * to a URL that 404s.
+     */
+    public function testCollectsTheUrlsOfUnpublishedPages(): void
+    {
+        $capturedSql = null;
+
+        $schemaManager = $this->createMock(AbstractSchemaManager::class);
+        $schemaManager->method('tablesExist')->willReturn(true);
+        $schemaManager->method('listTableColumns')->willReturn(
+            ['auto_update_include_links' => new Column('auto_update_include_links', new BooleanType())],
+        );
+
+        $connection = $this->createMock(Connection::class);
+        $connection->method('createSchemaManager')->willReturn($schemaManager);
+        $capturedTypes = null;
+
+        $connection
+            ->method('fetchFirstColumn')
+            ->willReturnCallback(
+                static function (string $sql, array $params = [], array $types = []) use (&$capturedSql, &$capturedTypes): array {
+                    $capturedSql = $sql;
+                    $capturedTypes = $types;
+
+                    return ['https://example.com/retired.html'];
+                },
+            )
+        ;
+
+        $urls = (new PageLinkRepository($connection))->unpublishedUrls();
+
+        $this->assertArrayHasKey(
+            PageLink::comparisonKey('https://example.com/retired.html'),
+            $urls,
+            'The URL must be keyed exactly like protectedUrls(), so the two sets merge.',
+        );
+        $this->assertNotNull($capturedSql);
+        $this->assertStringContainsString("p.published != '1'", $capturedSql);
+        $this->assertStringContainsString("p.start != '' AND p.start > ?", $capturedSql, 'Not live yet counts as unpublished.');
+        $this->assertStringContainsString("p.stop != '' AND p.stop <= ?", $capturedSql, 'Expired counts as unpublished.');
+        $this->assertStringContainsString(
+            'ORDER BY s.url',
+            $capturedSql,
+            'Without a deterministic order the LIMIT truncates a different subset each run, '
+            .'which makes link blocks flap and re-uploads documents for nothing.',
+        );
+        $this->assertSame(
+            [ParameterType::INTEGER, ParameterType::INTEGER],
+            $capturedTypes,
+            'start/stop are varchar columns: an untyped parameter binds as a STRING and '
+            .'would compare lexicographically instead of numerically.',
+        );
     }
 
     /**
