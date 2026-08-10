@@ -2146,7 +2146,7 @@ class VectorStoreAutoUpdateService
         // Without this, an all-unchanged manifest with no uploads reads like a run that
         // failed to do anything, and there is nothing in the document to say otherwise.
         if ($crawlSkipped) {
-            $lines[] = '- Search index: not rebuilt — the website was unchanged since the last crawl.';
+            $lines[] = '- Search index: not rebuilt - the website was unchanged since the last crawl.';
         }
 
         if (null !== $links) {
@@ -2210,7 +2210,7 @@ class VectorStoreAutoUpdateService
     private function manifestFileLine(int $pageId, array $pageStates): string
     {
         // page_id 0 is the synthetic site-wide link directory, not a real Contao page.
-        $line = 0 === $pageId ? 'Page ID: – (link directory)' : 'Page ID: '.$pageId;
+        $line = 0 === $pageId ? 'Page ID: - (link directory)' : 'Page ID: '.$pageId;
 
         $state = $pageStates[$pageId] ?? null;
 
@@ -2221,7 +2221,7 @@ class VectorStoreAutoUpdateService
         $line .= ' | Status: '.$state['state'];
 
         if ([] === $state['files']) {
-            return $line."\nVector store file: – (not indexed)";
+            return $line."\nVector store file: - (not indexed)";
         }
 
         $count = \count($state['files']);

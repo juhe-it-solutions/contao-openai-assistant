@@ -116,12 +116,12 @@
                 <target>Nicht ermittelbar</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_unknown_hint">
-                <source>The recorded time is implausible, so the state of the server cron cannot be read from it. This usually means the console and the web server use different time zones (date.timezone in php.ini) or the system clock has drifted. It says nothing about whether the cron is running — see the “Schedule” box for that.</source>
-                <target>Der gespeicherte Zeitpunkt ist unplausibel, daher lässt sich der Zustand des Server-Crons daraus nicht ablesen. Meist verwenden Konsole und Webserver unterschiedliche Zeitzonen (date.timezone in der php.ini) oder die Systemuhr ist verstellt. Über den Cron selbst sagt das nichts aus — siehe dazu den Kasten „Zeitplan“.</target>
+                <source>The recorded time is implausible, so the state of the server cron cannot be read from it. This usually means the console and the web server use different time zones (date.timezone in php.ini) or the system clock has drifted. It says nothing about whether the cron is running - see the “Schedule” box for that.</source>
+                <target>Der gespeicherte Zeitpunkt ist unplausibel, daher lässt sich der Zustand des Server-Crons daraus nicht ablesen. Meist verwenden Konsole und Webserver unterschiedliche Zeitzonen (date.timezone in der php.ini) oder die Systemuhr ist verstellt. Über den Cron selbst sagt das nichts aus - siehe dazu den Kasten „Zeitplan“.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_contradicted_hint">
-                <source>Scheduled syncs are running nonetheless, so the server cron is working — only this reading is unreliable.</source>
-                <target>Geplante Synchronisierungen laufen dennoch, der Server-Cron arbeitet also — nur dieser Messwert ist unzuverlässig.</target>
+                <source>Scheduled syncs are running nonetheless, so the server cron is working - only this reading is unreliable.</source>
+                <target>Geplante Synchronisierungen laufen dennoch, der Server-Cron arbeitet also - nur dieser Messwert ist unzuverlässig.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_no_cli_cron">
                 <source>Not configured</source>
@@ -148,8 +148,8 @@
                 <target>Aktion erforderlich</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_command_note">
-                <source>Replace [php] with the path to your PHP command-line binary and [project] with the path to your Contao installation. On a Contao installed from the Symfony skeleton the console is called bin/console instead of vendor/bin/contao-console. If your hosting only offers cron jobs every 5, 15 or 30 minutes, that is fine — the synchronisation then simply starts at the next possible time.</source>
-                <target>Ersetzen Sie [php] durch den Pfad zu Ihrer PHP-Kommandozeile und [project] durch den Pfad zu Ihrer Contao-Installation. Bei einem aus dem Symfony-Skeleton installierten Contao heißt die Konsole bin/console statt vendor/bin/contao-console. Falls Ihr Hosting nur Cronjobs alle 5, 15 oder 30 Minuten erlaubt, ist das ausreichend — die Synchronisierung startet dann einfach zum nächstmöglichen Zeitpunkt.</target>
+                <source>Replace [php] with the path to your PHP command-line binary and [project] with the path to your Contao installation. On a Contao installed from the Symfony skeleton the console is called bin/console instead of vendor/bin/contao-console. If your hosting only offers cron jobs every 5, 15 or 30 minutes, that is fine - the synchronisation then simply starts at the next possible time.</source>
+                <target>Ersetzen Sie [php] durch den Pfad zu Ihrer PHP-Kommandozeile und [project] durch den Pfad zu Ihrer Contao-Installation. Bei einem aus dem Symfony-Skeleton installierten Contao heißt die Konsole bin/console statt vendor/bin/contao-console. Falls Ihr Hosting nur Cronjobs alle 5, 15 oder 30 Minuten erlaubt, ist das ausreichend - die Synchronisierung startet dann einfach zum nächstmöglichen Zeitpunkt.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_manual_note">
                 <source>A manual sync via "Run manual sync now" works independently of this, as soon as the remaining prerequisites are met.</source>
@@ -305,7 +305,7 @@
             </trans-unit>
             <trans-unit id="MSC.vsau_notice_crawl_cost_measured">
                 <source>Every sync crawls the entire website again, not just the pages in the sync scope. The last run took %s and the schedule repeats every %s, so the site is under crawl for a large part of the time. A longer interval reduces server load and log volume considerably.</source>
-                <target>Jede Synchronisierung crawlt die gesamte Website neu, nicht nur die Seiten im Sync-Umfang. Der letzte Lauf dauerte %s, der Zeitplan wiederholt sich alle %s — die Website steht damit einen erheblichen Teil der Zeit unter Crawl. Ein größerer Abstand senkt Serverlast und Logvolumen deutlich.</target>
+                <target>Jede Synchronisierung crawlt die gesamte Website neu, nicht nur die Seiten im Sync-Umfang. Der letzte Lauf dauerte %s, der Zeitplan wiederholt sich alle %s - die Website steht damit einen erheblichen Teil der Zeit unter Crawl. Ein größerer Abstand senkt Serverlast und Logvolumen deutlich.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_notice_crawl_cost_generic">
                 <source>Every sync crawls the entire website again, not just the pages in the sync scope. With an interval of %s this happens very often; unless the content really changes that fast, a longer interval reduces server load and log volume considerably.</source>
@@ -429,7 +429,7 @@
             </trans-unit>
             <trans-unit id="MSC.vsau_show_files_hint">
                 <source>The indexed files list shows which OpenAI vector store file holds which page. In the OpenAI platform the files are only identifiable by their file ID, so use this list to match them up.</source>
-                <target>Die Liste der indexierten Dateien zeigt, welche Vector-Store-Datei welche Seite enthält. In der OpenAI-Plattform sind die Dateien nur an ihrer Datei-ID erkennbar – über diese Liste ordnen Sie sie zu.</target>
+                <target>Die Liste der indexierten Dateien zeigt, welche Vector-Store-Datei welche Seite enthält. In der OpenAI-Plattform sind die Dateien nur an ihrer Datei-ID erkennbar - über diese Liste ordnen Sie sie zu.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_recent_runs">
                 <source>Last 10 syncs</source>
@@ -489,7 +489,7 @@
             </trans-unit>
             <trans-unit id="MSC.vsau_cost_tooltip_zero">
                 <source>0 tokens in "AI-optimised" mode is not an error: pages that have not changed since the last run are not prepared by the AI again, which costs nothing. As soon as you edit a page, it is prepared again.</source>
-                <target>0 Token bei Indexierungsmodus „KI-optimiert“ ist kein Fehler: Seiten, die sich seit dem letzten Lauf nicht geändert haben, werden nicht noch einmal von der KI aufbereitet – das kostet nichts. Sobald Sie eine Seite bearbeiten, wird sie wieder neu aufbereitet.</target>
+                <target>0 Token bei Indexierungsmodus „KI-optimiert“ ist kein Fehler: Seiten, die sich seit dem letzten Lauf nicht geändert haben, werden nicht noch einmal von der KI aufbereitet - das kostet nichts. Sobald Sie eine Seite bearbeiten, wird sie wieder neu aufbereitet.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cost_tooltip_link">
                 <source>Open OpenAI usage dashboard</source>
@@ -652,8 +652,8 @@
                 <target>%1$s Datei-Upload(s) sind fehlgeschlagen und werden beim nächsten Lauf erneut versucht.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_no_changes">
-                <source>No change to the page contents — nothing transferred.</source>
-                <target>Keine Änderung von Seiteninhalten — nichts übertragen.</target>
+                <source>No change to the page contents - nothing transferred.</source>
+                <target>Keine Änderung von Seiteninhalten - nichts übertragen.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_config_not_found">
                 <source>OpenAI configuration %1$s not found.</source>

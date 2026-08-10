@@ -552,7 +552,7 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
 
         $this->assertStringStartsWith('Der Seitentext.', $out);
         $this->assertStringContainsString('## Weiterführende Links auf „Preise"', $out);
-        $this->assertStringContainsString('[Preisliste 2026](https://example.com/files/preisliste.pdf) — PDF, 1,2 MB', $out);
+        $this->assertStringContainsString('[Preisliste 2026](https://example.com/files/preisliste.pdf) - PDF, 1,2 MB', $out);
         $this->assertStringContainsString('[Kontakt](https://example.com/kontakt.html)', $out);
     }
 
@@ -748,7 +748,7 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
             $manifest,
         );
         // The synthetic link directory is not a Contao page, so it must not claim an id.
-        $this->assertStringContainsString("Page ID: – (link directory) | Status: added\nVector store file: file-ddd", $manifest);
+        $this->assertStringContainsString("Page ID: - (link directory) | Status: added\nVector store file: file-ddd", $manifest);
     }
 
     /**
@@ -770,7 +770,7 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
             null,
         );
 
-        $this->assertStringContainsString("Page ID: 7 | Status: failed\nVector store file: – (not indexed)", $manifest);
+        $this->assertStringContainsString("Page ID: 7 | Status: failed\nVector store file: - (not indexed)", $manifest);
         $this->assertStringContainsString("URL: https://example.com/b\nPage ID: 9\n", $manifest);
     }
 

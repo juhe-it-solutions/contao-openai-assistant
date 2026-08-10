@@ -116,12 +116,12 @@
                 <target>Cannot be determined</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_unknown_hint">
-                <source>The recorded time is implausible, so the state of the server cron cannot be read from it. This usually means the console and the web server use different time zones (date.timezone in php.ini) or the system clock has drifted. It says nothing about whether the cron is running — see the “Schedule” box for that.</source>
-                <target>The recorded time is implausible, so the state of the server cron cannot be read from it. This usually means the console and the web server use different time zones (date.timezone in php.ini) or the system clock has drifted. It says nothing about whether the cron is running — see the “Schedule” box for that.</target>
+                <source>The recorded time is implausible, so the state of the server cron cannot be read from it. This usually means the console and the web server use different time zones (date.timezone in php.ini) or the system clock has drifted. It says nothing about whether the cron is running - see the “Schedule” box for that.</source>
+                <target>The recorded time is implausible, so the state of the server cron cannot be read from it. This usually means the console and the web server use different time zones (date.timezone in php.ini) or the system clock has drifted. It says nothing about whether the cron is running - see the “Schedule” box for that.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_contradicted_hint">
-                <source>Scheduled syncs are running nonetheless, so the server cron is working — only this reading is unreliable.</source>
-                <target>Scheduled syncs are running nonetheless, so the server cron is working — only this reading is unreliable.</target>
+                <source>Scheduled syncs are running nonetheless, so the server cron is working - only this reading is unreliable.</source>
+                <target>Scheduled syncs are running nonetheless, so the server cron is working - only this reading is unreliable.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_no_cli_cron">
                 <source>Not configured</source>
@@ -148,8 +148,8 @@
                 <target>Action required</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_command_note">
-                <source>Replace [php] with the path to your PHP command-line binary and [project] with the path to your Contao installation. On a Contao installed from the Symfony skeleton the console is called bin/console instead of vendor/bin/contao-console. If your hosting only offers cron jobs every 5, 15 or 30 minutes, that is fine — the synchronisation then simply starts at the next possible time.</source>
-                <target>Replace [php] with the path to your PHP command-line binary and [project] with the path to your Contao installation. On a Contao installed from the Symfony skeleton the console is called bin/console instead of vendor/bin/contao-console. If your hosting only offers cron jobs every 5, 15 or 30 minutes, that is fine — the synchronisation then simply starts at the next possible time.</target>
+                <source>Replace [php] with the path to your PHP command-line binary and [project] with the path to your Contao installation. On a Contao installed from the Symfony skeleton the console is called bin/console instead of vendor/bin/contao-console. If your hosting only offers cron jobs every 5, 15 or 30 minutes, that is fine - the synchronisation then simply starts at the next possible time.</source>
+                <target>Replace [php] with the path to your PHP command-line binary and [project] with the path to your Contao installation. On a Contao installed from the Symfony skeleton the console is called bin/console instead of vendor/bin/contao-console. If your hosting only offers cron jobs every 5, 15 or 30 minutes, that is fine - the synchronisation then simply starts at the next possible time.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_cron_manual_note">
                 <source>A manual sync via "Run manual sync now" works independently of this, as soon as the remaining prerequisites are met.</source>
@@ -652,8 +652,8 @@
                 <target>%1$s file upload(s) failed and will be retried on the next run.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_no_changes">
-                <source>No change to the page contents — nothing transferred.</source>
-                <target>No change to the page contents — nothing transferred.</target>
+                <source>No change to the page contents - nothing transferred.</source>
+                <target>No change to the page contents - nothing transferred.</target>
             </trans-unit>
             <trans-unit id="MSC.vsau_err_config_not_found">
                 <source>OpenAI configuration %1$s not found.</source>

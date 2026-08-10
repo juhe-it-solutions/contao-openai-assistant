@@ -767,7 +767,7 @@
                                         <span class="vsau-badge red">{{ 'MSC.vsau_sync_error'|trans({}, 'contao_default') }}</span>
                                     {% endif %}
                                 </td>
-                                <td>{% if row.trigger_source %}{{ ('MSC.vsau_source_' ~ row.trigger_source)|trans({}, 'contao_default') }}{% else %}–{% endif %}</td>
+                                <td>{% if row.trigger_source %}{{ ('MSC.vsau_source_' ~ row.trigger_source)|trans({}, 'contao_default') }}{% else %}-{% endif %}</td>
                                 <td>
                                     {% if row.model %}
                                         <span class="vsau-badge amber">{{ 'MSC.vsau_mode_ai'|trans({}, 'contao_default') }}</span>
@@ -775,7 +775,7 @@
                                         <span class="vsau-badge grey">{{ 'MSC.vsau_mode_original'|trans({}, 'contao_default') }}</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ row.model ?: '–' }}</td>
+                                <td>{{ row.model ?: '-' }}</td>
                                 <td>{{ row.pages }}</td>
                                 <td>{{ row.items }}</td>
                                 <td>{{ row.tokens_in }}</td>

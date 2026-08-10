@@ -463,7 +463,7 @@
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_crawl_cost_measured">
                 <source>Note: every synchronisation crawls the entire website again, not just the selected pages. The last run took %1$s minutes and this schedule repeats every %2$s minutes, so the site would be under crawl for a large part of the time. A longer interval reduces server load and log volume considerably.</source>
-                <target>Hinweis: Jede Synchronisierung crawlt die gesamte Website neu, nicht nur die ausgewählten Seiten. Der letzte Lauf dauerte %1$s Minuten, dieser Zeitplan wiederholt sich alle %2$s Minuten — die Website stünde damit einen erheblichen Teil der Zeit unter Crawl. Ein größerer Abstand senkt Serverlast und Logvolumen deutlich.</target>
+                <target>Hinweis: Jede Synchronisierung crawlt die gesamte Website neu, nicht nur die ausgewählten Seiten. Der letzte Lauf dauerte %1$s Minuten, dieser Zeitplan wiederholt sich alle %2$s Minuten - die Website stünde damit einen erheblichen Teil der Zeit unter Crawl. Ein größerer Abstand senkt Serverlast und Logvolumen deutlich.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.auto_update_crawl_cost_generic">
                 <source>Note: every synchronisation crawls the entire website again, not just the selected pages. This schedule repeats every %s minutes; unless your content really changes that fast, a longer interval reduces server load and log volume considerably.</source>
