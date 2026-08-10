@@ -138,7 +138,7 @@ class LinkSectionBuilder
         }
 
         if ([] !== $hints) {
-            $line .= ' — '.implode(', ', $hints);
+            $line .= ' - '.implode(', ', $hints);
         }
 
         return $line;

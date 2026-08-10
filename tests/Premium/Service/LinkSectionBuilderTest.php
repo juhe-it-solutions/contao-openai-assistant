@@ -36,7 +36,7 @@ class LinkSectionBuilderTest extends TestCase
 
         $this->assertStringContainsString('## Weiterführende Links auf „Preise und Konditionen"', $out);
         $this->assertStringContainsString('### Dokumente und Downloads', $out);
-        $this->assertStringContainsString('- [Preisliste 2026](https://example.com/files/preisliste.pdf) — PDF, 1,2 MB', $out);
+        $this->assertStringContainsString('- [Preisliste 2026](https://example.com/files/preisliste.pdf) - PDF, 1,2 MB', $out);
         $this->assertStringContainsString('### Seiten auf dieser Website', $out);
         $this->assertStringContainsString('- [Kontakt](https://example.com/kontakt.html)', $out);
         $this->assertStringContainsString('### Externe Links', $out);
@@ -53,7 +53,7 @@ class LinkSectionBuilderTest extends TestCase
 
         $this->assertStringContainsString('## Related links on "Pricing"', $out);
         $this->assertStringContainsString('### Documents and downloads', $out);
-        $this->assertStringContainsString('— PDF, 1.2 MB', $out);
+        $this->assertStringContainsString('- PDF, 1.2 MB', $out);
     }
 
     public function testFallsBackToEnglishForOtherLanguages(): void
@@ -102,7 +102,7 @@ class LinkSectionBuilderTest extends TestCase
         $out = (new LinkSectionBuilder())->build($links, 'T', 'de');
 
         $this->assertStringContainsString('- [Antrag](https://example.com/a.html)'."\n", $out);
-        $this->assertStringContainsString('- [Formular](https://example.com/b.html) — Antrag auf Kostenübernahme', $out);
+        $this->assertStringContainsString('- [Formular](https://example.com/b.html) - Antrag auf Kostenübernahme', $out);
     }
 
     public function testRendersContactGroups(): void
@@ -124,10 +124,10 @@ class LinkSectionBuilderTest extends TestCase
         $builder = new LinkSectionBuilder();
 
         $small = $builder->build([new PageLink('https://example.com/f/a.pdf', 'A', PageLink::TYPE_FILE, '', '', 'f/a.pdf', 900)], 'T', 'de');
-        $this->assertStringContainsString('— PDF, 900 B', $small);
+        $this->assertStringContainsString('- PDF, 900 B', $small);
 
         $large = $builder->build([new PageLink('https://example.com/f/b.zip', 'B', PageLink::TYPE_FILE, '', '', 'f/b.zip', 524_288_000)], 'T', 'de');
-        $this->assertStringContainsString('— ZIP, 500 MB', $large);
+        $this->assertStringContainsString('- ZIP, 500 MB', $large);
     }
 
     public function testOutputIsDeterministic(): void

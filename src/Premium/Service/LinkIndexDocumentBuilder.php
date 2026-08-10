@@ -81,7 +81,7 @@ class LinkIndexDocumentBuilder
         $heading = $strings['title'];
 
         if ('' !== $siteLabel) {
-            $heading .= ' — '.$siteLabel;
+            $heading .= ' - '.$siteLabel;
         }
 
         $lines = [

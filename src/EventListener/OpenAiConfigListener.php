@@ -1008,7 +1008,7 @@ class OpenAiConfigListener
             if ([] === $selectedIds) {
                 // Empty selection with a single root: the scope counted the full subtree,
                 // which IS what would be synced. Explain the implicit all-pages behaviour.
-                throw new \InvalidArgumentException(\sprintf($this->getConfigLangString('auto_update_pages_none_selected_limit', 'No pages selected — all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.'), $scope['pages'], $limit));
+                throw new \InvalidArgumentException(\sprintf($this->getConfigLangString('auto_update_pages_none_selected_limit', 'No pages selected - all %1$s subpages of the single site root would be automatically synced. Your current plan allows at most %2$s pages. Please select specific pages or upgrade your plan.'), $scope['pages'], $limit));
             }
 
             throw new \InvalidArgumentException(\sprintf($this->getConfigLangString('auto_update_pages_over_limit', 'Your selection covers %1$s pages, but your current plan allows at most %2$s. Reduce the selection or upgrade your plan; the previous selection was kept.'), $scope['pages'], $limit));
@@ -1179,7 +1179,7 @@ class OpenAiConfigListener
         if ('manual' === (string) ($row['auto_update_trigger'] ?? 'scheduled')) {
             $text = $this->getConfigLangString(
                 'first_sync_hint_manual',
-                'Manual mode: start the first sync via the “Run manual sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met.',
+                'Manual mode: start the first sync via the “Run manual sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met.',
             );
         } elseif (CronHealthService::STATUS_HEALTHY === $this->cronHealth->status($this->cronHealth->heartbeatLastRun())) {
             // Only a confirmed-healthy heartbeat earns the reassuring wording. A stale or
@@ -1189,12 +1189,12 @@ class OpenAiConfigListener
             // renders before the first sync (auto_update_last_run === 0).
             $text = $this->getConfigLangString(
                 'first_sync_hint_cron',
-                'Start the first sync via the “Run manual sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs run automatically on your schedule.',
+                'Start the first sync via the “Run manual sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs run automatically on your schedule.',
             );
         } else {
             $text = $this->getConfigLangString(
                 'first_sync_hint_nocron',
-                'Start the first sync via the “Run manual sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs require a CLI cron job (contao:cron) on your server.',
+                'Start the first sync via the “Run manual sync now” button in the Auto-Sync dashboard - it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs require a CLI cron job (contao:cron) on your server.',
             );
         }
 
@@ -1549,7 +1549,7 @@ class OpenAiConfigListener
         if (0 === $count && !$this->connection->fetchOne('SELECT vector_store_id FROM tl_openai_config WHERE id = ? AND vector_store_id IS NOT NULL AND vector_store_id != \'\'', [$configId])) {
             $text = htmlspecialchars($this->getTranslatedString(
                 'no_files_notice',
-                'No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform — without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.',
+                'No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform - without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.',
             ), ENT_QUOTES);
 
             $premiumHint = htmlspecialchars($this->getTranslatedString(

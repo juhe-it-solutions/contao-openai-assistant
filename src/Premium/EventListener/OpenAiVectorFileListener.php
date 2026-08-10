@@ -187,7 +187,7 @@ class OpenAiVectorFileListener
 
         if (isset($index['title'])) {
             $title = trim((string) ($row['title'] ?? ''));
-            $args[$index['title']] = '' !== $title ? htmlspecialchars($title, ENT_QUOTES) : '–';
+            $args[$index['title']] = '' !== $title ? htmlspecialchars($title, ENT_QUOTES) : '-';
         }
 
         if (isset($index['url'])) {
@@ -216,7 +216,7 @@ class OpenAiVectorFileListener
 
         if (isset($index['openai_file_id'])) {
             $fileId = (string) ($row['openai_file_id'] ?? '');
-            $args[$index['openai_file_id']] = '' !== $fileId ? '<code>'.htmlspecialchars($fileId, ENT_QUOTES).'</code>' : '–';
+            $args[$index['openai_file_id']] = '' !== $fileId ? '<code>'.htmlspecialchars($fileId, ENT_QUOTES).'</code>' : '-';
         }
 
         // Virtual column (no database field): how many indexed URLs were merged into this
@@ -227,7 +227,7 @@ class OpenAiVectorFileListener
             $pageId = (int) ($row['page_id'] ?? 0);
             // The link directory is built from the other pages' links, not from an indexed
             // URL of its own - a count would be meaningless there.
-            $args[$index['indexed_urls']] = $pageId > 0 ? (string) $this->indexedUrlCount($pageId) : '–';
+            $args[$index['indexed_urls']] = $pageId > 0 ? (string) $this->indexedUrlCount($pageId) : '-';
         }
 
         return $args;
@@ -344,7 +344,7 @@ class OpenAiVectorFileListener
         $url = trim($url);
 
         if ('' === $url) {
-            return '–';
+            return '-';
         }
 
         $display = mb_strlen($url) > self::URL_DISPLAY_CHARS

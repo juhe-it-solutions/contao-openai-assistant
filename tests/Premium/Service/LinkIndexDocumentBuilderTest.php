@@ -41,9 +41,9 @@ class LinkIndexDocumentBuilderTest extends TestCase
             'example.com',
         );
 
-        $this->assertStringContainsString('# Link- und Dokumentenverzeichnis — example.com', $out);
+        $this->assertStringContainsString('# Link- und Dokumentenverzeichnis - example.com', $out);
         $this->assertStringContainsString('## Dokumente und Downloads (1)', $out);
-        $this->assertStringContainsString('[Preisliste 2026](https://example.com/files/preisliste.pdf) — PDF, 1,2 MB', $out);
+        $this->assertStringContainsString('[Preisliste 2026](https://example.com/files/preisliste.pdf) - PDF, 1,2 MB', $out);
         $this->assertStringContainsString('· verlinkt auf: Preise, Startseite', $out);
         $this->assertStringContainsString('## Seitenverzeichnis (2)', $out);
         $this->assertStringContainsString('- [Preise](https://example.com/preise.html)', $out);

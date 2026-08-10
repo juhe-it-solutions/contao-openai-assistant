@@ -136,7 +136,7 @@ class Version20260416000001CleanupOrphanAssistants extends AbstractMigration
         }
 
         $summary = \sprintf(
-            'Orphan assistant cleanup: %d row(s) processed — %d deleted, %d already gone, %d skipped/failed; local references cleared for %d row(s)',
+            'Orphan assistant cleanup: %d row(s) processed - %d deleted, %d already gone, %d skipped/failed; local references cleared for %d row(s)',
             $total,
             $deleted,
             $missing,
