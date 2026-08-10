@@ -329,10 +329,76 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
             'dropped_items' => 0,
             'items_in_scope' => 21,
             'item_limit' => 0,
+            'files_uploaded' => 3,
+            'removed' => 0,
         ]);
 
         $this->assertSame('success', $clean);
         $this->assertSame('', $noMessage);
+    }
+
+    /**
+     * A run that changed nothing looks exactly like a broken one in the backend tables:
+     * no message, no uploads, duration 00:00. It gets a message saying so - and must
+     * stay "success", because the status is derived from the PROBLEM notes alone.
+     */
+    public function testARunThatChangedNothingSaysSoWithoutBecomingPartial(): void
+    {
+        [$status, $message] = $this->createService($this->createMock(Connection::class))->summariseRun([
+            'files_failed' => 0,
+            'pages_skipped' => 0,
+            'page_limit' => 20,
+            'dropped_items' => 0,
+            'items_in_scope' => 21,
+            'item_limit' => 0,
+            'files_uploaded' => 0,
+            'removed' => 0,
+        ]);
+
+        $this->assertSame('success', $status);
+        $this->assertSame('MSC.vsau_no_changes', $message);
+    }
+
+    /**
+     * Deleting a page uploads no file but DOES change the knowledge base. Reporting
+     * "nothing changed" there would hide the one change nobody sees on their website.
+     */
+    public function testARunThatOnlyRemovedAFileIsNotReportedAsUnchanged(): void
+    {
+        [$status, $message] = $this->createService($this->createMock(Connection::class))->summariseRun([
+            'files_failed' => 0,
+            'pages_skipped' => 0,
+            'page_limit' => 20,
+            'dropped_items' => 0,
+            'items_in_scope' => 21,
+            'item_limit' => 0,
+            'files_uploaded' => 0,
+            'removed' => 1,
+        ]);
+
+        $this->assertSame('success', $status);
+        $this->assertSame('', $message);
+    }
+
+    /**
+     * The informational message must never join the problem notes - those decide the
+     * status, so a note there would turn a healthy no-op into "partial".
+     */
+    public function testAProblemAlwaysOutranksTheNoChangeMessage(): void
+    {
+        [$status, $message] = $this->createService($this->createMock(Connection::class))->summariseRun([
+            'files_failed' => 2,
+            'pages_skipped' => 0,
+            'page_limit' => 20,
+            'dropped_items' => 0,
+            'items_in_scope' => 21,
+            'item_limit' => 0,
+            'files_uploaded' => 0,
+            'removed' => 0,
+        ]);
+
+        $this->assertSame('partial', $status);
+        $this->assertSame('MSC.vsau_partial_files_failed|2', $message);
     }
 
     public function testPlanPageLimitDropsOnlyThePagesBeyondTheCap(): void
