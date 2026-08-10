@@ -188,6 +188,12 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         // sync (daily). MAX(lastRun) is the most recent heartbeat tick.
         $heartbeatLastRun = $this->cronHealth->heartbeatLastRun();
 
+        // Our cron job runs the crawl synchronously inside contao:cron, so while any
+        // configuration is syncing, a host that serialises cron runs writes no further
+        // heartbeat tick. Evaluated across ALL configs because they share one cron
+        // process: a run belonging to config A freezes the heartbeat config B reads.
+        $runInFlight = $this->anyRunInFlight($configs);
+
         $hasActiveConfig = false;
 
         // The "Show indexed files" button leads into a second backend module, which a user
@@ -204,8 +210,28 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             // Manual-only configs ignore the cron entirely, so the dashboard suppresses cron
             // health warnings for them and shows a "manual only" indicator instead.
             $config['manual_mode'] = 'manual' === (string) ($config['auto_update_trigger'] ?? 'scheduled');
-            $config['cron_status'] = $this->cronHealth->status($heartbeatLastRun);
+            $config['cron_status'] = $this->cronHealth->status($heartbeatLastRun, $runInFlight);
             $config['heartbeat_last_run'] = $heartbeatLastRun;
+            // Evidence, not inference: the last sync this config ran FROM the cron.
+            // The schedule box is driven by this and falls back to the heartbeat only
+            // when there is nothing to go on yet — so a wrong heartbeat can no longer
+            // claim that scheduled syncs are not happening while the log shows them.
+            $config['last_scheduled_run'] = $this->cronHealth->lastScheduledRun((int) $config['id']);
+            // THIS config's own run, not the install-wide flag above. The heartbeat is
+            // shared (one cron process serves every config, so any run freezes it), but
+            // schedule evidence is not: config A syncing says nothing about whether
+            // config B's schedule still fires, and passing the global flag here made an
+            // overdue B report "Läuft" for as long as A was running.
+            $config['schedule_status'] = $this->cronHealth->scheduleStatus(
+                $config,
+                $config['last_scheduled_run'],
+                $config['cron_status'],
+                $this->runInFlight($config),
+            );
+            $config['heartbeat_contradicted'] = $this->cronHealth->heartbeatContradicted(
+                $config['cron_status'],
+                $config['schedule_status'],
+            );
             $config['next_run'] = $this->nextRun($config);
             $config['warnings'] = $this->prerequisiteWarnings($config);
             // A manual sync can run without the server cron, but not without a vector
@@ -467,6 +493,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             // no honest denominator.
             'crawl' === $phase && $current > 0 => $this->translator->trans('MSC.vsau_progress_crawl_indexed', [$current], 'contao_default'),
             'crawl' === $phase => $this->translator->trans('MSC.vsau_progress_crawl', [], 'contao_default'),
+            'read' === $phase => $this->translator->trans('MSC.vsau_progress_read', [], 'contao_default'),
             'polish' === $phase && $total > 0 => $this->translator->trans('MSC.vsau_progress_polish', [$current, $total], 'contao_default'),
             'upload' === $phase && $total > 0 => $this->translator->trans('MSC.vsau_progress_upload', [$current, $total], 'contao_default'),
             default => null,
@@ -711,8 +738,122 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
     }
 
     /**
+     * Whether any configuration currently has a queued or running sync.
+     *
+     * All configurations share a single contao:cron process, so one config's run is
+     * what silences the heartbeat for every config on the install.
+     *
+     * @param array<int, array<string, mixed>> $configs
+     */
+    private function anyRunInFlight(array $configs): bool
+    {
+        foreach ($configs as $config) {
+            if ($this->runInFlight($config)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Whether THIS configuration has a queued or running sync.
+     *
+     * Kept separate from anyRunInFlight() because the two answer different questions:
+     * the heartbeat is shared across configurations and any run silences it, while
+     * schedule evidence belongs to one configuration alone.
+     *
      * @param array<string, mixed> $config
      */
+    private function runInFlight(array $config): bool
+    {
+        return \in_array((string) ($config['auto_update_last_status'] ?? ''), ['queued', 'running'], true);
+    }
+
+    /**
+     * Warns when the schedule fires so often that the site is close to permanently
+     * under crawl, using the measured duration of this install's last run.
+     *
+     * Every sync spawns "contao:crawl --max-depth=0", i.e. a complete crawl of the
+     * whole site — not just the pages in the vector store scope. That is deliberate
+     * (a store that mirrors the site must not carry a depth cap), but it means the
+     * cost of a short interval is a multiple of what the page count suggests, and
+     * nothing in the backend said so. Advisory only: a small site can afford it.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function crawlCostNotice(array $config): string|null
+    {
+        if ('manual' === (string) ($config['auto_update_trigger'] ?? 'scheduled')) {
+            return null;
+        }
+
+        // Only relevant while every single run really does crawl. Under the default
+        // "auto" mode the crawl is skipped whenever the site is unchanged, and under
+        // "never" it does not happen at all - warning there would be crying wolf.
+        if (VectorStoreAutoUpdateService::CRAWL_ALWAYS !== (string) ($config['auto_update_crawl_mode'] ?? VectorStoreAutoUpdateService::CRAWL_AUTO)) {
+            return null;
+        }
+
+        $interval = $this->cronHealth->scheduleInterval((string) ($config['auto_update_schedule'] ?? ''));
+
+        if (null === $interval) {
+            return null;
+        }
+
+        $duration = (int) $this->connection->fetchOne(
+            'SELECT duration FROM tl_openai_sync_log WHERE pid = ? AND duration > 0 ORDER BY run_at DESC LIMIT 1',
+            [(int) $config['id']],
+        );
+
+        if ($duration > 0) {
+            // Warn once a run occupies more than about a sixth of its own interval.
+            // At that point the crawl is a standing load rather than an occasional
+            // one, and the next run starts while the effects of the last are fresh.
+            if (6 * $duration <= $interval) {
+                return null;
+            }
+
+            return $this->translator->trans(
+                'MSC.vsau_notice_crawl_cost_measured',
+                [$this->formatInterval($duration), $this->formatInterval($interval)],
+                'contao_default',
+            );
+        }
+
+        // Nothing measured yet: only flag intervals that are heavy for any site.
+        if ($interval >= 86400) {
+            return null;
+        }
+
+        return $this->translator->trans(
+            'MSC.vsau_notice_crawl_cost_generic',
+            [$this->formatInterval($interval)],
+            'contao_default',
+        );
+    }
+
+    /**
+     * A duration in seconds as "45 Sek." / "14 Min." / "2 Std." for use inside a
+     * sentence. Deliberately coarse — this is an order-of-magnitude argument.
+     */
+    private function formatInterval(int $seconds): string
+    {
+        $key = match (true) {
+            $seconds < 60 => 'MSC.vsau_interval_seconds',
+            $seconds < 3600 => 'MSC.vsau_interval_minutes',
+            default => 'MSC.vsau_interval_hours',
+        };
+
+        $value = match (true) {
+            $seconds < 60 => $seconds,
+            $seconds < 3600 => (int) round($seconds / 60),
+            default => (int) round($seconds / 3600),
+        };
+
+        return $this->translator->trans($key, [$value], 'contao_default');
+    }
+
     private function nextRun(array $config): int|null
     {
         $lastRun = (int) ($config['auto_update_last_run'] ?? 0);
@@ -881,6 +1022,10 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
         // pages selected, but their roots carry no domain.
         if ($hasStartPage && [] === $this->service->resolveScopeRootDomains($config['auto_update_site_root'] ?? null)) {
             $notices[] = $this->translator->trans('MSC.vsau_notice_no_root_domain', [], 'contao_default');
+        }
+
+        if (null !== $crawlCost = $this->crawlCostNotice($config)) {
+            $notices[] = $crawlCost;
         }
 
         // Standing reminder while the item allowance is exceeded. The run message alone

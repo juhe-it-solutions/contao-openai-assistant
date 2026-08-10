@@ -136,7 +136,7 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             // schedule (trigger + its subpalette), the indexing mode with the two
             // settings that only apply to it, the page selection, and finally the
             // link options with their subpalette.
-            . ';{auto_update_legend},auto_update_enabled,auto_update_first_sync_hint,auto_update_trigger,auto_update_mode,auto_update_model,auto_update_prompt_template,auto_update_site_root,auto_update_include_links',
+            . ';{auto_update_legend},auto_update_enabled,auto_update_first_sync_hint,auto_update_trigger,auto_update_mode,auto_update_model,auto_update_prompt_template,auto_update_crawl_mode,auto_update_site_root,auto_update_include_links',
     ],
     'subpalettes' => [
         // Schedule fields only make sense for the automatic trigger; hidden in manual mode.
@@ -311,6 +311,21 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'eval'      => ['submitOnChange' => true, 'includeBlankOption' => false, 'tl_class' => 'w50 clr auto-update-field auto-update-license-field'],
             'sql'       => ['type' => 'string', 'length' => 16, 'default' => 'scheduled'],
         ],
+        // Whether a run refreshes Contao's search index before reading it, and how eagerly.
+        // Every crawl covers the WHOLE site (contao:crawl cannot be told to visit a subset),
+        // so on a short schedule this is by far the most expensive part of a run - and on a
+        // site nobody edited it produces nothing. 'auto' skips the crawl while the site is
+        // demonstrably unchanged, with a forced crawl as a safety net; 'always' is the
+        // pre-2.2 behaviour; 'never' is for installs that run their own contao:crawl.
+        'auto_update_crawl_mode' => [
+            'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_crawl_mode'],
+            'exclude'   => true,
+            'inputType' => 'select',
+            'options'   => ['auto', 'always', 'never'],
+            'reference' => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_crawl_mode_ref'],
+            'eval'      => ['includeBlankOption' => false, 'tl_class' => 'w50 clr auto-update-field auto-update-license-field'],
+            'sql'       => ['type' => 'string', 'length' => 16, 'default' => 'auto'],
+        ],
         'auto_update_schedule_hour' => [
             'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['auto_update_schedule_hour'],
             'exclude'   => true,
@@ -447,6 +462,16 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         // and a duration once finished.
         'auto_update_run_started' => [
             'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+        ],
+        // When the last crawl actually ran, and what the site looked like at that moment.
+        // The signature is a hash over (MAX(tstamp), COUNT(*)) of every table whose content
+        // can reach the search index: the timestamp part catches edits and new records, the
+        // count part catches deletions, which bump no timestamp anywhere.
+        'auto_update_last_crawl' => [
+            'sql' => ['type' => 'integer', 'unsigned' => true, 'default' => 0],
+        ],
+        'auto_update_crawl_signature' => [
+            'sql' => ['type' => 'string', 'length' => 64, 'default' => ''],
         ],
         'auto_update_last_status' => [
             'sql' => ['type' => 'string', 'length' => 20, 'default' => ''],

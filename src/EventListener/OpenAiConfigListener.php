@@ -1118,6 +1118,8 @@ class OpenAiConfigListener
             'UPDATE tl_openai_config SET auto_update_schedule = ? WHERE id = ?',
             [$cron, (int) $dc->id],
         );
+
+        $this->warnAboutCrawlCost((int) $dc->id, $cron);
     }
 
     /**
@@ -1179,6 +1181,11 @@ class OpenAiConfigListener
                 'Manual mode: start the first sync via the “Run manual sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met.',
             );
         } elseif (CronHealthService::STATUS_HEALTHY === $this->cronHealth->status($this->cronHealth->heartbeatLastRun())) {
+            // Only a confirmed-healthy heartbeat earns the reassuring wording. A stale or
+            // unreadable one falls through to the "nocron" text below, which merely states
+            // that a CLI cron is required - true in every case, so it is safe advice rather
+            // than an alarm. There is no sync evidence to consult here: this hint only ever
+            // renders before the first sync (auto_update_last_run === 0).
             $text = $this->getConfigLangString(
                 'first_sync_hint_cron',
                 'Start the first sync via the “Run manual sync now” button in the Auto-Sync dashboard — it also shows whether all prerequisites (e.g. search index, page selection) are met. Later syncs run automatically on your schedule.',
@@ -1207,6 +1214,71 @@ class OpenAiConfigListener
                 'After the first successful sync you can delete the initially uploaded file in «File upload» so its content does not influence the chatbot’s answers.',
             ), ENT_QUOTES),
         );
+    }
+
+    /**
+     * Says what a short schedule actually costs, at the moment the operator chooses it.
+     *
+     * Every sync spawns a full "contao:crawl --max-depth=0" over the whole site, not
+     * just the pages in the vector-store scope, so the cost of a short interval is a
+     * multiple of what the page count suggests. The dashboard repeats this as a
+     * standing notice; this is the same statement where the decision is made.
+     * Advisory only - the schedule is saved either way.
+     */
+    private function warnAboutCrawlCost(int $configId, string $schedule): void
+    {
+        // Only while every run really crawls. The default "auto" mode skips the crawl on
+        // an unchanged site, so the cost this warns about does not arise there.
+        $crawlMode = (string) ($_POST['auto_update_crawl_mode'] ?? '') ?: (string) $this->connection->fetchOne(
+            'SELECT auto_update_crawl_mode FROM tl_openai_config WHERE id = ?',
+            [$configId],
+        );
+
+        if (VectorStoreAutoUpdateService::CRAWL_ALWAYS !== $crawlMode) {
+            return;
+        }
+
+        $interval = $this->cronHealth->scheduleInterval($schedule);
+
+        if (null === $interval) {
+            return;
+        }
+
+        $duration = (int) $this->connection->fetchOne(
+            'SELECT duration FROM tl_openai_sync_log WHERE pid = ? AND duration > 0 ORDER BY run_at DESC LIMIT 1',
+            [$configId],
+        );
+
+        // Warn once a run occupies more than about a sixth of its own interval; with no
+        // measured run yet, only for intervals that are heavy for any site.
+        if ($duration > 0) {
+            if (6 * $duration <= $interval) {
+                return;
+            }
+
+            Message::addInfo(\sprintf(
+                $this->getConfigLangString(
+                    'auto_update_crawl_cost_measured',
+                    'Note: every synchronisation crawls the entire website again, not just the selected pages. The last run took %1$s minutes and this schedule repeats every %2$s minutes, so the site would be under crawl for a large part of the time. A longer interval reduces server load and log volume considerably.',
+                ),
+                (int) round($duration / 60),
+                (int) round($interval / 60),
+            ));
+
+            return;
+        }
+
+        if ($interval >= 86400) {
+            return;
+        }
+
+        Message::addInfo(\sprintf(
+            $this->getConfigLangString(
+                'auto_update_crawl_cost_generic',
+                'Note: every synchronisation crawls the entire website again, not just the selected pages. This schedule repeats every %s minutes; unless your content really changes that fast, a longer interval reduces server load and log volume considerably.',
+            ),
+            (int) round($interval / 60),
+        ));
     }
 
     /**

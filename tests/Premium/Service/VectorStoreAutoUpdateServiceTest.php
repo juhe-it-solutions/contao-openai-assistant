@@ -1135,12 +1135,167 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
             'auto_update_progress_current',
             'auto_update_progress_total',
             'auto_update_run_started',
+            'auto_update_last_crawl',
+            'auto_update_crawl_signature',
         ]));
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('MSC.vsau_err_no_license');
 
         $this->createService($connection)->dispatchRun(7);
+    }
+
+    public function testCrawlModeAlwaysCrawlsEvenWhenNothingChanged(): void
+    {
+        $config = [
+            'auto_update_crawl_mode' => VectorStoreAutoUpdateService::CRAWL_ALWAYS,
+            'auto_update_last_crawl' => time() - 60,
+            'auto_update_crawl_signature' => 'abc',
+        ];
+
+        $this->assertTrue($this->createService($this->createMock(Connection::class))->shouldCrawl($config, 'abc'));
+    }
+
+    public function testCrawlModeNeverSkipsEvenWhenEverythingChanged(): void
+    {
+        $config = [
+            'auto_update_crawl_mode' => VectorStoreAutoUpdateService::CRAWL_NEVER,
+            'auto_update_last_crawl' => 0,
+            'auto_update_crawl_signature' => 'abc',
+        ];
+
+        $this->assertFalse($this->createService($this->createMock(Connection::class))->shouldCrawl($config, 'different'));
+    }
+
+    public function testAutoModeSkipsTheCrawlWhileTheSiteIsUnchanged(): void
+    {
+        $config = [
+            'auto_update_crawl_mode' => VectorStoreAutoUpdateService::CRAWL_AUTO,
+            'auto_update_last_crawl' => time() - 60,
+            'auto_update_crawl_signature' => 'abc',
+        ];
+
+        $this->assertFalse($this->createService($this->createMock(Connection::class))->shouldCrawl($config, 'abc'));
+    }
+
+    public function testAutoModeCrawlsAsSoonAsTheSignatureMoves(): void
+    {
+        $config = [
+            'auto_update_crawl_mode' => VectorStoreAutoUpdateService::CRAWL_AUTO,
+            'auto_update_last_crawl' => time() - 60,
+            'auto_update_crawl_signature' => 'abc',
+        ];
+
+        $this->assertTrue($this->createService($this->createMock(Connection::class))->shouldCrawl($config, 'def'));
+    }
+
+    /**
+     * The safety net for everything the signature cannot see - start/stop dates, insert
+     * tags, content pulled in from elsewhere. Without it the gate could hold a stale
+     * knowledge base indefinitely.
+     */
+    public function testAutoModeCrawlsOnceTheLastCrawlIsOlderThanTheMaximumAge(): void
+    {
+        $config = [
+            'auto_update_crawl_mode' => VectorStoreAutoUpdateService::CRAWL_AUTO,
+            'auto_update_last_crawl' => time() - VectorStoreAutoUpdateService::CRAWL_MAX_AGE_SECONDS - 1,
+            'auto_update_crawl_signature' => 'abc',
+        ];
+
+        $this->assertTrue($this->createService($this->createMock(Connection::class))->shouldCrawl($config, 'abc'));
+    }
+
+    public function testAutoModeAlwaysCrawlsWhenItNeverHas(): void
+    {
+        $config = [
+            'auto_update_crawl_mode' => VectorStoreAutoUpdateService::CRAWL_AUTO,
+            'auto_update_last_crawl' => 0,
+            'auto_update_crawl_signature' => '',
+        ];
+
+        $this->assertTrue($this->createService($this->createMock(Connection::class))->shouldCrawl($config, 'abc'));
+    }
+
+    /**
+     * A clock that jumped backwards makes the age negative. That must read as "cannot
+     * vouch for freshness", not as "crawled in the future, so recent enough".
+     */
+    public function testAutoModeCrawlsWhenTheLastCrawlLiesInTheFuture(): void
+    {
+        $config = [
+            'auto_update_crawl_mode' => VectorStoreAutoUpdateService::CRAWL_AUTO,
+            'auto_update_last_crawl' => time() + 7200,
+            'auto_update_crawl_signature' => 'abc',
+        ];
+
+        $this->assertTrue($this->createService($this->createMock(Connection::class))->shouldCrawl($config, 'abc'));
+    }
+
+    public function testAnUnreadableSignatureIsNeverMistakenForNothingChanged(): void
+    {
+        $config = [
+            'auto_update_crawl_mode' => VectorStoreAutoUpdateService::CRAWL_AUTO,
+            'auto_update_last_crawl' => time() - 60,
+            'auto_update_crawl_signature' => '',
+        ];
+
+        $this->assertTrue($this->createService($this->createMock(Connection::class))->shouldCrawl($config, ''));
+    }
+
+    public function testAConfigWithoutTheNewColumnsBehavesLikeAutoAndCrawls(): void
+    {
+        $this->assertTrue($this->createService($this->createMock(Connection::class))->shouldCrawl([], 'abc'));
+    }
+
+    public function testTheSignatureChangesWhenARecordIsDeletedWithoutAnyTimestampMoving(): void
+    {
+        $before = $this->signatureFor(['ts' => 1000, 'rows_count' => 42]);
+        $after = $this->signatureFor(['ts' => 1000, 'rows_count' => 41]);
+
+        $this->assertNotSame('', $before);
+        $this->assertNotSame($before, $after);
+    }
+
+    public function testTheSignatureIsStableWhileNothingChanges(): void
+    {
+        $this->assertSame(
+            $this->signatureFor(['ts' => 1000, 'rows_count' => 42]),
+            $this->signatureFor(['ts' => 1000, 'rows_count' => 42]),
+        );
+    }
+
+    public function testTheSignatureIsEmptyWhenNoContentTableExists(): void
+    {
+        $schemaManager = $this->createMock(AbstractSchemaManager::class);
+        $schemaManager->method('tablesExist')->willReturn(false);
+
+        $connection = $this->createMock(Connection::class);
+        $connection->method('createSchemaManager')->willReturn($schemaManager);
+
+        $this->assertSame('', $this->createService($connection)->siteContentSignature());
+    }
+
+    public function testADatabaseErrorYieldsNoSignatureRatherThanAWrongOne(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('createSchemaManager')->willThrowException(new \RuntimeException('gone'));
+
+        $this->assertSame('', $this->createService($connection)->siteContentSignature());
+    }
+
+    /**
+     * @param array{ts: int, rows_count: int} $row
+     */
+    private function signatureFor(array $row): string
+    {
+        $schemaManager = $this->createMock(AbstractSchemaManager::class);
+        $schemaManager->method('tablesExist')->willReturn(true);
+
+        $connection = $this->createMock(Connection::class);
+        $connection->method('createSchemaManager')->willReturn($schemaManager);
+        $connection->method('fetchAssociative')->willReturn($row);
+
+        return $this->createService($connection)->siteContentSignature();
     }
 
     /**

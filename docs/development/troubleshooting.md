@@ -61,8 +61,22 @@ Useful checks:
 - At least one file upload has created the OpenAI vector store.
 - The selected pages are indexable by Contao's search indexer.
 - Scheduled mode requires a real CLI cron running `contao:cron`; web-only cron (triggered by page visits) is not sufficient — the auto-sync job skips web scope. The dashboard shows "Not configured" if only web cron is detected. Manual mode uses the backend trigger.
+- The cron does **not** have to be minutely. A Contao cron job is re-evaluated whenever `contao:cron` runs, so a host that only offers a 5-, 15- or 30-minute cron works fine — the sync simply starts at the next possible tick. `CronHealthService::IDLE_GRACE_SECONDS` (30 min) is sized for exactly those hosts.
 - The first sync is always manual (dashboard button or CLI command); scheduled cron runs apply from the second sync onward.
-- Hosts that disable `proc_open` cannot dispatch manual syncs from the backend; run the CLI command instead.
+- On a Contao installed from the Symfony skeleton the console is `bin/console`, not `vendor/bin/contao-console`. The Managed Edition path is what the dashboard shows.
+
+### Hosts that disable `proc_open`
+
+Two different things need to spawn a process, and they fail independently:
+
+- **The backend "Run sync now" button.** Detected up front — the dashboard warns and points to the CLI command. Most hosts disable `proc_open` for PHP-FPM only, so this is the common case.
+- **The crawl inside a run.** `spawnCrawl()` starts `contao:crawl` as a subprocess, so a host that also disables `proc_open` on the **CLI** breaks scheduled runs too, not just the button.
+
+For the second case, set **"Suchindex vor der Synchronisierung aktualisieren"** to
+**Nie** (`auto_update_crawl_mode = never`). The run then reads whatever is already in
+`tl_search` and spawns nothing at all, so it works on a fully locked-down host. The
+search index must then be kept current by something else — the site's own visitor
+traffic indexes pages via `SearchIndexListener`, or a separate `contao:crawl` cron job.
 
 ## Sync Fails With "Failed to open stream" in `var/cache`
 

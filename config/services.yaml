@@ -203,9 +203,13 @@ services:
             $encryption: '@JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService'
 
     # CronHealthService — CLI cron heartbeat detection (auto-sync dashboard + config-form hint)
+    # contao.cron is optional on purpose: it only ever provides a SECOND opinion
+    # (hasMinutelyCliCron(), a timezone-free cache flag) used to tell a skewed clock
+    # apart from a dead cron. Without it the service degrades to the timestamp alone.
     JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\CronHealthService:
         arguments:
             $connection: '@doctrine.dbal.default_connection'
+            $cron: '@?contao.cron'
 
     # VectorStoreFileSync — per-page upload/reconcile against the OpenAI vector store
     JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreFileSync:
