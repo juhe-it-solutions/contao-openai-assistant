@@ -10,6 +10,7 @@ composer.lock
 .claude/
 CLAUDE.md
 AGENTS.md
+.pi/
 .vscode/
 *.swp
 *.swo
