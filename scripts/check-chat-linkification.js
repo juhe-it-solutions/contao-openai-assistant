@@ -615,11 +615,57 @@ check('md-extra-10 punctuation', fmt(mdCases[9][0]).endsWith('</a>.'), fmt(mdCas
     check('target-doc-2 own host docx new tab', o.includes('target="_blank"'), o);
   }
   // ...but an own-host PAGE still navigates in place, including one whose query
-  // string merely mentions a file (Contao download URLs are served as
-  // attachments and never navigate, so the tab is irrelevant for them).
+  // string merely mentions a file. An UNSIGNED "file"/"p" parameter is an
+  // ordinary page parameter - Contao always signs its real download URLs, which
+  // is what the "_hash" pair below keys on.
   {
     const o = fmtTargetExternal('https://example.com/download-center?file=report.pdf');
     check('target-doc-3 query-only file is a page', !o.includes('target='), o);
+  }
+  // Contao Download/Downloads content elements: the path is the PAGE, the file
+  // lives in the query string. All four spellings must keep the new tab - an
+  // attachment because it is a download, an inline file because it would
+  // otherwise replace the page and drop the visible chat transcript.
+  // 5.3/5.7, "Im Browser anzeigen" OFF: signed, with d=attachment.
+  {
+    const o = fmtTargetExternal('https://example.com/linktest?_hash=Ab3%3D&f=Preisliste.pdf&p=downloads%2FPreisliste.pdf&d=attachment');
+    check('target-doc-5 5.x download element attachment', o.includes('target="_blank" rel="noopener"'), o);
+  }
+  // 5.3/5.7, "Im Browser anzeigen" ON: signed, and NO "d" parameter at all -
+  // the case the extension test and a d-only rule would both miss.
+  {
+    const o = fmtTargetExternal('https://example.com/linktest?_hash=Ab3%3D&p=downloads%2FPreisliste.pdf&ctx=a%3A1');
+    check('target-doc-6 5.x download element inline', o.includes('target="_blank" rel="noopener"'), o);
+  }
+  // 6.0 writes "d" in both directions on a /_file_stream/ path.
+  {
+    const o = fmtTargetExternal('https://example.com/_file_stream/files/downloads/Preisliste.pdf?d=inline&ctx=a%3A1&_hash=Ab3%3D');
+    check('target-doc-7 6.0 file stream inline', o.includes('target="_blank" rel="noopener"'), o);
+  }
+  // Subdirectory install: the route marker is searched, not anchored.
+  {
+    const o = fmtTargetExternal('https://example.com/cms/_file_stream/files/x.pdf?d=attachment&_hash=Ab3%3D');
+    check('target-doc-8 6.0 file stream subdirectory', o.includes('target="_blank"'), o);
+  }
+  // Negatives: an ordinary paginated page, and a "d" that is not a disposition.
+  {
+    const o = fmtTargetExternal('https://example.com/news?p=2');
+    check('target-doc-9 pagination is a page', !o.includes('target='), o);
+  }
+  {
+    const o = fmtTargetExternal('https://example.com/events?d=details&_hash=Ab3%3D');
+    check('target-doc-10 unrelated d parameter is a page', !o.includes('target='), o);
+  }
+  // "self" stays literal for download elements too.
+  {
+    const o = fmtTargetSelf('https://example.com/linktest?_hash=Ab3%3D&p=downloads%2FPreisliste.pdf&d=attachment');
+    check('target-doc-11 self honoured for download elements', !o.includes('target='), o);
+  }
+  // The same recognition drives the shortened label: a download element is a
+  // "Download", not a "Seite aufrufen".
+  {
+    const o = fmtTargetSelfShort('https://example.com/linktest?_hash=Ab3%3D&p=downloads%2FPreisliste.pdf&d=attachment');
+    check('target-doc-12 download element label', o.includes('>Download</a>'), o);
   }
   // "self" is literal: even a document stays in the tab when the admin says so.
   {
