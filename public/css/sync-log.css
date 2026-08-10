@@ -56,12 +56,30 @@ html[lang|='de'] #tl_listing table.tl_listing.showColumns thead th.tl_right_nowr
     content: 'Aktionen';
 }
 
-/* Cap the message column instead of letting it stretch the whole table */
+/* The message column is the only one that may wrap - every other cell is nowrap - so
+   the auto table layout takes all of its squeeze out of this one column. Two rules
+   keep it readable:
+
+   1. min-width is the floor. Without it the column collapses to a few characters on
+      any viewport where the nowrap columns already fill the row, which is what made
+      messages break mid-word ("Seiteninh / alten") and rows six lines tall.
+   2. overflow-wrap: break-word, NOT anywhere. "anywhere" also shrinks the cell's
+      MIN-CONTENT width to a single character, which is precisely what invites the
+      layout algorithm to collapse the column in the first place; "break-word" breaks
+      a too-long word without advertising a one-character minimum. Long unbroken
+      tokens (file ids) still need "anywhere" - see the rule below, where there is no
+      natural break opportunity at all.
+
+   Widths in px, not %, on purpose: the table is wider than its container by design
+   (the card scrolls horizontally), so a percentage would resolve against a box that
+   is itself content-sized and feed back into the layout. This is the part that
+   misbehaved on 5.7/6.0 before. */
+#tl_listing table.tl_listing.showColumns th.col_message,
 #tl_listing table.tl_listing.showColumns td.col_message {
-    max-width: 360px;
+    min-width: 360px;
+    max-width: 560px;
     white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word;
+    overflow-wrap: break-word;
 }
 /* File IDs are long unbroken tokens - let them wrap rather than widen the column */
 #tl_listing table.tl_listing.showColumns td.col_file_id,
