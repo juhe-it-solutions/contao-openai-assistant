@@ -438,6 +438,7 @@ class VectorStoreAutoUpdateService
             $legacyFileId = (string) ($config['auto_update_file_id'] ?? '');
 
             $signature = $this->siteContentSignature();
+            $crawlSkipped = false;
 
             if ($this->shouldCrawl($config, $signature)) {
                 // Announced only once the decision is made. Setting it beforehand made the
@@ -456,6 +457,7 @@ class VectorStoreAutoUpdateService
                     [time(), $signature, $configId],
                 );
             } else {
+                $crawlSkipped = true;
                 $this->logger->info(\sprintf(
                     'VectorStoreAutoUpdate: skipped the crawl for config %d - the website is unchanged since the last one.',
                     $configId,
@@ -706,6 +708,8 @@ class VectorStoreAutoUpdateService
                 'dropped_items' => $droppedItems,
                 'items_in_scope' => $itemsInScope,
                 'item_limit' => $itemBudgetExceeded ? $planItemLimit : 0,
+                'files_uploaded' => $syncStats['files_uploaded'],
+                'removed' => $syncStats['removed'],
             ]);
 
             $this->persistResult(
@@ -720,7 +724,7 @@ class VectorStoreAutoUpdateService
                     'tokens_out' => $tokensOut,
                     'duration' => time() - $start,
                     'model' => $model,
-                    'document' => $this->buildManifest($pages, $syncStats, $pageStates, $linksEnabled ? $linkStats : null),
+                    'document' => $this->buildManifest($pages, $syncStats, $pageStates, $linksEnabled ? $linkStats : null, $crawlSkipped),
                     'sync' => $syncStats,
                 ],
                 $resultMessage,
@@ -792,10 +796,17 @@ class VectorStoreAutoUpdateService
      * they are joined with the translator's compound separator so the dashboard and the
      * log show one line per reason.
      *
+     * A run where nothing went wrong AND nothing changed gets an informational message
+     * instead of an empty one. That state is otherwise indistinguishable from a broken
+     * run in the backend tables: no message, no uploads, a duration of 00:00. It is
+     * produced AFTER the problem notes and never joins them, because the status is
+     * derived from that array - an informational note in there would report a perfectly
+     * healthy no-op as "partial".
+     *
      * Public so the status/message combinations can be tested without a database, an
      * HTTP client and a crawl subprocess.
      *
-     * @param array{files_failed: int, pages_skipped: int, page_limit: int, dropped_items: int, items_in_scope: int, item_limit: int} $run
+     * @param array{files_failed: int, pages_skipped: int, page_limit: int, dropped_items: int, items_in_scope: int, item_limit: int, files_uploaded?: int, removed?: int} $run
      *
      * @return array{0: string, 1: string}
      */
@@ -819,10 +830,17 @@ class VectorStoreAutoUpdateService
             $notes[] = 'MSC.vsau_partial_files_failed|'.$run['files_failed'];
         }
 
-        return [
-            [] === $notes ? 'success' : 'partial',
-            implode(VectorStoreSyncMessageTranslator::COMPOUND_SEPARATOR, $notes),
-        ];
+        if ([] !== $notes) {
+            return ['partial', implode(VectorStoreSyncMessageTranslator::COMPOUND_SEPARATOR, $notes)];
+        }
+
+        // "Nothing changed" means nothing reached the vector store in either direction:
+        // a run that uploaded no file but DELETED one did change the knowledge base, and
+        // saying otherwise would hide a removal - the one change nobody notices by
+        // looking at their website.
+        $changed = ($run['files_uploaded'] ?? 0) > 0 || ($run['removed'] ?? 0) > 0;
+
+        return ['success', $changed ? '' : 'MSC.vsau_no_changes'];
     }
 
     /**
@@ -2109,7 +2127,7 @@ class VectorStoreAutoUpdateService
      * @param array<int, array{state: string, files: list<string>}>                                                             $pageStates page_id => outcome + file ids of this run
      * @param array{total: int, dropped_policy: int, dropped_boilerplate: int}|null                                             $links      null = link collection disabled
      */
-    private function buildManifest(array $pages, array $sync, array $pageStates, array|null $links = null): string
+    private function buildManifest(array $pages, array $sync, array $pageStates, array|null $links = null, bool $crawlSkipped = false): string
     {
         $lines = [
             '# Vector store sync manifest',
@@ -2124,6 +2142,12 @@ class VectorStoreAutoUpdateService
             ),
             \sprintf('- Files uploaded: %d, failed: %d, bytes: %d', $sync['files_uploaded'], $sync['files_failed'], $sync['bytes']),
         ];
+
+        // Without this, an all-unchanged manifest with no uploads reads like a run that
+        // failed to do anything, and there is nothing in the document to say otherwise.
+        if ($crawlSkipped) {
+            $lines[] = '- Search index: not rebuilt — the website was unchanged since the last crawl.';
+        }
 
         if (null !== $links) {
             $lines[] = \sprintf(

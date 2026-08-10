@@ -651,6 +651,10 @@
                 <source>%1$s file upload(s) failed and will be retried on the next run.</source>
                 <target>%1$s file upload(s) failed and will be retried on the next run.</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_no_changes">
+                <source>No change to the page contents — nothing transferred.</source>
+                <target>No change to the page contents — nothing transferred.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_err_config_not_found">
                 <source>OpenAI configuration %1$s not found.</source>
                 <target>OpenAI configuration %1$s not found.</target>
