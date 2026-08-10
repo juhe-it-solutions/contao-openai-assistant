@@ -39,15 +39,26 @@ class AiChatModuleNoticeListener
     {
         $language = strtolower(substr((string) (System::getContainer()->get('request_stack')->getCurrentRequest()?->getLocale() ?? 'en'), 0, 2));
 
+        // The option is named after Contao's own label for tl_module.protected -
+        // "Modul schützen" / "Protect module" (core tl_module.xlf, trans-unit
+        // tl_module.protected.0). Naming it anything else sends the reader looking for
+        // a checkbox that is not on the screen: the notice sits directly above that
+        // very checkbox, so the two have to match word for word.
+        // Written for an editor, not a developer: no "endpoint", no "widget". The order
+        // is deliberate - what the option does, what it does NOT do, and only then the
+        // instruction, which is the one line that has to survive skim-reading.
+        // "Vector Store" stays: it is the term the backend itself uses (Automatische
+        // Vector-Store-Aktualisierung, OpenAI Vector-Store-Dateien), and it names a
+        // concrete place to act on rather than an abstraction.
         if ('de' === $language) {
-            return 'Hinweis: Der Chat-Endpunkt ist öffentlich. Die Option „Geschützt" '
-                .'blendet nur das Widget aus - Fragen an den Chatbot kann jeder stellen, '
-                .'der die Seite erreicht. Legen Sie daher keine vertraulichen Inhalte in '
-                .'den Vector Store.';
+            return 'Achtung: „Modul schützen" versteckt nur das Chat-Fenster - es hält die '
+                .'Inhalte nicht geheim. Der Chatbot kann auch ohne sichtbares Fenster '
+                .'befragt werden. Legen Sie daher keine vertraulichen Inhalte in den '
+                .'Vector Store.';
         }
 
-        return 'Note: the chat endpoint is public. The "Protected" option only hides the '
-            .'widget - anyone who can reach the site can ask the chatbot questions. Do not '
-            .'put confidential content into the vector store.';
+        return 'Careful: "Protect module" only hides the chat window - it does not keep the '
+            .'content secret. The chatbot can still be asked questions without a visible '
+            .'window. So do not put confidential content into the vector store.';
     }
 }
