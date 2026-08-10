@@ -1516,7 +1516,12 @@ class VectorStoreAutoUpdateService
             // "no links" rather than "all links".
             self::parseStringList($config['auto_update_link_types'] ?? null),
             preg_split('/\r\n|\r|\n/', (string) ($config['auto_update_link_exclude'] ?? '')) ?: [],
-            $this->pageLinks->protectedUrls(),
+            // Both sets are "URLs no answer may point at", so they are merged into the
+            // one policy argument: member-only targets (never public) and unpublished
+            // ones (public until an editor retired them). Union via "+" - the values are
+            // just `true` and the keys are already comparison keys, so a URL that is both
+            // collapses into one entry.
+            $this->pageLinks->protectedUrls() + $this->pageLinks->unpublishedUrls(),
         );
 
         // The frequency denominator is the whole sync scope, not just the pages that
@@ -1714,15 +1719,36 @@ class VectorStoreAutoUpdateService
         // one news/FAQ/event entry, i.e. an arbitrary one of many, and it survives in the
         // index after that entry is gone. LEFT JOIN: a search row whose page row vanished
         // still carries its own title as a fallback.
+        // Unpublished pages are excluded, and so are pages outside their start/stop
+        // window. Contao does NOT purge tl_search when a page is unpublished - its
+        // PageSearchListener only reacts to an alias change, noSearch, robots=noindex
+        // and deletion - and an unpublished page is no longer linked from anywhere, so
+        // the crawler never requests it and never gets the 404 that would delete the
+        // row. Without this filter the stale row lives on and the chatbot keeps
+        // answering from a page that 404s for every visitor, and linking to it.
+        //
+        // The predicate is Contao's own (see tl_page usage in Messages.php:27), including
+        // the minute-rounding of the timestamp that publishedRootPageIds() already uses.
+        //
+        // COALESCE guards the LEFT JOIN, and deliberately keeps a search row whose page
+        // row has vanished: that is the fallback the join exists for (a title of its
+        // own), and dropping it here would make VectorStoreFileSync reconcile the
+        // document away. Deleting a page purges tl_search through core anyway.
+        $now = time();
+        $time = $now - $now % 60;
+
         return $this->connection->fetchAllAssociative(
-            'SELECT s.pid AS page_id, s.url, s.title, s.text, s.language, s.checksum, p.title AS page_title
+            "SELECT s.pid AS page_id, s.url, s.title, s.text, s.language, s.checksum, p.title AS page_title
              FROM tl_search s
              LEFT JOIN tl_page p ON p.id = s.pid
              WHERE s.pid IN (?)
                AND COALESCE(s.protected, 0) = 0
-             ORDER BY s.pid, s.url',
-            [$pageIds],
-            [ArrayParameterType::INTEGER],
+               AND COALESCE(p.published, '1') = '1'
+               AND (COALESCE(p.start, '') = '' OR p.start <= ?)
+               AND (COALESCE(p.stop, '') = '' OR p.stop > ?)
+             ORDER BY s.pid, s.url",
+            [$pageIds, $time, $time],
+            [ArrayParameterType::INTEGER, ParameterType::INTEGER, ParameterType::INTEGER],
         );
     }
 

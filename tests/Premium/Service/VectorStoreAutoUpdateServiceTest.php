@@ -695,6 +695,62 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
     }
 
     /**
+     * Contao does NOT purge tl_search when a page is unpublished: PageSearchListener
+     * reacts to an alias change, noSearch, robots=noindex and deletion, but not to the
+     * publish state. An unpublished page is also no longer linked, so the crawler never
+     * requests it and never gets the 404 that would delete the row. Without an explicit
+     * filter the stale row keeps being uploaded, and the chatbot answers from - and
+     * links to - a page that 404s for every visitor.
+     */
+    public function testNeverReadsUnpublishedPagesForUpload(): void
+    {
+        $capturedSql = null;
+
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchAssociative')
+            ->willReturn(['auto_update_site_root' => serialize(['7'])])
+        ;
+        $connection
+            ->method('fetchFirstColumn')
+            ->willReturn([7])
+        ;
+        $connection
+            ->method('fetchAllAssociative')
+            ->willReturnCallback(
+                static function (string $sql) use (&$capturedSql): array {
+                    if (str_contains($sql, 'FROM tl_search')) {
+                        $capturedSql = $sql;
+                    }
+
+                    return [];
+                },
+            )
+        ;
+
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'readAllPages');
+        $method->invoke($this->createService($connection), 1);
+
+        $this->assertNotNull($capturedSql, 'readAllPages() must query tl_search.');
+        $this->assertStringContainsString(
+            "COALESCE(p.published, '1') = '1'",
+            $capturedSql,
+            'Unpublished pages must be excluded - and via COALESCE, so a search row whose '
+            .'page row has vanished keeps the title fallback the LEFT JOIN exists for.',
+        );
+        $this->assertStringContainsString(
+            "COALESCE(p.start, '') = '' OR p.start <= ?",
+            $capturedSql,
+            'A page scheduled to go live later is not published yet.',
+        );
+        $this->assertStringContainsString(
+            "COALESCE(p.stop, '') = '' OR p.stop > ?",
+            $capturedSql,
+            'A page past its stop date is no longer published.',
+        );
+    }
+
+    /**
      * Contao 5.3/5.7 encode "=", "(", ")" and the quotes of every posted value, so
      * an AI-polish prompt used to reach the model as "&#40;kurz&#41;". Contao 6
      * stores the raw text, where the decode is a no-op.

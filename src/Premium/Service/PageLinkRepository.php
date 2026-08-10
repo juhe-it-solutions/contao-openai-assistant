@@ -15,6 +15,7 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Premium\Service;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 
 /**
  * Storage for the links found on indexed pages (tl_openai_page_link).
@@ -289,6 +290,64 @@ class PageLinkRepository
         }
 
         return $protected;
+    }
+
+    /**
+     * Indexed URLs whose page is no longer published, keyed like protectedUrls().
+     *
+     * The counterpart to the publish filter in VectorStoreAutoUpdateService::readAllPages():
+     * that one stops an unpublished page from being uploaded, this one stops OTHER pages
+     * from linking to it. Without it the page itself is gone from the chatbot's knowledge
+     * while a link block still points a visitor at a URL that 404s.
+     *
+     * Contao does not purge tl_search on unpublish (its PageSearchListener reacts to an
+     * alias change, noSearch, robots=noindex and deletion only), so the row is still there
+     * to be recognised - which is exactly what makes this check possible.
+     *
+     * @return array<string, true> keyed by comparison key
+     */
+    public function unpublishedUrls(): array
+    {
+        $now = time();
+        $time = $now - $now % 60;
+
+        try {
+            $rows = $this->connection->fetchFirstColumn(
+                // ORDER BY, because the LIMIT would otherwise truncate an arbitrary,
+                // run-to-run varying subset on a site with more than 5000 indexed URLs
+                // behind retired pages. A different subset each run means link blocks
+                // flapping, page hashes changing and documents being re-uploaded for no
+                // reason - which costs real money in KI-optimiert mode. Deterministic
+                // truncation keeps the output stable even when the cap does bite.
+                //
+                // The timestamps are bound as INTEGER on purpose. tl_page.start/stop are
+                // varchar, and Doctrine binds an untyped parameter as a STRING, which
+                // would make this a lexicographic comparison - correct today only because
+                // every Unix timestamp happens to be 10 digits wide, and quietly wrong the
+                // moment one is not. INTEGER makes MySQL compare numerically, exactly as
+                // core does (PageModel.php:855 interpolates a raw int).
+                "SELECT s.url
+                 FROM tl_search s
+                 INNER JOIN tl_page p ON p.id = s.pid
+                 WHERE p.published != '1'
+                    OR (p.start != '' AND p.start > ?)
+                    OR (p.stop != '' AND p.stop <= ?)
+                 ORDER BY s.url
+                 LIMIT 5000",
+                [$time, $time],
+                [ParameterType::INTEGER, ParameterType::INTEGER],
+            );
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $unpublished = [];
+
+        foreach ($rows as $url) {
+            $unpublished[PageLink::comparisonKey((string) $url)] = true;
+        }
+
+        return $unpublished;
     }
 
     /**
