@@ -574,8 +574,8 @@ class OpenAiFilesListener
 
     private function resolveParentConfigId(DataContainer|null $dc): int|null
     {
-        if ($dc && $dc->pid) {
-            return (int) $dc->pid;
+        if ($dc && $dc->currentPid) {
+            return (int) $dc->currentPid;
         }
 
         if ($dc && $dc->activeRecord && $dc->activeRecord->pid) {

@@ -6,7 +6,6 @@ parameters:
         - src/ContaoManagerPlugin.php
         - src/ContaoOpenaiAssistantBundle.php
     ignoreErrors:
-        - '#Access to an undefined property [a-zA-Z0-9\\_]+::\$pid#'
         - '#Access to an undefined property Contao\\DataContainer::\$activeRecord#'
         - '#Property [a-zA-Z0-9\\_]+::\$[a-zA-Z0-9_]+ is never read, only written#'
         - '#Right side of \|\| is always false#'
