@@ -100,6 +100,18 @@ class VectorStoreFileSync
      */
     private string $lastIngestionError = 'unknown';
 
+    /**
+     * File ids already attempted for deletion in this PHP process, as a set.
+     *
+     * The orchestrator removes authoritatively-gone pages BEFORE calling sync(), and sync()
+     * then retries every pending deletion - so without this, a file that just failed would be
+     * attempted twice in one run: twice the retry ladder (up to 31 seconds of backoff each)
+     * and twice counted in deletes_pending, reporting one stuck file as two.
+     *
+     * @var array<string, true>
+     */
+    private array $attemptedDeletes = [];
+
     public function __construct(
         private readonly Connection $connection,
         private readonly HttpClientInterface $http,
@@ -947,6 +959,8 @@ class VectorStoreFileSync
             return true;
         }
 
+        $this->attemptedDeletes[$fileId] = true;
+
         // Order matters: detach first, so a file that is gone from Files but still attached
         // cannot linger in the store. Both calls are idempotent (404 = success), so a retry
         // that repeats a step which already worked is harmless.
@@ -1042,6 +1056,15 @@ class VectorStoreFileSync
         $pending = 0;
 
         foreach ($this->loadPendingDeletes($configId) as $row) {
+            if (isset($this->attemptedDeletes[$row['file']])) {
+                // Already tried in this run - by the orchestrator's authoritative removal pass,
+                // which runs before sync(). Trying again now would repeat the whole retry
+                // ladder and report the one stuck file twice.
+                ++$pending;
+
+                continue;
+            }
+
             if ($this->detachAndDelete($apiKey, $vectorStoreId, $row['file'])) {
                 $this->connection->delete('tl_openai_vector_file', ['id' => $row['id']]);
 

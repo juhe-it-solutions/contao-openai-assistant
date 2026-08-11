@@ -514,7 +514,7 @@ class VectorStoreAutoUpdateService
             // and its document has to go even when the run is about to abort - otherwise the
             // one case the upgrade guide promises to handle (a page turned member-only) is
             // exactly the case where nothing happens.
-            $this->removeAuthoritativelyGonePages($apiKey, $vectorStoreId, $configId, $config);
+            $authoritativeRemoval = $this->removeAuthoritativelyGonePages($apiKey, $vectorStoreId, $configId, $config);
 
             if (0 === \count($rows)) {
                 // With an explicit selection, "tl_search is empty" would often be false -
@@ -726,6 +726,17 @@ class VectorStoreAutoUpdateService
                     $this->progress($configId, 'upload', $done, $total);
                 },
             );
+
+            // Pages removed by the authoritative pass above never enter sync()'s own scope
+            // reconciliation - it works from what tl_search returned, and these pages are
+            // precisely the ones that are no longer there. Without this they would vanish
+            // from the store while the run reported "removed: 0".
+            //
+            // Only "removed" is added. Files the authoritative pass could NOT delete are
+            // already rows in pending_delete status by the time sync() starts, and sync()'s
+            // retry pass counts every one of those - adding them here as well would report a
+            // single stuck file twice.
+            $syncStats['removed'] += $authoritativeRemoval['removed'];
 
             // Per-page outcome + file ids: manifest material only, never persisted as sync
             // counters, so it is split off before the stats array reaches persistResult().
@@ -1694,11 +1705,15 @@ class VectorStoreAutoUpdateService
      * Never removes page_id 0 - that is the synthetic site-wide link directory, not a page.
      *
      * @param array<string, mixed> $config
+     *
+     * @return array{removed: int, deletes_pending: int}
      */
-    private function removeAuthoritativelyGonePages(string $apiKey, string $vectorStoreId, int $configId, array $config): void
+    private function removeAuthoritativelyGonePages(string $apiKey, string $vectorStoreId, int $configId, array $config): array
     {
+        $none = ['removed' => 0, 'deletes_pending' => 0];
+
         if ('' === $apiKey || '' === $vectorStoreId) {
-            return;
+            return $none;
         }
 
         try {
@@ -1712,11 +1727,11 @@ class VectorStoreAutoUpdateService
         } catch (\Throwable $e) {
             $this->logger->warning('VectorStoreAutoUpdate could not read tracked pages for config '.$configId.': '.$e->getMessage());
 
-            return;
+            return $none;
         }
 
         if ([] === $tracked) {
-            return;
+            return $none;
         }
 
         $now = time();
@@ -1755,7 +1770,7 @@ class VectorStoreAutoUpdateService
         }
 
         if ([] === $gone) {
-            return;
+            return $none;
         }
 
         $this->logger->notice(\sprintf(
@@ -1765,7 +1780,7 @@ class VectorStoreAutoUpdateService
             implode(', ', $gone),
         ));
 
-        $this->fileSync->removePages($apiKey, $vectorStoreId, $configId, $gone);
+        return $this->fileSync->removePages($apiKey, $vectorStoreId, $configId, $gone);
     }
 
     /**

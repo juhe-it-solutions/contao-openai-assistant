@@ -956,6 +956,75 @@ class VectorStoreFileSyncTest extends TestCase
     }
 
     /**
+     * The orchestrator removes authoritatively-gone pages before calling sync(), and sync()
+     * then retries every pending deletion. A file that just failed must not be attempted a
+     * second time in the same run: that repeats the whole retry ladder for nothing, and
+     * reports one stuck file as two.
+     */
+    public function testAFileAlreadyAttemptedThisRunIsNotRetriedAgain(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+        $this->insertVectorFile($rows, 'stuck_file', hash('sha256', 'gone'), 'uploaded');
+
+        $attempts = 0;
+        $client = new MockHttpClient(
+            static function (string $method, string $url) use (&$attempts): MockResponse {
+                if (str_contains($url, 'stuck_file')) {
+                    ++$attempts;
+                }
+
+                return new MockResponse('{}', ['http_code' => 401]);
+            },
+        );
+
+        $sync = new SleeplessVectorStoreFileSync($connection, $client, new NullLogger());
+
+        // The orchestrator's pass: fails, so the row becomes pending_delete.
+        $removed = $sync->removePages('sk-test', 'vs_123', 7, [42]);
+        $this->assertSame(1, $removed['deletes_pending']);
+        $this->assertSame('pending_delete', $rows[0]['status']);
+
+        $afterFirstPass = $attempts;
+        $this->assertGreaterThan(0, $afterFirstPass);
+
+        // sync() runs next in the same process and must not try the same file again.
+        $stats = $sync->sync('sk-test', 'vs_123', 7, []);
+
+        $this->assertSame($afterFirstPass, $attempts, 'The file must not be attempted twice in one run.');
+        $this->assertSame(1, $stats['deletes_pending'], 'One stuck file is reported once, not twice.');
+        $this->assertSame('pending_delete', $rows[0]['status'], 'It stays tracked for the NEXT run.');
+    }
+
+    /**
+     * A fresh process (the next cron tick) has no memory of the earlier attempt, so the
+     * deletion really is retried rather than skipped forever.
+     */
+    public function testTheNextRunRetriesAFileSkippedEarlier(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+        $this->insertVectorFile($rows, 'stuck_file', hash('sha256', 'gone'), 'pending_delete');
+
+        $attempts = 0;
+        $client = new MockHttpClient(
+            static function (string $method, string $url) use (&$attempts): MockResponse {
+                ++$attempts;
+
+                return new MockResponse('{}');
+            },
+        );
+
+        $stats = (new SleeplessVectorStoreFileSync($connection, $client, new NullLogger()))
+            ->sync('sk-test', 'vs_123', 7, [])
+        ;
+
+        $this->assertSame(2, $attempts, 'Detach and delete are both attempted afresh.');
+        $this->assertSame(0, $stats['deletes_pending']);
+        $this->assertSame([], $rows);
+    }
+
+    /**
      * Consume a normalized multipart request body so the test can assert on the part
      * headers (Symfony hands the callback a chunk generator, not a plain string).
      *
