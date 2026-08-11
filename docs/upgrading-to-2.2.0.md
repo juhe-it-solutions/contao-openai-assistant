@@ -14,7 +14,7 @@ correctly, than 2.1.4 did - and doing that once costs time and, in
 
 ### 1. Run `contao:migrate` immediately after deploying the code
 
-This release adds columns and two tables. Until the migration has run:
+This release adds columns and three tables. Until the migration has run:
 
 - **KI-Tools → "OpenAI Vector-Store-Auto-Update"** shows a notice telling you exactly
   this, instead of the dashboard.
@@ -23,6 +23,9 @@ This release adds columns and two tables. Until the migration has run:
 - Saving the OpenAI configuration or a chat module fails with a database error.
   This one is unavoidable - Contao writes every field of a form, so any extension
   that adds fields behaves this way.
+- The daily chat message limit is still enforced, but through the older
+  cache-based counter, which a burst of simultaneous requests can overshoot by a
+  few messages. The migration adds the table that closes that gap.
 
 Your chatbot keeps answering visitors throughout, and nothing in your vector
 store is touched. Run the migration through the Contao install tool or:
@@ -138,6 +141,16 @@ default**. With it on, 2.1.4 uploaded protected page content into a knowledge
 base that answers anonymous visitors. Those pages are now excluded and removed on
 the next run, counted under "removed" in the manifest. If you never enabled that
 setting, this does not affect you at all.
+
+Protection is now read from the page tree itself, with inheritance, rather than
+from the search index. That matters because Contao does not clear a page's search
+index entry when you tick "Protect page": the old entry stays behind, still marked
+public, and the crawler never gets a chance to correct it. A page you protect is
+therefore excluded from the next sync, removed from the store, and dropped from the
+link blocks of other pages, even if the index has not caught up. The removal now
+also happens on runs that would otherwise stop early because the search index is
+empty - previously the very case this promise is about could abort before reaching
+it.
 
 **Which pages survive the plan page limit can shift.** When the selected scope
 exceeds your plan's page allowance (**Einsteiger 20, Business 50**), the pages
