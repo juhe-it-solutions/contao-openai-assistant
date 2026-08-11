@@ -119,6 +119,9 @@ class AiChatModuleController extends AbstractFrontendModuleController
         // JSON map for JavaScript (user-facing strings only)
         $jsI18n = [
             'ai_chat_open' => $lang['js_ai_chat_open'] ?? 'Open AI Chat',
+            'assistant_typing' => $lang['js_assistant_typing'] ?? 'Assistant is typing…',
+            'theme_switch_to_dark' => $lang['js_theme_switch_to_dark'] ?? 'Switch to dark theme',
+            'theme_switch_to_light' => $lang['js_theme_switch_to_light'] ?? 'Switch to light theme',
             'initial_message_fallback' => $lang['js_initial_message_fallback'] ?? 'Hello! How can I help you?',
             'error_generic' => $lang['js_error_generic'] ?? 'An error occurred. Please try again.',
             'error_reload_page' => $lang['js_error_reload_page'] ?? 'Please reload the page and try again.',

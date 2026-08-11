@@ -3,10 +3,17 @@
  * Simple and reliable implementation following Contao 5 best practices
  */
 
-// Mobile viewport height calculation for accurate 100vh on mobile devices
+// Track the visible mobile viewport. visualViewport shrinks when the software
+// keyboard opens; innerHeight remains the fallback for older browsers.
 function appHeight() {
   const doc = document.documentElement;
-  doc.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+  const viewport = window.visualViewport;
+  const viewportHeight = viewport ? viewport.height : window.innerHeight;
+  const viewportOffsetTop = viewport ? viewport.offsetTop : 0;
+
+  doc.style.setProperty('--vh', (viewportHeight * 0.01) + 'px');
+  doc.style.setProperty('--ai-chat-viewport-height', viewportHeight + 'px');
+  doc.style.setProperty('--ai-chat-viewport-offset-top', viewportOffsetTop + 'px');
 }
 
 // Initialize
@@ -24,6 +31,10 @@ function initAiChat(wrapper) {
   const input = wrapper.querySelector('.ai-chat-input');
   const sendBtn = wrapper.querySelector('.ai-chat-send');
   const log = wrapper.querySelector('.ai-chat-log');
+  const status = wrapper.querySelector('.ai-chat-status');
+  const disclaimerToggleBtn = wrapper.querySelector('.ai-chat-disclaimer-toggle');
+  const disclaimerDialog = wrapper.querySelector('.ai-chat-disclaimer-dialog');
+  const disclaimerCloseBtn = wrapper.querySelector('.ai-chat-disclaimer-close');
 
   if (!container || !form || !input || !log) {
     console.error('AI Chat: Required elements not found');
@@ -36,6 +47,28 @@ function initAiChat(wrapper) {
     position: wrapper.dataset.position || 'right-bottom',
     theme: wrapper.classList.contains('theme-light') ? 'light' : 'dark'
   };
+
+  // One capability rule drives both autofocus and Enter-to-send. Coarse-pointer
+  // devices keep Enter for newlines and never have their software keyboard
+  // forced open; keyboard/fine-pointer desktop behaviour stays unchanged.
+  const keyboardInputMedia = typeof window.matchMedia === 'function'
+    ? window.matchMedia('(hover: hover) and (pointer: fine)')
+    : null;
+  const prefersKeyboardInput = () => keyboardInputMedia
+    ? keyboardInputMedia.matches
+    : window.innerWidth >= 768;
+  const syncEnterKeyHint = () => {
+    input.setAttribute('enterkeyhint', prefersKeyboardInput() ? 'send' : 'enter');
+  };
+
+  syncEnterKeyHint();
+  if (keyboardInputMedia) {
+    if (typeof keyboardInputMedia.addEventListener === 'function') {
+      keyboardInputMedia.addEventListener('change', syncEnterKeyHint);
+    } else if (typeof keyboardInputMedia.addListener === 'function') {
+      keyboardInputMedia.addListener(syncEnterKeyHint);
+    }
+  }
 
   // i18n: read from data-i18n (JSON from server), fallback to German for missing keys
   const i18n = (() => {
@@ -50,6 +83,9 @@ function initAiChat(wrapper) {
     }
     return {
       ai_chat_open: 'AI Chat öffnen',
+      assistant_typing: 'Der Assistent schreibt…',
+      theme_switch_to_dark: 'Zum dunklen Theme wechseln',
+      theme_switch_to_light: 'Zum hellen Theme wechseln',
       initial_message_fallback: 'Hallo! Wie kann ich dir helfen?',
       error_generic: 'Es ist ein Fehler aufgetreten. Bitte erneut versuchen.',
       error_reload_page: 'Bitte lade die Seite neu und versuche es erneut.',
@@ -83,6 +119,12 @@ function initAiChat(wrapper) {
     return;
   }
 
+  // Give custom/legacy templates the same stable disclosure target as the
+  // bundled template.
+  if (!container.id && wrapper.id) {
+    container.id = `${wrapper.id}-panel`;
+  }
+
   // Create toggle button if it doesn't exist
   let toggleButton = toggleBtn;
   if (!toggleButton) {
@@ -90,6 +132,10 @@ function initAiChat(wrapper) {
     toggleButton.type = 'button';
     toggleButton.className = 'ai-chat-toggle';
     toggleButton.setAttribute('aria-label', i18n.ai_chat_open || 'AI Chat öffnen');
+    toggleButton.setAttribute('aria-expanded', 'false');
+    if (container.id) {
+      toggleButton.setAttribute('aria-controls', container.id);
+    }
     toggleButton.setAttribute('data-position', config.position);
     
     // Set initial colors
@@ -104,7 +150,7 @@ function initAiChat(wrapper) {
     }
     
     toggleButton.innerHTML = `
-      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
         <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" fill="currentColor"/>
         <path d="M8 9h8M8 13h6" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
@@ -144,18 +190,24 @@ function initAiChat(wrapper) {
       }
     }
     
-    // Update theme toggle button icon
+    // Update the icon and accessible action name together. The name describes
+    // what activating the button will do, including after restoring a saved theme.
     if (themeToggleBtn) {
       themeToggleBtn.innerHTML = theme === 'light' ? `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor"/>
         </svg>
       ` : `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
           <circle cx="12" cy="12" r="5" fill="currentColor"/>
           <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       `;
+      const actionLabel = theme === 'light'
+        ? (i18n.theme_switch_to_dark || 'Switch to dark theme')
+        : (i18n.theme_switch_to_light || 'Switch to light theme');
+      themeToggleBtn.setAttribute('aria-label', actionLabel);
+      themeToggleBtn.setAttribute('title', actionLabel);
     }
     
     // Store theme preference
@@ -188,26 +240,45 @@ function initAiChat(wrapper) {
   };
 
   // Chat state management
-  const collapse = () => {
-    wrapper.classList.add('ai-chat-collapsed');
+  const focusInputForKeyboardUsers = () => {
+    if (!prefersKeyboardInput()) return;
+
+    // Wait for the opening transition, but re-check state in case the visitor
+    // minimized the panel or opened the disclaimer during that delay.
+    setTimeout(() => {
+      if (!input.disabled
+          && !wrapper.classList.contains('ai-chat-collapsed')
+          && !(disclaimerDialog && disclaimerDialog.classList.contains('show'))) {
+        input.focus();
+      }
+    }, 100);
+  };
+
+  const setCollapsedState = (collapsed) => {
+    wrapper.classList.toggle('ai-chat-collapsed', collapsed);
+    wrapper.setAttribute('aria-hidden', collapsed ? 'true' : 'false');
+    container.toggleAttribute('inert', collapsed);
+
     if (toggleButton) {
-      toggleButton.hidden = false;
-      toggleButton.focus();
+      toggleButton.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      toggleButton.hidden = !collapsed;
     }
   };
 
-  const expand = () => {
-    wrapper.classList.remove('ai-chat-collapsed');
+  const collapse = () => {
+    // Move focus out before aria-hidden/inert are applied; otherwise browsers
+    // may reject aria-hidden because its subtree still owns focus.
     if (toggleButton) {
-      toggleButton.hidden = true;
+      toggleButton.hidden = false;
+      toggleButton.setAttribute('aria-expanded', 'false');
+      toggleButton.focus();
     }
-    // Auto-focus input when expanding the chat (both desktop and mobile)
-    if (input) {
-      // Small delay to ensure DOM transition is complete
-      setTimeout(() => {
-        input.focus();
-      }, 100);
-    }
+    setCollapsedState(true);
+  };
+
+  const expand = () => {
+    setCollapsedState(false);
+    focusInputForKeyboardUsers();
   };
 
   // Initialize chat state based on configuration
@@ -232,42 +303,81 @@ function initAiChat(wrapper) {
     themeToggleBtn.addEventListener('click', toggleTheme);
   }
 
-  // Disclaimer functionality
-  const disclaimerToggleBtn = wrapper.querySelector('.ai-chat-disclaimer-toggle');
-  const disclaimerDialog = wrapper.querySelector('.ai-chat-disclaimer-dialog');
-  const disclaimerCloseBtn = wrapper.querySelector('.ai-chat-disclaimer-close');
+  // Disclaimer functionality. The dialog stays inside the themed wrapper, so
+  // inert every sibling branch between it and <body>. This disables the chat
+  // and the surrounding page without accidentally making the dialog inert too.
+  let disclaimerInertedElements = [];
+  let previousBodyOverflow = '';
+  let bodyScrollLocked = false;
 
-  const showDisclaimer = () => {
-    if (disclaimerDialog) {
-      disclaimerDialog.classList.add('show');
-      disclaimerDialog.setAttribute('aria-hidden', 'false');
-      // Update aria-expanded state
-      if (disclaimerToggleBtn) {
-        disclaimerToggleBtn.setAttribute('aria-expanded', 'true');
-      }
-      // Focus the close button for accessibility
-      if (disclaimerCloseBtn) {
-        disclaimerCloseBtn.focus();
-      }
-      // Prevent body scroll when dialog is open
-      document.body.style.overflow = 'hidden';
+  const inertDisclaimerBackground = () => {
+    if (!disclaimerDialog) return;
+
+    let branch = disclaimerDialog;
+    while (branch.parentElement) {
+      const parent = branch.parentElement;
+      Array.from(parent.children).forEach(sibling => {
+        if (sibling !== branch && !sibling.hasAttribute('inert')) {
+          sibling.setAttribute('inert', '');
+          disclaimerInertedElements.push(sibling);
+        }
+      });
+
+      if (parent === document.body) break;
+      branch = parent;
     }
   };
 
-  const hideDisclaimer = () => {
-    if (disclaimerDialog) {
-      disclaimerDialog.classList.remove('show');
-      disclaimerDialog.setAttribute('aria-hidden', 'true');
-      // Update aria-expanded state
-      if (disclaimerToggleBtn) {
-        disclaimerToggleBtn.setAttribute('aria-expanded', 'false');
-      }
-      // Restore body scroll
-      document.body.style.overflow = '';
-      // Return focus to the disclaimer toggle button
-      if (disclaimerToggleBtn) {
-        disclaimerToggleBtn.focus();
-      }
+  const restoreDisclaimerBackground = () => {
+    disclaimerInertedElements.forEach(element => element.removeAttribute('inert'));
+    disclaimerInertedElements = [];
+  };
+
+  const showDisclaimer = () => {
+    if (!disclaimerDialog || disclaimerDialog.classList.contains('show')) return;
+
+    disclaimerDialog.removeAttribute('inert');
+    disclaimerDialog.classList.add('show');
+    disclaimerDialog.setAttribute('aria-hidden', 'false');
+    if (disclaimerToggleBtn) {
+      disclaimerToggleBtn.setAttribute('aria-expanded', 'true');
+    }
+    if (disclaimerCloseBtn) {
+      disclaimerCloseBtn.focus();
+    }
+    inertDisclaimerBackground();
+
+    previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    bodyScrollLocked = true;
+  };
+
+  const hideDisclaimer = (restoreFocus = true) => {
+    if (!disclaimerDialog) return;
+
+    const wasOpen = disclaimerDialog.classList.contains('show');
+    if (disclaimerToggleBtn) {
+      disclaimerToggleBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    restoreDisclaimerBackground();
+    // A responsive collapse can happen while the modal is open. Preserve that
+    // independent inert state instead of clearing it with the modal background.
+    container.toggleAttribute('inert', wrapper.classList.contains('ai-chat-collapsed'));
+
+    if (restoreFocus && wasOpen && disclaimerToggleBtn && disclaimerToggleBtn.isConnected) {
+      disclaimerToggleBtn.focus();
+    } else if (disclaimerDialog.contains(document.activeElement)
+        && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+
+    disclaimerDialog.classList.remove('show');
+    disclaimerDialog.setAttribute('aria-hidden', 'true');
+    disclaimerDialog.setAttribute('inert', '');
+    if (bodyScrollLocked) {
+      document.body.style.overflow = previousBodyOverflow;
+      bodyScrollLocked = false;
     }
   };
 
@@ -295,29 +405,36 @@ function initAiChat(wrapper) {
       hideDisclaimer();
     }
     
-    // Focus trap for dialog
+    // Focus trap for dialog. inert handles the background; this wrap keeps Tab
+    // movement predictable inside the modal itself.
     if (disclaimerDialog && disclaimerDialog.classList.contains('show') && e.key === 'Tab') {
-      const focusableElements = disclaimerDialog.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
+      const focusableElements = Array.from(disclaimerDialog.querySelectorAll(
+        'button, [href], input, select, textarea, [contenteditable="true"], [tabindex]:not([tabindex="-1"])'
+      )).filter(element => !element.hasAttribute('disabled') && element.getClientRects().length > 0);
+
+      if (focusableElements.length === 0) {
+        e.preventDefault();
+        return;
+      }
+
       const firstElement = focusableElements[0];
       const lastElement = focusableElements[focusableElements.length - 1];
-      
-      if (e.shiftKey) {
-        // Shift + Tab
-        if (document.activeElement === firstElement) {
-          e.preventDefault();
-          lastElement.focus();
-        }
-      } else {
-        // Tab
-        if (document.activeElement === lastElement) {
-          e.preventDefault();
-          firstElement.focus();
-        }
+      const focusIsOutside = !disclaimerDialog.contains(document.activeElement);
+
+      if (e.shiftKey && (document.activeElement === firstElement || focusIsOutside)) {
+        e.preventDefault();
+        lastElement.focus();
+      } else if (!e.shiftKey && (document.activeElement === lastElement || focusIsOutside)) {
+        e.preventDefault();
+        firstElement.focus();
       }
     }
   });
+
+  // Turbo can cache the page while the modal is open. Release every lock before
+  // it snapshots/removes this widget so a later page cannot inherit stuck inert
+  // attributes or body overflow.
+  document.addEventListener('turbo:before-cache', () => hideDisclaimer(false), {once: true});
 
   // Initialize theme
   initializeTheme();
@@ -880,8 +997,20 @@ function initAiChat(wrapper) {
 
   const typing = () => {
     const r = document.createElement('div');
+    const bubble = document.createElement('div');
+    const indicator = document.createElement('div');
+
     r.className = 'ai-chat-message ai-chat-assistant ai-chat-typing';
-    r.innerHTML = '<div class="ai-chat-bubble"><div class="ai-chat-typing-indicator"><span></span><span></span><span></span></div></div>';
+    bubble.className = 'ai-chat-bubble';
+    indicator.className = 'ai-chat-typing-indicator';
+    indicator.setAttribute('aria-hidden', 'true');
+    for (let index = 0; index < 3; index++) {
+      const dot = document.createElement('span');
+      dot.setAttribute('aria-hidden', 'true');
+      indicator.appendChild(dot);
+    }
+    bubble.appendChild(indicator);
+    r.appendChild(bubble);
     log.appendChild(r);
     log.scrollTo({top: log.scrollHeight, behavior: 'smooth'});
     return r;
@@ -895,6 +1024,8 @@ function initAiChat(wrapper) {
     
     inFlight = true;
     input.disabled = true;
+    form.setAttribute('aria-busy', 'true');
+    if (status) status.textContent = i18n.assistant_typing || 'Assistant is typing…';
     if (sendBtn) sendBtn.setAttribute('disabled', '');
     
     addMsg('user', msg, new Date().toISOString());
@@ -971,20 +1102,8 @@ function initAiChat(wrapper) {
         }
       } else if (r.ok && data.reply) {
         addMsg('assistant', data.reply, data.timestamp);
-        // Auto-focus input after bot response (both desktop and mobile)
-        setTimeout(() => {
-          if (input && !input.disabled) {
-            input.focus();
-          }
-        }, 100);
       } else {
         addMsg('assistant', data.error || i18n.error_generic);
-        // Auto-focus input after error response
-        setTimeout(() => {
-          if (input && !input.disabled) {
-            input.focus();
-          }
-        }, 100);
       }
     } catch (e) {
       console.error('Chat error:', e);
@@ -992,17 +1111,15 @@ function initAiChat(wrapper) {
       addMsg('assistant', e.name === 'AbortError'
         ? (i18n.error_timeout || i18n.error_generic)
         : i18n.error_generic);
-      // Auto-focus input after error
-      setTimeout(() => {
-        if (input && !input.disabled) {
-          input.focus();
-        }
-      }, 100);
     } finally {
       clearTimeout(abortTimer);
+      tRow.remove();
       input.disabled = false;
+      form.setAttribute('aria-busy', 'false');
+      if (status) status.textContent = '';
       if (sendBtn) sendBtn.removeAttribute('disabled');
       inFlight = false;
+      focusInputForKeyboardUsers();
     }
   });
 
@@ -1013,7 +1130,7 @@ function initAiChat(wrapper) {
   });
 
   input.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && prefersKeyboardInput()) {
       e.preventDefault();
       if (sendBtn) sendBtn.click();
     }
@@ -1033,11 +1150,16 @@ function initAiChat(wrapper) {
   let lastWindowWidth = window.innerWidth;
   window.addEventListener('resize', () => {
     const currentWidth = window.innerWidth;
+    syncEnterKeyHint();
     const wasDesktop = lastWindowWidth >= 768;
     const isMobile = currentWidth < 768;
     
-    // If transitioning from desktop to mobile and chat is expanded, collapse it
+    // If transitioning from desktop to mobile and chat is expanded, close the
+    // modal first so its inert background/focus lock is fully released.
     if (wasDesktop && isMobile && !wrapper.classList.contains('ai-chat-collapsed')) {
+      if (disclaimerDialog && disclaimerDialog.classList.contains('show')) {
+        hideDisclaimer(false);
+      }
       collapse();
     }
     
@@ -1062,6 +1184,10 @@ function initAiChat(wrapper) {
   // Re-init after Turbo-driven page transitions (Contao 5.7+).
   document.addEventListener('turbo:load', initAllAiChats);
   
-  // Handle viewport height changes (for mobile browsers)
+  // Handle viewport height changes (for mobile browsers and soft keyboards).
   window.addEventListener('resize', appHeight);
   window.addEventListener('orientationchange', appHeight);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', appHeight);
+    window.visualViewport.addEventListener('scroll', appHeight);
+  }
