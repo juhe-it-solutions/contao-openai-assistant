@@ -16,6 +16,7 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Service;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreFileSync;
 use JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Fixtures\SleeplessVectorStoreFileSync;
+use JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Fixtures\TwoChunkVectorStoreFileSync;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -728,7 +729,7 @@ class VectorStoreFileSyncTest extends TestCase
      * success on a row later runs would never revisit.
      */
     #[DataProvider('provideInconclusiveIngestionResponses')]
-    public function testInconclusiveIngestionIsRecordedAsProcessing(callable $ingestionResponse): void
+    public function testInconclusiveIngestionKeepsThePreviousStateAndRollsBackTheCandidate(callable $ingestionResponse): void
     {
         $rows = [];
         $connection = $this->createConnection($rows);
@@ -754,8 +755,10 @@ class VectorStoreFileSyncTest extends TestCase
             [$this->page('new content')],
         );
 
-        $this->assertSame(0, $stats['files_failed'], 'The file is attached; only its ingestion is unconfirmed.');
-        $this->assertSame('processing', $rows[0]['status']);
+        $this->assertSame(1, $stats['files_failed'], 'Unconfirmed ingestion is not a usable replacement.');
+        $this->assertCount(1, $rows, 'The failed state keeps the page retryable on the next run.');
+        $this->assertSame('failed', $rows[0]['status']);
+        $this->assertSame('', $rows[0]['openai_file_id'], 'The rolled-back remote candidate must not be tracked as live.');
     }
 
     /**
@@ -774,7 +777,7 @@ class VectorStoreFileSyncTest extends TestCase
      * A file still ingesting when the wait budget expires is attached and will probably
      * finish - but "probably" is not a state to store as done.
      */
-    public function testAFileStillIngestingAtTheDeadlineIsRecordedAsProcessing(): void
+    public function testAFileStillIngestingAtTheDeadlineIsRolledBackForRetry(): void
     {
         $rows = [];
         $connection = $this->createConnection($rows);
@@ -796,9 +799,86 @@ class VectorStoreFileSyncTest extends TestCase
         $sync = new SleeplessVectorStoreFileSync($connection, $client, new NullLogger());
         $stats = $sync->sync('sk-test', 'vs_123', 7, [$this->page('new content')]);
 
-        $this->assertSame(0, $stats['files_failed']);
-        $this->assertSame('processing', $rows[0]['status']);
+        $this->assertSame(1, $stats['files_failed']);
+        $this->assertCount(1, $rows, 'The failed state makes the page retryable.');
+        $this->assertSame('failed', $rows[0]['status']);
+        $this->assertSame('', $rows[0]['openai_file_id'], 'The unconfirmed remote candidate was rolled back.');
         $this->assertNotSame([], $sync->pauses, 'It must actually have polled while waiting.');
+    }
+
+    public function testAnUnconfirmedReplacementNeverDeletesTheWorkingRevision(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+        $this->insertVectorFile($rows, 'working_file', hash('sha256', 'old content'), 'uploaded');
+
+        $client = new MockHttpClient(
+            static function (string $method, string $url): MockResponse {
+                if ('POST' === $method && 'https://api.openai.com/v1/files' === $url) {
+                    return new MockResponse('{"id":"candidate_file"}');
+                }
+
+                if ('GET' === $method) {
+                    return new MockResponse('{"status":"in_progress"}');
+                }
+
+                return new MockResponse('{}');
+            },
+        );
+
+        $stats = (new SleeplessVectorStoreFileSync($connection, $client, new NullLogger()))->sync(
+            'sk-test',
+            'vs_123',
+            7,
+            [$this->page('changed content')],
+        );
+
+        $this->assertSame(1, $stats['files_failed']);
+        $this->assertSame(['working_file'], array_column($rows, 'openai_file_id'));
+        $this->assertSame('uploaded', $rows[0]['status']);
+    }
+
+    public function testAPartialMultiChunkFailureDoesNotCountRolledBackUploads(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+        $uploads = 0;
+
+        $client = new MockHttpClient(
+            static function (string $method, string $url) use (&$uploads): MockResponse {
+                if ('POST' === $method && 'https://api.openai.com/v1/files' === $url) {
+                    ++$uploads;
+
+                    return new MockResponse('{"id":"candidate_'.$uploads.'"}');
+                }
+
+                if ('GET' === $method) {
+                    // First chunk confirms; second chunk stays unconfirmed so the page rolls back.
+                    return new MockResponse(
+                        '{"status":"'.(str_contains($url, 'candidate_1') ? 'completed' : 'in_progress').'"}',
+                    );
+                }
+
+                return new MockResponse('{}', ['http_code' => 200]);
+            },
+        );
+
+        $stats = (new TwoChunkVectorStoreFileSync($connection, $client, new NullLogger()))->sync(
+            'sk-test',
+            'vs_123',
+            7,
+            [$this->page('new content')],
+        );
+
+        $this->assertSame(2, $uploads, 'Both chunks must have been attempted.');
+        $this->assertSame(1, $stats['files_failed']);
+        $this->assertSame(0, $stats['files_uploaded'], 'Rolled-back chunks must not appear as successful uploads.');
+        $this->assertSame(0, $stats['bytes']);
+        $this->assertSame(
+            [],
+            array_values(array_filter(array_column($rows, 'openai_file_id'))),
+            'No live OpenAI file id may remain after the partial page is rolled back.',
+        );
     }
 
     /**
