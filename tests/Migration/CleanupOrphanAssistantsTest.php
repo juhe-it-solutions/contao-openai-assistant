@@ -15,6 +15,7 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Migration;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Migration\Version20260416000001CleanupOrphanAssistants;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -27,9 +28,7 @@ use Symfony\Component\HttpClient\Response\MockResponse;
  */
 class CleanupOrphanAssistantsTest extends TestCase
 {
-    /**
-     * @dataProvider provideConclusiveOutcomes
-     */
+    #[DataProvider('provideConclusiveOutcomes')]
     public function testAConclusiveOutcomeClearsTheReference(int $httpStatus): void
     {
         $cleared = [];
@@ -53,9 +52,7 @@ class CleanupOrphanAssistantsTest extends TestCase
         yield 'gone permanently' => [410];
     }
 
-    /**
-     * @dataProvider provideInconclusiveOutcomes
-     */
+    #[DataProvider('provideInconclusiveOutcomes')]
     public function testAnInconclusiveOutcomeKeepsTheReferenceForTheNextRun(MockResponse $response): void
     {
         $cleared = [];

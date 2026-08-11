@@ -14,6 +14,7 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Service;
 
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\ChatRateLimiter;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
@@ -272,9 +273,8 @@ class ChatRateLimiterTest extends TestCase
      * not exist. The cap has to keep working on its own, because nothing else books against
      * the cache window any more - a fallback that only CHECKED would answer "budget left" to
      * every request forever and silently switch the daily cost ceiling off.
-     *
-     * @dataProvider provideUnusableConnections
      */
+    #[DataProvider('provideUnusableConnections')]
     public function testTheCapStillHoldsWithoutTheBudgetTable(Connection|null $connection): void
     {
         $limiter = new ChatRateLimiter(new ArrayAdapter(), $connection);
