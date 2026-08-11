@@ -434,7 +434,14 @@ class OpenAiResponder
      */
     private function secondsLeft(float $deadline): int
     {
-        return max(self::MIN_ATTEMPT_SECONDS, (int) ceil($deadline - microtime(true)));
+        // floor, not ceil, and clamped to the budget. A Unix timestamp plus 110 does not land
+        // on an exactly representable double, and the rounding can go UP - so ceil() handed
+        // out 111 seconds against a 110-second budget on the very first attempt. One second
+        // is harmless in itself; a deadline that quietly exceeds its own bound is not, since
+        // being strictly below the browser is the entire point of it.
+        $left = (int) floor($deadline - microtime(true));
+
+        return max(self::MIN_ATTEMPT_SECONDS, min(self::RESPONSE_TIMEOUT, $left));
     }
 
     /**
@@ -518,8 +525,12 @@ class OpenAiResponder
                 // reject with a param-specific 400; strip the parameter, remember
                 // the rejection for this model and repeat. Bounded by the number
                 // of strippable parameters in the payload.
+                // The budget guard applies here too, or the exact bound the deadline exists to
+                // give would be "110 seconds plus one more attempt". In practice this never
+                // bites: a rejected parameter is a validation error OpenAI returns at once, so
+                // the budget is still almost untouched when we get here.
                 $rejectedParam = $this->detectRejectedSamplingParam($statusCode, $data, $error);
-                if (null !== $rejectedParam && \array_key_exists($rejectedParam, $payload)) {
+                if (null !== $rejectedParam && \array_key_exists($rejectedParam, $payload) && $this->canRetryWithin($deadline)) {
                     unset($payload[$rejectedParam]);
                     $this->rememberRejectedParam($modelToUse, $rejectedParam);
                     $this->logger->info(
