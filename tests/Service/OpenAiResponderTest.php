@@ -405,16 +405,52 @@ class OpenAiResponderTest extends TestCase
         $this->assertCount(2, $attempts, 'The transient failure must have been retried once.');
 
         // The budget is a wall-clock deadline, not an allowance handed out per attempt, so
-        // what has to hold is that no attempt may run past it and the retry draws from what
-        // the first attempt (and the backoff between them) left.
+        // no attempt may run past it and the retry must never be granted more than the one
+        // before it. Both hold whatever the machine's timing does; the exact number of
+        // seconds does not, which is why it is pinned separately below.
         foreach ($attempts as $attempt) {
             $this->assertLessThanOrEqual($budget, $attempt['max_duration']);
         }
 
-        $this->assertLessThan(
+        $this->assertLessThanOrEqual(
             $attempts[0]['max_duration'],
             $attempts[1]['max_duration'],
             'The retry must inherit the remaining time, not start the budget over.',
+        );
+    }
+
+    /**
+     * The arithmetic itself, with the clock supplied rather than observed.
+     *
+     * Asserting exact second counts against a real deadline is timing-dependent - the same
+     * assertion passed alone and failed inside the full suite - so the two boundaries that
+     * actually carry the guarantee are pinned here instead.
+     */
+    public function testTheAttemptBudgetIsClampedAtBothEnds(): void
+    {
+        $responder = $this->createResponder(new MockHttpClient(), []);
+
+        $secondsLeft = new \ReflectionMethod(OpenAiResponder::class, 'secondsLeft');
+        $secondsLeft->setAccessible(true);
+
+        $budget = (new \ReflectionClassConstant(OpenAiResponder::class, 'RESPONSE_TIMEOUT'))->getValue();
+        $floor = (new \ReflectionClassConstant(OpenAiResponder::class, 'MIN_ATTEMPT_SECONDS'))->getValue();
+
+        // A deadline far in the future must still never grant more than the budget. This is
+        // the bug the clamp exists for: a Unix timestamp plus 110 is not exactly
+        // representable as a double, and the rounding handed out 111 seconds.
+        $this->assertSame(
+            $budget,
+            $secondsLeft->invoke($responder, microtime(true) + 10_000.0),
+            'No attempt may ever be granted more than the whole budget.',
+        );
+
+        // A deadline already past still leaves a usable attempt rather than a zero or
+        // negative timeout, which the HTTP client would reject.
+        $this->assertSame(
+            $floor,
+            $secondsLeft->invoke($responder, microtime(true) - 500.0),
+            'An overrun budget falls back to the minimum attempt, not to nothing.',
         );
     }
 

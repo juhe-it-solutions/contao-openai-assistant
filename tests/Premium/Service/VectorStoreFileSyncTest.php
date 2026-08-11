@@ -16,6 +16,7 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Service;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreFileSync;
 use JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Fixtures\SleeplessVectorStoreFileSync;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -399,9 +400,8 @@ class VectorStoreFileSyncTest extends TestCase
      * or deleted. If OpenAI does not confirm the deletion, the document is still attached to
      * the store and still answering visitors - so the row must survive as the retry handle,
      * and the run must not claim the page was removed.
-     *
-     * @dataProvider provideUnconfirmedDeletionResponses
      */
+    #[DataProvider('provideUnconfirmedDeletionResponses')]
     public function testAnUnconfirmedDeletionKeepsTheFileTrackedForRetry(callable $respond, int $expectedRequests): void
     {
         $rows = [];
@@ -566,9 +566,8 @@ class VectorStoreFileSyncTest extends TestCase
      * The first v2.2 sync of an existing premium installation. The legacy bulk file is the
      * only knowledge base the site has until the per-page documents exist, so it must not be
      * deleted before they do.
-     *
-     * @dataProvider provideLegacyTransitionFailures
      */
+    #[DataProvider('provideLegacyTransitionFailures')]
     public function testTheLegacyBulkFileSurvivesAFailedFirstSync(callable $client): void
     {
         $rows = [];
@@ -727,9 +726,8 @@ class VectorStoreFileSyncTest extends TestCase
      * An OpenAI error body carries {"error": ...} and no "status" key. Defaulting a missing
      * status to "completed" meant every failed status check was recorded as a permanent
      * success on a row later runs would never revisit.
-     *
-     * @dataProvider provideInconclusiveIngestionResponses
      */
+    #[DataProvider('provideInconclusiveIngestionResponses')]
     public function testInconclusiveIngestionIsRecordedAsProcessing(callable $ingestionResponse): void
     {
         $rows = [];

@@ -19,6 +19,7 @@ use JuheItSolutions\ContaoOpenaiAssistant\Exception\UnbilledRequestException;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\ChatRateLimiter;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiResponder;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\HttpFoundation\Request;
@@ -154,9 +155,8 @@ class AiChatControllerTest extends TestCase
     /**
      * Accept-Language is an ordered preference list, so only the first tag may decide.
      * A German entry ranked below English is a fallback, not a request for German.
-     *
-     * @dataProvider provideAcceptLanguageHeaders
      */
+    #[DataProvider('provideAcceptLanguageHeaders')]
     public function testAnswersInTheVisitorsFirstRankedLanguage(string $header, string $expected): void
     {
         $responder = $this->createMock(OpenAiResponder::class);
