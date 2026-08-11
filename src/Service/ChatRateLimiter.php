@@ -23,15 +23,22 @@ use Symfony\Component\RateLimiter\Storage\CacheStorage;
  *
  * The frontend chat is _allow_anonymous and spends the site owner's OpenAI credits on
  * every message, so a per-session throttle alone (bypassable by dropping the session
- * cookie) is not enough. Two independent, cache-backed limiters bound the worst case:
+ * cookie) is not enough. Two independent limiters bound the worst case:
  *
- *   - a per-client-IP sliding window (stops trivial scripted bursts), and
- *   - a per-configuration fixed daily window (an absolute ceiling on how many
- *     completions one config can spend in a day, surviving a distributed attack).
+ *   - a per-client-IP sliding window (stops trivial scripted bursts), held in the shared
+ *     application cache (cache.app) so it survives across web workers, and
+ *   - a per-configuration daily ceiling on how many completions one config can spend in a
+ *     day, which is what bounds the cost of a distributed attack.
  *
- * State lives in the shared application cache (cache.app), so limits hold across web
- * workers and requests. Both limiters fail closed only on their own key: exhausting one
- * IP or one config never affects another.
+ * The two use different storage on purpose. The IP window only ever needs to answer "too
+ * many, too fast", which a cache answers well. The daily ceiling has to be RESERVED before
+ * the paid call and given back when that call provably never reached OpenAI, and Symfony's
+ * fixed-window limiter offers no reserve-and-release - so it is a counter this bundle owns,
+ * in tl_openai_chat_budget. The cache limiter remains as the fallback for installations
+ * that have not run contao:migrate yet.
+ *
+ * Both limiters fail closed only on their own key: exhausting one IP or one config never
+ * affects another.
  */
 class ChatRateLimiter
 {
@@ -128,14 +135,12 @@ class ChatRateLimiter
         }
 
         if (null === $this->connection) {
-            // No database wired (unit tests, or a caller that only uses the IP limiter):
-            // fall back to the cache limiter's non-atomic check rather than failing open.
-            return $this->hasConfigDailyBudget($configId, $dailyLimit);
+            return $this->reserveWithoutTable($configId, $dailyLimit);
         }
 
-        try {
-            $day = $this->today();
+        $day = $this->today();
 
+        try {
             // INSERT IGNORE, so a race to create the row cannot fail the request; the unique
             // key on (pid, day) makes at most one of them win and the rest are no-ops.
             $this->connection->executeStatement(
@@ -147,19 +152,21 @@ class ChatRateLimiter
                 'UPDATE tl_openai_chat_budget SET spent = spent + 1, tstamp = ? WHERE pid = ? AND day = ? AND spent < ?',
                 [time(), $configId, $day, $dailyLimit],
             );
-
-            if ($granted > 0) {
-                $this->pruneOldBudgetRows($day);
-            }
-
-            return $granted > 0;
         } catch (\Throwable) {
             // The table is missing (bundle updated without contao:migrate) or the database is
-            // unreachable. Degrade to the previous, non-atomic behaviour rather than taking
-            // the chat offline: a bounded overshoot beats a dead endpoint on every install
-            // that has not migrated yet.
-            return $this->hasConfigDailyBudget($configId, $dailyLimit);
+            // unreachable. Degrade rather than taking the chat offline.
+            return $this->reserveWithoutTable($configId, $dailyLimit);
         }
+
+        // Housekeeping is deliberately OUTSIDE the try above: a failure in it must never be
+        // mistaken for a failed reservation. The slot is already booked at this point, and
+        // falling through to the cache fallback would book a second one and answer with the
+        // wrong verdict.
+        if ($granted > 0) {
+            $this->pruneOldBudgetRows($day);
+        }
+
+        return $granted > 0;
     }
 
     /**
@@ -216,6 +223,25 @@ class ChatRateLimiter
         }
 
         $this->dailyLimiter($configId, $dailyLimit)->consume(1);
+    }
+
+    /**
+     * The fallback when the budget table cannot be used.
+     *
+     * This BOOKS a message rather than only checking for one. Checking alone was a real
+     * regression while it lasted: nothing else consumes the cache window any more, so an
+     * installation that had deployed the code but not yet run contao:migrate would have
+     * answered "budget left" to every request for the rest of time - the daily cost ceiling
+     * silently switched off during exactly the upgrade window it is needed in.
+     *
+     * The cost of booking here is that a failure which never reached OpenAI still spends a
+     * message, because Symfony's fixed-window limiter cannot give one back. That is the
+     * lesser evil: a ceiling that is one message stricter than it should be, versus no
+     * ceiling at all. It applies only until contao:migrate creates the table.
+     */
+    private function reserveWithoutTable(int $configId, int $dailyLimit): bool
+    {
+        return $this->acceptConfigDaily($configId, $dailyLimit);
     }
 
     /**

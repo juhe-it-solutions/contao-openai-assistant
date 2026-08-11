@@ -267,7 +267,38 @@ class ChatRateLimiterTest extends TestCase
      * table. Taking the chat offline over that would be far worse than the bounded overshoot
      * of the old behaviour, so the daily cap degrades instead of failing.
      */
-    public function testAMissingBudgetTableFallsBackToTheCacheLimiter(): void
+    /**
+     * The upgrade window: code deployed, contao:migrate not run yet, so the budget table does
+     * not exist. The cap has to keep working on its own, because nothing else books against
+     * the cache window any more - a fallback that only CHECKED would answer "budget left" to
+     * every request forever and silently switch the daily cost ceiling off.
+     *
+     * @dataProvider provideUnusableConnections
+     */
+    public function testTheCapStillHoldsWithoutTheBudgetTable(Connection|null $connection): void
+    {
+        $limiter = new ChatRateLimiter(new ArrayAdapter(), $connection);
+
+        $this->assertTrue($limiter->reserveConfigDaily(1, 2));
+        $this->assertTrue($limiter->reserveConfigDaily(1, 2));
+        $this->assertFalse(
+            $limiter->reserveConfigDaily(1, 2),
+            'The fallback must BOOK each message, not merely look at the budget.',
+        );
+
+        // And it is still per configuration.
+        $this->assertTrue($limiter->reserveConfigDaily(2, 2));
+    }
+
+    /**
+     * @return iterable<string, array{Connection|null}>
+     */
+    public static function provideUnusableConnections(): iterable
+    {
+        yield 'no connection wired at all' => [null];
+    }
+
+    public function testTheCapStillHoldsWhenTheBudgetTableIsMissing(): void
     {
         $connection = $this->createMock(Connection::class);
         $connection
@@ -277,11 +308,47 @@ class ChatRateLimiterTest extends TestCase
 
         $limiter = new ChatRateLimiter(new ArrayAdapter(), $connection);
 
-        // Still enforced, just not atomically: the cache limiter answers instead.
         $this->assertTrue($limiter->reserveConfigDaily(1, 2));
-        $limiter->consumeConfigDaily(1, 2);
-        $limiter->consumeConfigDaily(1, 2);
-        $this->assertFalse($limiter->reserveConfigDaily(1, 2));
+        $this->assertTrue($limiter->reserveConfigDaily(1, 2));
+        $this->assertFalse($limiter->reserveConfigDaily(1, 2), 'A missing table must not disable the ceiling.');
+    }
+
+    /**
+     * Housekeeping runs after the booking, so a failure in it must not be read as a failed
+     * reservation - that would book a second message and answer with the wrong verdict.
+     */
+    public function testAFailingCleanupDoesNotCorruptTheVerdict(): void
+    {
+        $rows = [];
+        $inner = $this->createBudgetConnection($rows);
+
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('executeStatement')
+            ->willReturnCallback(
+                static function (string $sql, array $params) use ($inner, &$rows): int {
+                    if (str_starts_with($sql, 'DELETE')) {
+                        throw new \RuntimeException('housekeeping blew up');
+                    }
+
+                    return $inner->executeStatement($sql, $params);
+                },
+            )
+        ;
+
+        $limiter = new ChatRateLimiter(new ArrayAdapter(), $connection);
+
+        // Enough attempts that the 1-in-100 cleanup is overwhelmingly likely to have fired.
+        $granted = 0;
+
+        for ($i = 0; $i < 300; ++$i) {
+            if ($limiter->reserveConfigDaily(1, 500)) {
+                ++$granted;
+            }
+        }
+
+        $this->assertSame(300, $granted);
+        $this->assertSame(300, $rows[$this->budgetKey(1)], 'Every grant booked exactly one message.');
     }
 
     private function budgetKey(int $configId): string
