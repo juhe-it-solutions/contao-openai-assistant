@@ -18,7 +18,9 @@ The frontend chatbot endpoint (`POST /ai-chat/send`) is public and anonymous, an
 
    The slot is reserved **before** the OpenAI call, in a single conditional database update against `tl_openai_chat_budget`, so the ceiling holds even when many requests arrive at the same instant: exactly one request can take the last slot, however many ask for it together. A reserved slot is handed back only when the call provably never reached OpenAI (the connection failed before delivery, OpenAI rejected it with a 429 or 503, or the request failed before it was ever made). This is what keeps a wrong API key or an OpenAI outage from burning the day's budget on requests that never cost anything.
 
-   The counter lives in `tl_openai_chat_budget`, which `contao:migrate` creates. Until that migration has run, the cap falls back to a cache-backed check that is still enforced but not atomic, so a burst arriving at the same moment can overshoot it by roughly the number of simultaneous requests.
+   The counter lives in `tl_openai_chat_budget`, which `contao:migrate` creates. Until that migration has run, the cap falls back to the cache-backed counter, which still enforces the limit but is not atomic, so a burst arriving at the same moment can overshoot it by roughly the number of simultaneous requests.
+
+   **When it resets:** at midnight UTC, on a fixed calendar day. For Central European time that is 01:00 local in winter and 02:00 in summer. The reset is the same instant on every web server of an installation, which a rolling window would not be.
 
 The CSRF token endpoint (`GET /ai-chat/token`) additionally allows at most one token request per 10 seconds per session.
 
