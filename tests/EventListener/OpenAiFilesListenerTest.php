@@ -21,6 +21,7 @@ use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\HttpClient\MockHttpClient;
+use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -73,6 +74,70 @@ class OpenAiFilesListenerTest extends TestCase
         );
     }
 
+    /**
+     * A Files API upload can succeed while the vector-store attachment fails, and File Search
+     * cannot use an unattached document. The failure therefore has to reach the caller, which
+     * records the row as failed - previously it was swallowed, and the back end announced
+     * "File uploaded successfully" next to the attachment error on the same screen.
+     */
+    public function testAFailedVectorStoreAttachmentIsReportedToTheCaller(): void
+    {
+        $requests = [];
+        $client = new MockHttpClient(
+            static function (string $method, string $url) use (&$requests): MockResponse {
+                $requests[] = $method.' '.$url;
+
+                if ('POST' === $method) {
+                    return new MockResponse('{"error":{"message":"vector store is full"}}', ['http_code' => 500]);
+                }
+
+                return new MockResponse('{"deleted":true}');
+            },
+        );
+
+        $listener = $this->createListener($this->createMock(Connection::class), null, $client);
+
+        $method = new \ReflectionMethod(OpenAiFilesListener::class, 'addFileToVectorStore');
+        $method->setAccessible(true);
+
+        try {
+            $method->invoke($listener, 'sk-test', 'vs_123', 'file_abc');
+            $this->fail('The attachment failure must not be swallowed.');
+        } catch (\Exception) {
+            // Expected: the outer upload handler records the row as failed.
+        }
+
+        $this->assertSame(
+            [
+                'POST https://api.openai.com/v1/vector_stores/vs_123/files',
+                'DELETE https://api.openai.com/v1/files/file_abc',
+            ],
+            $requests,
+            'The unattached file is billed storage no search can reach, so it must be cleaned up.',
+        );
+    }
+
+    /**
+     * Cleanup is best effort: the upload has already failed, and a second failure must not
+     * replace the real error with one about the cleanup.
+     */
+    public function testAFailedOrphanCleanupStillReportsTheAttachmentFailure(): void
+    {
+        $client = new MockHttpClient(
+            static fn (string $method): MockResponse => 'POST' === $method
+                ? new MockResponse('{"error":{"message":"nope"}}', ['http_code' => 500])
+                : new MockResponse('', ['error' => 'connection reset']),
+        );
+
+        $listener = $this->createListener($this->createMock(Connection::class), null, $client);
+
+        $method = new \ReflectionMethod(OpenAiFilesListener::class, 'addFileToVectorStore');
+        $method->setAccessible(true);
+
+        $this->expectException(\Exception::class);
+        $method->invoke($listener, 'sk-test', 'vs_123', 'file_abc');
+    }
+
     private function invokeResolveParentConfigId(OpenAiFilesListener $listener, DataContainer|null $dc): int|null
     {
         $method = new \ReflectionMethod(OpenAiFilesListener::class, 'resolveParentConfigId');
@@ -81,10 +146,10 @@ class OpenAiFilesListenerTest extends TestCase
         return $method->invoke($listener, $dc);
     }
 
-    private function createListener(Connection $connection, RequestStack|null $requestStack = null): OpenAiFilesListener
+    private function createListener(Connection $connection, RequestStack|null $requestStack = null, MockHttpClient|null $client = null): OpenAiFilesListener
     {
         return new OpenAiFilesListener(
-            new MockHttpClient(),
+            $client ?? new MockHttpClient(),
             '/tmp/project',
             new NullLogger(),
             $this->createMock(OpenAiConfigListener::class),

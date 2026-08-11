@@ -223,6 +223,35 @@ class OpenAiFilesListener
                     ],
                 );
 
+                // Attach BEFORE anything is recorded or reported as successful.
+                //
+                // A Files API upload can succeed while the vector-store attachment fails, and
+                // File Search cannot use a document that is not attached. Writing "uploaded"
+                // first meant the back end showed a success confirmation and a green row for
+                // a file the chatbot could never read - next to the attachment error, on the
+                // same screen. Attachment failure now throws to the outer handler, which
+                // records the row as failed and reports one coherent outcome.
+                if ($vectorStoreId) {
+                    $this->logger->debug(
+                        'Adding file to vector store',
+                        [
+                            'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
+                            'vector_store_id' => $vectorStoreId,
+                            'openai_file_id' => $result['id'],
+                        ],
+                    );
+
+                    $this->addFileToVectorStore($apiKey, $vectorStoreId, $result['id']);
+                } else {
+                    $this->logger->warning(
+                        'No vector store ID found, skipping vector store addition',
+                        [
+                            'contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR),
+                            'config_id' => $dc->activeRecord->pid,
+                        ],
+                    );
+                }
+
                 // For the first file, update the current record
                 if (!$currentRecordProcessed) {
                     $this->connection->executeQuery(
@@ -269,30 +298,6 @@ class OpenAiFilesListener
                             'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
                             'parent_id' => $dc->activeRecord->pid,
                             'filename' => $originalFilename,
-                        ],
-                    );
-                }
-
-                // Add file to vector store if available
-                if ($vectorStoreId) {
-                    $this->logger->debug(
-                        'Adding file to vector store',
-                        [
-                            'contao' => new ContaoContext(__METHOD__, ContaoContext::GENERAL),
-                            'vector_store_id' => $vectorStoreId,
-                            'openai_file_id' => $result['id'],
-                        ],
-                    );
-
-                    if ($vectorStoreId) {
-                        $this->addFileToVectorStore($apiKey, $vectorStoreId, $result['id']);
-                    }
-                } else {
-                    $this->logger->warning(
-                        'No vector store ID found, skipping vector store addition',
-                        [
-                            'contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR),
-                            'config_id' => $dc->activeRecord->pid,
                         ],
                     );
                 }
@@ -696,7 +701,6 @@ class OpenAiFilesListener
         } catch (\Exception $e) {
             $errorMessage = 'Failed to add file to vector store: '.$e->getMessage();
             $errorCode = $e->getCode();
-            Message::addError($errorMessage);
 
             $this->logger->error($errorMessage, [
                 'contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR),
@@ -706,6 +710,41 @@ class OpenAiFilesListener
                 'exception_code' => $errorCode,
                 'exception_trace' => $e->getTraceAsString(),
             ]);
+
+            // The file exists in the Files API but is attached to nothing, so it is billed
+            // storage that no search can ever reach. Best effort, because the upload itself
+            // has already failed as far as the caller is concerned.
+            $this->deleteOrphanedFile($apiKey, $fileId);
+
+            // Rethrown, not swallowed: "uploaded and attached" is one operation from the
+            // application's point of view, and the caller must not record or announce a
+            // success for a document File Search cannot use.
+            throw $e;
+        }
+    }
+
+    /**
+     * Remove a file that was uploaded but could not be attached to the vector store.
+     */
+    private function deleteOrphanedFile(string $apiKey, string $fileId): void
+    {
+        try {
+            $this->httpClient->request(
+                'DELETE',
+                'https://api.openai.com/v1/files/'.$fileId,
+                [
+                    'headers' => ['Authorization' => 'Bearer '.$apiKey],
+                    'timeout' => 30,
+                ],
+            )->getStatusCode();
+        } catch (\Exception $e) {
+            $this->logger->warning(
+                'Could not remove the unattached file from OpenAI; it must be deleted manually in the OpenAI platform dashboard: '.$e->getMessage(),
+                [
+                    'contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR),
+                    'file_id' => $fileId,
+                ],
+            );
         }
     }
 
