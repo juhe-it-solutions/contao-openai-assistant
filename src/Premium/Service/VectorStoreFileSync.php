@@ -488,6 +488,48 @@ class VectorStoreFileSync
     }
 
     /**
+     * Split only if a page exceeds the safety ceiling - at paragraph boundaries, never
+     * mid-content. Returns at least one chunk.
+     *
+     * Protected so tests can force a multi-chunk page without building a multi-megabyte
+     * string - the rollback/counter contract depends on that shape.
+     *
+     * @return list<string>
+     */
+    protected function splitContent(string $content): array
+    {
+        if (mb_strlen($content) <= self::MAX_FILE_CHARS) {
+            return [$content];
+        }
+
+        $paragraphs = preg_split('/\n{2,}/', $content) ?: [$content];
+        $chunks = [];
+        $buffer = '';
+
+        foreach ($paragraphs as $paragraph) {
+            if ('' !== $buffer && mb_strlen($buffer) + mb_strlen($paragraph) + 2 > self::MAX_FILE_CHARS) {
+                $chunks[] = $buffer;
+                $buffer = '';
+            }
+
+            // A single paragraph larger than the ceiling is hard-split as a last resort -
+            // still no content loss, just a mechanical cut.
+            while (mb_strlen($paragraph) > self::MAX_FILE_CHARS) {
+                $chunks[] = mb_substr($paragraph, 0, self::MAX_FILE_CHARS);
+                $paragraph = mb_substr($paragraph, self::MAX_FILE_CHARS);
+            }
+
+            $buffer = '' === $buffer ? $paragraph : $buffer."\n\n".$paragraph;
+        }
+
+        if ('' !== $buffer) {
+            $chunks[] = $buffer;
+        }
+
+        return $chunks;
+    }
+
+    /**
      * Detach and delete every file tracked for one page, then drop its rows.
      *
      * @param list<string> $files
@@ -677,48 +719,6 @@ class VectorStoreFileSync
         // The source URL is kept inline so retrieved chunks can be cited, and also stored as
         // a file attribute for attribute-filtered search.
         return $heading."\n\nQuelle: ".$page['url']."\n\n".$chunk;
-    }
-
-    /**
-     * Split only if a page exceeds the safety ceiling - at paragraph boundaries, never
-     * mid-content. Returns at least one chunk.
-     *
-     * Protected so tests can force a multi-chunk page without building a multi-megabyte
-     * string - the rollback/counter contract depends on that shape.
-     *
-     * @return list<string>
-     */
-    protected function splitContent(string $content): array
-    {
-        if (mb_strlen($content) <= self::MAX_FILE_CHARS) {
-            return [$content];
-        }
-
-        $paragraphs = preg_split('/\n{2,}/', $content) ?: [$content];
-        $chunks = [];
-        $buffer = '';
-
-        foreach ($paragraphs as $paragraph) {
-            if ('' !== $buffer && mb_strlen($buffer) + mb_strlen($paragraph) + 2 > self::MAX_FILE_CHARS) {
-                $chunks[] = $buffer;
-                $buffer = '';
-            }
-
-            // A single paragraph larger than the ceiling is hard-split as a last resort -
-            // still no content loss, just a mechanical cut.
-            while (mb_strlen($paragraph) > self::MAX_FILE_CHARS) {
-                $chunks[] = mb_substr($paragraph, 0, self::MAX_FILE_CHARS);
-                $paragraph = mb_substr($paragraph, self::MAX_FILE_CHARS);
-            }
-
-            $buffer = '' === $buffer ? $paragraph : $buffer."\n\n".$paragraph;
-        }
-
-        if ('' !== $buffer) {
-            $chunks[] = $buffer;
-        }
-
-        return $chunks;
     }
 
     /**
