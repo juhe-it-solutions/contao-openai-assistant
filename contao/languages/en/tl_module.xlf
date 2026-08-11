@@ -43,24 +43,24 @@
                 <target>Chat Title</target>
             </trans-unit>
             <trans-unit id="tl_module.chat_title.1">
-                <source>Title displayed in the chat widget header. HTML for text formatting is allowed (e.g. &lt;strong&gt;, &lt;br&gt;, &lt;a&gt;).</source>
-                <target>Title displayed in the chat widget header. HTML for text formatting is allowed (e.g. &lt;strong&gt;, &lt;br&gt;, &lt;a&gt;).</target>
+                <source>Title displayed in the chat widget header. HTML for text formatting is allowed (e.g. &amp;lt;strong&amp;gt;, &amp;lt;br&amp;gt;, &amp;lt;a&amp;gt;).</source>
+                <target>Title displayed in the chat widget header. HTML for text formatting is allowed (e.g. &amp;lt;strong&amp;gt;, &amp;lt;br&amp;gt;, &amp;lt;a&amp;gt;).</target>
             </trans-unit>
             <trans-unit id="tl_module.welcome_message.0">
                 <source>Welcome Message</source>
                 <target>Welcome Message</target>
             </trans-unit>
             <trans-unit id="tl_module.welcome_message.1">
-                <source>Message displayed in the chat input placeholder. HTML for text formatting is allowed (e.g. &lt;strong&gt;, &lt;br&gt;, &lt;a&gt;).</source>
-                <target>Message displayed in the chat input placeholder. HTML for text formatting is allowed (e.g. &lt;strong&gt;, &lt;br&gt;, &lt;a&gt;).</target>
+                <source>Message displayed in the chat input placeholder. HTML for text formatting is allowed (e.g. &amp;lt;strong&amp;gt;, &amp;lt;br&amp;gt;, &amp;lt;a&amp;gt;).</source>
+                <target>Message displayed in the chat input placeholder. HTML for text formatting is allowed (e.g. &amp;lt;strong&amp;gt;, &amp;lt;br&amp;gt;, &amp;lt;a&amp;gt;).</target>
             </trans-unit>
             <trans-unit id="tl_module.initial_bot_message.0">
                 <source>Initial Bot Message</source>
                 <target>Initial Bot Message</target>
             </trans-unit>
             <trans-unit id="tl_module.initial_bot_message.1">
-                <source>First message displayed by the bot when chat opens. HTML is allowed (e.g. &lt;strong&gt;, &lt;br&gt;, &lt;ul&gt;, &lt;a&gt;); scripts and styles are removed.</source>
-                <target>First message displayed by the bot when chat opens. HTML is allowed (e.g. &lt;strong&gt;, &lt;br&gt;, &lt;ul&gt;, &lt;a&gt;); scripts and styles are removed.</target>
+                <source>First message displayed by the bot when chat opens. HTML is allowed (e.g. &amp;lt;strong&amp;gt;, &amp;lt;br&amp;gt;, &amp;lt;ul&amp;gt;, &amp;lt;a&amp;gt;); scripts and styles are removed.</source>
+                <target>First message displayed by the bot when chat opens. HTML is allowed (e.g. &amp;lt;strong&amp;gt;, &amp;lt;br&amp;gt;, &amp;lt;ul&amp;gt;, &amp;lt;a&amp;gt;); scripts and styles are removed.</target>
             </trans-unit>
             <trans-unit id="tl_module.initial_state.0">
                 <source>Initial State</source>
