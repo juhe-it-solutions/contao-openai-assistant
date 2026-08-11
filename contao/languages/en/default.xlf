@@ -651,6 +651,10 @@
                 <source>%1$s file upload(s) failed and will be retried on the next run.</source>
                 <target>%1$s file upload(s) failed and will be retried on the next run.</target>
             </trans-unit>
+            <trans-unit id="MSC.vsau_partial_deletes_pending">
+                <source>%1$s file(s) could not be removed from the vector store. Their content can still be used to answer questions until the next run removes them.</source>
+                <target>%1$s file(s) could not be removed from the vector store. Their content can still be used to answer questions until the next run removes them.</target>
+            </trans-unit>
             <trans-unit id="MSC.vsau_no_changes">
                 <source>No change to the page contents - nothing transferred.</source>
                 <target>No change to the page contents - nothing transferred.</target>

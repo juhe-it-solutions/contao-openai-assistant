@@ -30,6 +30,14 @@
                 <source>Failed</source>
                 <target>Failed</target>
             </trans-unit>
+            <trans-unit id="tl_openai_vector_file.status_ref.pending_delete">
+                <source>Removal pending</source>
+                <target>Removal pending</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_vector_file.status_ref.processing">
+                <source>Processing</source>
+                <target>Processing</target>
+            </trans-unit>
             <trans-unit id="tl_openai_vector_file.chunk">
                 <source>Part</source>
                 <target>Part</target>
