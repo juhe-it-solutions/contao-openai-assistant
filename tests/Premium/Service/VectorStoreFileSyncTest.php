@@ -15,6 +15,7 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Service;
 
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreFileSync;
+use JuheItSolutions\ContaoOpenaiAssistant\Tests\Premium\Fixtures\SleeplessVectorStoreFileSync;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -66,6 +67,7 @@ class VectorStoreFileSyncTest extends TestCase
         $this->assertSame(
             [
                 [
+                    'id' => 1000,
                     'pid' => 7,
                     'tstamp' => $rows[0]['tstamp'],
                     'page_id' => 42,
@@ -141,6 +143,7 @@ class VectorStoreFileSyncTest extends TestCase
         $this->assertSame(
             [
                 [
+                    'id' => 1,
                     'pid' => 7,
                     'tstamp' => $rows[0]['tstamp'],
                     'page_id' => 42,
@@ -392,6 +395,567 @@ class VectorStoreFileSyncTest extends TestCase
     }
 
     /**
+     * A page that leaves the sync scope is the privacy path: it was protected, unpublished
+     * or deleted. If OpenAI does not confirm the deletion, the document is still attached to
+     * the store and still answering visitors - so the row must survive as the retry handle,
+     * and the run must not claim the page was removed.
+     *
+     * @dataProvider provideUnconfirmedDeletionResponses
+     */
+    public function testAnUnconfirmedDeletionKeepsTheFileTrackedForRetry(callable $respond, int $expectedRequests): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+        $this->insertVectorFile($rows, 'old_file', hash('sha256', 'old content'), 'uploaded');
+
+        $requests = 0;
+        $client = new MockHttpClient(
+            static function (string $method, string $url) use ($respond, &$requests): MockResponse {
+                self::assertSame('DELETE', $method);
+                ++$requests;
+
+                return $respond();
+            },
+        );
+
+        // No pages at all: page 42 has dropped out of scope entirely.
+        $stats = (new SleeplessVectorStoreFileSync($connection, $client, new NullLogger()))->sync('sk-test', 'vs_123', 7, []);
+
+        $this->assertSame(0, $stats['removed'], 'An unconfirmed deletion must never be reported as a removal.');
+        $this->assertSame(1, $stats['deletes_pending']);
+        $this->assertSame($expectedRequests, $requests);
+
+        $this->assertCount(1, $rows, 'The row is the only handle on the remote file and must survive.');
+        $this->assertSame('pending_delete', $rows[0]['status']);
+        $this->assertSame('old_file', $rows[0]['openai_file_id']);
+    }
+
+    /**
+     * @return iterable<string, array{callable(): MockResponse, int}>
+     */
+    public static function provideUnconfirmedDeletionResponses(): iterable
+    {
+        // A revoked or wrong key. Not retryable, so one attempt.
+        yield '401 unauthorised' => [static fn (): MockResponse => new MockResponse('{"error":{"message":"invalid key"}}', ['http_code' => 401]), 1];
+
+        // Retryable, so the full ladder runs and the LAST response is what request()
+        // returns - the exact case that used to read as a success.
+        yield '429 after every retry' => [static fn (): MockResponse => new MockResponse('{}', ['http_code' => 429]), 6];
+        yield '500 after every retry' => [static fn (): MockResponse => new MockResponse('{}', ['http_code' => 500]), 6];
+
+        // Nothing came back at all. The error belongs in the info array - as a body it would
+        // just be a 200 with odd content, which is not the case under test.
+        yield 'transport failure' => [static fn (): MockResponse => new MockResponse('', ['error' => 'connection reset']), 6];
+
+        // A 4xx that is neither "gone" nor retryable.
+        yield '403 forbidden' => [static fn (): MockResponse => new MockResponse('{}', ['http_code' => 403]), 1];
+    }
+
+    /**
+     * 404 is the state we are trying to reach: the file is not there any more. Treating it
+     * as a failure would keep a row retrying a deletion that already happened, forever.
+     */
+    public function testAMissingRemoteFileCountsAsDeleted(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+        $this->insertVectorFile($rows, 'old_file', hash('sha256', 'old content'), 'uploaded');
+
+        $client = new MockHttpClient(
+            static fn (): MockResponse => new MockResponse('{"error":{"message":"No such file"}}', ['http_code' => 404]),
+        );
+
+        $stats = (new SleeplessVectorStoreFileSync($connection, $client, new NullLogger()))->sync('sk-test', 'vs_123', 7, []);
+
+        $this->assertSame(1, $stats['removed']);
+        $this->assertSame(0, $stats['deletes_pending']);
+        $this->assertSame([], $rows);
+    }
+
+    /**
+     * The point of keeping the row: the run after the outage has to finish the job without
+     * anyone intervening.
+     */
+    public function testAPendingDeletionIsRetriedAndClearedOnTheNextRun(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+        $this->insertVectorFile($rows, 'old_file', hash('sha256', 'old content'), 'uploaded');
+
+        $failing = new MockHttpClient(
+            static fn (): MockResponse => new MockResponse('{}', ['http_code' => 401]),
+        );
+
+        $firstRun = (new SleeplessVectorStoreFileSync($connection, $failing, new NullLogger()))->sync('sk-test', 'vs_123', 7, []);
+
+        $this->assertSame(1, $firstRun['deletes_pending']);
+        $this->assertSame('pending_delete', $rows[0]['status']);
+
+        $retried = [];
+        $recovered = new MockHttpClient(
+            static function (string $method, string $url) use (&$retried): MockResponse {
+                $retried[] = $method.' '.$url;
+
+                return new MockResponse('{}');
+            },
+        );
+
+        $secondRun = (new SleeplessVectorStoreFileSync($connection, $recovered, new NullLogger()))->sync('sk-test', 'vs_123', 7, []);
+
+        $this->assertSame(0, $secondRun['deletes_pending'], 'The retry succeeded, so nothing is left pending.');
+        $this->assertSame([], $rows, 'The retry handle goes only once the file is provably gone.');
+        $this->assertSame(
+            [
+                'DELETE https://api.openai.com/v1/vector_stores/vs_123/files/old_file',
+                'DELETE https://api.openai.com/v1/files/old_file',
+            ],
+            $retried,
+        );
+    }
+
+    /**
+     * A pending_delete row tracks a file on its way OUT. If loadState() handed it back as the
+     * page's current document, the page would look uploaded, be skipped as unchanged, and the
+     * store would keep answering from a file nobody is tracking any more.
+     */
+    public function testAPendingDeletionIsNotMistakenForAnUploadedPage(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+        $this->insertVectorFile($rows, 'stale_file', hash('sha256', 'same content'), 'pending_delete');
+
+        $client = new MockHttpClient(
+            static function (string $method, string $url): MockResponse {
+                if ('DELETE' === $method) {
+                    // Still failing, so the row stays pending across this run too.
+                    return new MockResponse('{}', ['http_code' => 401]);
+                }
+
+                if ('POST' === $method && 'https://api.openai.com/v1/files' === $url) {
+                    return new MockResponse('{"id":"new_file"}');
+                }
+
+                if ('POST' === $method && str_contains($url, '/vector_stores/vs_123/files')) {
+                    return new MockResponse('{}');
+                }
+
+                if ('GET' === $method && str_ends_with($url, '/vector_stores/vs_123/files/new_file')) {
+                    return new MockResponse('{"status":"completed"}');
+                }
+
+                self::fail('Unexpected request: '.$method.' '.$url);
+            },
+        );
+
+        $stats = (new SleeplessVectorStoreFileSync($connection, $client, new NullLogger()))->sync(
+            'sk-test',
+            'vs_123',
+            7,
+            [$this->page('same content')],
+        );
+
+        $this->assertSame(1, $stats['added'], 'The page has no live document, so it must be uploaded.');
+        $this->assertSame(0, $stats['unchanged']);
+        $this->assertSame(1, $stats['deletes_pending']);
+
+        $statuses = array_column($rows, 'status', 'openai_file_id');
+        $this->assertSame(['stale_file' => 'pending_delete', 'new_file' => 'uploaded'], $statuses);
+    }
+
+    /**
+     * The first v2.2 sync of an existing premium installation. The legacy bulk file is the
+     * only knowledge base the site has until the per-page documents exist, so it must not be
+     * deleted before they do.
+     *
+     * @dataProvider provideLegacyTransitionFailures
+     */
+    public function testTheLegacyBulkFileSurvivesAFailedFirstSync(callable $client): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+
+        $requests = [];
+        $mock = new MockHttpClient(
+            static function (string $method, string $url, array $options = []) use ($client, &$requests): MockResponse {
+                $requests[] = $method.' '.$url;
+
+                return $client($method, $url);
+            },
+        );
+
+        $stats = (new SleeplessVectorStoreFileSync($connection, $mock, new NullLogger()))->sync(
+            'sk-test',
+            'vs_123',
+            7,
+            [$this->page('new content')],
+            'legacy_bulk_file',
+        );
+
+        $this->assertSame(1, $stats['files_failed']);
+        $this->assertFalse(
+            $stats['legacy_file_removed'],
+            'The id must be kept so auto_update_file_id survives and the next run can retry.',
+        );
+        $this->assertNotContains('DELETE https://api.openai.com/v1/vector_stores/vs_123/files/legacy_bulk_file', $requests);
+        $this->assertNotContains('DELETE https://api.openai.com/v1/files/legacy_bulk_file', $requests);
+    }
+
+    /**
+     * @return iterable<string, array{callable(string, string): MockResponse}>
+     */
+    public static function provideLegacyTransitionFailures(): iterable
+    {
+        yield 'upload fails' => [
+            static fn (string $method, string $url): MockResponse => 'POST' === $method && 'https://api.openai.com/v1/files' === $url
+                ? new MockResponse('{"error":{"message":"upload rejected"}}', ['http_code' => 400])
+                : new MockResponse('{}'),
+        ];
+
+        yield 'attach fails' => [
+            static function (string $method, string $url): MockResponse {
+                if ('POST' === $method && 'https://api.openai.com/v1/files' === $url) {
+                    return new MockResponse('{"id":"new_file"}');
+                }
+
+                if ('POST' === $method && str_contains($url, '/vector_stores/vs_123/files')) {
+                    return new MockResponse('{"error":{"message":"attach rejected"}}', ['http_code' => 400]);
+                }
+
+                return new MockResponse('{}');
+            },
+        ];
+
+        yield 'ingestion fails' => [
+            static function (string $method, string $url): MockResponse {
+                if ('POST' === $method && 'https://api.openai.com/v1/files' === $url) {
+                    return new MockResponse('{"id":"new_file"}');
+                }
+
+                if ('GET' === $method) {
+                    return new MockResponse('{"status":"failed","last_error":{"message":"could not parse"}}');
+                }
+
+                return new MockResponse('{}');
+            },
+        ];
+    }
+
+    /**
+     * A clean run may retire the bulk file - but only if OpenAI confirms it is gone. An
+     * unconfirmed deletion that cleared the id would leave a superset document answering
+     * alongside every per-page document, with nothing left to identify it by.
+     */
+    public function testAnUnconfirmedLegacyDeletionKeepsTheIdForTheNextRun(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+
+        $client = new MockHttpClient(
+            static function (string $method, string $url): MockResponse {
+                if ('POST' === $method && 'https://api.openai.com/v1/files' === $url) {
+                    return new MockResponse('{"id":"new_file"}');
+                }
+
+                if ('DELETE' === $method && str_contains($url, 'legacy_bulk_file')) {
+                    return new MockResponse('{}', ['http_code' => 500]);
+                }
+
+                if ('GET' === $method) {
+                    return new MockResponse('{"status":"completed"}');
+                }
+
+                return new MockResponse('{}');
+            },
+        );
+
+        $stats = (new SleeplessVectorStoreFileSync($connection, $client, new NullLogger()))->sync(
+            'sk-test',
+            'vs_123',
+            7,
+            [$this->page('new content')],
+            'legacy_bulk_file',
+        );
+
+        $this->assertSame(0, $stats['files_failed'], 'The page itself synced fine.');
+        $this->assertFalse($stats['legacy_file_removed']);
+        $this->assertSame(1, $stats['deletes_pending'], 'The operator has to be told a stale document is still answering.');
+    }
+
+    public function testACleanRunRetiresTheLegacyBulkFileLast(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+
+        $requests = [];
+        $client = new MockHttpClient(
+            static function (string $method, string $url) use (&$requests): MockResponse {
+                $requests[] = $method.' '.$url;
+
+                if ('POST' === $method && 'https://api.openai.com/v1/files' === $url) {
+                    return new MockResponse('{"id":"new_file"}');
+                }
+
+                if ('GET' === $method) {
+                    return new MockResponse('{"status":"completed"}');
+                }
+
+                return new MockResponse('{}');
+            },
+        );
+
+        $stats = (new SleeplessVectorStoreFileSync($connection, $client, new NullLogger()))->sync(
+            'sk-test',
+            'vs_123',
+            7,
+            [$this->page('new content')],
+            'legacy_bulk_file',
+        );
+
+        $this->assertSame(1, $stats['added']);
+        $this->assertTrue($stats['legacy_file_removed']);
+        $this->assertSame(0, $stats['deletes_pending']);
+
+        $upload = array_search('POST https://api.openai.com/v1/files', $requests, true);
+        $legacyDelete = array_search('DELETE https://api.openai.com/v1/vector_stores/vs_123/files/legacy_bulk_file', $requests, true);
+
+        $this->assertIsInt($upload);
+        $this->assertIsInt($legacyDelete);
+        $this->assertGreaterThan($upload, $legacyDelete, 'The replacement must exist before the file it replaces is deleted.');
+    }
+
+    /**
+     * An OpenAI error body carries {"error": ...} and no "status" key. Defaulting a missing
+     * status to "completed" meant every failed status check was recorded as a permanent
+     * success on a row later runs would never revisit.
+     *
+     * @dataProvider provideInconclusiveIngestionResponses
+     */
+    public function testInconclusiveIngestionIsRecordedAsProcessing(callable $ingestionResponse): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+
+        $client = new MockHttpClient(
+            static function (string $method, string $url) use ($ingestionResponse): MockResponse {
+                if ('POST' === $method && 'https://api.openai.com/v1/files' === $url) {
+                    return new MockResponse('{"id":"new_file"}');
+                }
+
+                if ('GET' === $method) {
+                    return $ingestionResponse();
+                }
+
+                return new MockResponse('{}');
+            },
+        );
+
+        $stats = (new SleeplessVectorStoreFileSync($connection, $client, new NullLogger()))->sync(
+            'sk-test',
+            'vs_123',
+            7,
+            [$this->page('new content')],
+        );
+
+        $this->assertSame(0, $stats['files_failed'], 'The file is attached; only its ingestion is unconfirmed.');
+        $this->assertSame('processing', $rows[0]['status']);
+    }
+
+    /**
+     * @return iterable<string, array{callable(): MockResponse}>
+     */
+    public static function provideInconclusiveIngestionResponses(): iterable
+    {
+        yield 'error body with no status field' => [static fn (): MockResponse => new MockResponse('{"error":{"message":"server error"}}', ['http_code' => 500])];
+        yield 'unauthorised' => [static fn (): MockResponse => new MockResponse('{"error":{"message":"bad key"}}', ['http_code' => 401])];
+        yield 'transport failure' => [static fn (): MockResponse => new MockResponse('', ['error' => 'connection reset'])];
+        yield 'unknown remote state' => [static fn (): MockResponse => new MockResponse('{"status":"cancelled"}')];
+        yield 'empty body on 200' => [static fn (): MockResponse => new MockResponse('{}')];
+    }
+
+    /**
+     * A file still ingesting when the wait budget expires is attached and will probably
+     * finish - but "probably" is not a state to store as done.
+     */
+    public function testAFileStillIngestingAtTheDeadlineIsRecordedAsProcessing(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+
+        $client = new MockHttpClient(
+            static function (string $method, string $url): MockResponse {
+                if ('POST' === $method && 'https://api.openai.com/v1/files' === $url) {
+                    return new MockResponse('{"id":"new_file"}');
+                }
+
+                if ('GET' === $method) {
+                    return new MockResponse('{"status":"in_progress"}');
+                }
+
+                return new MockResponse('{}');
+            },
+        );
+
+        $sync = new SleeplessVectorStoreFileSync($connection, $client, new NullLogger());
+        $stats = $sync->sync('sk-test', 'vs_123', 7, [$this->page('new content')]);
+
+        $this->assertSame(0, $stats['files_failed']);
+        $this->assertSame('processing', $rows[0]['status']);
+        $this->assertNotSame([], $sync->pauses, 'It must actually have polled while waiting.');
+    }
+
+    /**
+     * The saving that makes "processing" affordable: a page whose ingestion finished after we
+     * stopped waiting is settled with one GET, not re-uploaded from scratch.
+     */
+    public function testAProcessingRowThatFinishedIngestingIsSettledWithoutReUploading(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+        $this->insertVectorFile($rows, 'new_file', hash('sha256', 'same content'), 'processing');
+
+        $requests = [];
+        $client = new MockHttpClient(
+            static function (string $method, string $url) use (&$requests): MockResponse {
+                $requests[] = $method.' '.$url;
+
+                if ('GET' === $method) {
+                    return new MockResponse('{"status":"completed"}');
+                }
+
+                self::fail('Unexpected request: '.$method.' '.$url);
+            },
+        );
+
+        $stats = (new SleeplessVectorStoreFileSync($connection, $client, new NullLogger()))->sync(
+            'sk-test',
+            'vs_123',
+            7,
+            [$this->page('same content')],
+        );
+
+        $this->assertSame(1, $stats['unchanged'], 'Ingestion completed, so there is nothing to re-upload.');
+        $this->assertSame(0, $stats['files_uploaded']);
+        $this->assertSame('uploaded', $rows[0]['status']);
+        $this->assertSame(['GET https://api.openai.com/v1/vector_stores/vs_123/files/new_file'], $requests);
+    }
+
+    /**
+     * The case the old code could never reach: ingestion that fails server-side AFTER the
+     * sync stopped looking. The row has to come back as re-uploadable.
+     */
+    public function testAProcessingRowThatFailedServerSideIsReUploaded(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+        $this->insertVectorFile($rows, 'broken_file', hash('sha256', 'same content'), 'processing');
+
+        $client = new MockHttpClient(
+            static function (string $method, string $url): MockResponse {
+                if ('GET' === $method && str_ends_with($url, '/broken_file')) {
+                    return new MockResponse('{"status":"failed","last_error":{"message":"could not parse"}}');
+                }
+
+                if ('POST' === $method && 'https://api.openai.com/v1/files' === $url) {
+                    return new MockResponse('{"id":"fresh_file"}');
+                }
+
+                if ('GET' === $method && str_ends_with($url, '/fresh_file')) {
+                    return new MockResponse('{"status":"completed"}');
+                }
+
+                return new MockResponse('{}');
+            },
+        );
+
+        $stats = (new SleeplessVectorStoreFileSync($connection, $client, new NullLogger()))->sync(
+            'sk-test',
+            'vs_123',
+            7,
+            [$this->page('same content')],
+        );
+
+        $this->assertSame(0, $stats['unchanged'], 'A failed ingestion must not count as an up-to-date page.');
+        $this->assertSame(1, $stats['updated']);
+        $this->assertSame(['fresh_file'], array_column($rows, 'openai_file_id'));
+        $this->assertSame('uploaded', $rows[0]['status']);
+    }
+
+    /**
+     * The deletion half of reconciliation has to work without an upload set: sync() aborts on
+     * an empty search index, and the removals that matter most for privacy are exactly the
+     * ones that would abort with it.
+     */
+    public function testRemovePagesDeletesTrackedDocumentsWithoutAnUploadSet(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+        $this->insertVectorFile($rows, 'protected_file', hash('sha256', 'members only'), 'uploaded');
+
+        $requests = [];
+        $client = new MockHttpClient(
+            static function (string $method, string $url) use (&$requests): MockResponse {
+                $requests[] = $method.' '.$url;
+
+                return new MockResponse('{}');
+            },
+        );
+
+        $stats = (new SleeplessVectorStoreFileSync($connection, $client, new NullLogger()))
+            ->removePages('sk-test', 'vs_123', 7, [42])
+        ;
+
+        $this->assertSame(['removed' => 1, 'deletes_pending' => 0], $stats);
+        $this->assertSame([], $rows);
+        $this->assertSame(
+            [
+                'DELETE https://api.openai.com/v1/vector_stores/vs_123/files/protected_file',
+                'DELETE https://api.openai.com/v1/files/protected_file',
+            ],
+            $requests,
+        );
+    }
+
+    /**
+     * Same confirmed-outcome contract as sync(): an unconfirmed deletion keeps its handle.
+     */
+    public function testRemovePagesKeepsAnUnconfirmedDeletionPending(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+        $this->insertVectorFile($rows, 'protected_file', hash('sha256', 'members only'), 'uploaded');
+
+        $client = new MockHttpClient(
+            static fn (): MockResponse => new MockResponse('{}', ['http_code' => 401]),
+        );
+
+        $stats = (new SleeplessVectorStoreFileSync($connection, $client, new NullLogger()))
+            ->removePages('sk-test', 'vs_123', 7, [42])
+        ;
+
+        $this->assertSame(['removed' => 0, 'deletes_pending' => 1], $stats);
+        $this->assertCount(1, $rows);
+        $this->assertSame('pending_delete', $rows[0]['status']);
+    }
+
+    public function testRemovePagesIgnoresPagesItDoesNotTrack(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+        $this->insertVectorFile($rows, 'kept_file', hash('sha256', 'public'), 'uploaded');
+
+        $client = new MockHttpClient(
+            static fn (): MockResponse => self::fail('A page with no tracked files must not cause any request.'),
+        );
+
+        $stats = (new SleeplessVectorStoreFileSync($connection, $client, new NullLogger()))
+            ->removePages('sk-test', 'vs_123', 7, [99])
+        ;
+
+        $this->assertSame(['removed' => 0, 'deletes_pending' => 0], $stats);
+        $this->assertCount(1, $rows, 'The untouched page keeps its document.');
+    }
+
+    /**
      * Consume a normalized multipart request body so the test can assert on the part
      * headers (Symfony hands the callback a chunk generator, not a plain string).
      *
@@ -415,10 +979,25 @@ class VectorStoreFileSyncTest extends TestCase
     }
 
     /**
+     * An in-memory stand-in for tl_openai_vector_file.
+     *
+     * It has to understand the statements rather than record them: the service now keeps a
+     * "pending_delete" row as its retry handle for a deletion OpenAI did not confirm, and a
+     * fake that ignored the WHERE clause would hand loadState() rows it must never see and
+     * report deletions that never happened - passing the very tests that exist to catch that.
+     *
      * @param list<array<string, mixed>> $rows
      */
     private function createConnection(array &$rows, bool $failInserts = false): Connection
     {
+        $nextId = 1;
+
+        $matches = static fn (array $row, array $criteria): bool => [] === array_filter(
+            $criteria,
+            static fn (mixed $value, string $column): bool => ($row[$column] ?? null) !== $value,
+            ARRAY_FILTER_USE_BOTH,
+        );
+
         $connection = $this->createMock(Connection::class);
         $connection
             ->method('transactional')
@@ -439,9 +1018,25 @@ class VectorStoreFileSyncTest extends TestCase
         $connection
             ->method('fetchAllAssociative')
             ->willReturnCallback(
-                static function () use (&$rows): array {
-                    // Mirrors the column list loadState() selects.
-                    return array_map(
+                static function (string $sql, array $params) use (&$rows): array {
+                    // loadRowsWithStatus(): rows in one specific status, with their primary
+                    // key - the retry handles for pending deletions and unfinished ingestion.
+                    if (str_contains($sql, 'SELECT id, page_id, openai_file_id')) {
+                        $status = $params[1];
+
+                        return array_values(array_map(
+                            static fn (array $row): array => [
+                                'id' => $row['id'],
+                                'page_id' => $row['page_id'],
+                                'openai_file_id' => $row['openai_file_id'],
+                            ],
+                            array_filter($rows, static fn (array $row): bool => $row['status'] === $status),
+                        ));
+                    }
+
+                    // loadState(): everything EXCEPT the retry rows, which track a file on
+                    // its way out and must not look like a page's live document.
+                    return array_values(array_map(
                         static fn (array $row): array => [
                             'page_id' => $row['page_id'],
                             'content_hash' => $row['content_hash'],
@@ -450,35 +1045,90 @@ class VectorStoreFileSyncTest extends TestCase
                             'status' => $row['status'],
                             'openai_file_id' => $row['openai_file_id'],
                         ],
-                        $rows,
-                    );
+                        array_filter($rows, static fn (array $row): bool => 'pending_delete' !== $row['status']),
+                    ));
                 },
             )
         ;
         $connection
             ->method('insert')
             ->willReturnCallback(
-                static function (string $table, array $data) use (&$rows, $failInserts): int {
+                static function (string $table, array $data) use (&$rows, &$nextId, $failInserts): int {
                     self::assertSame('tl_openai_vector_file', $table);
                     if ($failInserts) {
                         throw new \RuntimeException('Simulated insert failure.');
                     }
 
-                    $rows[] = $data;
+                    // Column defaults, so a minimal pending_delete insert looks like a real
+                    // row. The union operator keeps the written columns in their own order,
+                    // the way a real row reads.
+                    $rows[] = ['id' => $nextId++] + $data + [
+                        'url' => '',
+                        'title' => '',
+                        'language' => '',
+                        'search_checksum' => '',
+                        'content_hash' => '',
+                        'chunk_index' => 0,
+                        'chunk_count' => 1,
+                        'openai_file_id' => '',
+                        'bytes' => 0,
+                        'status' => '',
+                        'last_error' => null,
+                    ];
 
                     return 1;
                 },
             )
         ;
         $connection
+            ->method('update')
+            ->willReturnCallback(
+                static function (string $table, array $data, array $criteria) use (&$rows, $matches): int {
+                    self::assertSame('tl_openai_vector_file', $table);
+                    $updated = 0;
+
+                    foreach ($rows as $index => $row) {
+                        if ($matches($row, $criteria)) {
+                            $rows[$index] = array_merge($row, $data);
+                            ++$updated;
+                        }
+                    }
+
+                    return $updated;
+                },
+            )
+        ;
+        $connection
             ->method('delete')
             ->willReturnCallback(
-                static function (string $table, array $criteria) use (&$rows): int {
+                static function (string $table, array $criteria) use (&$rows, $matches): int {
                     self::assertSame('tl_openai_vector_file', $table);
                     $before = \count($rows);
                     $rows = array_values(array_filter(
                         $rows,
-                        static fn (array $row): bool => $row['pid'] !== $criteria['pid'] || $row['page_id'] !== $criteria['page_id'],
+                        static fn (array $row): bool => !$matches($row, $criteria),
+                    ));
+
+                    return $before - \count($rows);
+                },
+            )
+        ;
+        $connection
+            ->method('executeStatement')
+            ->willReturnCallback(
+                static function (string $sql, array $params) use (&$rows): int {
+                    // "DELETE ... WHERE pid = ? AND page_id = ? AND status != ?" - the guarded
+                    // cleanup that must step around a pending_delete row.
+                    self::assertStringContainsString('DELETE FROM tl_openai_vector_file', $sql);
+                    self::assertStringContainsString('status != ?', $sql);
+
+                    [$pid, $pageId, $keepStatus] = $params;
+                    $before = \count($rows);
+                    $rows = array_values(array_filter(
+                        $rows,
+                        static fn (array $row): bool => $row['pid'] !== $pid
+                            || $row['page_id'] !== $pageId
+                            || $row['status'] === $keepStatus,
                     ));
 
                     return $before - \count($rows);
@@ -495,6 +1145,7 @@ class VectorStoreFileSyncTest extends TestCase
     private function insertVectorFile(array &$rows, string $fileId, string $contentHash, string $status): void
     {
         $rows[] = [
+            'id' => \count($rows) + 1000,
             'pid' => 7,
             'tstamp' => time(),
             'page_id' => 42,

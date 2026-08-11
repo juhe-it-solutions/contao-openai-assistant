@@ -211,6 +211,17 @@ class VectorStoreSyncMessageTranslator
             }
         }
 
+        if (str_starts_with($message, 'MSC.vsau_partial_deletes_pending|')) {
+            $rest = substr($message, \strlen('MSC.vsau_partial_deletes_pending|'));
+            if (preg_match('/^(\d+)$/', $rest, $matches)) {
+                return $this->translator->trans(
+                    'MSC.vsau_partial_deletes_pending',
+                    [$matches[1]],
+                    self::DOMAIN,
+                );
+            }
+        }
+
         $parts = explode('|', $message, 3);
         $key = $parts[0];
 
