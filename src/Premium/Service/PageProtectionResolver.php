@@ -45,12 +45,6 @@ use Doctrine\DBAL\Connection;
  */
 class PageProtectionResolver
 {
-    /**
-     * Depth guard. Contao page trees are shallow; this only has to stop a pid cycle created
-     * by a corrupt database from looping forever, and the visited-set below already does.
-     */
-    private const MAX_DEPTH = 64;
-
     public function __construct(private readonly Connection $connection)
     {
     }
@@ -65,16 +59,14 @@ class PageProtectionResolver
      */
     public function protectedPageIds(): array
     {
-        try {
-            $seeds = array_map(
-                intval(...),
-                $this->connection->fetchFirstColumn("SELECT id FROM tl_page WHERE protected = '1'"),
-            );
-        } catch (\Throwable) {
-            // Never break a sync over this lookup: an empty set only means nothing extra is
-            // excluded, and the tl_search.protected filter callers also apply still stands.
-            return [];
-        }
+        // Deliberately fail closed. Returning an empty set on a database error would mean
+        // "no protected pages" and could upload member-only content on the strength of a
+        // failed permission lookup. The caller aborts the sync instead, leaving the existing
+        // vector store untouched until protection can be resolved reliably.
+        $seeds = array_map(
+            intval(...),
+            $this->connection->fetchFirstColumn("SELECT id FROM tl_page WHERE protected = '1'"),
+        );
 
         if ([] === $seeds) {
             return [];
@@ -87,21 +79,16 @@ class PageProtectionResolver
         }
 
         $frontier = $seeds;
-        $depth = 0;
 
-        while ([] !== $frontier && $depth < self::MAX_DEPTH) {
-            try {
-                $children = array_map(
-                    intval(...),
-                    $this->connection->fetchFirstColumn(
-                        'SELECT id FROM tl_page WHERE pid IN (?)',
-                        [$frontier],
-                        [ArrayParameterType::INTEGER],
-                    ),
-                );
-            } catch (\Throwable) {
-                break;
-            }
+        while ([] !== $frontier) {
+            $children = array_map(
+                intval(...),
+                $this->connection->fetchFirstColumn(
+                    'SELECT id FROM tl_page WHERE pid IN (?)',
+                    [$frontier],
+                    [ArrayParameterType::INTEGER],
+                ),
+            );
 
             $frontier = [];
 
@@ -114,8 +101,6 @@ class PageProtectionResolver
                 $protected[$childId] = true;
                 $frontier[] = $childId;
             }
-
-            ++$depth;
         }
 
         return $protected;
@@ -138,20 +123,15 @@ class PageProtectionResolver
             return [];
         }
 
-        try {
-            return array_map(
-                strval(...),
-                $this->connection->fetchFirstColumn(
-                    // ORDER BY before LIMIT, for the same reason unpublishedUrls() has it:
-                    // an arbitrary run-to-run subset would make link blocks flap and pages
-                    // re-upload for no reason.
-                    'SELECT url FROM tl_search WHERE pid IN (?) ORDER BY url LIMIT 5000',
-                    [$pageIds],
-                    [ArrayParameterType::INTEGER],
-                ),
-            );
-        } catch (\Throwable) {
-            return [];
-        }
+        return array_map(
+            strval(...),
+            $this->connection->fetchFirstColumn(
+                // No LIMIT: truncating an access-control set would let links to whichever
+                // protected pages fell beyond the cutoff re-enter a public chatbot.
+                'SELECT url FROM tl_search WHERE pid IN (?) ORDER BY url',
+                [$pageIds],
+                [ArrayParameterType::INTEGER],
+            ),
+        );
     }
 }

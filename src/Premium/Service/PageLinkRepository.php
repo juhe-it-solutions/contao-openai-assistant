@@ -279,7 +279,9 @@ class PageLinkRepository
     {
         try {
             $rows = $this->connection->fetchFirstColumn(
-                'SELECT url FROM tl_search WHERE protected = 1 LIMIT 5000',
+                // No LIMIT: this is an access-control set. Truncation would make links to
+                // protected pages beyond the cutoff public again.
+                'SELECT url FROM tl_search WHERE protected = 1',
             );
         } catch (\Throwable) {
             $rows = [];

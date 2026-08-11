@@ -73,16 +73,31 @@ class PageProtectionResolverTest extends TestCase
     }
 
     /**
-     * A lookup failure must never break a sync: an empty set only means nothing EXTRA is
-     * excluded, and the caller's tl_search.protected filter still applies.
+     * Protection is access control. A failed lookup must abort the sync instead of being
+     * translated to "nothing is protected", which would upload member-only content.
      */
-    public function testALookupFailureIsNotFatal(): void
+    public function testALookupFailureFailsClosed(): void
     {
         $connection = $this->createMock(Connection::class);
-        $connection->method('fetchFirstColumn')->willThrowException(new \RuntimeException('no such table'));
+        $connection->method('fetchFirstColumn')->willThrowException(new \RuntimeException('database unavailable'));
 
-        $this->assertSame([], (new PageProtectionResolver($connection))->protectedPageIds());
-        $this->assertSame([], (new PageProtectionResolver($connection))->protectedUrls());
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('database unavailable');
+
+        (new PageProtectionResolver($connection))->protectedPageIds();
+    }
+
+    public function testProtectionInheritanceHasNoArbitraryDepthCutoff(): void
+    {
+        $tree = [];
+        for ($id = 2; $id <= 80; ++$id) {
+            $tree[$id] = $id - 1;
+        }
+
+        $protected = (new PageProtectionResolver($this->createConnection($tree, [1])))->protectedPageIds();
+
+        $this->assertArrayHasKey(80, $protected, 'A deeply nested protected page must never become public at an arbitrary depth.');
+        $this->assertCount(80, $protected);
     }
 
     public function testProtectedUrlsAreReadForTheWholeProtectedSubtree(): void
