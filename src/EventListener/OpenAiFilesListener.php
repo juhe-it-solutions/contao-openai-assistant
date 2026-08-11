@@ -181,6 +181,9 @@ class OpenAiFilesListener
                 continue;
             }
 
+            $uploadedRemoteFileId = '';
+            $attachmentAttempted = false;
+
             try {
                 $this->logger->info(
                     'Uploading file to OpenAI',
@@ -210,6 +213,11 @@ class OpenAiFilesListener
                 );
 
                 $result = $response->toArray();
+                $uploadedRemoteFileId = (string) ($result['id'] ?? '');
+
+                if ('' === $uploadedRemoteFileId) {
+                    throw new \RuntimeException('OpenAI Files API returned no file id.');
+                }
 
                 $this->logger->info(
                     'File successfully uploaded to OpenAI',
@@ -240,7 +248,8 @@ class OpenAiFilesListener
                         ],
                     );
 
-                    $this->addFileToVectorStore($apiKey, $vectorStoreId, $result['id']);
+                    $attachmentAttempted = true;
+                    $this->addFileToVectorStore($apiKey, $vectorStoreId, $uploadedRemoteFileId);
                 } else {
                     $this->logger->warning(
                         'No vector store ID found, skipping vector store addition',
@@ -250,11 +259,6 @@ class OpenAiFilesListener
                         ],
                     );
                 }
-
-                // Recorded only now, after the attachment succeeded. Listed at upload time it
-                // would name files that were deleted again moments later, in the very log an
-                // operator reads to find out what happened.
-                $uploadedFileIds[] = $result['id'];
 
                 // For the first file, update the current record
                 if (!$currentRecordProcessed) {
@@ -306,9 +310,21 @@ class OpenAiFilesListener
                     );
                 }
 
-                Message::addConfirmation('File uploaded successfully: '.$originalFilename.' (ID: '.$result['id'].')');
+                // Recorded only after both the remote operation and the local state write
+                // succeeded. Otherwise this list would name a file the cleanup below removed.
+                $uploadedFileIds[] = $uploadedRemoteFileId;
+
+                Message::addConfirmation('File uploaded successfully: '.$originalFilename.' (ID: '.$uploadedRemoteFileId.')');
                 ++$successCount;
             } catch (\Exception $e) {
+                // A database write can fail after a successful attachment just as the attach
+                // itself can fail after upload. In both cases the remote file has no reliable
+                // local record, so detach/delete it before reporting the failure. The detach is
+                // attempted whenever attachment was called because a timeout or 5xx is ambiguous.
+                if ('' !== $uploadedRemoteFileId) {
+                    $this->cleanupFailedUpload($apiKey, $vectorStoreId, $uploadedRemoteFileId, $attachmentAttempted);
+                }
+
                 $errorMessage = 'Failed to upload file '.$originalFilename.': '.$e->getMessage();
                 $errorCode = $e->getCode();
                 Message::addError($errorMessage);
@@ -593,8 +609,12 @@ class OpenAiFilesListener
             [$configId],
         );
 
-        if ($config['vector_store_id']) {
-            return $config['vector_store_id'];
+        if (!$config) {
+            throw new \RuntimeException('Parent OpenAI configuration not found.');
+        }
+
+        if (!empty($config['vector_store_id'])) {
+            return (string) $config['vector_store_id'];
         }
 
         // Create new vector store
@@ -619,7 +639,11 @@ class OpenAiFilesListener
             );
 
             $result = $response->toArray();
-            $vectorStoreId = $result['id'];
+            $vectorStoreId = (string) ($result['id'] ?? '');
+
+            if ('' === $vectorStoreId) {
+                throw new \RuntimeException('OpenAI did not return a vector store id.');
+            }
 
             $this->connection->executeQuery(
                 '
@@ -715,11 +739,6 @@ class OpenAiFilesListener
                 'exception_trace' => $e->getTraceAsString(),
             ]);
 
-            // The file exists in the Files API but is attached to nothing, so it is billed
-            // storage that no search can ever reach. Best effort, because the upload itself
-            // has already failed as far as the caller is concerned.
-            $this->deleteOrphanedFile($apiKey, $fileId);
-
             // Rethrown, not swallowed: "uploaded and attached" is one operation from the
             // application's point of view, and the caller must not record or announce a
             // success for a document File Search cannot use.
@@ -728,28 +747,61 @@ class OpenAiFilesListener
     }
 
     /**
-     * Remove a file that was uploaded but could not be attached to the vector store.
+     * Roll back a remote upload that has no reliable local success record.
+     *
+     * Every response status is checked. Symfony's HTTP client does not throw merely because
+     * getStatusCode() returns 4xx/5xx; treating that call itself as success would lose the
+     * only chance to tell the operator that the orphan still exists.
      */
-    private function deleteOrphanedFile(string $apiKey, string $fileId): void
+    private function cleanupFailedUpload(string $apiKey, string $vectorStoreId, string $fileId, bool $attachmentAttempted): void
+    {
+        $failures = [];
+
+        if ($attachmentAttempted && '' !== $vectorStoreId) {
+            if (
+                !$this->confirmCleanupDelete(
+                    $apiKey,
+                    'https://api.openai.com/v1/vector_stores/'.$vectorStoreId.'/files/'.$fileId,
+                )
+            ) {
+                $failures[] = 'detach from vector store';
+            }
+        }
+
+        if (!$this->confirmCleanupDelete($apiKey, 'https://api.openai.com/v1/files/'.$fileId)) {
+            $failures[] = 'delete from Files API';
+        }
+
+        if ([] === $failures) {
+            return;
+        }
+
+        $this->logger->warning(
+            'Could not fully clean up failed OpenAI upload '.$fileId.' ('.implode(', ', $failures).'). It must be checked in the OpenAI platform dashboard.',
+            [
+                'contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR),
+                'file_id' => $fileId,
+                'vector_store_id' => $vectorStoreId,
+            ],
+        );
+    }
+
+    private function confirmCleanupDelete(string $apiKey, string $url): bool
     {
         try {
-            $this->httpClient->request(
+            $status = $this->httpClient->request(
                 'DELETE',
-                'https://api.openai.com/v1/files/'.$fileId,
+                $url,
                 [
                     'headers' => ['Authorization' => 'Bearer '.$apiKey],
                     'timeout' => 30,
                 ],
             )->getStatusCode();
-        } catch (\Exception $e) {
-            $this->logger->warning(
-                'Could not remove the unattached file from OpenAI; it must be deleted manually in the OpenAI platform dashboard: '.$e->getMessage(),
-                [
-                    'contao' => new ContaoContext(__METHOD__, ContaoContext::ERROR),
-                    'file_id' => $fileId,
-                ],
-            );
+        } catch (\Exception) {
+            return false;
         }
+
+        return ($status >= 200 && $status < 300) || 404 === $status;
     }
 
     private function formatFileSize(int $size): string
