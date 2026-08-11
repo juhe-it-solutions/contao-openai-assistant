@@ -373,9 +373,34 @@ function initAiChat(wrapper) {
     return csrfTokenField.value;
   };
 
+  // Inverse of the five entities the server-side sanitizer emits for plain text
+  // (htmlspecialchars with ENT_QUOTES|ENT_HTML5). Needed because a greeting
+  // WITHOUT markup is handed to fmt(), which escapes again: a title like
+  // "Fragen & Antworten" would otherwise reach the visitor as "Fragen &amp;
+  // Antworten". Contao 5.3/5.7 decode the attribute themselves in their
+  // contao_html_attr escaper, Contao 6 does not (double encoding is back on
+  // there), so this pass is what makes all three versions render the same.
+  // "&amp;" is decoded last so that "&amp;lt;" yields the text "&lt;", not "<".
+  const decodeBasicEntities = s => s
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0*39;/g, "'")
+    .replace(/&amp;/gi, '&');
+
   const welcome = () => {
     const initialMessage = wrapper.dataset.initialMessage || i18n.initial_message_fallback || 'Hello! How can I help you?';
-    addMsg('assistant', initialMessage);
+    // The greeting is written by an editor in the module settings and arrives
+    // server-side sanitized, so markup in it is rendered instead of shown as text
+    // (fmt() escapes, which is right for model output but not for this field).
+    // A greeting without any tag still runs through fmt() so that a plain URL keeps
+    // being linkified and shortened exactly as before.
+    //
+    // The test runs on the UNDECODED value on purpose: whatever decodeBasicEntities
+    // turns back into a bracket must never reach the isHtml branch, it only ever
+    // goes into fmt(), which escapes it again.
+    const hasMarkup = /<[a-z][^>]*>/i.test(initialMessage);
+    addMsg('assistant', hasMarkup ? initialMessage : decodeBasicEntities(initialMessage), null, hasMarkup);
   };
 
   // Remembers that this browser has an ongoing conversation, so a page view by
@@ -839,10 +864,14 @@ function initAiChat(wrapper) {
 
   const ts = t => new Date(t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 
-  const addMsg = (role, c, t = null) => {
+  // isHtml is reserved for values the SERVER has sanitized (currently only the
+  // editor's first bot message, run through ChatHtmlSanitizer before it reaches
+  // data-initial-message). Everything that comes from the model or the chat history
+  // must keep the default and go through fmt(), which escapes markup.
+  const addMsg = (role, c, t = null, isHtml = false) => {
     const row = document.createElement('div');
     row.className = `ai-chat-message ai-chat-${role}`;
-    row.innerHTML = `<div class="ai-chat-bubble">${fmt(c)}${t ? `<span class='ai-chat-timestamp'>${ts(t)}</span>` : ''}</div>`;
+    row.innerHTML = `<div class="ai-chat-bubble">${isHtml ? c : fmt(c)}${t ? `<span class='ai-chat-timestamp'>${ts(t)}</span>` : ''}</div>`;
     log.appendChild(row);
     log.scrollTo({top: log.scrollHeight, behavior: 'smooth'});
     log.setAttribute('aria-live', 'polite');

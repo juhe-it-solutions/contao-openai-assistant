@@ -116,6 +116,12 @@ $GLOBALS['TL_DCA']['tl_module']['fields']['link_target'] = [
 ];
 
 // Add the chat title field
+//
+// allowHtml on this and the two fields below lets editors use inline formatting
+// ("<br>", "<strong>") in the chat texts. On Contao 5.3/5.7 the flag is what keeps
+// the markup out of the input encoder ("<" would be stored as "&#60;"); on Contao 6
+// input is stored raw and the flag switches on Contao's input sanitizing instead.
+// Either way the value is sanitized again on output (ChatHtmlSanitizer).
 $GLOBALS['TL_DCA']['tl_module']['fields']['chat_title'] = [
     'label'     => &$GLOBALS['TL_LANG']['tl_module']['chat_title'],
     'exclude'   => true,
@@ -125,6 +131,7 @@ $GLOBALS['TL_DCA']['tl_module']['fields']['chat_title'] = [
         'tl_class'  => 'w50',
         'maxlength' => 255,
         'mandatory' => true,
+        'allowHtml' => true,
     ],
     'sql'       => "varchar(255) NOT NULL default 'Chat-Header-Titel'",
 ];
@@ -138,6 +145,7 @@ $GLOBALS['TL_DCA']['tl_module']['fields']['welcome_message'] = [
     'eval'      => [
         'tl_class'  => 'w50',
         'maxlength' => 255,
+        'allowHtml' => true,
     ],
     'sql'       => "varchar(255) NOT NULL default 'Willkommenszeile1'",
 ];
@@ -151,6 +159,7 @@ $GLOBALS['TL_DCA']['tl_module']['fields']['initial_bot_message'] = [
     'eval'      => [
         'tl_class'  => 'w50',
         'maxlength' => 255,
+        'allowHtml' => true,
     ],
     'sql'       => "varchar(255) NOT NULL default 'Hallo! Wie kann ich dir helfen?'",
 ];
