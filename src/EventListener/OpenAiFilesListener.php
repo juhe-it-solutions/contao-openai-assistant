@@ -210,7 +210,6 @@ class OpenAiFilesListener
                 );
 
                 $result = $response->toArray();
-                $uploadedFileIds[] = $result['id'];
 
                 $this->logger->info(
                     'File successfully uploaded to OpenAI',
@@ -251,6 +250,11 @@ class OpenAiFilesListener
                         ],
                     );
                 }
+
+                // Recorded only now, after the attachment succeeded. Listed at upload time it
+                // would name files that were deleted again moments later, in the very log an
+                // operator reads to find out what happened.
+                $uploadedFileIds[] = $result['id'];
 
                 // For the first file, update the current record
                 if (!$currentRecordProcessed) {
