@@ -45,8 +45,10 @@ class PageLinkRepository
      */
     private array|null $siteHosts = null;
 
-    public function __construct(private readonly Connection $connection)
-    {
+    public function __construct(
+        private readonly Connection $connection,
+        private readonly PageProtectionResolver $pageProtection,
+    ) {
     }
 
     /**
@@ -280,8 +282,14 @@ class PageLinkRepository
                 'SELECT url FROM tl_search WHERE protected = 1 LIMIT 5000',
             );
         } catch (\Throwable) {
-            return [];
+            $rows = [];
         }
+
+        // The index flag alone is not enough. Contao does not purge tl_search when a page is
+        // protected, so a page an editor just closed off still carries protected=0 and would
+        // keep being linked from every surviving page's link block. tl_page, with inherited
+        // protection resolved, is the authoritative half of this answer.
+        $rows = array_merge($rows, $this->pageProtection->protectedUrls());
 
         $protected = [];
 

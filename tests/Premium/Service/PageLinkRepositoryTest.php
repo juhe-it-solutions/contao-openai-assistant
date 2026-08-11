@@ -20,6 +20,7 @@ use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Types\BooleanType;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageLink;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageLinkRepository;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageProtectionResolver;
 use PHPUnit\Framework\TestCase;
 
 class PageLinkRepositoryTest extends TestCase
@@ -41,7 +42,7 @@ class PageLinkRepositoryTest extends TestCase
         $connection->method('createSchemaManager')->willReturn($schemaManager);
         $connection->method('fetchAllAssociative')->willReturn($rows);
 
-        return new PageLinkRepository($connection);
+        return new PageLinkRepository($connection, $this->createMock(PageProtectionResolver::class));
     }
 
     /**
@@ -161,6 +162,42 @@ class PageLinkRepositoryTest extends TestCase
     }
 
     /**
+     * A page an editor has just protected still carries protected=0 in tl_search, because
+     * Contao does not purge the index on that change. Reading the index alone therefore kept
+     * linking member-only pages from the link blocks of surviving public pages - the exact
+     * mirror of the unpublish defect below.
+     */
+    public function testProtectedUrlsIncludeThePagesOnlyTheTreeKnowsAbout(): void
+    {
+        $schemaManager = $this->createMock(AbstractSchemaManager::class);
+        $schemaManager->method('tablesExist')->willReturn(true);
+        $schemaManager->method('listTableColumns')->willReturn(
+            ['auto_update_include_links' => new Column('auto_update_include_links', new BooleanType())],
+        );
+
+        $connection = $this->createMock(Connection::class);
+        $connection->method('createSchemaManager')->willReturn($schemaManager);
+        // Only the stale index row - the index believes nothing else is protected.
+        $connection->method('fetchFirstColumn')->willReturn(['https://example.com/old-intern.html']);
+
+        $pageProtection = $this->createMock(PageProtectionResolver::class);
+        $pageProtection->method('protectedUrls')->willReturn(['https://example.com/intern/team.html']);
+
+        $urls = (new PageLinkRepository($connection, $pageProtection))->protectedUrls();
+
+        $this->assertArrayHasKey(
+            PageLink::comparisonKey('https://example.com/intern/team.html'),
+            $urls,
+            'The page tree is the authoritative half and must be merged in.',
+        );
+        $this->assertArrayHasKey(
+            PageLink::comparisonKey('https://example.com/old-intern.html'),
+            $urls,
+            'The index flag still catches protection the tree walk does not show.',
+        );
+    }
+
+    /**
      * The publish filter in readAllPages() stops an unpublished page from being
      * uploaded; this set stops the OTHER pages from linking to it. Without it the page
      * is gone from the chatbot's knowledge while a link block still sends the visitor
@@ -192,7 +229,7 @@ class PageLinkRepositoryTest extends TestCase
             )
         ;
 
-        $urls = (new PageLinkRepository($connection))->unpublishedUrls();
+        $urls = (new PageLinkRepository($connection, $this->createMock(PageProtectionResolver::class)))->unpublishedUrls();
 
         $this->assertArrayHasKey(
             PageLink::comparisonKey('https://example.com/retired.html'),

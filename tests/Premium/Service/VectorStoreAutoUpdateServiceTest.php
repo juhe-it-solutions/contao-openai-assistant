@@ -27,6 +27,7 @@ use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LinkSectionBuilder;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageLink;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageLinkFilter;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageLinkRepository;
+use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageProtectionResolver;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\ReaderItemCounter;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreAutoUpdateService;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\VectorStoreFileSync;
@@ -692,6 +693,264 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
             'Protected pages must be excluded - and via COALESCE, because a NULL would '
             .'drop the row and make the reconcile delete that page from the vector store.',
         );
+    }
+
+    /**
+     * The cap was tested at the top of the loop and a whole batch of children appended after
+     * it, so one parent with more direct children than the cap allowed sailed straight past
+     * the documented hard limit - the single tree shape where the check did nothing.
+     */
+    public function testTheCrawlPageCapHoldsAgainstOneVeryWideParent(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchFirstColumn')
+            ->willReturnCallback(
+                static function (string $sql, array $params): array {
+                    // Page 1 has 6000 direct children; none of them has children of its own.
+                    if (1 !== ($params[0] ?? null)) {
+                        return [];
+                    }
+
+                    return range(100, 6099);
+                },
+            )
+        ;
+
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'collectPageSubtreeIds');
+        $ids = $method->invoke($this->createService($connection), 1);
+
+        $this->assertCount(5000, $ids, 'The hard cap is 5000 pages, batch boundaries included.');
+        $this->assertSame(1, $ids[0], 'The root itself is still the first entry.');
+    }
+
+    /**
+     * The index flag is only as fresh as the last crawl, and Contao never purges tl_search
+     * when a page becomes protected. So the page tree, with inheritance resolved, has to
+     * exclude the page as well - otherwise a page an editor closed off yesterday is still
+     * uploaded to a store the anonymous chat endpoint answers from.
+     */
+    public function testPagesTheTreeReportsAsProtectedAreNeverRead(): void
+    {
+        $capturedIds = null;
+
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchAssociative')
+            ->willReturn(['auto_update_site_root' => serialize(['7', '8'])])
+        ;
+        $connection
+            ->method('fetchFirstColumn')
+            ->willReturn([7, 8])
+        ;
+        $connection
+            ->method('fetchAllAssociative')
+            ->willReturnCallback(
+                static function (string $sql, array $params = []) use (&$capturedIds): array {
+                    if (str_contains($sql, 'FROM tl_search')) {
+                        $capturedIds = $params[0];
+                    }
+
+                    return [];
+                },
+            )
+        ;
+
+        // Page 8 carries no protected flag of its own - it inherits it from a parent.
+        $pageProtection = $this->createMock(PageProtectionResolver::class);
+        $pageProtection->method('protectedPageIds')->willReturn([8 => true]);
+
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'readAllPages');
+        $method->invoke($this->createService($connection, null, null, null, $pageProtection), 1);
+
+        $this->assertSame([7], $capturedIds, 'The inherited-protected page must not even be queried.');
+    }
+
+    /**
+     * The empty search index stays a fail-safe abort - it is far more often a broken crawl
+     * than a genuinely empty site, and deleting on that signal would wipe a healthy store.
+     * But removals the PAGE TREE proves are due must happen anyway, or the one case the
+     * upgrade guide promises to handle is the one case where nothing happens.
+     */
+    public function testPagesTheTreeProvesAreGoneAreRemovedBeforeTheEmptyIndexAbort(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchFirstColumn')
+            ->willReturnCallback(
+                static function (string $sql): array {
+                    // Tracked pages: 42 (still live), 43 (deleted from the tree).
+                    if (str_contains($sql, 'FROM tl_openai_vector_file')) {
+                        return [42, 43];
+                    }
+
+                    // Only 42 comes back as live and published.
+                    if (str_contains($sql, 'FROM tl_page')) {
+                        return [42];
+                    }
+
+                    return [];
+                },
+            )
+        ;
+
+        $removed = null;
+        $fileSync = $this->createMock(VectorStoreFileSync::class);
+        $fileSync
+            ->method('removePages')
+            ->willReturnCallback(
+                static function (string $apiKey, string $storeId, int $configId, array $pageIds) use (&$removed): array {
+                    $removed = $pageIds;
+
+                    return ['removed' => \count($pageIds), 'deletes_pending' => 0];
+                },
+            )
+        ;
+
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'removeAuthoritativelyGonePages');
+        $method->invoke(
+            $this->createService($connection, null, null, $fileSync),
+            'sk-test',
+            'vs_123',
+            1,
+            [],
+        );
+
+        $this->assertSame([43], $removed, 'The page the tree no longer has must be removed; the live one must not.');
+    }
+
+    /**
+     * A page that is still in the tree but has just been protected is gone for our purposes,
+     * and this is the transition the whole finding is about.
+     */
+    public function testAPageTurnedProtectedIsRemovedEvenThoughItStillExists(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchFirstColumn')
+            ->willReturnCallback(
+                static function (string $sql): array {
+                    if (str_contains($sql, 'FROM tl_openai_vector_file')) {
+                        return [42, 43];
+                    }
+
+                    // Both pages are alive and published - nothing here says otherwise.
+                    if (str_contains($sql, 'FROM tl_page')) {
+                        return [42, 43];
+                    }
+
+                    return [];
+                },
+            )
+        ;
+
+        $pageProtection = $this->createMock(PageProtectionResolver::class);
+        $pageProtection->method('protectedPageIds')->willReturn([43 => true]);
+
+        $removed = null;
+        $fileSync = $this->createMock(VectorStoreFileSync::class);
+        $fileSync
+            ->method('removePages')
+            ->willReturnCallback(
+                static function (string $apiKey, string $storeId, int $configId, array $pageIds) use (&$removed): array {
+                    $removed = $pageIds;
+
+                    return ['removed' => \count($pageIds), 'deletes_pending' => 0];
+                },
+            )
+        ;
+
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'removeAuthoritativelyGonePages');
+        $method->invoke(
+            $this->createService($connection, null, null, $fileSync, $pageProtection),
+            'sk-test',
+            'vs_123',
+            1,
+            [],
+        );
+
+        $this->assertSame([43], $removed);
+    }
+
+    /**
+     * A page dropped from an explicit selection is gone by the admin's decision, even though
+     * the page itself is untouched.
+     */
+    public function testAPageRemovedFromTheSelectionIsRemoved(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchFirstColumn')
+            ->willReturnCallback(
+                static function (string $sql): array {
+                    if (str_contains($sql, 'FROM tl_openai_vector_file')) {
+                        return [42, 43];
+                    }
+
+                    if (str_contains($sql, 'FROM tl_page')) {
+                        return [42, 43];
+                    }
+
+                    return [];
+                },
+            )
+        ;
+
+        $removed = null;
+        $fileSync = $this->createMock(VectorStoreFileSync::class);
+        $fileSync
+            ->method('removePages')
+            ->willReturnCallback(
+                static function (string $apiKey, string $storeId, int $configId, array $pageIds) use (&$removed): array {
+                    $removed = $pageIds;
+
+                    return ['removed' => \count($pageIds), 'deletes_pending' => 0];
+                },
+            )
+        ;
+
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'removeAuthoritativelyGonePages');
+        $method->invoke(
+            $this->createService($connection, null, null, $fileSync),
+            'sk-test',
+            'vs_123',
+            1,
+            ['auto_update_site_root' => serialize(['42'])],
+        );
+
+        $this->assertSame([43], $removed, 'Only page 42 is still selected.');
+    }
+
+    /**
+     * page_id 0 is the synthetic site-wide link directory, not a page - it has no tl_page row
+     * and would look "deleted" to every check here.
+     */
+    public function testTheLinkDirectoryDocumentIsNeverTreatedAsAGonePage(): void
+    {
+        $capturedSql = null;
+
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('fetchFirstColumn')
+            ->willReturnCallback(
+                static function (string $sql) use (&$capturedSql): array {
+                    if (str_contains($sql, 'FROM tl_openai_vector_file')) {
+                        $capturedSql = $sql;
+                    }
+
+                    return [];
+                },
+            )
+        ;
+
+        $fileSync = $this->createMock(VectorStoreFileSync::class);
+        $fileSync->expects($this->never())->method('removePages');
+
+        $method = new \ReflectionMethod(VectorStoreAutoUpdateService::class, 'removeAuthoritativelyGonePages');
+        $method->invoke($this->createService($connection, null, null, $fileSync), 'sk-test', 'vs_123', 1, []);
+
+        $this->assertNotNull($capturedSql);
+        $this->assertStringContainsString('page_id > 0', $capturedSql);
     }
 
     /**
@@ -1449,7 +1708,7 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
         return $schemaManager;
     }
 
-    private function createService(Connection $connection, ReaderItemCounter|null $readerItems = null, MockHttpClient|null $http = null): VectorStoreAutoUpdateService
+    private function createService(Connection $connection, ReaderItemCounter|null $readerItems = null, MockHttpClient|null $http = null, VectorStoreFileSync|null $fileSync = null, PageProtectionResolver|null $pageProtection = null): VectorStoreAutoUpdateService
     {
         return new VectorStoreAutoUpdateService(
             $connection,
@@ -1459,8 +1718,9 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
             $this->createMock(ProcessUtil::class),
             $this->createMock(LicenseValidationService::class),
             $this->createMock(BoilerplateFilter::class),
-            $this->createMock(VectorStoreFileSync::class),
+            $fileSync ?? $this->createMock(VectorStoreFileSync::class),
             $this->createMock(PageLinkRepository::class),
+            $pageProtection ?? $this->createMock(PageProtectionResolver::class),
             new PageLinkFilter(),
             new LinkSectionBuilder(),
             new LinkIndexDocumentBuilder(),

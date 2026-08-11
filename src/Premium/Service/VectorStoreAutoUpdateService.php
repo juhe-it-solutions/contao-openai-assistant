@@ -212,6 +212,7 @@ class VectorStoreAutoUpdateService
         private readonly BoilerplateFilter $boilerplate,
         private readonly VectorStoreFileSync $fileSync,
         private readonly PageLinkRepository $pageLinks,
+        private readonly PageProtectionResolver $pageProtection,
         private readonly PageLinkFilter $linkFilter,
         private readonly LinkSectionBuilder $linkSection,
         private readonly LinkIndexDocumentBuilder $linkIndex,
@@ -375,6 +376,12 @@ class VectorStoreAutoUpdateService
             $triggerSource = self::SOURCE_CLI;
         }
 
+        // Per-run state, and the cron walks every enabled configuration in one process:
+        // without this reset a config that skipped its own crawl inherits the previous
+        // config's summary and shows it inside its own "no indexed pages" error - a wrong
+        // explanation in the one place an operator goes looking for the right one.
+        $this->lastCrawlSummary = '';
+
         // Guard against running before contao:migrate has created the extension tables
         // (e.g. CLI command invoked on a fresh install before the install wizard finishes)
         // or before it has added the run-state columns after a bundle update — the
@@ -407,6 +414,11 @@ class VectorStoreAutoUpdateService
                     'trigger_source' => $triggerSource,
                     'message' => 'MSC.vsau_sync_skipped_license',
                 ]);
+                // Prune here too. This path returns before the terminal persistResult(),
+                // so without it an enabled schedule with a lapsed license appends a row
+                // per cron tick forever and the documented 30-row cap silently stops
+                // holding - on exactly the configuration nobody is watching any more.
+                $this->pruneSyncLog($configId);
                 // Clear the 'queued' status written by dispatchRun() so the dashboard
                 // "Run sync now" button becomes re-clickable immediately (REV-02).
                 $this->connection->executeStatement(
@@ -490,6 +502,20 @@ class VectorStoreAutoUpdateService
             ) ?? 0;
 
             $rows = $this->readAllPages($configId);
+
+            // Remove what tl_page proves is gone, BEFORE the empty-index check below can
+            // abort the run.
+            //
+            // The two questions are separated by authority on purpose. "tl_search returned
+            // nothing" is not authoritative - it is far more often a failed crawl than a
+            // genuinely empty site, and deleting on that signal would wipe a healthy store.
+            // So that check keeps aborting. But a page the page tree says is deleted,
+            // unpublished or protected is authoritative regardless of what the crawl did,
+            // and its document has to go even when the run is about to abort - otherwise the
+            // one case the upgrade guide promises to handle (a page turned member-only) is
+            // exactly the case where nothing happens.
+            $this->removeAuthoritativelyGonePages($apiKey, $vectorStoreId, $configId, $config);
+
             if (0 === \count($rows)) {
                 // With an explicit selection, "tl_search is empty" would often be false -
                 // the index may have rows, just none for the picked pages. Report the
@@ -504,6 +530,11 @@ class VectorStoreAutoUpdateService
                 if ('' !== $this->lastCrawlSummary) {
                     $reason .= VectorStoreSyncMessageTranslator::COMPOUND_SEPARATOR.'MSC.vsau_crawl_result|'.$this->lastCrawlSummary;
                 }
+
+                // On a site whose crawl keeps failing this abort is EVERY run, so without
+                // this the deletion debt from earlier runs would never be worked off.
+                // The key and store id are guaranteed non-empty by the guards above.
+                $this->fileSync->retryPendingDeletions($apiKey, $vectorStoreId, $configId);
 
                 throw new \RuntimeException($reason);
             }
@@ -710,13 +741,17 @@ class VectorStoreAutoUpdateService
                 'item_limit' => $itemBudgetExceeded ? $planItemLimit : 0,
                 'files_uploaded' => $syncStats['files_uploaded'],
                 'removed' => $syncStats['removed'],
+                'deletes_pending' => $syncStats['deletes_pending'],
             ]);
 
             $this->persistResult(
                 $configId,
                 $status,
-                '',
-                // per-page mode has no single file id
+                // Per-page mode has no single file id, so '' clears the legacy one - but only
+                // once that legacy bulk file is provably gone from the vector store. Clearing
+                // it after an unconfirmed deletion would strand the file: still attached,
+                // still answering, and no longer referenced by anything that could retry.
+                $syncStats['legacy_file_removed'] ? '' : null,
                 [
                     'pages' => $contentPageCount,
                     'items' => $itemsInScope,
@@ -806,7 +841,7 @@ class VectorStoreAutoUpdateService
      * Public so the status/message combinations can be tested without a database, an
      * HTTP client and a crawl subprocess.
      *
-     * @param array{files_failed: int, pages_skipped: int, page_limit: int, dropped_items: int, items_in_scope: int, item_limit: int, files_uploaded?: int, removed?: int} $run
+     * @param array{files_failed: int, pages_skipped: int, page_limit: int, dropped_items: int, items_in_scope: int, item_limit: int, files_uploaded?: int, removed?: int, deletes_pending?: int} $run
      *
      * @return array{0: string, 1: string}
      */
@@ -828,6 +863,14 @@ class VectorStoreAutoUpdateService
 
         if ($run['files_failed'] > 0) {
             $notes[] = 'MSC.vsau_partial_files_failed|'.$run['files_failed'];
+        }
+
+        // A file we could not delete is the one failure the operator cannot see anywhere
+        // else: the website looks right, the page is gone from the selection, and the
+        // chatbot still answers from it. It has to be said out loud, every run, until the
+        // deletion is confirmed.
+        if (($run['deletes_pending'] ?? 0) > 0) {
+            $notes[] = 'MSC.vsau_partial_deletes_pending|'.$run['deletes_pending'];
         }
 
         if ([] !== $notes) {
@@ -1223,6 +1266,12 @@ class VectorStoreAutoUpdateService
     private function contentPageIds(array $pageIds): array
     {
         $pageIds = array_values(array_filter(array_map(intval(...), $pageIds)));
+
+        // Same authoritative exclusion readAllPages() applies. If the two disagreed, a page
+        // that is no longer uploaded would still consume a plan slot - and because
+        // enforceCrawlPageLimit() throws, that can refuse the save of a configuration whose
+        // real upload sits well under the limit.
+        $pageIds = array_values(array_diff($pageIds, array_keys($this->pageProtection->protectedPageIds())));
 
         if ([] === $pageIds) {
             return [];
@@ -1635,6 +1684,91 @@ class VectorStoreAutoUpdateService
     }
 
     /**
+     * Delete the vector-store documents of pages the PAGE TREE says are no longer eligible.
+     *
+     * Deliberately independent of the search index: this is the half of reconciliation that
+     * must not depend on a crawl having worked. A page that was deleted, unpublished or
+     * protected is gone by the authority of tl_page alone, and its content must stop being
+     * answerable whether or not tl_search still has rows to upload.
+     *
+     * Never removes page_id 0 - that is the synthetic site-wide link directory, not a page.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function removeAuthoritativelyGonePages(string $apiKey, string $vectorStoreId, int $configId, array $config): void
+    {
+        if ('' === $apiKey || '' === $vectorStoreId) {
+            return;
+        }
+
+        try {
+            $tracked = array_values(array_filter(array_map(
+                intval(...),
+                $this->connection->fetchFirstColumn(
+                    'SELECT DISTINCT page_id FROM tl_openai_vector_file WHERE pid = ? AND page_id > 0',
+                    [$configId],
+                ),
+            )));
+        } catch (\Throwable $e) {
+            $this->logger->warning('VectorStoreAutoUpdate could not read tracked pages for config '.$configId.': '.$e->getMessage());
+
+            return;
+        }
+
+        if ([] === $tracked) {
+            return;
+        }
+
+        $now = time();
+        $time = $now - $now % 60;
+
+        // Contao's own published predicate, including the minute rounding used elsewhere in
+        // this class. Anything the query does NOT return is deleted or not currently live.
+        $live = array_map(
+            intval(...),
+            $this->connection->fetchFirstColumn(
+                "SELECT id FROM tl_page
+                 WHERE id IN (?)
+                   AND published = '1'
+                   AND (COALESCE(start, '') = '' OR start <= ?)
+                   AND (COALESCE(stop, '') = '' OR stop > ?)",
+                [$tracked, $time, $time],
+                [ArrayParameterType::INTEGER, ParameterType::INTEGER, ParameterType::INTEGER],
+            ),
+        );
+
+        $gone = array_values(array_diff($tracked, $live));
+
+        // Protected, with inheritance resolved from the tree rather than the stale index.
+        $gone = array_values(array_unique(array_merge(
+            $gone,
+            array_values(array_intersect($tracked, array_keys($this->pageProtection->protectedPageIds()))),
+        )));
+
+        // Pages the admin removed from an explicit selection. Only with an explicit
+        // selection: under the whole-website fallback the scope is the page tree itself, and
+        // "deleted from tl_page" above already covers it.
+        $selected = self::parseConfiguredPageIds($config['auto_update_site_root'] ?? null);
+
+        if ([] !== $selected) {
+            $gone = array_values(array_unique(array_merge($gone, array_values(array_diff($tracked, $selected)))));
+        }
+
+        if ([] === $gone) {
+            return;
+        }
+
+        $this->logger->notice(\sprintf(
+            'VectorStoreAutoUpdate: removing %d page document(s) for config %d that the page tree no longer covers (IDs: %s).',
+            \count($gone),
+            $configId,
+            implode(', ', $gone),
+        ));
+
+        $this->fileSync->removePages($apiKey, $vectorStoreId, $configId, $gone);
+    }
+
+    /**
      * Read tl_search rows scoped to the configured page selection.
      *
      * Explicitly selected pages are used as-is (no subpages implied). An empty
@@ -1693,6 +1827,12 @@ class VectorStoreAutoUpdateService
         }
 
         $pageIds = array_values(array_unique($pageIds));
+
+        // Protection resolved from tl_page, on top of the tl_search.protected filter below.
+        // The index flag is only as fresh as the last crawl, and Contao never purges a search
+        // row when a page becomes protected - so without this a page an editor closed off
+        // yesterday is still uploaded to a store an anonymous chat endpoint answers from.
+        $pageIds = array_values(array_diff($pageIds, array_keys($this->pageProtection->protectedPageIds())));
 
         if ([] === $pageIds) {
             return [];
@@ -1927,6 +2067,16 @@ class VectorStoreAutoUpdateService
                 [$parentId],
             );
 
+            // Cut the batch to the headroom that is actually left. The cap was checked at the
+            // top of the loop and the WHOLE batch appended after it, so a single parent with
+            // thousands of direct children could overshoot the documented hard limit by the
+            // size of that batch - the one shape of page tree where the check does nothing.
+            $headroom = self::MAX_CRAWL_PAGES - \count($ids);
+
+            if (\count($children) > $headroom) {
+                $children = \array_slice($children, 0, $headroom);
+            }
+
             foreach ($children as $childId) {
                 $childId = (int) $childId;
                 $ids[] = $childId;
@@ -2148,10 +2298,10 @@ class VectorStoreAutoUpdateService
      * page in this run, so a file id seen in the OpenAI platform can be traced back to a
      * page (and vice versa) - the uploaded files themselves carry no such index.
      *
-     * @param list<array{page_id: int, url: string, title: string, content: string}>                                            $pages
-     * @param array{added: int, updated: int, removed: int, unchanged: int, files_uploaded: int, files_failed: int, bytes: int} $sync
-     * @param array<int, array{state: string, files: list<string>}>                                                             $pageStates page_id => outcome + file ids of this run
-     * @param array{total: int, dropped_policy: int, dropped_boilerplate: int}|null                                             $links      null = link collection disabled
+     * @param list<array{page_id: int, url: string, title: string, content: string}>                                                                   $pages
+     * @param array{added: int, updated: int, removed: int, unchanged: int, files_uploaded: int, files_failed: int, deletes_pending?: int, bytes: int} $sync
+     * @param array<int, array{state: string, files: list<string>}>                                                                                    $pageStates page_id => outcome + file ids of this run
+     * @param array{total: int, dropped_policy: int, dropped_boilerplate: int}|null                                                                    $links      null = link collection disabled
      */
     private function buildManifest(array $pages, array $sync, array $pageStates, array|null $links = null, bool $crawlSkipped = false): string
     {
@@ -2168,6 +2318,16 @@ class VectorStoreAutoUpdateService
             ),
             \sprintf('- Files uploaded: %d, failed: %d, bytes: %d', $sync['files_uploaded'], $sync['files_failed'], $sync['bytes']),
         ];
+
+        // The manifest is where a file id is traced back to a page, which makes it the one
+        // document worth reading when a file could not be deleted: it names the pages whose
+        // content is still in the store despite having left the scope.
+        if (($sync['deletes_pending'] ?? 0) > 0) {
+            $lines[] = \sprintf(
+                '- Files awaiting removal: %d - still attached to the vector store and still answerable. The next run retries them.',
+                $sync['deletes_pending'],
+            );
+        }
 
         // Without this, an all-unchanged manifest with no uploads reads like a run that
         // failed to do anything, and there is nothing in the document to say otherwise.
@@ -2266,9 +2426,9 @@ class VectorStoreAutoUpdateService
     }
 
     /**
-     * @param string|null                                                                                                                                                                                                                                     $fileId null = leave auto_update_file_id unchanged (failed runs must not
-     *                                                                                                                                                                                                                                                                discard a still-uncleaned legacy file id)
-     * @param array{pages?: int, items?: int, tokens_in?: int, tokens_out?: int, duration?: int, model?: string, document?: string, sync?: array{added: int, updated: int, removed: int, unchanged: int, files_uploaded: int, files_failed: int, bytes: int}} $stats
+     * @param string|null                                                                                                                                                                                                                                                            $fileId null = leave auto_update_file_id unchanged (failed runs must not
+     *                                                                                                                                                                                                                                                                                       discard a still-uncleaned legacy file id)
+     * @param array{pages?: int, items?: int, tokens_in?: int, tokens_out?: int, duration?: int, model?: string, document?: string, sync?: array{added: int, updated: int, removed: int, unchanged: int, files_uploaded: int, files_failed: int, deletes_pending?: int, bytes: int}} $stats
      */
     private function persistResult(int $configId, string $status, string|null $fileId, array $stats, string $message = '', string $triggerSource = self::SOURCE_CLI): void
     {
