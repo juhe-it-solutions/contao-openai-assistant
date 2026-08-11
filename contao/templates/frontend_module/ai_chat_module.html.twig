@@ -40,7 +40,7 @@
             --ai-chat-dark-text-primary: #{{ dark_text_primary|default('ff6600') }};
             --ai-chat-dark-text-secondary: #{{ dark_text_secondary|default('fdfdf1') }};
             --ai-chat-dark-toggle-icon-color: #{{ dark_toggle_icon_color|default('ff6600') }};">
-    <div class="ai-chat-container">
+    <div class="ai-chat-container" id="ai-chat-panel-{{ module_id|replace({'ai-chat-': ''}) }}">
         <div class="ai-chat-header">
             {# chat_title and welcome_message are HTML fields (DCA eval allowHtml) and
                arrive sanitized from the controller (ChatHtmlSanitizer), which is why
@@ -53,7 +53,7 @@
                     aria-expanded="false"
                     aria-controls="ai-chat-disclaimer-dialog-{{ module_id|replace({'ai-chat-': ''}) }}"
                     title="{{ title_disclaimer }}">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="currentColor"/>
                 </svg>
             </button>
@@ -61,25 +61,25 @@
                     class="ai-chat-theme-toggle"
                     aria-label="{{ aria_label_theme }}"
                     title="{{ title_theme }}">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor"/>
                 </svg>
             </button>
             <button type="button"
                     class="ai-chat-minimize"
                     aria-label="{{ aria_label_minimize }}"
-                    aria-expanded="true"
-                    aria-controls="ai-chat-log-{{ module_id|replace({'ai-chat-': ''}) }}">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    aria-controls="ai-chat-panel-{{ module_id|replace({'ai-chat-': ''}) }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
                     <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
             </button>
         </div>
 
         <div class="ai-chat-log" id="ai-chat-log-{{ module_id|replace({'ai-chat-': ''}) }}" role="log" aria-live="polite" aria-labelledby="ai-chat-title-{{ module_id|replace({'ai-chat-': ''}) }}"></div>
+        <div class="ai-chat-status sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
         <div class="ai-chat-input-container">
-            <form class="ai-chat-form" action="{{ chat_endpoint }}" method="post" aria-labelledby="ai-chat-subheadline-{{ module_id|replace({'ai-chat-': ''}) }}">
+            <form class="ai-chat-form" action="{{ chat_endpoint }}" method="post" aria-labelledby="ai-chat-subheadline-{{ module_id|replace({'ai-chat-': ''}) }}" aria-busy="false">
                 {# CSRF Token - Hidden field for security #}
                 <input type="hidden" 
                        name="REQUEST_TOKEN" 
@@ -91,6 +91,7 @@
                           placeholder="{{ placeholder_message }}"
                           rows="1"
                           autocomplete="off"
+                          enterkeyhint="enter"
                           required
                           aria-label="{{ aria_label_message }}"></textarea>
                 <button type="submit"
@@ -100,7 +101,7 @@
                         data-token-endpoint="{{ token_endpoint }}"
                         data-history-endpoint="{{ history_endpoint }}"
                         aria-label="{{ aria_label_send }}">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
                         <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </button>
@@ -109,12 +110,12 @@
     </div>
     
     <!-- Disclaimer Dialog -->
-    <div class="ai-chat-disclaimer-dialog" id="ai-chat-disclaimer-dialog-{{ module_id|replace({'ai-chat-': ''}) }}" role="dialog" aria-labelledby="ai-chat-disclaimer-title-{{ module_id|replace({'ai-chat-': ''}) }}" aria-describedby="ai-chat-disclaimer-description-{{ module_id|replace({'ai-chat-': ''}) }}" aria-modal="true" aria-hidden="true">
+    <div class="ai-chat-disclaimer-dialog" id="ai-chat-disclaimer-dialog-{{ module_id|replace({'ai-chat-': ''}) }}" role="dialog" aria-labelledby="ai-chat-disclaimer-title-{{ module_id|replace({'ai-chat-': ''}) }}" aria-describedby="ai-chat-disclaimer-description-{{ module_id|replace({'ai-chat-': ''}) }}" aria-modal="true" aria-hidden="true" inert>
         <div class="ai-chat-disclaimer-content">
             <div class="ai-chat-disclaimer-header">
                 <h4 class="ai-chat-disclaimer-title" id="ai-chat-disclaimer-title-{{ module_id|replace({'ai-chat-': ''}) }}">{{ disclaimer_title }}</h4>
                 <button type="button" class="ai-chat-disclaimer-close" aria-label="{{ aria_label_close_dialog }}">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
                         <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor"/>
                     </svg>
                 </button>

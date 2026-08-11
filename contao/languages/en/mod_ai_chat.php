@@ -33,6 +33,9 @@ $GLOBALS['TL_LANG']['mod_ai_chat'] = [
 
     // Strings used by JavaScript (injected as JSON)
     'js_ai_chat_open'           => 'Open AI Chat',
+    'js_assistant_typing'       => 'Assistant is typing…',
+    'js_theme_switch_to_dark'   => 'Switch to dark theme',
+    'js_theme_switch_to_light'  => 'Switch to light theme',
     'js_initial_message_fallback' => 'Hello! How can I help you?',
     'js_error_generic'          => 'An error occurred. Please try again.',
     'js_error_reload_page'      => 'Please reload the page and try again.',
