@@ -16,6 +16,10 @@ The frontend chatbot endpoint (`POST /ai-chat/send`) is public and anonymous, an
 
 3. **Per-configuration daily cap.** An absolute ceiling on how many chatbot replies one OpenAI configuration generates per day, across **all** visitors. This bounds the worst-case daily API cost even if an attacker distributes requests over many IPs. When the cap is reached, the widget shows a "daily limit reached, try again tomorrow" message and no OpenAI call is made.
 
+   The slot is reserved **before** the OpenAI call, in a single conditional database update against `tl_openai_chat_budget`, so the ceiling holds even when many requests arrive at the same instant: exactly one request can take the last slot, however many ask for it together. A reserved slot is handed back only when the call provably never reached OpenAI (the connection failed before delivery, OpenAI rejected it with a 429 or 503, or the request failed before it was ever made). This is what keeps a wrong API key or an OpenAI outage from burning the day's budget on requests that never cost anything.
+
+   The counter lives in `tl_openai_chat_budget`, which `contao:migrate` creates. Until that migration has run, the cap falls back to a cache-backed check that is still enforced but not atomic, so a burst arriving at the same moment can overshoot it by roughly the number of simultaneous requests.
+
 The CSRF token endpoint (`GET /ai-chat/token`) additionally allows at most one token request per 10 seconds per session.
 
 ## Configuring The Limits
@@ -72,7 +76,7 @@ touched and before any OpenAI call is made.
 
 ## Operational Notes
 
-- **Run `contao:migrate` after updating.** The limits are stored in new `tl_openai_config.chat_daily_limit` and `tl_openai_config.chat_ip_rate_limit` columns. Until the migration has added them, the daily cap is inactive and the IP limit runs at the built-in default of 10/minute; after the migration, existing configurations get the defaults (1000 / 10).
+- **Run `contao:migrate` after updating.** The limits are stored in new `tl_openai_config.chat_daily_limit` and `tl_openai_config.chat_ip_rate_limit` columns, and the daily cap counts into the `tl_openai_chat_budget` table. Until the migration has added them, the daily cap is inactive and the IP limit runs at the built-in default of 10/minute; after the migration, existing configurations get the defaults (1000 / 10). If the columns exist but the budget table does not, the cap is enforced through the non-atomic cache fallback described above.
 - **Behind a reverse proxy or load balancer, configure trusted proxies.** The IP limit keys on `Request::getClientIp()`. If Symfony does not trust your proxy, every visitor appears to come from the proxy's IP and shares a single per-minute budget — legitimate users would be throttled collectively. Set the `TRUSTED_PROXIES` environment variable (standard Contao/Symfony setup) so the real client IP is resolved from `X-Forwarded-For`. If you cannot configure trusted proxies, raise the per-IP field or set it to `0` as a workaround.
 - **Counters live in the Symfony application cache** (`cache.app`). They survive requests and web workers, but clearing the application cache (e.g. a full `cache:clear` in some setups) resets them. That is acceptable for abuse limiting — it never blocks legitimate traffic, it only briefly forgets past abuse.
 - **The limits are purely local.** They are independent of the premium add-on and the licensing server; nothing is reported anywhere. They also do not replace the rate limits OpenAI applies to your API key.

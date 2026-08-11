@@ -80,11 +80,14 @@ services:
             $httpClient: '@http_client'
             $logger: '@monolog.logger.contao'
 
-    # ChatRateLimiter — abuse protection for the public chat endpoint; backed by the
-    # shared application cache so limits hold across web workers and requests.
+    # ChatRateLimiter — abuse protection for the public chat endpoint. The per-IP window is
+    # backed by the shared application cache so limits hold across web workers; the daily
+    # ceiling needs a counter we own, because it has to be reserved atomically before the
+    # paid call and released again when that call provably never reached OpenAI.
     JuheItSolutions\ContaoOpenaiAssistant\Service\ChatRateLimiter:
         arguments:
             $cache: '@cache.app'
+            $connection: '@doctrine.dbal.default_connection'
 
     # OpenAiConfigListener
     JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener:
@@ -235,6 +238,13 @@ services:
             $uploadPath: '%contao.upload_path%'
 
     JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageLinkRepository:
+        arguments:
+            $connection: '@doctrine.dbal.default_connection'
+
+    # PageProtectionResolver — the authoritative "is this page member-only?" answer, read
+    # from tl_page with inheritance. Shared by the upload filter, the plan page count and the
+    # link policy so the three cannot disagree about what is protected.
+    JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageProtectionResolver:
         arguments:
             $connection: '@doctrine.dbal.default_connection'
 

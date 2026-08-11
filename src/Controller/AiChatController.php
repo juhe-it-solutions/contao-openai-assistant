@@ -15,6 +15,7 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Controller;
 use Contao\CoreBundle\Controller\AbstractController;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\CoreBundle\Framework\ContaoFramework;
+use JuheItSolutions\ContaoOpenaiAssistant\Exception\UnbilledRequestException;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\ChatRateLimiter;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiResponder;
@@ -149,12 +150,16 @@ class AiChatController extends AbstractController
 
         // Per-configuration daily ceiling: an absolute cap on completions one config can
         // spend per day, bounding worst-case API cost even under a distributed attack.
-        // Checked here, booked only after a successful completion - a bad key or an
-        // OpenAI outage must not spend the day's budget, or anyone could take the
-        // chatbot offline until midnight with requests that never cost anything.
+        //
+        // RESERVED here, in one atomic step, rather than checked here and booked afterwards.
+        // The old check-then-consume pair left a window in which any number of concurrent
+        // requests could all see the same last token and all pay for a completion - on the
+        // very cap that exists to bound a distributed attack. The slot is handed back below
+        // if the call provably never reached OpenAI, so a bad key or an outage still cannot
+        // spend the day's budget.
         $dailyLimit = $activeConfig ? (int) ($activeConfig['chat_daily_limit'] ?? 0) : 0;
 
-        if ($activeConfig && !$this->rateLimiter->hasConfigDailyBudget((int) $activeConfig['id'], $dailyLimit)) {
+        if ($activeConfig && !$this->rateLimiter->reserveConfigDaily((int) $activeConfig['id'], $dailyLimit)) {
             return new JsonResponse(
                 [
                     'error' => $this->getErrorMessage('daily_limit_reached', $language),
@@ -168,30 +173,24 @@ class AiChatController extends AbstractController
             // should be configured with appropriate system instructions
             $reply = $this->responder->processMessage($message, $session);
 
-            if ($activeConfig) {
-                $this->rateLimiter->consumeConfigDaily((int) $activeConfig['id'], $dailyLimit);
-            }
-
             return new JsonResponse([
                 'reply' => $reply,
                 'timestamp' => date('Y-m-d H:i:s'),
             ]);
-        } catch (\Exception $e) {
-            $this->logger->error(
-                'Error processing chat message: '.$e->getMessage(),
-                [
-                    'exception' => $e,
-                    // Do not log message content to avoid persisting potentially sensitive user input.
-                    'message_length' => mb_strlen($message),
-                ],
-            );
+        } catch (UnbilledRequestException $e) {
+            // Provably not charged: the request never reached OpenAI, or OpenAI rejected it
+            // before processing. Give the slot back, then fall through to the normal error
+            // handling - the visitor sees exactly what they saw before.
+            //
+            // A truthy $activeConfig is precisely the condition under which a slot was
+            // reserved above, so it is also the condition for releasing one.
+            if ($activeConfig) {
+                $this->rateLimiter->releaseConfigDaily((int) $activeConfig['id'], $dailyLimit);
+            }
 
-            return new JsonResponse(
-                [
-                    'error' => $this->getErrorMessage('service_unavailable', $language),
-                ],
-                500,
-            );
+            return $this->handleChatFailure($e, $message, $language);
+        } catch (\Exception $e) {
+            return $this->handleChatFailure($e, $message, $language);
         }
     }
 
@@ -315,14 +314,46 @@ class AiChatController extends AbstractController
     }
 
     /**
+     * Log a failed chat turn and answer with the generic service error.
+     *
+     * Shared by both catch blocks so that whether a slot was handed back is invisible to the
+     * visitor: a failure looks and reads exactly the same either way.
+     */
+    private function handleChatFailure(\Exception $e, string $message, string $language): JsonResponse
+    {
+        $this->logger->error(
+            'Error processing chat message: '.$e->getMessage(),
+            [
+                'exception' => $e,
+                // Do not log message content to avoid persisting potentially sensitive user input.
+                'message_length' => mb_strlen($message),
+            ],
+        );
+
+        return new JsonResponse(
+            [
+                'error' => $this->getErrorMessage('service_unavailable', $language),
+            ],
+            500,
+        );
+    }
+
+    /**
      * Detect user language from Accept-Language header.
      */
     private function detectLanguage(Request $request): string
     {
         $acceptLanguage = $request->headers->get('Accept-Language', '');
 
+        // Only the FIRST tag decides. Accept-Language is an ordered preference list, and
+        // the previous pattern (/^de|de-/) read as "^de" OR "de-" anywhere, so
+        // "en-US,en;q=0.9,de-DE;q=0.8" matched on the fallback and answered an English
+        // visitor in German - contradicting the ranking they sent us.
+        $primary = strtolower(trim(explode(',', $acceptLanguage)[0]));
+        $primary = trim(explode(';', $primary)[0]);
+
         // Check if German is preferred
-        if (preg_match('/^de|de-/', $acceptLanguage)) {
+        if ('de' === $primary || str_starts_with($primary, 'de-')) {
             return 'de';
         }
 

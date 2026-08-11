@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Service;
 
+use Doctrine\DBAL\Connection;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\RateLimiter\LimiterInterface;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
@@ -45,8 +46,14 @@ class ChatRateLimiter
 
     private const IP_INTERVAL = '1 minute';
 
-    public function __construct(private readonly CacheItemPoolInterface $cache)
-    {
+    /**
+     * The connection is optional so the IP limiter keeps working in contexts that have no
+     * database wired; the daily cap then degrades to its cache-backed check.
+     */
+    public function __construct(
+        private readonly CacheItemPoolInterface $cache,
+        private readonly Connection|null $connection = null,
+    ) {
     }
 
     /**
@@ -94,12 +101,98 @@ class ChatRateLimiter
     }
 
     /**
+     * Atomically reserve one completion from today's budget.
+     *
+     * Returns false when the ceiling is already reached, in which case NOTHING was booked
+     * and the caller must reject the request without calling OpenAI.
+     *
+     * This replaces a check-then-consume pair that was not atomic: the request asked "is
+     * there budget left?", made the paid call, and only then booked it. Between those two
+     * points nothing was reserved, so any number of concurrent requests could all observe
+     * the same last token and all pay for a completion - on a cap documented as the backstop
+     * against exactly that, a distributed attack.
+     *
+     * The booking is one conditional UPDATE, so the database decides the winner: "add one,
+     * but only while we are still below the ceiling". The affected-row count is the answer -
+     * exactly one request can take the last slot, however many ask at once.
+     *
+     * Compensation, not prevention, is what keeps failures cheap: releaseConfigDaily() hands
+     * the slot back when the call provably never reached OpenAI. Booking up front WITHOUT
+     * that release would be atomic too, and would let anyone take the chatbot offline until
+     * midnight with requests that never cost a cent.
+     */
+    public function reserveConfigDaily(int $configId, int $dailyLimit): bool
+    {
+        if ($dailyLimit <= 0) {
+            return true;
+        }
+
+        if (null === $this->connection) {
+            // No database wired (unit tests, or a caller that only uses the IP limiter):
+            // fall back to the cache limiter's non-atomic check rather than failing open.
+            return $this->hasConfigDailyBudget($configId, $dailyLimit);
+        }
+
+        try {
+            $day = $this->today();
+
+            // INSERT IGNORE, so a race to create the row cannot fail the request; the unique
+            // key on (pid, day) makes at most one of them win and the rest are no-ops.
+            $this->connection->executeStatement(
+                'INSERT IGNORE INTO tl_openai_chat_budget (pid, tstamp, day, spent) VALUES (?, ?, ?, 0)',
+                [$configId, time(), $day],
+            );
+
+            $granted = $this->connection->executeStatement(
+                'UPDATE tl_openai_chat_budget SET spent = spent + 1, tstamp = ? WHERE pid = ? AND day = ? AND spent < ?',
+                [time(), $configId, $day, $dailyLimit],
+            );
+
+            if ($granted > 0) {
+                $this->pruneOldBudgetRows($day);
+            }
+
+            return $granted > 0;
+        } catch (\Throwable) {
+            // The table is missing (bundle updated without contao:migrate) or the database is
+            // unreachable. Degrade to the previous, non-atomic behaviour rather than taking
+            // the chat offline: a bounded overshoot beats a dead endpoint on every install
+            // that has not migrated yet.
+            return $this->hasConfigDailyBudget($configId, $dailyLimit);
+        }
+    }
+
+    /**
+     * Hand back a reservation for a call that provably never reached OpenAI.
+     *
+     * Only ever called for failures the responder can prove were not billed - a connect-phase
+     * transport error, an HTTP 429 or 503 rejection, or a failure before any request was made.
+     * A response that may have been produced (and therefore charged) keeps its slot.
+     *
+     * "spent > 0" guards against a double release ever driving the counter negative, which on
+     * an unsigned column would wrap into a very large number and disable the cap for the day.
+     */
+    public function releaseConfigDaily(int $configId, int $dailyLimit): void
+    {
+        if ($dailyLimit <= 0 || null === $this->connection) {
+            return;
+        }
+
+        try {
+            $this->connection->executeStatement(
+                'UPDATE tl_openai_chat_budget SET spent = spent - 1, tstamp = ? WHERE pid = ? AND day = ? AND spent > 0',
+                [time(), $configId, $this->today()],
+            );
+        } catch (\Throwable) {
+            // Losing a release only means the cap is one completion stricter today.
+        }
+    }
+
+    /**
      * Is there budget left for today, without spending any of it?
      *
-     * Used to reject a request before the paid call. The matching consume() runs
-     * only once the completion actually succeeded, so a misconfiguration or an
-     * OpenAI outage cannot burn the day's ceiling - which used to let anyone shut
-     * the chatbot down for the rest of the day with requests that never cost a cent.
+     * The cache-backed fallback for installations whose schema is not migrated yet. Kept
+     * non-atomic on purpose - it is the strictly-better-than-nothing path, not the contract.
      */
     public function hasConfigDailyBudget(int $configId, int $dailyLimit): bool
     {
@@ -123,6 +216,41 @@ class ChatRateLimiter
         }
 
         $this->dailyLimiter($configId, $dailyLimit)->consume(1);
+    }
+
+    /**
+     * Today as YYYYMMDD in UTC.
+     *
+     * UTC rather than the site's timezone so the rollover is the same instant on every web
+     * worker, whatever each one has configured.
+     */
+    private function today(): int
+    {
+        return (int) gmdate('Ymd');
+    }
+
+    /**
+     * Drop budget rows from previous days.
+     *
+     * Only yesterday and earlier, and only on a successful reservation, so the cost is one
+     * cheap DELETE on an indexed column amortised over the day's traffic. Without it a busy
+     * installation accumulates one row per configuration per day forever.
+     */
+    private function pruneOldBudgetRows(int $today): void
+    {
+        if (null === $this->connection || 0 !== random_int(0, 99)) {
+            // Roughly one request in a hundred does the cleanup; the rest skip the query.
+            return;
+        }
+
+        try {
+            $this->connection->executeStatement(
+                'DELETE FROM tl_openai_chat_budget WHERE day < ?',
+                [$today],
+            );
+        } catch (\Throwable) {
+            // Housekeeping only.
+        }
     }
 
     /**

@@ -384,11 +384,11 @@ class OpenAiConfigListener
      * orphaned assistants are cleaned up once by
      * Version20260416000001CleanupOrphanAssistants.
      *
-     * tl_openai_vector_file and tl_openai_sync_log are not registered as child
-     * tables (they have no ptable, so Contao core's ctable cascade does not reach
-     * them) - they are deleted explicitly here to avoid leaving permanent orphan
-     * rows, including the MEDIUMTEXT sync log document, behind for a config that
-     * no longer exists.
+     * tl_openai_vector_file, tl_openai_sync_log and tl_openai_chat_budget are not
+     * registered as child tables (they have no ptable, so Contao core's ctable
+     * cascade does not reach them) - they are deleted explicitly here to avoid
+     * leaving permanent orphan rows, including the MEDIUMTEXT sync log document,
+     * behind for a config that no longer exists.
      */
     public function deleteVectorStore($dc): void
     {
@@ -399,6 +399,14 @@ class OpenAiConfigListener
         $configId = (int) $dc->id;
 
         $this->connection->executeStatement('DELETE FROM tl_openai_sync_log WHERE pid = ?', [$configId]);
+
+        try {
+            $this->connection->executeStatement('DELETE FROM tl_openai_chat_budget WHERE pid = ?', [$configId]);
+        } catch (\Throwable $e) {
+            // Absent before contao:migrate has created it. Housekeeping only - a stale
+            // budget row for a deleted config is harmless and expires with the day.
+            $this->logger->debug('Could not clear the chat budget for config '.$configId.': '.$e->getMessage());
+        }
 
         $this->licenseValidation->deactivate($configId);
 
