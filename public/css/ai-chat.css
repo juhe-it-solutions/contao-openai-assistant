@@ -201,9 +201,33 @@
   border-color: var(--ai-chat-toggle-icon-color);
 }
 
-/* respect reduced-motion */
+/* respect reduced-motion
+
+   Everything the widget animates, not just the toggle's pulse. The rule used to name
+   that one animation, which left the panel's half-second fade, the smooth scrolling of
+   the message log and every hover transition running for a visitor who had asked the
+   operating system for none of it - and the panel fade and the auto-scroll are the two
+   that actually move things around, so they are the ones such a visitor most needs off.
+
+   Scoped to the widget: this file must never quieten animations that belong to the
+   surrounding website. Durations are near-zero rather than "none" so that transitionend
+   and animationend listeners still fire and nothing waits forever for an event. */
 @media (prefers-reduced-motion:reduce){
-  .ai-chat-toggle{animation:none;}
+  .ai-chat-toggle,
+  .ai-chat-toggle *,
+  .ai-chat-container,
+  .ai-chat-container *,
+  .ai-chat-container *::before,
+  .ai-chat-container *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .ai-chat-log {
+    scroll-behavior: auto !important;
+  }
 }
 
 .ai-chat-toggle[hidden]   { display:none; }
