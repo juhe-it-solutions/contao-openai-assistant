@@ -27,14 +27,15 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 class OpenAiFilesListenerTest extends TestCase
 {
-    public function testResolveParentConfigIdUsesDataContainerPid(): void
+    public function testResolveParentConfigIdUsesDataContainerCurrentPid(): void
     {
         $dc = $this->getMockBuilder(DataContainer::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['getPalette', 'save'])
             ->getMockForAbstractClass()
         ;
-        $dc->pid = 7;
+        $property = new \ReflectionProperty(DataContainer::class, 'intCurrentPid');
+        $property->setValue($dc, 7);
 
         $this->assertSame(
             7,

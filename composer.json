@@ -14,7 +14,7 @@
   ],
   "require": {
     "php": "^8.2",
-    "contao/core-bundle": "^5.3@dev",
+    "contao/core-bundle": "^5.3",
     "nyholm/psr7": "^1.2",
     "symfony/asset": "^6.4 || ^7.0 || ^8.0",
     "symfony/dom-crawler": "^6.4 || ^7.0 || ^8.0",
