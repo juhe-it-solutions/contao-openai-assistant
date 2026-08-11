@@ -2,8 +2,8 @@
 
 ## Runtime
 
-- PHP 8.2 or newer
-- Contao 5.3 or newer
+- PHP 8.4 or newer
+- Contao 6.0 or newer
 - `symfony/http-client`
 - Composer-managed installation
 

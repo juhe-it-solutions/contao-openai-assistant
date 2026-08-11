@@ -45,6 +45,21 @@ if git tag -l | grep -q "^$TAG$"; then
     exit 1
 fi
 
+# Refuse to tag a package nobody can install.
+#
+# "minimum-stability" in a DEPENDENCY's manifest is ignored by the consuming root package -
+# only the root's own setting counts. So a release tagged while this is still "RC" resolves
+# its own RC requirement under the consumer's default "stable", finds nothing installable,
+# and fails at "composer require" for every customer. This is a hard stop rather than a
+# warning because the symptom appears on the customer's machine, not here.
+if grep -q '"minimum-stability"[[:space:]]*:[[:space:]]*"\(dev\|alpha\|beta\|RC\)"' composer.json; then
+    STABILITY=$(grep '"minimum-stability"' composer.json | sed 's/.*: *"\(.*\)".*/\1/')
+    echo -e "${RED}❌ Error: composer.json still sets minimum-stability \"$STABILITY\"${NC}"
+    echo -e "${YELLOW}💡 A consuming project ignores this setting, so the release would be uninstallable.${NC}"
+    echo -e "${YELLOW}💡 Remove the line once every requirement has a stable release, then tag.${NC}"
+    exit 1
+fi
+
 # Check if CHANGELOG.md has been updated
 echo -e "${BLUE}📝 Checking CHANGELOG.md...${NC}"
 if ! grep -q "## \[$VERSION\]" CHANGELOG.md 2>/dev/null; then

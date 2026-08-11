@@ -92,9 +92,13 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'panelLayout' => 'filter;search,limit',
         ],
         'label' => [
-            'fields'         => ['title', 'api_key'],
-            'format'         => '%s <span style="color:#999;">[%s]</span>',
-            'label_callback' => ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener', 'addIcon'],
+            'fields' => ['title', 'api_key'],
+            'format' => '%s <span style="color:#999;">[%s]</span>',
+            // No label_callback here. addIcon is registered as a contao.callback service
+            // (config/services.yaml), and label_callback is on Contao's SINGLETONS list, so
+            // DataContainerCallbackListener::updateSingleton() REPLACES this value rather
+            // than appending to it - a second registration here would never run, and would
+            // only mislead the next reader into thinking the callback fires twice.
         ],
         'global_operations' => [
             'all' => [

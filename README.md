@@ -5,31 +5,37 @@
 </p>
 
 [![License: LGPL-3.0-or-later AND Proprietary](https://img.shields.io/badge/License-LGPL%203.0--or--later%20AND%20Proprietary-blue.svg)](LICENSE)
-[![Contao](https://img.shields.io/badge/Contao-5.3+-green.svg)](https://contao.org)
-[![PHP](https://img.shields.io/badge/PHP-8.2+-purple.svg)](https://php.net)
+[![Contao](https://img.shields.io/badge/Contao-6.0+-green.svg)](https://contao.org)
+[![PHP](https://img.shields.io/badge/PHP-8.4+-purple.svg)](https://php.net)
 [![Packagist](https://img.shields.io/packagist/v/juhe-it-solutions/contao-openai-assistant.svg)](https://packagist.org/packages/juhe-it-solutions/contao-openai-assistant)
 
-OpenAI Responses API integration for Contao 5.3+. The extension adds a backend dashboard for OpenAI configuration, prompt setup and knowledge-base files, plus a configurable frontend AI chatbot module.
+OpenAI Responses API integration for Contao 6. The extension adds a backend dashboard for OpenAI configuration, prompt setup and knowledge-base files, plus a configurable frontend AI chatbot module.
 
 It uses OpenAI's Responses API and Conversations API at runtime. Knowledge-base files are uploaded to OpenAI vector stores and attached through File Search.
 
-> **Upgrading from 1.x?** Version 2.0 is a breaking change: the extension no longer calls the OpenAI Assistants API (`/v1/assistants`, `/v1/threads`). Any OpenAI Assistants created by older versions are cleaned up from the OpenAI platform by a one-shot migration on upgrade. See the [CHANGELOG](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/CHANGELOG.md) and [Upgrading from 1.x](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/docs/development/troubleshooting.md#upgrading-from-1x).
+> **This is the Contao 6 line (3.x).** It requires Contao 6 and PHP 8.4 and will not install on Contao 5. If you are on **Contao 5.3 or 5.7**, use the **2.x** line instead - it is maintained in parallel and carries the same features. See [Upgrading to 3.0.0](docs/upgrading-to-3.0.0.md) for moving an existing installation across.
+
+> **Upgrading from 1.x?** Version 2.0 was a breaking change: the extension no longer calls the OpenAI Assistants API (`/v1/assistants`, `/v1/threads`). Any OpenAI Assistants created by older versions are cleaned up from the OpenAI platform by a one-shot migration on upgrade. Move to the 2.x line first, then to 3.x. See the [CHANGELOG](CHANGELOG.md) and [Upgrading from 1.x](docs/development/troubleshooting.md#upgrading-from-1x).
 
 ## Requirements
 
-- Contao 5.3 or newer
-- PHP 8.2 or newer
+- Contao 6.0 or newer
+- PHP 8.4 or newer
 - OpenAI API key with access to Responses, Conversations, Files and Vector Stores
+
+For Contao 5.3 and 5.7, use the 2.x line.
 
 ## Installation
 
 Install with Contao Manager or Composer:
 
 ```bash
-composer require juhe-it-solutions/contao-openai-assistant
+composer require juhe-it-solutions/contao-openai-assistant:^3.0
 ```
 
-Then run the Contao database migration. Detailed setup is documented in [`docs/installation.md`](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/docs/installation.md).
+Without the version constraint, Composer resolves the newest release your Contao version allows, which on a Contao 5 installation is the 2.x line.
+
+Then run the Contao database migration. Detailed setup is documented in [`docs/installation.md`](docs/installation.md).
 
 ## Automatic Vector-Store Sync (Premium Add-On)
 
@@ -41,11 +47,11 @@ Then run the Contao database migration. Detailed setup is documented in [`docs/i
 
 ## Documentation
 
-- [`docs/README.md`](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/docs/README.md) - documentation index
-- [`docs/installation.md`](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/docs/installation.md) - installation and first setup
-- [`docs/configuration/openai-setup.md`](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/docs/configuration/openai-setup.md) - OpenAI configuration
-- [`docs/configuration/prompts.md`](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/docs/configuration/prompts.md) - prompt configuration
-- [`docs/development/troubleshooting.md`](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/docs/development/troubleshooting.md) - upgrade notes and common issues
+- [`docs/README.md`](docs/README.md) - documentation index
+- [`docs/installation.md`](docs/installation.md) - installation and first setup
+- [`docs/configuration/openai-setup.md`](docs/configuration/openai-setup.md) - OpenAI configuration
+- [`docs/configuration/prompts.md`](docs/configuration/prompts.md) - prompt configuration
+- [`docs/development/troubleshooting.md`](docs/development/troubleshooting.md) - upgrade notes and common issues
 
 ## License And Security
 

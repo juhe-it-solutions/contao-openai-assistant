@@ -5,12 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased] - 3.0.0
 
-> **Updating from 2.1.4 or earlier? Read [Upgrading to 2.2.0](docs/upgrading-to-2.2.0.md) first.**
-> Two things decide how this update goes: run `contao:migrate` immediately after deploying the
-> code, and expect the first synchronisation to rebuild the whole knowledge base once - a long
-> crawl and, in "KI-optimiert" mode, a one-off token bill. Later runs are incremental again.
+> **This is the Contao 6 line.** It requires **Contao 6.0 and PHP 8.4** and does not install on
+> Contao 5. Everything below is also in the 2.x line, which carries the same features for
+> Contao 5.3 and 5.7 - the only difference between the two lines is the platform.
+>
+> **Read [Upgrading to 3.0.0](docs/upgrading-to-3.0.0.md) first.** It covers the order the two
+> upgrades have to happen in: Contao 5 to Contao 6 is the Contao project's own migration, and
+> this extension follows it rather than driving it.
+>
+> **Coming from 2.1.4 or earlier as well?** Then [Upgrading to 2.2.0](docs/upgrading-to-2.2.0.md)
+> applies on top: run `contao:migrate` immediately after deploying the code, and expect the
+> first synchronisation to rebuild the whole knowledge base once - a long crawl and, in
+> "KI-optimiert" mode, a one-off token bill. Later runs are incremental again.
+
+### Changed
+
+- **Requires Contao 6.0 and PHP 8.4.** The previous line required Contao 5.3 and PHP 8.2. This
+  is the only breaking change in 3.0.0: no feature was removed, no setting was renamed, and the
+  database schema is the same as 2.2.0, so an installation moving from 2.2.0 on Contao 6 has
+  nothing to do beyond the usual `contao:migrate`.
+- **Adapted to the Contao 6 template and backend APIs.** No `.html5` templates are shipped any
+  more; rich text passes through Contao 6's own `sanitize_html`, CSP and insert-tag pipeline;
+  the removed `child_record_callback` is replaced by label callbacks returning `RecordLabel`
+  with database values escaped; the backend icon path is resolved through `Image::getPath()`
+  instead of being hard-coded; and the backend JavaScript re-runs on Turbo navigations, which
+  Contao 6 uses for backend page changes.
 
 ### Added
 - **A run that changed nothing now says so instead of looking broken (premium).** With the crawl skipped on an unchanged website, a synchronisation finishes in seconds and leaves a row in **"Letzte 10 Synchronisierungen"** and in the **OpenAI Sync-Protokoll** that reads: no message, no files, duration 00:00 - indistinguishable at a glance from a run that fell over. Such a run now carries the note **"Keine Änderung von Seiteninhalten — nichts übertragen"** in the *Meldung* column of both tables, and the downloadable run document states that the search index was not rebuilt because the website was unchanged. The run stays green: the note is informational and is deliberately kept apart from the messages that mark a run as "teilweise", so a healthy no-op is never reported as a problem. A run that only **removed** a page is not counted as unchanged - it uploaded no file, but it did change the knowledge base, and that is the one change nobody sees by looking at their website.

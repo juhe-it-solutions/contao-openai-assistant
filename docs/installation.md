@@ -2,8 +2,8 @@
 
 ## Requirements
 
-- Contao 5.3 or newer
-- PHP 8.2 or newer
+- Contao 6.0 or newer
+- PHP 8.4 or newer
 - Composer
 - OpenAI API key with access to Responses, Conversations, Files and Vector Stores
 
