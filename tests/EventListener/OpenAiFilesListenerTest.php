@@ -108,12 +108,9 @@ class OpenAiFilesListenerTest extends TestCase
         }
 
         $this->assertSame(
-            [
-                'POST https://api.openai.com/v1/vector_stores/vs_123/files',
-                'DELETE https://api.openai.com/v1/files/file_abc',
-            ],
+            ['POST https://api.openai.com/v1/vector_stores/vs_123/files'],
             $requests,
-            'The unattached file is billed storage no search can reach, so it must be cleaned up.',
+            'Cleanup belongs to the outer transaction, which also covers a later database failure.',
         );
     }
 
@@ -136,6 +133,42 @@ class OpenAiFilesListenerTest extends TestCase
 
         $this->expectException(\Exception::class);
         $method->invoke($listener, 'sk-test', 'vs_123', 'file_abc');
+    }
+
+    public function testFailedUploadCleanupDetachesBeforeDeletingAndChecksBothOutcomes(): void
+    {
+        $requests = [];
+        $client = new MockHttpClient(
+            static function (string $method, string $url) use (&$requests): MockResponse {
+                $requests[] = $method.' '.$url;
+
+                return new MockResponse('{}', ['http_code' => 204]);
+            },
+        );
+
+        $listener = $this->createListener($this->createMock(Connection::class), null, $client);
+        $method = new \ReflectionMethod(OpenAiFilesListener::class, 'cleanupFailedUpload');
+        $method->invoke($listener, 'sk-test', 'vs_123', 'file_abc', true);
+
+        $this->assertSame(
+            [
+                'DELETE https://api.openai.com/v1/vector_stores/vs_123/files/file_abc',
+                'DELETE https://api.openai.com/v1/files/file_abc',
+            ],
+            $requests,
+        );
+    }
+
+    public function testCleanupDoesNotMistakeA500ResponseForDeletion(): void
+    {
+        $client = new MockHttpClient(
+            static fn (): MockResponse => new MockResponse('{}', ['http_code' => 500]),
+        );
+
+        $listener = $this->createListener($this->createMock(Connection::class), null, $client);
+        $method = new \ReflectionMethod(OpenAiFilesListener::class, 'confirmCleanupDelete');
+
+        $this->assertFalse($method->invoke($listener, 'sk-test', 'https://api.openai.com/v1/files/file_abc'));
     }
 
     private function invokeResolveParentConfigId(OpenAiFilesListener $listener, DataContainer|null $dc): int|null
