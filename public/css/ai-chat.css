@@ -213,6 +213,7 @@
    surrounding website. Durations are near-zero rather than "none" so that transitionend
    and animationend listeners still fire and nothing waits forever for an event. */
 @media (prefers-reduced-motion:reduce){
+  .mod_ai_chat,
   .ai-chat-toggle,
   .ai-chat-toggle *,
   .ai-chat-container,

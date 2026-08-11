@@ -43,6 +43,7 @@ class ChatWidgetAssetsTest extends TestCase
         $this->assertStringContainsString('transition-duration', $block, 'Panel and hover transitions must be neutralised.');
         $this->assertStringContainsString('animation-duration', $block, 'Animations must be neutralised.');
         $this->assertStringContainsString('scroll-behavior', $block, 'The smooth auto-scroll of the log must be neutralised.');
+        $this->assertStringContainsString('.mod_ai_chat', $block, 'The outer element owns the scale/fade transition and must be covered too.');
         $this->assertStringContainsString('.ai-chat-container', $block, 'The rule must reach the panel, not just the toggle.');
     }
 
@@ -65,9 +66,9 @@ class ChatWidgetAssetsTest extends TestCase
             }
 
             foreach (explode(',', $selector) as $single) {
-                $this->assertStringStartsWith(
-                    '.ai-chat',
-                    trim($single),
+                $single = trim($single);
+                $this->assertTrue(
+                    str_starts_with($single, '.ai-chat') || str_starts_with($single, '.mod_ai_chat'),
                     'Every selector must be anchored on the widget.',
                 );
             }
