@@ -444,6 +444,15 @@ class VectorStoreAutoUpdateService
                 throw new \RuntimeException('MSC.vsau_err_no_vector_store_sync');
             }
 
+            // One service instance handles every configuration in a cron process. Reset its
+            // run-local deletion memory and let every OpenAI retry refresh this run's lease,
+            // so slow-but-healthy work is never mistaken for a crashed run and duplicated.
+            $this->fileSync->beginRun(
+                function () use ($configId): void {
+                    $this->heartbeat($configId);
+                },
+            );
+
             $mode = $this->resolveMode($config);
             $model = self::MODE_LLM_POLISH === $mode ? ((string) ($config['auto_update_model'] ?? '') ?: 'gpt-4o-mini') : '';
             $promptTpl = self::decodeStoredText($config['auto_update_prompt_template'] ?? null) ?: null;
