@@ -69,8 +69,7 @@ Beyond that, the following never appear:
 
 - Links inside **protected (members-only)** articles or modules - never, under
   any setting.
-- Links **to** a protected page, as far as Contao's search index knows about
-  them. Read the note under the list: this half depends on a Contao setting.
+- Links **to** a protected page, including protection inherited from a parent.
 - `javascript:`, `data:` and other non-web schemes - only `http`, `https`,
   `mailto` and `tel` are ever stored.
 - Credentials: a URL such as `https://user:secret@host/x` is stored without the
@@ -85,25 +84,16 @@ Beyond that, the following never appear:
 - Calendar and archive navigation: the day cells of the calendar module and the
   month/year links of the news and event menu modules.
 
-> **How a link *to* a protected page is recognised - and when it is not.** The
-> extension compares every collected link against the URLs in Contao's search
-> index that carry the `protected` flag. Contao only puts protected pages into
-> that index when `contao.search.index_protected` is enabled, and **that setting
-> is off by default**. On an installation that leaves it off, a public page's
-> link to `/intern/…` can therefore still appear in a link list.
->
-> This is a smaller matter than it first reads. The address was already printed
-> in the public page's own HTML - that is where the extension found it - so
-> nothing members-only is disclosed; the visitor follows a link that then asks
-> them to log in. The protected page's **content** never reaches the knowledge
-> base either way, because protected pages are excluded from the synchronisation
-> outright.
->
-> The lookup reads at most 5000 protected URLs, so a members area larger than
-> that could leave some targets unrecognised.
->
-> Links *from* a protected page carry no such caveat: they are dropped before
-> anything is stored, whatever the setting.
+> **How a link *to* a protected page is recognised.** Protection is resolved
+> from Contao's page tree, including every descendant of a protected parent, and
+> combined with the resolved flags in the search index. Filtering a link needs the
+> protected page's URL from the search index (matched by page id, so a stale
+> `protected=0` flag after an editor has just closed the page off is enough). That
+> does not depend on `contao.search.index_protected`. A page that was never indexed
+> at all - typically one that has always been protected while that setting is off -
+> has no search URL to match, so a public page's hardcoded link to it can still
+> appear; the address was already printed on that public page, and the protected
+> page's **content** is excluded from the knowledge base either way.
 
 You can exclude anything else with the **Exclude links** patterns. Two markers
 work directly in the page: `<!-- indexer::stop -->` … `<!-- indexer::continue -->`
