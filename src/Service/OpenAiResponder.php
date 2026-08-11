@@ -15,6 +15,7 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Service;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Exception\ContextWindowExceededException;
 use JuheItSolutions\ContaoOpenaiAssistant\Exception\ConversationNotFoundException;
+use JuheItSolutions\ContaoOpenaiAssistant\Exception\UnbilledRequestException;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
@@ -50,11 +51,29 @@ class OpenAiResponder
     private const LEGACY_SESSION_THREAD_KEY = 'openai_thread_id';
 
     /**
-     * Wall-clock cap for one Responses call. The 180s "timeout" option is only
-     * an inactivity timeout; without max_duration a slow-dripping response
-     * could occupy the PHP worker indefinitely.
+     * Wall-clock cap for the WHOLE Responses exchange, retries included.
+     *
+     * Deliberately below the 120 seconds after which the chat widget aborts and tells the
+     * visitor to try again (public/js/ai-chat.js). The order matters: aborting in the browser
+     * does not cancel PHP's upstream work, so while the server budget was the larger of the
+     * two, a visitor could be invited to retry while the first call was still running - and
+     * that first call could then complete, be billed, and append its answer to the
+     * conversation, so the retry arrived into a conversation that had silently moved on.
+     *
+     * The retry lives INSIDE this budget rather than on top of it, which is why every attempt
+     * computes its own timeout from the time left: two attempts of the full budget would put
+     * the server back above the browser and reopen the same gap.
+     *
+     * The remaining 10 seconds of headroom are for returning a controlled error response
+     * before the browser gives up on its own.
      */
-    private const RESPONSE_TIMEOUT = 180;
+    private const RESPONSE_TIMEOUT = 110;
+
+    /**
+     * Least time an attempt is worth starting with. Below this a retry cannot plausibly
+     * finish inside the budget, so the failure is reported instead.
+     */
+    private const MIN_ATTEMPT_SECONDS = 15;
 
     /**
      * Cache TTL for remembered per-model parameter rejections (seconds).
@@ -117,21 +136,25 @@ class OpenAiResponder
      */
     public function processMessage(string $message, SessionInterface $session): string
     {
+        // These three fail before any HTTP request exists, so nothing can have been billed -
+        // and a misconfigured installation must not burn its daily budget on requests that
+        // never reach OpenAI, which is exactly how the chatbot could be taken offline for a
+        // whole day for free.
         $config = $this->getActiveConfig();
         if (!$config) {
-            throw new \RuntimeException('No OpenAI configuration found');
+            throw new UnbilledRequestException('No OpenAI configuration found');
         }
 
         $prompt = $this->getActivePrompt((int) $config['id']);
         if (!$prompt) {
-            throw new \RuntimeException('No prompt configured');
+            throw new UnbilledRequestException('No prompt configured');
         }
 
         $apiKey = $this->encryption->getApiKeyForConfig((int) $config['id'])
             ?? $this->encryption->processApiKey((string) ($config['api_key'] ?? ''));
 
         if (!$apiKey) {
-            throw new \RuntimeException('No valid API key available');
+            throw new UnbilledRequestException('No valid API key available');
         }
 
         $this->dropLegacyThreadId($session);
@@ -405,13 +428,40 @@ class OpenAiResponder
      *   - context-window and conversation-not-found rejections become typed
      *     exceptions so processMessage() can restart on a fresh conversation.
      */
+    /**
+     * Seconds left of the exchange budget, floored so an attempt is never started with a
+     * nonsensical timeout.
+     */
+    private function secondsLeft(float $deadline): int
+    {
+        return max(self::MIN_ATTEMPT_SECONDS, (int) ceil($deadline - microtime(true)));
+    }
+
+    /**
+     * Is there enough of the budget left to be worth a second attempt?
+     *
+     * Retrying with a couple of seconds left only guarantees a second failure, later - and it
+     * is precisely the overrun that would push the server past the browser's deadline. The
+     * one-second backoff before the retry is counted in.
+     */
+    private function canRetryWithin(float $deadline): bool
+    {
+        return $deadline - microtime(true) >= self::MIN_ATTEMPT_SECONDS + 1;
+    }
+
     private function sendResponse(string $apiKey, string $conversationId, string $message, array $prompt, string|null $vectorStoreId, string|null $safetyIdentifier): string
     {
         $modelToUse = $this->resolveModel($prompt);
         $payload = $this->buildResponsePayload($modelToUse, $conversationId, $message, $prompt, $vectorStoreId, $safetyIdentifier);
         $transientRetried = false;
 
+        // One budget for the whole exchange. Every attempt draws from what is left of it, so
+        // a repeat can never push the server past the browser's own deadline.
+        $deadline = microtime(true) + self::RESPONSE_TIMEOUT;
+
         while (true) {
+            $remaining = $this->secondsLeft($deadline);
+
             try {
                 $response = $this->http->request(
                     'POST',
@@ -422,8 +472,8 @@ class OpenAiResponder
                             'Content-Type' => 'application/json',
                         ],
                         'json' => $payload,
-                        'timeout' => self::RESPONSE_TIMEOUT,
-                        'max_duration' => self::RESPONSE_TIMEOUT,
+                        'timeout' => $remaining,
+                        'max_duration' => $remaining,
                     ],
                 );
 
@@ -437,7 +487,7 @@ class OpenAiResponder
                     $data = [];
                 }
             } catch (TransportExceptionInterface $e) {
-                if (!$transientRetried && $this->isConnectPhaseError($e)) {
+                if (!$transientRetried && $this->isConnectPhaseError($e) && $this->canRetryWithin($deadline)) {
                     $transientRetried = true;
                     $this->logger->warning('Transport error before OpenAI processed the message; retrying once: '.$e->getMessage());
                     usleep(1000000);
@@ -450,6 +500,13 @@ class OpenAiResponder
                         'conversation_id' => $conversationId,
                     ],
                 );
+
+                // A connect-phase failure means the message was never delivered, so nothing
+                // was charged. A failure later in the exchange (a read timeout, say) may
+                // still have produced a billed completion, so it stays a plain failure.
+                if ($this->isConnectPhaseError($e)) {
+                    throw new UnbilledRequestException('Failed to process message: '.$e->getMessage());
+                }
 
                 throw new \RuntimeException('Failed to process message: '.$e->getMessage());
             }
@@ -473,7 +530,7 @@ class OpenAiResponder
 
                 // One retry after a short backoff absorbs the transient blips of
                 // OpenAI and the CDN in front of it (see TRANSIENT_STATUS_CODES).
-                if (!$transientRetried && \in_array($statusCode, self::TRANSIENT_STATUS_CODES, true)) {
+                if (!$transientRetried && \in_array($statusCode, self::TRANSIENT_STATUS_CODES, true) && $this->canRetryWithin($deadline)) {
                     $transientRetried = true;
                     $this->logger->warning('Responses API returned HTTP '.$statusCode.'; retrying once');
                     usleep(1000000);
@@ -488,6 +545,14 @@ class OpenAiResponder
 
                 if ($this->isConversationNotFoundError($statusCode, $error)) {
                     throw new ConversationNotFoundException('Responses API returned HTTP '.$statusCode.': '.self::summariseError($error));
+                }
+
+                // 429 and 503 are rejections BEFORE processing, so nothing was charged and
+                // the caller may hand its daily-budget slot back. Every other status stays a
+                // plain failure: the completion may have been produced and billed, and we
+                // cannot tell from here.
+                if (\in_array($statusCode, [429, 503], true)) {
+                    throw new UnbilledRequestException('Responses API returned HTTP '.$statusCode.': '.self::summariseError($error));
                 }
 
                 throw new \RuntimeException('Responses API returned HTTP '.$statusCode.': '.self::summariseError($error));

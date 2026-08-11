@@ -351,6 +351,73 @@ class OpenAiResponderTest extends TestCase
     /**
      * @param list<MockResponse> $responses
      */
+    /**
+     * Aborting in the browser does not cancel PHP's upstream work, so if the server were
+     * allowed the longer deadline the visitor would be told to try again while the first call
+     * was still running - and that call could then complete, be billed, and append its answer
+     * to the conversation, leaving the retry to arrive into a conversation that had moved on.
+     *
+     * The widget's own deadline is asserted from the JavaScript, not restated here, so the
+     * two cannot drift apart without this failing.
+     */
+    public function testTheServerDeadlineStaysBelowTheBrowserDeadline(): void
+    {
+        $js = file_get_contents(__DIR__.'/../../public/js/ai-chat.js');
+        $this->assertIsString($js);
+
+        $this->assertSame(
+            1,
+            preg_match('/abortCtrl\.abort\(\),\s*(\d+)\)/', $js, $matches),
+            'The chat widget must still abort on a timer for this comparison to mean anything.',
+        );
+
+        $browserSeconds = (int) $matches[1] / 1000;
+
+        $timeout = new \ReflectionClassConstant(OpenAiResponder::class, 'RESPONSE_TIMEOUT');
+
+        $this->assertLessThan(
+            $browserSeconds,
+            $timeout->getValue(),
+            'The server budget must leave room to return a controlled error before the browser gives up.',
+        );
+    }
+
+    /**
+     * The retry has to live inside the budget rather than on top of it: two attempts at the
+     * full budget would put the server back above the browser and reopen the same gap.
+     */
+    public function testARetryCannotExtendTheExchangeBeyondItsBudget(): void
+    {
+        $requests = [];
+        $http = new MockHttpClient($this->createResponseFactory($requests, [
+            new MockResponse('{"id": "conv_1"}'),
+            // A transient status, so the responder retries once.
+            new MockResponse('{"error":{"message":"slow down"}}', ['http_code' => 503]),
+            new MockResponse($this->completedResponseJson('Hello!')),
+        ]));
+
+        $responder = $this->createResponder($http, []);
+        $responder->processMessage('Was kostet eine neue Webseite?', $this->createSession());
+
+        $budget = (new \ReflectionClassConstant(OpenAiResponder::class, 'RESPONSE_TIMEOUT'))->getValue();
+        $attempts = array_slice($requests, 1);
+
+        $this->assertCount(2, $attempts, 'The transient failure must have been retried once.');
+
+        // The budget is a wall-clock deadline, not an allowance handed out per attempt, so
+        // what has to hold is that no attempt may run past it and the retry draws from what
+        // the first attempt (and the backoff between them) left.
+        foreach ($attempts as $attempt) {
+            $this->assertLessThanOrEqual($budget, $attempt['max_duration']);
+        }
+
+        $this->assertLessThan(
+            $attempts[0]['max_duration'],
+            $attempts[1]['max_duration'],
+            'The retry must inherit the remaining time, not start the budget over.',
+        );
+    }
+
     private function createResponseFactory(array &$requests, array $responses): \Closure
     {
         return static function (string $method, string $url, array $options) use (&$requests, &$responses): MockResponse {
@@ -358,6 +425,7 @@ class OpenAiResponderTest extends TestCase
                 'method' => $method,
                 'url' => $url,
                 'body' => $options['body'] ?? '',
+                'max_duration' => $options['max_duration'] ?? 0,
             ];
 
             if ([] === $responses) {

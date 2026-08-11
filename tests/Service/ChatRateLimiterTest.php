@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Service;
 
+use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\ChatRateLimiter;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
@@ -171,5 +172,190 @@ class ChatRateLimiterTest extends TestCase
         $limiter->consumeConfigDaily(1, 2);
         $limiter->consumeConfigDaily(1, 2);
         $this->assertFalse($limiter->hasConfigDailyBudget(1, 2), 'but it is bounded by the new limit from that point on');
+    }
+
+    /**
+     * THE race this whole mechanism exists for.
+     *
+     * Under the old check-then-consume pair, every one of these calls would have run its
+     * check before any of them booked anything, so all five would have been told to go ahead
+     * and all five would have paid for a completion against a cap of two. Reserving in a
+     * single conditional UPDATE means the database picks the winners: whatever the
+     * interleaving, exactly two get through.
+     */
+    public function testConcurrentRequestsCannotAllTakeTheLastSlot(): void
+    {
+        $rows = [];
+        $limiter = new ChatRateLimiter(new ArrayAdapter(), $this->createBudgetConnection($rows));
+
+        $granted = 0;
+
+        // Five requests in flight, none of them having finished: exactly the state in which
+        // the old code handed the same last token to all of them.
+        for ($i = 0; $i < 5; ++$i) {
+            if ($limiter->reserveConfigDaily(1, 2)) {
+                ++$granted;
+            }
+        }
+
+        $this->assertSame(2, $granted, 'The cap is the cap, however many ask at once.');
+        $this->assertSame(2, $rows[$this->budgetKey(1)]);
+    }
+
+    public function testEachConfigurationHasItsOwnDailyBudget(): void
+    {
+        $rows = [];
+        $limiter = new ChatRateLimiter(new ArrayAdapter(), $this->createBudgetConnection($rows));
+
+        $this->assertTrue($limiter->reserveConfigDaily(1, 1));
+        $this->assertFalse($limiter->reserveConfigDaily(1, 1), 'config 1 is exhausted');
+        $this->assertTrue($limiter->reserveConfigDaily(2, 1), 'config 2 is untouched by it');
+    }
+
+    /**
+     * The compensation half. Booking up front without this would be atomic too - and would
+     * let anyone take the chatbot offline until midnight with requests that never cost a
+     * cent, which is the trade the previous design deliberately refused.
+     */
+    public function testAReleasedSlotBecomesAvailableAgain(): void
+    {
+        $rows = [];
+        $limiter = new ChatRateLimiter(new ArrayAdapter(), $this->createBudgetConnection($rows));
+
+        $this->assertTrue($limiter->reserveConfigDaily(1, 1));
+        $this->assertFalse($limiter->reserveConfigDaily(1, 1));
+
+        // The call never reached OpenAI, so the slot goes back.
+        $limiter->releaseConfigDaily(1, 1);
+
+        $this->assertTrue($limiter->reserveConfigDaily(1, 1), 'an unbilled failure must not spend the day');
+    }
+
+    /**
+     * An unsigned column would wrap a negative value into something enormous, which would
+     * silently disable the cap for the rest of the day.
+     */
+    public function testReleasingMoreThanWasReservedCannotDriveTheCounterNegative(): void
+    {
+        $rows = [];
+        $limiter = new ChatRateLimiter(new ArrayAdapter(), $this->createBudgetConnection($rows));
+
+        $limiter->reserveConfigDaily(1, 5);
+        $limiter->releaseConfigDaily(1, 5);
+        $limiter->releaseConfigDaily(1, 5);
+        $limiter->releaseConfigDaily(1, 5);
+
+        $this->assertSame(0, $rows[$this->budgetKey(1)]);
+    }
+
+    public function testAnUncappedConfigurationNeverTouchesTheCounter(): void
+    {
+        $rows = [];
+        $limiter = new ChatRateLimiter(new ArrayAdapter(), $this->createBudgetConnection($rows));
+
+        for ($i = 0; $i < 20; ++$i) {
+            $this->assertTrue($limiter->reserveConfigDaily(1, 0));
+        }
+
+        $limiter->releaseConfigDaily(1, 0);
+
+        $this->assertSame([], $rows, 'A disabled ceiling must not write budget rows at all.');
+    }
+
+    /**
+     * An installation that updated the bundle without running contao:migrate has no budget
+     * table. Taking the chat offline over that would be far worse than the bounded overshoot
+     * of the old behaviour, so the daily cap degrades instead of failing.
+     */
+    public function testAMissingBudgetTableFallsBackToTheCacheLimiter(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('executeStatement')
+            ->willThrowException(new \RuntimeException("Table 'tl_openai_chat_budget' doesn't exist"))
+        ;
+
+        $limiter = new ChatRateLimiter(new ArrayAdapter(), $connection);
+
+        // Still enforced, just not atomically: the cache limiter answers instead.
+        $this->assertTrue($limiter->reserveConfigDaily(1, 2));
+        $limiter->consumeConfigDaily(1, 2);
+        $limiter->consumeConfigDaily(1, 2);
+        $this->assertFalse($limiter->reserveConfigDaily(1, 2));
+    }
+
+    private function budgetKey(int $configId): string
+    {
+        return $configId.':'.gmdate('Ymd');
+    }
+
+    /**
+     * An in-memory stand-in for tl_openai_chat_budget.
+     *
+     * It models the two statements that carry the guarantee - INSERT IGNORE creating at most
+     * one row per configuration and day, and the conditional UPDATE that books a slot only
+     * while the counter is below the ceiling - because a fake that ignored those conditions
+     * would pass whether or not the reservation is atomic.
+     *
+     * @param array<string, int> $rows "configId:day" => spent
+     */
+    private function createBudgetConnection(array &$rows): Connection
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('executeStatement')
+            ->willReturnCallback(
+                static function (string $sql, array $params) use (&$rows): int {
+                    if (str_starts_with($sql, 'INSERT IGNORE')) {
+                        $key = $params[0].':'.$params[2];
+
+                        if (isset($rows[$key])) {
+                            return 0;
+                        }
+
+                        $rows[$key] = 0;
+
+                        return 1;
+                    }
+
+                    if (str_contains($sql, 'spent = spent + 1')) {
+                        $key = $params[1].':'.$params[2];
+
+                        if (!isset($rows[$key]) || $rows[$key] >= $params[3]) {
+                            return 0;
+                        }
+
+                        ++$rows[$key];
+
+                        return 1;
+                    }
+
+                    if (str_contains($sql, 'spent = spent - 1')) {
+                        $key = $params[1].':'.$params[2];
+
+                        if (!isset($rows[$key]) || $rows[$key] <= 0) {
+                            return 0;
+                        }
+
+                        --$rows[$key];
+
+                        return 1;
+                    }
+
+                    // The housekeeping DELETE for previous days.
+                    $before = \count($rows);
+
+                    foreach (array_keys($rows) as $key) {
+                        if ((int) explode(':', $key)[1] < $params[0]) {
+                            unset($rows[$key]);
+                        }
+                    }
+
+                    return $before - \count($rows);
+                },
+            )
+        ;
+
+        return $connection;
     }
 }
