@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Service;
 
 use Doctrine\DBAL\Connection;
+use JuheItSolutions\ContaoOpenaiAssistant\Exception\UnbilledRequestException;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiResponder;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -328,6 +329,29 @@ class OpenAiResponderTest extends TestCase
         $this->assertSame('conv_1', $session->get('openai_conversation_id'));
     }
 
+    public function testARejectedRequestIsClassifiedAsUnbilled(): void
+    {
+        $requests = [];
+        $http = new MockHttpClient($this->createResponseFactory($requests, [
+            new MockResponse('{"id":"conv_1"}'),
+            new MockResponse('{"error":{"message":"Incorrect API key"}}', ['http_code' => 401]),
+        ]));
+
+        $this->expectException(UnbilledRequestException::class);
+        $this->createResponder($http, [])->processMessage('Frage', $this->createSession());
+    }
+
+    public function testAConversationCreationFailureIsAlwaysUnbilled(): void
+    {
+        $requests = [];
+        $http = new MockHttpClient($this->createResponseFactory($requests, [
+            new MockResponse('{"error":{"message":"service unavailable"}}', ['http_code' => 500]),
+        ]));
+
+        $this->expectException(UnbilledRequestException::class);
+        $this->createResponder($http, [])->processMessage('Frage', $this->createSession());
+    }
+
     private function completedResponseJson(string $text): string
     {
         return json_encode(
@@ -434,8 +458,6 @@ class OpenAiResponderTest extends TestCase
         $secondsLeft->setAccessible(true);
 
         $budget = (new \ReflectionClassConstant(OpenAiResponder::class, 'RESPONSE_TIMEOUT'))->getValue();
-        $floor = (new \ReflectionClassConstant(OpenAiResponder::class, 'MIN_ATTEMPT_SECONDS'))->getValue();
-
         // A deadline far in the future must still never grant more than the budget. This is
         // the bug the clamp exists for: a Unix timestamp plus 110 is not exactly
         // representable as a double, and the rounding handed out 111 seconds.
@@ -445,12 +467,12 @@ class OpenAiResponderTest extends TestCase
             'No attempt may ever be granted more than the whole budget.',
         );
 
-        // A deadline already past still leaves a usable attempt rather than a zero or
-        // negative timeout, which the HTTP client would reject.
+        // A deadline already past gets only the smallest valid HTTP-client timeout. It must
+        // not restart a 15-second allowance after the shared turn deadline has expired.
         $this->assertSame(
-            $floor,
+            1,
             $secondsLeft->invoke($responder, microtime(true) - 500.0),
-            'An overrun budget falls back to the minimum attempt, not to nothing.',
+            'An overrun budget must not restart a meaningful attempt.',
         );
     }
 

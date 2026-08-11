@@ -23,9 +23,11 @@ This release adds columns and three tables. Until the migration has run:
 - Saving the OpenAI configuration or a chat module fails with a database error.
   This one is unavoidable - Contao writes every field of a form, so any extension
   that adds fields behaves this way.
-- The daily chat message limit is still enforced, but through the older
-  cache-based counter, which a burst of simultaneous requests can overshoot by a
-  few messages. The migration adds the table that closes that gap.
+- On updates from 2.1, the daily chat message limit stays enforced through the
+  older cache-based counter, which a burst of simultaneous requests can overshoot
+  by a few messages. A direct update from an older release has no daily-limit
+  fields yet, so that limit starts only when the migration creates them. The new
+  table then makes the reservation atomic in either case.
 
 Your chatbot keeps answering visitors throughout, and nothing in your vector
 store is touched. Run the migration through the Contao install tool or:

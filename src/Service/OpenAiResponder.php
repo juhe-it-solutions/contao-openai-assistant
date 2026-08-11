@@ -51,7 +51,7 @@ class OpenAiResponder
     private const LEGACY_SESSION_THREAD_KEY = 'openai_thread_id';
 
     /**
-     * Wall-clock cap for the WHOLE Responses exchange, retries included.
+     * Wall-clock cap for the WHOLE chat turn, including conversation creation and retries.
      *
      * Deliberately below the 120 seconds after which the chat widget aborts and tells the
      * visitor to try again (public/js/ai-chat.js). The order matters: aborting in the browser
@@ -158,12 +158,17 @@ class OpenAiResponder
         }
 
         $this->dropLegacyThreadId($session);
-        $conversationId = $this->ensureConversation($apiKey, $session, (int) $config['id']);
+
+        // One wall-clock deadline for the WHOLE turn, including conversation creation and
+        // the fresh-conversation recovery path. Giving each phase its own budget meant the
+        // first message could still outlive the browser although the Responses call alone did not.
+        $deadline = microtime(true) + self::RESPONSE_TIMEOUT;
+        $conversationId = $this->ensureConversation($apiKey, $session, (int) $config['id'], $deadline);
         $vectorStoreId = $config['vector_store_id'] ?? null;
         $safetyIdentifier = $this->resolveSafetyIdentifier($session);
 
         try {
-            return $this->sendResponse($apiKey, $conversationId, $message, $prompt, $vectorStoreId, $safetyIdentifier);
+            return $this->sendResponse($apiKey, $conversationId, $message, $prompt, $vectorStoreId, $safetyIdentifier, $deadline);
         } catch (ContextWindowExceededException|ConversationNotFoundException $e) {
             // Context overflow should not happen with truncation=auto, and a 404
             // means the stored conversation is gone (deleted/expired on OpenAI's
@@ -179,9 +184,9 @@ class OpenAiResponder
             );
 
             $this->clearConversation($session);
-            $conversationId = $this->ensureConversation($apiKey, $session, (int) $config['id']);
+            $conversationId = $this->ensureConversation($apiKey, $session, (int) $config['id'], $deadline);
 
-            return $this->sendResponse($apiKey, $conversationId, $message, $prompt, $vectorStoreId, $safetyIdentifier);
+            return $this->sendResponse($apiKey, $conversationId, $message, $prompt, $vectorStoreId, $safetyIdentifier, $deadline);
         }
     }
 
@@ -339,7 +344,7 @@ class OpenAiResponder
     /**
      * Lazily create a Conversation for this session.
      */
-    private function ensureConversation(string $apiKey, SessionInterface $session, int $configId): string
+    private function ensureConversation(string $apiKey, SessionInterface $session, int $configId, float $deadline): string
     {
         $conversationId = $session->get(self::SESSION_CONVERSATION_KEY);
         if (\is_string($conversationId) && '' !== $conversationId) {
@@ -373,6 +378,7 @@ class OpenAiResponder
         }
 
         try {
+            $remaining = $this->secondsLeft($deadline);
             $response = $this->http->request(
                 'POST',
                 'https://api.openai.com/v1/conversations',
@@ -387,11 +393,17 @@ class OpenAiResponder
                             'config_id' => (string) $configId,
                         ],
                     ],
-                    'timeout' => 30,
+                    'timeout' => $remaining,
+                    'max_duration' => $remaining,
                 ],
             );
 
-            $data = $response->toArray();
+            $status = $response->getStatusCode();
+            if ($status < 200 || $status >= 300) {
+                throw new \RuntimeException('Conversations API returned HTTP '.$status.'.');
+            }
+
+            $data = $response->toArray(false);
             $id = (string) ($data['id'] ?? '');
 
             if ('' === $id) {
@@ -413,7 +425,9 @@ class OpenAiResponder
         } catch (\Throwable $e) {
             $this->logger->error('Failed to create OpenAI conversation: '.$e->getMessage());
 
-            throw new \RuntimeException('Failed to create conversation: '.$e->getMessage());
+            // Conversation creation does not invoke a model. Whatever its failure mode, no
+            // completion can have been generated or billed.
+            throw new UnbilledRequestException('Failed to create conversation: '.$e->getMessage(), 0, $e);
         }
     }
 
@@ -436,12 +450,12 @@ class OpenAiResponder
     {
         // floor, not ceil, and clamped to the budget. A Unix timestamp plus 110 does not land
         // on an exactly representable double, and the rounding can go UP - so ceil() handed
-        // out 111 seconds against a 110-second budget on the very first attempt. One second
-        // is harmless in itself; a deadline that quietly exceeds its own bound is not, since
-        // being strictly below the browser is the entire point of it.
+        // out 111 seconds against a 110-second budget on the very first attempt. Once the
+        // deadline is nearly spent, grant at most one final second; retries are guarded by
+        // canRetryWithin() and never start in that state.
         $left = (int) floor($deadline - microtime(true));
 
-        return max(self::MIN_ATTEMPT_SECONDS, min(self::RESPONSE_TIMEOUT, $left));
+        return max(1, min(self::RESPONSE_TIMEOUT, $left));
     }
 
     /**
@@ -456,16 +470,14 @@ class OpenAiResponder
         return $deadline - microtime(true) >= self::MIN_ATTEMPT_SECONDS + 1;
     }
 
-    private function sendResponse(string $apiKey, string $conversationId, string $message, array $prompt, string|null $vectorStoreId, string|null $safetyIdentifier): string
+    private function sendResponse(string $apiKey, string $conversationId, string $message, array $prompt, string|null $vectorStoreId, string|null $safetyIdentifier, float $deadline): string
     {
         $modelToUse = $this->resolveModel($prompt);
         $payload = $this->buildResponsePayload($modelToUse, $conversationId, $message, $prompt, $vectorStoreId, $safetyIdentifier);
         $transientRetried = false;
 
-        // One budget for the whole exchange. Every attempt draws from what is left of it, so
-        // a repeat can never push the server past the browser's own deadline.
-        $deadline = microtime(true) + self::RESPONSE_TIMEOUT;
-
+        // The deadline starts in processMessage(), before conversation creation. Every phase
+        // and every attempt draws from the same budget, so recovery can never restart it.
         while (true) {
             $remaining = $this->secondsLeft($deadline);
 
@@ -558,11 +570,11 @@ class OpenAiResponder
                     throw new ConversationNotFoundException('Responses API returned HTTP '.$statusCode.': '.self::summariseError($error));
                 }
 
-                // 429 and 503 are rejections BEFORE processing, so nothing was charged and
-                // the caller may hand its daily-budget slot back. Every other status stays a
-                // plain failure: the completion may have been produced and billed, and we
-                // cannot tell from here.
-                if (\in_array($statusCode, [429, 503], true)) {
+                // A 4xx is a rejected request, not a completed model invocation (the two
+                // recoverable 400/404 cases were handled above). 503 is likewise rejected
+                // before processing. None can have produced a billed completion, so a bad
+                // key/model/request or an outage must not exhaust the daily cap for free.
+                if (($statusCode >= 400 && $statusCode < 500) || 503 === $statusCode) {
                     throw new UnbilledRequestException('Responses API returned HTTP '.$statusCode.': '.self::summariseError($error));
                 }
 

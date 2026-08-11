@@ -21,7 +21,8 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Exception;
  *     no usable API key);
  *   - the connection never completed, so the message was not delivered (a connect-phase
  *     transport error, after the responder's one retry);
- *   - OpenAI rejected the request before processing it (HTTP 429 or 503).
+ *   - conversation creation failed (that endpoint never invokes a model);
+ *   - OpenAI rejected the Responses request with a 4xx, or with HTTP 503.
  *
  * A read timeout or a 5xx after delivery is deliberately NOT in that list: the completion
  * may well have been produced and billed, and we cannot tell from here.
