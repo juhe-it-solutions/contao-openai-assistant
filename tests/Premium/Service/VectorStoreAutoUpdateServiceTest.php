@@ -954,6 +954,114 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
     }
 
     /**
+     * R2-03 through run(): when every explicitly selected page has been deleted,
+     * readAllPages() throws MSC.vsau_err_invalid_page. Authoritative removal must still
+     * have run first, or the old remote documents survive forever behind that abort.
+     */
+    public function testRunRemovesTrackedFilesBeforeAnAllDeletedSelectionAborts(): void
+    {
+        $config = [
+            'id' => 7,
+            'vector_store_id' => 'vs_123',
+            'auto_update_site_root' => serialize(['43']),
+            'auto_update_crawl_mode' => VectorStoreAutoUpdateService::CRAWL_NEVER,
+            'auto_update_mode' => VectorStoreAutoUpdateService::MODE_FAITHFUL,
+            'auto_update_file_id' => '',
+            'premium_license_plan' => '',
+            'premium_license_max_pages' => 0,
+        ];
+
+        $connection = $this->createMock(Connection::class);
+        $connection->method('createSchemaManager')->willReturn($this->schemaManager([
+            'auto_update_progress_phase',
+            'auto_update_progress_current',
+            'auto_update_progress_total',
+            'auto_update_run_started',
+            'auto_update_last_crawl',
+            'auto_update_crawl_signature',
+        ]));
+        $connection->method('executeStatement')->willReturn(1);
+        $connection->method('insert')->willReturn(1);
+        $connection
+            ->method('fetchAssociative')
+            ->willReturnCallback(
+                static function (string $sql) use ($config): array|false {
+                    if (str_contains($sql, 'MAX(tstamp)')) {
+                        return ['ts' => 1, 'rows_count' => 1];
+                    }
+
+                    if (str_contains($sql, 'SELECT * FROM tl_openai_config')) {
+                        return $config;
+                    }
+
+                    if (str_contains($sql, 'SELECT auto_update_site_root')) {
+                        return ['auto_update_site_root' => $config['auto_update_site_root']];
+                    }
+
+                    return false;
+                },
+            )
+        ;
+        $connection
+            ->method('fetchFirstColumn')
+            ->willReturnCallback(
+                static function (string $sql): array {
+                    if (str_contains($sql, 'FROM tl_openai_vector_file')) {
+                        return [43];
+                    }
+
+                    // Deleted from the tree: neither the live/published check nor the
+                    // selection existence check can find page 43.
+                    return [];
+                },
+            )
+        ;
+
+        $removed = null;
+        $fileSync = $this->createMock(VectorStoreFileSync::class);
+        $fileSync->expects($this->once())->method('beginRun');
+        $fileSync
+            ->expects($this->once())
+            ->method('removePages')
+            ->willReturnCallback(
+                static function (string $apiKey, string $storeId, int $configId, array $pageIds) use (&$removed): array {
+                    $removed = $pageIds;
+
+                    return ['removed' => \count($pageIds), 'deletes_pending' => 0];
+                },
+            )
+        ;
+        $fileSync->expects($this->never())->method('sync');
+
+        $encryption = $this->createMock(EncryptionService::class);
+        $encryption->method('getApiKeyForConfig')->willReturn('sk-test');
+
+        $license = $this->createMock(LicenseValidationService::class);
+        $license->method('isLicenseActive')->willReturn(true);
+
+        $service = new VectorStoreAutoUpdateService(
+            $connection,
+            new MockHttpClient(),
+            new NullLogger(),
+            $encryption,
+            $this->createMock(ProcessUtil::class),
+            $license,
+            $this->createMock(BoilerplateFilter::class),
+            $fileSync,
+            $this->createMock(PageLinkRepository::class),
+            $this->createMock(PageProtectionResolver::class),
+            new PageLinkFilter(),
+            new LinkSectionBuilder(),
+            new LinkIndexDocumentBuilder(),
+            $this->createMock(ReaderItemCounter::class),
+            $this->createMock(EscargotFactory::class),
+        );
+
+        $this->assertSame('error', $service->run(7));
+        $this->assertSame([43], $removed, 'Tracked documents must be removed before the selection abort.');
+    }
+
+    /**
      * Contao does NOT purge tl_search when a page is unpublished: PageSearchListener
      * reacts to an alias change, noSearch, robots=noindex and deletion, but not to the
      * publish state. An unpublished page is also no longer linked, so the crawler never

@@ -524,6 +524,12 @@ class VectorStoreAutoUpdateService
                 (int) ($config['premium_license_max_pages'] ?? 0),
             ) ?? 0;
 
+            // Run this before readAllPages(), not merely before its empty-result check.
+            // readAllPages() also throws when every explicitly selected page was deleted;
+            // that is exactly when the old tracked document must be removed rather than
+            // surviving because the reconciliation code was never reached.
+            $authoritativeRemoval = $this->removeAuthoritativelyGonePages($apiKey, $vectorStoreId, $configId, $config);
+
             $rows = $this->readAllPages($configId);
 
             // Remove what tl_page proves is gone, BEFORE the empty-index check below can
@@ -537,8 +543,6 @@ class VectorStoreAutoUpdateService
             // and its document has to go even when the run is about to abort - otherwise the
             // one case the upgrade guide promises to handle (a page turned member-only) is
             // exactly the case where nothing happens.
-            $authoritativeRemoval = $this->removeAuthoritativelyGonePages($apiKey, $vectorStoreId, $configId, $config);
-
             if (0 === \count($rows)) {
                 // With an explicit selection, "tl_search is empty" would often be false -
                 // the index may have rows, just none for the picked pages. Report the
