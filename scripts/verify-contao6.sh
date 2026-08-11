@@ -52,6 +52,35 @@ if [ "$BRANCH" != "contao6" ]; then
     echo ""
 fi
 
+run_in_container() {
+    # --user matters: the container writes vendor/ and the tool caches into the mounted
+    # workspace, and as root it would leave files this script cannot delete on its next
+    # run. Composer is given an explicit HOME because the uid has no passwd entry.
+    docker run --rm \
+        --user "$(id -u):$(id -g)" \
+        -v "$WORKSPACE/app:/app" \
+        -v "$VENDOR_CACHE:/composer-cache" \
+        -e COMPOSER_HOME=/composer-cache/home \
+        -w /app \
+        "$BUILT_IMAGE" bash -c "$1"
+}
+
+# A workspace left behind by an older version of this script is root-owned, so the host
+# cannot delete it. Falling back to a root container clears it without needing sudo.
+remove_path() {
+    [ -e "$1" ] || return 0
+
+    if rm -rf "$1" 2>/dev/null; then
+        return 0
+    fi
+
+    local parent base
+    parent="$(cd "$(dirname "$1")" && pwd)"
+    base="$(basename "$1")"
+
+    docker run --rm -v "$parent:/target" "$BUILT_IMAGE" rm -rf "/target/$base"
+}
+
 # The image is only rebuilt when it is missing, so the extension install is paid once.
 if [ "$REBUILD" = "1" ] || ! docker image inspect "$BUILT_IMAGE" >/dev/null 2>&1; then
     echo -e "${BLUE}Building the PHP 8.4 image (intl, gd, zip, Composer)...${NC}"
@@ -68,7 +97,7 @@ EOF
 fi
 
 if [ "$REBUILD" = "1" ]; then
-    rm -rf "$WORKSPACE"
+    remove_path "$WORKSPACE"
 fi
 
 VENDOR_CACHE="$WORKSPACE/.vendor-cache"
@@ -79,7 +108,7 @@ echo -e "${BLUE}Exporting $BRANCH to $WORKSPACE/app...${NC}"
 # git archive honours export-ignore, which drops tests/, the docs and every tool
 # config - exactly what has to be verified. So the tracked tree is copied instead,
 # and only vendor/ is left behind (it belongs to the main line and must not leak in).
-rm -rf "$WORKSPACE/app"
+remove_path "$WORKSPACE/app"
 mkdir -p "$WORKSPACE/app"
 git -C "$REPO_ROOT" ls-files -z | while IFS= read -r -d '' file; do
     mkdir -p "$WORKSPACE/app/$(dirname "$file")"
@@ -91,19 +120,13 @@ if [ -d "$VENDOR_CACHE/vendor" ]; then
     cp -r "$VENDOR_CACHE/vendor" "$WORKSPACE/app/vendor"
 fi
 
-run_in_container() {
-    docker run --rm \
-        -v "$WORKSPACE/app:/app" \
-        -v "$VENDOR_CACHE:/composer-cache" \
-        -e COMPOSER_HOME=/composer-cache/home \
-        -w /app \
-        "$BUILT_IMAGE" bash -c "$1"
-}
-
 echo -e "${BLUE}Installing Contao 6 dependencies (cached after the first run)...${NC}"
 run_in_container 'composer update --prefer-dist --no-progress --with contao/core-bundle:"^6.0" 2>&1 | tail -3'
 
-cp -r "$WORKSPACE/app/vendor" "$VENDOR_CACHE/vendor.tmp" && rm -rf "$VENDOR_CACHE/vendor" && mv "$VENDOR_CACHE/vendor.tmp" "$VENDOR_CACHE/vendor"
+remove_path "$VENDOR_CACHE/vendor.tmp"
+cp -r "$WORKSPACE/app/vendor" "$VENDOR_CACHE/vendor.tmp"
+remove_path "$VENDOR_CACHE/vendor"
+mv "$VENDOR_CACHE/vendor.tmp" "$VENDOR_CACHE/vendor"
 
 FAILED=""
 
