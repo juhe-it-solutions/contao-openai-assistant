@@ -164,6 +164,27 @@ class VectorStoreFileSync
 
             $current = $existing[$pageId] ?? null;
 
+            // Recovery for processing rows written by the earlier pre-release implementation.
+            // If OpenAI still has no verdict, do not upload a duplicate on every run. Once
+            // refreshProcessingRows() sees completed this falls through as unchanged; once it
+            // sees failed it falls through as a normal replacement.
+            if (
+                null !== $current
+                && $current['content_hash'] === $contentHash
+                && self::STATUS_PROCESSING === $current['status']
+                && $current['title'] === $this->storedTitle($page['title'])
+                && $current['url'] === $this->storedUrl($page['url'])
+            ) {
+                ++$stats['files_failed'];
+                $stats['page_states'][$pageId] = ['state' => 'failed', 'files' => $current['files']];
+                ++$pagesDone;
+                if (null !== $progress) {
+                    $progress($pagesDone, $pagesTotal);
+                }
+
+                continue;
+            }
+
             // Unchanged: same content already uploaded successfully -> skip (incremental).
             // Title and URL are compared too: they head the uploaded document and travel as
             // file attributes, so a page renamed without a text change must still be
@@ -199,13 +220,21 @@ class VectorStoreFileSync
                     $fileId = $this->uploadFile($apiKey, $document, $this->buildFilename($page, $i, $chunkCount));
                     $replacementFileIds[] = $fileId;
                     $this->attachToStore($apiKey, $vectorStoreId, $fileId, $page, $contentHash, $i, $chunkCount);
-                    // "uploaded" only when OpenAI confirmed ingestion; "processing" otherwise,
-                    // so the next run rechecks it instead of trusting a guess forever.
                     $ingestStatus = $this->waitForIngestion($apiKey, $vectorStoreId, $fileId);
 
-                    $replacementRows[] = [$configId, $page, $contentHash, $fileId, $bytes, $i, $chunkCount, $ingestStatus, null];
-                    ++$stats['files_uploaded'];
-                    $stats['bytes'] += $bytes;
+                    // A replacement is safe to commit only after OpenAI confirms ingestion.
+                    // Persisting an unconfirmed file as "processing" replaced (and deleted)
+                    // the page's previous working revision immediately. If ingestion later
+                    // failed, the page vanished from the knowledge base until another run.
+                    // Roll the candidate back instead; the old revision (and, on the first
+                    // 2.2 run, the legacy bulk file) remains available and the next run tries
+                    // again. Historic processing rows are still understood below so installs
+                    // that tested the pre-release code have a recovery path.
+                    if ('uploaded' !== $ingestStatus) {
+                        throw new \RuntimeException('Vector store ingestion was not confirmed before the safety deadline.');
+                    }
+
+                    $replacementRows[] = [$configId, $page, $contentHash, $fileId, $bytes, $i, $chunkCount, 'uploaded', null];
                 } catch (\Throwable $e) {
                     $pageOk = false;
                     ++$stats['files_failed'];
@@ -231,6 +260,13 @@ class VectorStoreFileSync
                     }
 
                     throw $e;
+                }
+
+                // Count only after the swap committed. Chunks that later fail (or a swap that
+                // rolls them back) must not inflate the run manifest with discarded uploads.
+                foreach ($replacementRows as $replacementRow) {
+                    ++$stats['files_uploaded'];
+                    $stats['bytes'] += (int) $replacementRow[4];
                 }
 
                 if (null !== $current) {
@@ -625,9 +661,12 @@ class VectorStoreFileSync
      * Split only if a page exceeds the safety ceiling - at paragraph boundaries, never
      * mid-content. Returns at least one chunk.
      *
+     * Protected so tests can force a multi-chunk page without building a multi-megabyte
+     * string - the rollback/counter contract depends on that shape.
+     *
      * @return list<string>
      */
-    private function splitContent(string $content): array
+    protected function splitContent(string $content): array
     {
         if (mb_strlen($content) <= self::MAX_FILE_CHARS) {
             return [$content];
@@ -820,14 +859,18 @@ class VectorStoreFileSync
     /**
      * Poll the vector-store file until ingestion leaves "in_progress".
      *
-     * Returns the status to persist: "uploaded" once OpenAI confirms the file is ingested,
-     * "processing" when it is not yet - or when we could not find out. A "failed" status
-     * throws so the page is recorded as failed and retried.
+     * Returns "uploaded" only when OpenAI confirms ingestion. Anything else - still
+     * in progress at the deadline, an unknown remote state, or an HTTP error reading the
+     * status - returns "processing" so the caller can roll the candidate back. Callers must
+     * not persist that temporary signal as live state: an unconfirmed file must not replace
+     * a working revision. A remote "failed" status throws so the page is retried.
      *
-     * "Or when we could not find out" is the point of this method. It used to read
-     * $data['status'] ?? 'completed' from a body fetched with throw: false, and an OpenAI
-     * error body carries {"error": ...} and no "status" at all - so every failed status
-     * check was stored as a permanent success, on a row later runs would never look at again.
+     * Historic note: an earlier build stored "processing" as a durable row status and
+     * refreshProcessingRows() still recovers those. New uploads never write it.
+     *
+     * It used to read $data['status'] ?? 'completed' from a body fetched with throw: false,
+     * and an OpenAI error body carries {"error": ...} and no "status" at all - so every
+     * failed status check was treated as permanent success.
      */
     private function waitForIngestion(string $apiKey, string $vectorStoreId, string $fileId): string
     {
@@ -853,9 +896,8 @@ class VectorStoreFileSync
             $this->pause(750_000);
         } while (time() < $deadline);
 
-        // Still ingesting when the budget ran out. The file IS attached and will very
-        // probably finish server-side, but "probably" is not a state to record as done -
-        // the next run rechecks it instead.
+        // Still ingesting when the budget ran out. The caller rolls the candidate back;
+        // "probably finished server-side" is not a state to commit.
         return self::STATUS_PROCESSING;
     }
 

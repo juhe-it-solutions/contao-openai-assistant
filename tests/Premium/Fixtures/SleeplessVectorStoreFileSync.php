@@ -54,3 +54,15 @@ class SleeplessVectorStoreFileSync extends VectorStoreFileSync
         return 0;
     }
 }
+
+/**
+ * Forces every page into two chunks so partial-upload rollback can be tested without a
+ * multi-megabyte document.
+ */
+class TwoChunkVectorStoreFileSync extends SleeplessVectorStoreFileSync
+{
+    protected function splitContent(string $content): array
+    {
+        return ['chunk-a: '.$content, 'chunk-b: '.$content];
+    }
+}
