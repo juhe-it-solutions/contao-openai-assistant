@@ -9,6 +9,5 @@ parameters:
         - '#Access to an undefined property [a-zA-Z0-9\\_]+::\$pid#'
         - '#Access to an undefined property Contao\\DataContainer::\$activeRecord#'
         - '#Property [a-zA-Z0-9\\_]+::\$[a-zA-Z0-9_]+ is never read, only written#'
-        - '#If condition is always true#'
         - '#Right side of \|\| is always false#'
         - '#Access to an undefined property Contao\\ModuleModel::\$[a-zA-Z0-9_]+#'
