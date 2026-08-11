@@ -43,24 +43,24 @@
                 <target>Chat-Titel</target>
             </trans-unit>
             <trans-unit id="tl_module.chat_title.1">
-                <source>Title displayed in the chat widget header</source>
-                <target>Titel, der im Chat-Widget-Header angezeigt wird</target>
+                <source>Title displayed in the chat widget header. HTML for text formatting is allowed (e.g. &lt;strong&gt;, &lt;br&gt;, &lt;a&gt;).</source>
+                <target>Titel, der im Chat-Widget-Header angezeigt wird. HTML zur Textformatierung ist erlaubt (z. B. &lt;strong&gt;, &lt;br&gt;, &lt;a&gt;).</target>
             </trans-unit>
             <trans-unit id="tl_module.welcome_message.0">
                 <source>Welcome Message</source>
                 <target>Willkommensnachricht</target>
             </trans-unit>
             <trans-unit id="tl_module.welcome_message.1">
-                <source>Message displayed in the chat input placeholder</source>
-                <target>Nachricht, die als Platzhalter im Chat-Eingabefeld angezeigt wird</target>
+                <source>Message displayed in the chat input placeholder. HTML for text formatting is allowed (e.g. &lt;strong&gt;, &lt;br&gt;, &lt;a&gt;).</source>
+                <target>Nachricht, die als Platzhalter im Chat-Eingabefeld angezeigt wird. HTML zur Textformatierung ist erlaubt (z. B. &lt;strong&gt;, &lt;br&gt;, &lt;a&gt;).</target>
             </trans-unit>
             <trans-unit id="tl_module.initial_bot_message.0">
                 <source>Initial Bot Message</source>
                 <target>Erste Bot-Nachricht</target>
             </trans-unit>
             <trans-unit id="tl_module.initial_bot_message.1">
-                <source>First message displayed by the bot when chat opens</source>
-                <target>Erste Nachricht, die vom Bot angezeigt wird, wenn der Chat geöffnet wird</target>
+                <source>First message displayed by the bot when chat opens. HTML is allowed (e.g. &lt;strong&gt;, &lt;br&gt;, &lt;ul&gt;, &lt;a&gt;); scripts and styles are removed.</source>
+                <target>Erste Nachricht, die vom Bot angezeigt wird, wenn der Chat geöffnet wird. HTML ist erlaubt (z. B. &lt;strong&gt;, &lt;br&gt;, &lt;ul&gt;, &lt;a&gt;); Skripte und Styles werden entfernt.</target>
             </trans-unit>
             <trans-unit id="tl_module.initial_state.0">
                 <source>Initial State</source>

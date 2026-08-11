@@ -21,6 +21,7 @@ This directory documents the current Contao OpenAI Assistant 2.x codebase. The e
 ## Features And Operation
 
 - [Disclaimer feature](features/disclaimer.md)
+- [HTML in the chat texts (title, welcome line, first bot message)](features/chat-text-html.md)
 - [Link shortening (shorten plain URLs)](features/link-shortening.md)
 - [Link target (where chat links open)](features/link-target.md)
 - [Page links: answering with real links and documents (premium)](features/page-links.md)

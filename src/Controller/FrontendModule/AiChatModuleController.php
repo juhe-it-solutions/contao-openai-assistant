@@ -21,6 +21,7 @@ use Contao\ModuleModel;
 use Contao\System;
 use JuheItSolutions\ContaoOpenaiAssistant\Controller\AiChatController;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\BundleVersionService;
+use JuheItSolutions\ContaoOpenaiAssistant\String\ChatHtmlSanitizer;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -41,6 +42,7 @@ class AiChatModuleController extends AbstractFrontendModuleController
         private readonly RequestStack $requestStack,
         private readonly BundleVersionService $bundleVersion,
         private readonly RouterInterface $router,
+        private readonly ChatHtmlSanitizer $htmlSanitizer,
         #[Autowire('%contao.web_dir%')]
         private readonly string $webDir,
     ) {
@@ -79,10 +81,15 @@ class AiChatModuleController extends AbstractFrontendModuleController
         $template->set('theme', $model->theme ?? 'dark');
         $template->set('base_font_size', $model->base_font_size ?? '14px');
 
-        // Chat text: use module value or translated default
-        $template->set('chat_title', $model->chat_title ?: ($lang['chat_title'] ?? 'Assistant'));
-        $template->set('welcome_message', $model->welcome_message ?: ($lang['welcome_message'] ?? 'How can I help you?'));
-        $template->set('initial_bot_message', $model->initial_bot_message ?: ($lang['initial_bot_message'] ?? 'Hello! How can I help you?'));
+        // Chat text: use module value or translated default. The three fields accept
+        // HTML (DCA eval allowHtml), so they are sanitized here and rendered
+        // unescaped - by the template for title/welcome, by ai-chat.js for the first
+        // bot message. Model answers are a different trust level and stay escaped in
+        // the JavaScript. Title and welcome line sit in an <h3>/<p>, so they are
+        // limited to text-level markup; the bubble is a <div> and also takes blocks.
+        $template->set('chat_title', $this->htmlSanitizer->sanitizeInline((string) ($model->chat_title ?: ($lang['chat_title'] ?? 'Assistant'))));
+        $template->set('welcome_message', $this->htmlSanitizer->sanitizeInline((string) ($model->welcome_message ?: ($lang['welcome_message'] ?? 'How can I help you?'))));
+        $template->set('initial_bot_message', $this->htmlSanitizer->sanitize((string) ($model->initial_bot_message ?: ($lang['initial_bot_message'] ?? 'Hello! How can I help you?'))));
         $template->set('initial_state', $model->initial_state ?? 'collapsed');
         // Default ON: null (column not yet migrated) and '1' enable, '' disables
         $template->set('shorten_urls', (bool) ($model->shorten_urls ?? '1'));
