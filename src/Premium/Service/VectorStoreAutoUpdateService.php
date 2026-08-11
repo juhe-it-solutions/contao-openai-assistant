@@ -181,6 +181,20 @@ class VectorStoreAutoUpdateService
     ];
 
     /**
+     * Internal tables used unconditionally by a sync. Checking only the config/log columns
+     * let a partially applied Contao database update start an expensive run and then fail on
+     * the first vector-file or rewrite-cache query. This is especially important on upgrades
+     * from releases that did not have these tables yet.
+     */
+    private const REQUIRED_SYNC_TABLES = [
+        'tl_openai_config',
+        'tl_openai_sync_log',
+        'tl_openai_vector_file',
+        'tl_openai_page_link',
+        'tl_openai_polish_cache',
+    ];
+
+    /**
      * Crawler summary of the current run ("Indexed N URI(s)...", broken-link notices).
      * Quoted in the "nothing was indexed" errors, where it is the single most useful
      * piece of information and otherwise only reachable from the log.
@@ -1140,7 +1154,7 @@ class VectorStoreAutoUpdateService
     {
         $schemaManager = $this->connection->createSchemaManager();
 
-        if (!$schemaManager->tablesExist(['tl_openai_config', 'tl_openai_sync_log'])) {
+        if (!$schemaManager->tablesExist(self::REQUIRED_SYNC_TABLES)) {
             return false;
         }
 

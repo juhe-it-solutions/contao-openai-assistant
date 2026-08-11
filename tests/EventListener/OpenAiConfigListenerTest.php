@@ -330,6 +330,26 @@ class OpenAiConfigListenerTest extends TestCase
         $this->assertContains(['DELETE FROM tl_openai_polish_cache WHERE pid = ?', [7]], $executedStatements);
     }
 
+    public function testConfigDeleteSurvivesAllMissingPostUpgradeHousekeepingTables(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection
+            ->method('executeStatement')
+            ->willThrowException(new \RuntimeException('table does not exist'))
+        ;
+
+        $dc = (object) [
+            'id' => 7,
+            'activeRecord' => (object) ['vector_store_id' => ''],
+        ];
+
+        // A non-premium customer can delete an old configuration after deploying code but
+        // before contao:migrate. Missing machine-state tables are housekeeping, not a reason
+        // to leave that delete half-finished.
+        $this->createListener($connection)->deleteVectorStore($dc);
+        $this->addToAssertionCount(1);
+    }
+
     public function testValidateAutoUpdateModelRejectsEmptySelectionWhenModelsWereAvailable(): void
     {
         $this->bootMinimalContaoContainer();

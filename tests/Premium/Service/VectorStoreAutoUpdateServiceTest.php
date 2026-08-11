@@ -1504,6 +1504,27 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
         $this->assertSame('skipped', $this->createService($connection)->run(7));
     }
 
+    public function testRunIsSkippedWhenAnInternalSyncTableIsMissing(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('createSchemaManager')->willReturn($this->schemaManager(
+            [
+                'auto_update_progress_phase',
+                'auto_update_progress_current',
+                'auto_update_progress_total',
+                'auto_update_run_started',
+                'auto_update_last_crawl',
+                'auto_update_crawl_signature',
+            ],
+            ['items'],
+            true,
+            'tl_openai_vector_file',
+        ));
+        $connection->expects($this->never())->method('executeStatement');
+
+        $this->assertSame('skipped', $this->createService($connection)->run(7));
+    }
+
     /**
      * Counter-test: a migrated install must pass the gate. It stops at the license check
      * right after it, which is how we can tell the schema was not what refused it.
@@ -1685,9 +1706,10 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
      *                                  defaults to the migrated state, so a test that only
      *                                  varies the config columns still describes an install
      *                                  whose sync log is current
-     * @param bool         $tablesExist whether both tables exist at all (fresh install)
+     * @param bool         $tablesExist whether the extension tables exist at all (fresh install)
+     * @param string|null  $missingTable one selectively missing table (partial schema update)
      */
-    private function schemaManager(array $columns, array $logColumns = ['items'], bool $tablesExist = true): AbstractSchemaManager
+    private function schemaManager(array $columns, array $logColumns = ['items'], bool $tablesExist = true, string|null $missingTable = null): AbstractSchemaManager
     {
         $toColumns = static fn (array $names): array => array_combine(
             $names,
@@ -1695,7 +1717,13 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
         );
 
         $schemaManager = $this->createMock(AbstractSchemaManager::class);
-        $schemaManager->method('tablesExist')->willReturn($tablesExist);
+        $schemaManager
+            ->method('tablesExist')
+            ->willReturnCallback(
+                static fn (array $tables): bool => $tablesExist
+                    && (null === $missingTable || !\in_array($missingTable, $tables, true)),
+            )
+        ;
         $schemaManager
             ->method('listTableColumns')
             ->willReturnCallback(

@@ -399,17 +399,28 @@ class OpenAiConfigListener
 
         $configId = (int) $dc->id;
 
-        $this->connection->executeStatement('DELETE FROM tl_openai_sync_log WHERE pid = ?', [$configId]);
-
-        try {
-            $this->connection->executeStatement('DELETE FROM tl_openai_chat_budget WHERE pid = ?', [$configId]);
-        } catch (\Throwable $e) {
-            // Absent before contao:migrate has created it. Housekeeping only - a stale
-            // budget row for a deleted config is harmless and expires with the day.
-            $this->logger->debug('Could not clear the chat budget for config '.$configId.': '.$e->getMessage());
+        // Sync-log and chat-budget rows are cleaned here; vector-file and polish-cache rows
+        // are cleaned in the finally block below (after the remote purge, which still needs
+        // the vector-file ids). All four are internal housekeeping tables introduced after
+        // the configuration table itself. A customer can deploy code before running
+        // contao:migrate and still delete an old configuration; a missing table must not
+        // abort that deletion (or do so after remote resources have already been removed).
+        foreach (['tl_openai_sync_log', 'tl_openai_chat_budget'] as $table) {
+            try {
+                $this->connection->executeStatement('DELETE FROM '.$table.' WHERE pid = ?', [$configId]);
+            } catch (\Throwable $e) {
+                $this->logger->debug('Could not clear '.$table.' for config '.$configId.': '.$e->getMessage());
+            }
         }
 
-        $this->licenseValidation->deactivate($configId);
+        try {
+            $this->licenseValidation->deactivate($configId);
+        } catch (\Throwable $e) {
+            // Direct upgrades from the free pre-premium line do not have the licensing
+            // columns until contao:migrate. Deactivation is best effort and must not make
+            // deleting an otherwise ordinary OpenAI configuration fail for those users.
+            $this->logger->debug('Could not deactivate a premium licence for config '.$configId.': '.$e->getMessage());
+        }
 
         $vectorStoreId = $dc->activeRecord->vector_store_id;
 
@@ -581,7 +592,14 @@ class OpenAiConfigListener
                 ],
             );
         } finally {
-            $this->connection->executeStatement('DELETE FROM tl_openai_vector_file WHERE pid = ?', [$configId]);
+            try {
+                $this->connection->executeStatement('DELETE FROM tl_openai_vector_file WHERE pid = ?', [$configId]);
+            } catch (\Throwable $e) {
+                // The table does not exist before the 2.2 schema update. The remote purge
+                // above already handles that state; do not turn harmless housekeeping into
+                // a half-finished configuration deletion.
+                $this->logger->debug('Could not clear tl_openai_vector_file for config '.$configId.': '.$e->getMessage());
+            }
 
             // The AI-rewrite cache is per configuration too, and it holds a full copy of
             // every page's text. Without this it would survive the configuration that
