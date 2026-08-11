@@ -1074,6 +1074,35 @@ class VectorStoreFileSyncTest extends TestCase
         $this->assertSame('pending_delete', $rows[0]['status'], 'It stays tracked for the NEXT run.');
     }
 
+    public function testBeginRunResetsDeletionMemoryAndPulsesTheLease(): void
+    {
+        $rows = [];
+        $connection = $this->createConnection($rows);
+        $this->insertVectorFile($rows, 'stuck_file', hash('sha256', 'gone'), 'uploaded');
+
+        $recover = false;
+        $client = new MockHttpClient(
+            static function () use (&$recover): MockResponse {
+                return new MockResponse('{}', ['http_code' => $recover ? 200 : 401]);
+            },
+        );
+        $sync = new SleeplessVectorStoreFileSync($connection, $client, new NullLogger());
+
+        $sync->removePages('sk-test', 'vs_123', 7, [42]);
+        $this->assertSame('pending_delete', $rows[0]['status']);
+
+        $pulses = 0;
+        $recover = true;
+        $sync->beginRun(static function () use (&$pulses): void {
+            ++$pulses;
+        });
+        $stats = $sync->sync('sk-test', 'vs_123', 7, []);
+
+        $this->assertSame([], $rows, 'A later run in the same process must retry the file.');
+        $this->assertSame(0, $stats['deletes_pending']);
+        $this->assertGreaterThanOrEqual(2, $pulses, 'Detach and delete both refresh the run lease.');
+    }
+
     /**
      * A fresh process (the next cron tick) has no memory of the earlier attempt, so the
      * deletion really is retried rather than skipped forever.

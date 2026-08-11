@@ -112,11 +112,33 @@ class VectorStoreFileSync
      */
     private array $attemptedDeletes = [];
 
+    /**
+     * Run-lease heartbeat supplied by the orchestrator.
+     *
+     * A single OpenAI operation can walk a retry ladder, and a page can have many chunks.
+     * Pulsing before every HTTP attempt prevents a healthy but slow run from looking stale
+     * after 15 minutes and being started a second time by cron.
+     */
+    private \Closure|null $heartbeat = null;
+
     public function __construct(
         private readonly Connection $connection,
         private readonly HttpClientInterface $http,
         private readonly LoggerInterface $logger,
     ) {
+    }
+
+    /**
+     * Start one orchestrated run.
+     *
+     * Besides installing the lease heartbeat, this clears the per-run deletion set. The
+     * service is shared while cron processes several configurations, so process lifetime is
+     * not a valid substitute for run lifetime.
+     */
+    public function beginRun(callable|null $heartbeat = null): void
+    {
+        $this->attemptedDeletes = [];
+        $this->heartbeat = null === $heartbeat ? null : \Closure::fromCallable($heartbeat);
     }
 
     /**
@@ -1160,6 +1182,7 @@ class VectorStoreFileSync
         $attempt = 0;
 
         while (true) {
+            $this->pulse();
             $opts = $options instanceof \Closure ? ($options)() : $options;
 
             try {
@@ -1185,6 +1208,13 @@ class VectorStoreFileSync
 
             $this->sleep($delay);
             ++$attempt;
+        }
+    }
+
+    private function pulse(): void
+    {
+        if (null !== $this->heartbeat) {
+            ($this->heartbeat)();
         }
     }
 
