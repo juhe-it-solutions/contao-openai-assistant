@@ -461,9 +461,14 @@
     color: var(--ai-chat-text-secondary);
 }
 
-.ai-chat-input:focus {
+/* Keep the themed field readable when Contao's Basic forms stylesheet applies
+   its generic textarea:focus background. The widget-scoped selector wins in
+   Contao 5.3, 5.7 and 6.0 without affecting forms elsewhere on the page. */
+.mod_ai_chat .ai-chat-input:focus {
     outline: none;
     border-color: var(--ai-chat-text-primary);
+    background: var(--ai-chat-input-bg);
+    color: var(--ai-chat-text-secondary);
 }
 
 /* Thin scrollbars for the message log and the input field */

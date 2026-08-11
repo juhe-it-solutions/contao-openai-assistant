@@ -48,6 +48,26 @@ class ChatWidgetAssetsTest extends TestCase
     }
 
     /**
+     * Contao's optional Basic forms stylesheet sets a generic textarea:focus background.
+     * The widget must repeat both theme colours in a more specific, widget-scoped focus rule,
+     * otherwise the dark input turns light while focused and its text becomes unreadable.
+     */
+    public function testInputFocusKeepsThemeColorsAgainstHostStylesheets(): void
+    {
+        $css = file_get_contents(__DIR__.'/../../public/css/ai-chat.css');
+        $this->assertIsString($css);
+
+        $this->assertSame(
+            1,
+            preg_match('/\.mod_ai_chat\s+\.ai-chat-input:focus\s*\{([^}]*)\}/s', $css, $matches),
+            'The focused input must have a widget-scoped rule that outranks generic form CSS.',
+        );
+
+        $this->assertStringContainsString('background: var(--ai-chat-input-bg)', $matches[1]);
+        $this->assertStringContainsString('color: var(--ai-chat-text-secondary)', $matches[1]);
+    }
+
+    /**
      * The rule must stay inside the widget: this stylesheet ships on the customer's public
      * website, and switching off animations the site itself defines is not ours to do.
      */
