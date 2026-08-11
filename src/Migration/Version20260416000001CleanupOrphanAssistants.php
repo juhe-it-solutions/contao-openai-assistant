@@ -28,8 +28,14 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  *
  * The Assistants API has been deprecated by OpenAI and is slated for sunset on
  * 2026-08-26. Leaving these assistant objects behind would only mean stale
- * records on the user's OpenAI account. We therefore attempt one best effort
- * delete per row, then NULL the legacy openai_assistant_id column.
+ * records on the user's OpenAI account. We therefore attempt one delete per row
+ * and NULL the legacy openai_assistant_id column once the outcome is conclusive.
+ *
+ * "Conclusive" is the important word. The id is the only handle on the remote object, and
+ * shouldRun() fires solely on rows that still carry one, so clearing it is what retires a row
+ * for good. It is therefore cleared on 2xx (deleted) and on 404/410 (provably absent), and
+ * kept on everything else - a missing or revoked key, a transport failure, a 5xx - so the
+ * next contao:migrate simply tries again instead of the row silently becoming unfixable.
  *
  * The migration NEVER throws on HTTP failures: it is safe to re-run and to run in
  * environments where the API key is no longer valid.
@@ -104,15 +110,29 @@ class Version20260416000001CleanupOrphanAssistants extends AbstractMigration
                     ],
                 );
                 ++$failed;
+                $outcome = 'failed';
             } else {
-                $status = $this->deleteAssistant($apiKey, $assistantId);
-                if ('deleted' === $status) {
+                $outcome = $this->deleteAssistant($apiKey, $assistantId);
+
+                if ('deleted' === $outcome) {
                     ++$deleted;
-                } elseif ('missing' === $status) {
+                } elseif ('missing' === $outcome) {
                     ++$missing;
                 } else {
                     ++$failed;
                 }
+            }
+
+            // Keep the reference when the outcome was not conclusive.
+            //
+            // The id is the only handle on the remote assistant, and shouldRun() fires solely
+            // on rows that still carry one - so clearing it after a transport failure, a 5xx
+            // or a missing key retired the row permanently on the strength of an attempt that
+            // established nothing. The operator still got the id in the log, but the migration
+            // itself could never help again. A run that reached no verdict now leaves the row
+            // exactly as it found it, and the next contao:migrate tries once more.
+            if ('failed' === $outcome) {
+                continue;
             }
 
             try {
@@ -150,8 +170,13 @@ class Version20260416000001CleanupOrphanAssistants extends AbstractMigration
     /**
      * Attempt to delete a single OpenAI Assistant. Returns one of:
      *   - 'deleted' on 2xx
-     *   - 'missing' on 404 / 410 / 401 (key invalid: treat as non-actionable)
+     *   - 'missing' on 404 / 410 (the assistant is provably not there)
      *   - 'failed' on any other status or network error
+     *
+     * 401 counts as 'failed', not 'missing'. A revoked or wrong key says nothing at all about
+     * whether the assistant still exists, and the caller only forgets the id on a conclusive
+     * outcome - so calling this "already gone" would retire the row for good on the strength
+     * of an answer about the key rather than about the assistant.
      *
      * This is the LAST remaining usage of "OpenAI-Beta: assistants=v2" in the
      * codebase, by design — it has to be to reach the legacy resource.
@@ -185,9 +210,9 @@ class Version20260416000001CleanupOrphanAssistants extends AbstractMigration
                 return 'deleted';
             }
 
-            if (\in_array($status, [401, 404, 410], true)) {
+            if (\in_array($status, [404, 410], true)) {
                 $this->logger->info(
-                    'Cleanup migration: assistant already gone or key revoked',
+                    'Cleanup migration: assistant already gone',
                     [
                         'assistant_id' => $assistantId,
                         'status' => $status,
