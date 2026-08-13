@@ -145,6 +145,11 @@ class ChatWidgetAccessibilityTest extends TestCase
         $this->assertStringContainsString('@media (max-width: 767px)', $css);
         $this->assertStringNotContainsString('max-height: 60vh', $css);
         $this->assertMatchesRegularExpression(
+            '/@media \(max-width: 767px\).*?dialog\.ai-chat-disclaimer-dialog\s*\{[^}]*max-width:\s*none/s',
+            $css,
+            'The native dialog width cap must not create an uneven mobile gutter.',
+        );
+        $this->assertMatchesRegularExpression(
             '/div\.ai-chat-disclaimer-dialog \.ai-chat-disclaimer-content\s*\{[^}]*flex-grow:\s*0/s',
             $css,
             'The legacy div fallback must retain its configured desktop width.',

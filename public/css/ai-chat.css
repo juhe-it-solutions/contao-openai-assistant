@@ -1061,6 +1061,7 @@ div.ai-chat-disclaimer-dialog .ai-chat-disclaimer-content {
     bottom: auto;
     left: calc(0.5rem + env(safe-area-inset-left, 0px));
     width: auto;
+    max-width: none;
     height: calc(var(--ai-chat-viewport-height, 100dvh) - 1rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     max-height: none;
     margin: 0;
