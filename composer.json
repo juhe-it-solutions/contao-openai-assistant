@@ -22,6 +22,9 @@
     "symfony/http-client": "^6.4 || ^7.0",
     "symfony/rate-limiter": "^6.4 || ^7.0"
   },
+  "conflict": {
+    "contao/manager-plugin": "<2.0 || >=3.0"
+  },
   "autoload": {
     "psr-4": {
       "JuheItSolutions\\ContaoOpenaiAssistant\\": "src/"
@@ -33,6 +36,7 @@
     }
   },
   "require-dev": {
+    "contao/manager-plugin": "^2.0",
     "contao/easy-coding-standard": "^6.13",
     "symplify/easy-coding-standard": "13.2.3",
     "phpstan/phpstan": "^2.0",
@@ -45,6 +49,7 @@
   "prefer-stable": true,
   "config": {
     "allow-plugins": {
+      "contao/manager-plugin": true,
       "contao-components/installer": true,
       "php-http/discovery": true,
       "dealerdirect/phpcodesniffer-composer-installer": true

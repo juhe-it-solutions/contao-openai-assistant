@@ -72,9 +72,21 @@ if [ -z "${CHANGELOG_SECTION//[[:space:]]/}" ]; then
 fi
 echo -e "${GREEN}✅ CHANGELOG.md contains release notes for $VERSION${NC}"
 
+echo -e "${BLUE}📦 Verifying the exported release package...${NC}"
+if ! bash scripts/check-release-archive.sh HEAD; then
+    fail "Release archive contains an unexpected, missing or potentially sensitive file."
+fi
+
 PHP_SERIES=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
 if [ "$PHP_SERIES" != "8.2" ]; then
     fail "The main release baseline requires PHP 8.2; current PHP is $PHP_SERIES."
+fi
+
+# Composer 2.10.2 fixes the 2026 package-name and bin-path validation advisories.
+# Refuse to resolve release dependencies with an older, vulnerable executable.
+COMPOSER_VERSION=$(composer --no-ansi --version | awk '/^Composer version / { print $3; exit }')
+if ! php -r 'exit(version_compare($argv[1], "2.10.2", ">=") ? 0 : 1);' "$COMPOSER_VERSION"; then
+    fail "Composer 2.10.2 or newer is required for the release checks; current version is $COMPOSER_VERSION."
 fi
 
 # This intentionally performs a full update. The bundle does not track composer.lock,

@@ -21,6 +21,9 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Verify release archive contents
+      run: bash scripts/check-release-archive.sh "$GITHUB_SHA"
+
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:

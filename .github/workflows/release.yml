@@ -17,11 +17,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Verify release archive contents
+      run: bash scripts/check-release-archive.sh "$GITHUB_SHA"
+
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: 8.2
         extensions: mbstring, xml, ctype, iconv, intl, dom
+        tools: composer:2.10.2
 
     # Pin to the 5.3 LTS line: on PHP 8.2 a plain install resolves the
     # end-of-life Contao 5.6 line, which has open advisories and would fail
@@ -78,10 +82,13 @@ jobs:
         ```
 
         ## 🔗 Links
-
-        - [Documentation](https://github.com/juhe-it-solutions/contao-openai-assistant/tree/main/docs)
-        - [Full changelog](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/CHANGELOG.md)
         EOF
+
+        printf '\n- [Documentation](https://github.com/%s/tree/%s/docs)\n' \
+          "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" >> release-notes.md
+        printf '%s\n' \
+          "- [Full changelog](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/CHANGELOG.md)" \
+          >> release-notes.md
 
     # Updates the existing release instead of failing when one was already
     # created manually for the tag (that broke the v2.0.2 release run).

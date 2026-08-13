@@ -9,6 +9,10 @@ This directory documents the current Contao OpenAI Assistant 2.x codebase. The e
 - [Quick start](quick-start.md)
 - [Upgrading to 2.2.0](upgrading-to-2.2.0.md) - read before updating a production site from 2.1.4 or earlier
 
+## Release Notes
+
+- [v2.2.0 detailed release notes](releases/2.2.0-detailed.md) - complete technical change record
+
 ## Configuration
 
 - [OpenAI setup](configuration/openai-setup.md)

@@ -1,7 +1,7 @@
 'use strict';
 // Regression harness for public/js/ai-chat.js fmt(): re-runs the 41 documented
-// linkification cases (XXX_DOCS_INTERN/20260610_url-linkification-test-suite.md)
-// plus XSS/escaping and newline-in-URL cases added for the escape-then-transform
+// linkification cases plus XSS/escaping and newline-in-URL cases added for the
+// escape-then-transform
 // change, plus the "shorten plain URLs" cases (module option shorten_urls,
 // default ON - the documented 41 cases run with shortening OFF, i.e. the
 // opt-out rendering). Run from anywhere: node scripts/check-chat-linkification.js
