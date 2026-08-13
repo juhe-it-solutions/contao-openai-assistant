@@ -217,6 +217,10 @@
    and animationend listeners still fire and nothing waits forever for an event. */
 @media (prefers-reduced-motion:reduce){
   .mod_ai_chat,
+  .mod_ai_chat *,
+  .mod_ai_chat *::before,
+  .mod_ai_chat *::after,
+  .mod_ai_chat dialog::backdrop,
   .ai-chat-toggle,
   .ai-chat-toggle *,
   .ai-chat-container,
@@ -312,16 +316,18 @@
     min-height: 44px;
 }
 
-.ai-chat-disclaimer-toggle:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
+@media (hover: hover) and (pointer: fine) {
+    .ai-chat-disclaimer-toggle:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
 
-.theme-dark .ai-chat-disclaimer-toggle:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
+    .theme-dark .ai-chat-disclaimer-toggle:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
 
-.theme-light .ai-chat-disclaimer-toggle:hover {
-    background: rgba(0, 0, 0, 0.1);
+    .theme-light .ai-chat-disclaimer-toggle:hover {
+        background: rgba(0, 0, 0, 0.1);
+    }
 }
 
 .ai-chat-theme-toggle:hover {
@@ -757,9 +763,14 @@
 .ai-chat-minimize:focus-visible,
 .ai-chat-theme-toggle:focus-visible,
 .ai-chat-disclaimer-toggle:focus-visible,
-.ai-chat-disclaimer-close:focus-visible {
+.ai-chat-disclaimer-close:focus-visible,
+.ai-chat-disclaimer-body:focus-visible {
   outline: 3px solid var(--ai-chat-toggle-icon-color);
   outline-offset: 2px;
+}
+
+.ai-chat-disclaimer-body:focus-visible {
+  outline-offset: -3px;
 }
 
 /* Icon colors - apply configurable color to all icons */
@@ -786,11 +797,84 @@
   color: var(--ai-chat-toggle-icon-color);
 }
 
-/* Disclaimer Dialog Styles */
-.ai-chat-disclaimer-dialog {
+/* Disclaimer Dialog Styles
+
+   Native <dialog> (dialog-modal, overlay-scrim, modal-scroll-lock,
+   modal-full-screen-mobile) lives in the top layer, so a transformed chat
+   widget or a sticky site header cannot cover or clip it. Custom templates
+   that still ship a div overlay keep the previous full-viewport scrim. */
+html.ai-chat-disclaimer-open {
+  overflow: hidden;
+  scrollbar-gutter: stable;
+  overscroll-behavior: none;
+}
+
+body.ai-chat-disclaimer-open {
   position: fixed;
-  top: 0;
   left: 0;
+  right: 0;
+  width: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+dialog.ai-chat-disclaimer-dialog {
+  box-sizing: border-box;
+  padding: 0;
+  border: 1px solid var(--ai-chat-border);
+  border-radius: 8px;
+  background: var(--ai-chat-bg-primary);
+  color: var(--ai-chat-text-secondary);
+  width: min(32rem, calc(100vw - 2rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  max-height: min(
+    85dvh,
+    calc(var(--ai-chat-viewport-height, 100dvh) - 2rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))
+  );
+  overflow: hidden;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  box-shadow: 0 4px 20px var(--ai-chat-shadow-color);
+  opacity: 0;
+  transition: opacity 0.2s ease,
+              overlay 0.2s ease allow-discrete,
+              display 0.2s ease allow-discrete;
+}
+
+dialog.ai-chat-disclaimer-dialog:not([open]) {
+  display: none;
+}
+
+dialog.ai-chat-disclaimer-dialog[open] {
+  display: flex;
+  opacity: 1;
+}
+
+@starting-style {
+  dialog.ai-chat-disclaimer-dialog[open] {
+    opacity: 0;
+  }
+}
+
+dialog.ai-chat-disclaimer-dialog::backdrop {
+  background: rgb(0 0 0 / 0.5);
+}
+
+dialog.ai-chat-disclaimer-dialog.theme-dark,
+.theme-dark dialog.ai-chat-disclaimer-dialog {
+  color-scheme: dark;
+}
+
+dialog.ai-chat-disclaimer-dialog.theme-light,
+.theme-light dialog.ai-chat-disclaimer-dialog {
+  color-scheme: light;
+}
+
+/* Fallback overlay for custom templates that still use a div */
+div.ai-chat-disclaimer-dialog {
+  position: fixed;
+  inset: 0;
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.5);
@@ -799,38 +883,48 @@
   justify-content: center;
   z-index: 10020;
   box-sizing: border-box;
-  padding: 1rem;
+  padding: max(1rem, env(safe-area-inset-top, 0px))
+           max(1rem, env(safe-area-inset-right, 0px))
+           max(1rem, env(safe-area-inset-bottom, 0px))
+           max(1rem, env(safe-area-inset-left, 0px));
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
-.ai-chat-disclaimer-dialog.show {
+div.ai-chat-disclaimer-dialog.show {
   opacity: 1;
   visibility: visible;
 }
 
 .ai-chat-disclaimer-content {
-  background: var(--ai-chat-bg-primary);
-  border: 1px solid var(--ai-chat-border);
-  border-radius: 8px;
-  max-width: 500px;
-  width: 90%;
-  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
   overflow: hidden;
-  box-shadow: 0 4px 20px var(--ai-chat-shadow-color);
-  transform: scale(0.9);
-  transition: transform 0.3s ease;
+  background: var(--ai-chat-bg-primary);
+  border-radius: 8px;
 }
 
-.ai-chat-disclaimer-dialog.show .ai-chat-disclaimer-content {
-  transform: scale(1);
+div.ai-chat-disclaimer-dialog .ai-chat-disclaimer-content {
+  flex-grow: 0;
+  border: 1px solid var(--ai-chat-border);
+  width: min(32rem, 100%);
+  max-height: min(
+    85dvh,
+    calc(var(--ai-chat-viewport-height, 100dvh) - 2rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))
+  );
+  box-shadow: 0 4px 20px var(--ai-chat-shadow-color);
 }
 
 .ai-chat-disclaimer-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--ai-chat-border);
   background: var(--ai-chat-bg-secondary);
@@ -838,9 +932,11 @@
 
 .ai-chat-disclaimer-title {
   margin: 0;
+  min-width: 0;
   font-size: var(--ai-chat-font-size-large);
   font-weight: 600;
   color: var(--ai-chat-text-primary);
+  line-height: 1.3;
 }
 
 .ai-chat-disclaimer-close {
@@ -851,24 +947,38 @@
   padding: 0.5rem;
   min-width: 44px;
   min-height: 44px;
+  flex-shrink: 0;
   border-radius: 4px;
   transition: background-color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: manipulation;
 }
 
-.ai-chat-disclaimer-close:hover {
+.ai-chat-disclaimer-close:active {
   background: var(--ai-chat-bg-primary);
   color: var(--ai-chat-text-primary);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .ai-chat-disclaimer-close:hover {
+    background: var(--ai-chat-bg-primary);
+    color: var(--ai-chat-text-primary);
+  }
+}
+
 .ai-chat-disclaimer-body {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 1.5rem;
   color: var(--ai-chat-text-secondary);
   line-height: 1.6;
   overflow-y: auto;
-  max-height: 60vh;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overflow-wrap: break-word;
 }
 
 .ai-chat-disclaimer-body p {
@@ -877,6 +987,21 @@
 
 .ai-chat-disclaimer-body p:last-child {
   margin-bottom: 0;
+}
+
+.ai-chat-disclaimer-body a {
+  color: var(--ai-chat-text-primary);
+  text-decoration: underline;
+}
+
+.ai-chat-disclaimer-body a:hover,
+.ai-chat-disclaimer-body a:active {
+  text-decoration: none;
+}
+
+.ai-chat-disclaimer-body a:focus-visible {
+  outline: 3px solid var(--ai-chat-toggle-icon-color);
+  outline-offset: 2px;
 }
 
 /* Disclaimer toggle button styles */
@@ -891,41 +1016,80 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: manipulation;
 }
 
-.ai-chat-disclaimer-toggle:hover {
+.ai-chat-disclaimer-toggle:active {
   background: var(--ai-chat-bg-secondary);
-  color: var(--ai-chat-toggle-icon-color);
 }
 
-/* Mobile responsive adjustments for disclaimer */
-@media (max-width: 768px) {
-  .ai-chat-disclaimer-dialog {
+@media (hover: hover) and (pointer: fine) {
+  .ai-chat-disclaimer-toggle:hover {
+    background: var(--ai-chat-bg-secondary);
+    color: var(--ai-chat-toggle-icon-color);
+  }
+}
+
+/* Short landscape viewports (phones on their side, small laptops): grow the
+   card so the text is readable instead of a clipped 60vh box. */
+@media (max-height: 500px) {
+  dialog.ai-chat-disclaimer-dialog {
+    max-height: calc(var(--ai-chat-viewport-height, 100dvh) - 1rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    width: min(40rem, calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  }
+
+  div.ai-chat-disclaimer-dialog .ai-chat-disclaimer-content {
+    max-height: calc(var(--ai-chat-viewport-height, 100dvh) - 1rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    width: min(40rem, 100%);
+  }
+
+  .ai-chat-disclaimer-header {
+    padding: 0.5rem 1rem;
+  }
+
+  .ai-chat-disclaimer-body {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Narrow screens: full visible viewport, matching the chat widget breakpoint. */
+@media (max-width: 767px) {
+  dialog.ai-chat-disclaimer-dialog {
+    inset: auto;
+    top: calc(var(--ai-chat-viewport-offset-top, 0px) + 0.5rem + env(safe-area-inset-top, 0px));
+    right: calc(0.5rem + env(safe-area-inset-right, 0px));
+    bottom: auto;
+    left: calc(0.5rem + env(safe-area-inset-left, 0px));
+    width: auto;
+    height: calc(var(--ai-chat-viewport-height, 100dvh) - 1rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    max-height: none;
+    margin: 0;
+    border-radius: 12px;
+  }
+
+  div.ai-chat-disclaimer-dialog {
     padding: calc(0.5rem + env(safe-area-inset-top, 0px))
              calc(0.5rem + env(safe-area-inset-right, 0px))
              calc(0.5rem + env(safe-area-inset-bottom, 0px))
              calc(0.5rem + env(safe-area-inset-left, 0px));
+    align-items: stretch;
   }
 
-  .ai-chat-disclaimer-content {
-    width: 95%;
+  div.ai-chat-disclaimer-dialog .ai-chat-disclaimer-content {
+    width: 100%;
     max-height: 100%;
-    display: flex;
-    flex-direction: column;
+    height: 100%;
+    border-radius: 12px;
   }
-  
+
   .ai-chat-disclaimer-header {
-    flex-shrink: 0;
     padding: 0.75rem 1rem;
   }
-  
+
   .ai-chat-disclaimer-body {
-    flex: 1;
-    min-height: 0;
     padding: 1rem;
-    max-height: none;
   }
-  
+
   .ai-chat-disclaimer-title {
     font-size: var(--ai-chat-font-size-medium);
   }

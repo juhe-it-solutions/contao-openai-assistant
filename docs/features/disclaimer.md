@@ -10,10 +10,12 @@ If the field is empty, the frontend uses the default disclaimer from the chat la
 
 ## Frontend Behavior
 
-- The information button opens a modal dialog.
+- The information button opens a native modal `<dialog>` via `showModal()`, so the platform owns the focus trap, Escape to close, inert background and top-layer stacking.
 - The dialog follows the selected light or dark chat theme.
-- Users can close it with the close button, outside click or Escape key.
-- The implementation includes keyboard and focus handling for accessibility.
+- Visitors can close it with the close button, a tap or click on the backdrop, or Escape. The close control stays on screen while the text scrolls.
+- Long disclaimer text is a named, keyboard-scrollable region. Initial focus enters that region so screen readers can navigate links, lists and paragraphs with their structure intact; the close button remains one backward tab away.
+- On phones the dialog fills the visible viewport and respects notches, the home indicator and the software keyboard. Short landscape viewports grow the card instead of clipping it. The page behind it cannot scroll, including on iOS.
+- Custom module templates that still use a `div` overlay are handled by the same script as a fallback.
 
 ## Notes
 

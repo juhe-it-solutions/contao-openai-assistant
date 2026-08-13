@@ -31,7 +31,23 @@ class ChatWidgetAccessibilityTest extends TestCase
         $this->assertStringContainsString('class="ai-chat-status sr-only" role="status"', $template);
         $this->assertStringContainsString('aria-busy="false"', $template);
         $this->assertStringContainsString('enterkeyhint="enter"', $template);
-        $this->assertStringContainsString('aria-hidden="true" inert', $template);
+        $this->assertStringContainsString('<dialog class="ai-chat-disclaimer-dialog"', $template);
+        $this->assertStringContainsString('aria-haspopup="dialog"', $template);
+        $this->assertStringContainsString('tabindex="0"', $template);
+        $this->assertMatchesRegularExpression(
+            '/class="ai-chat-disclaimer-body"[^>]*role="region"/',
+            $template,
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/<dialog[^>]*role="dialog"/',
+            $template,
+            'Native <dialog> already supplies the dialog role.',
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/<dialog[^>]*aria-describedby/',
+            $template,
+            'Structured disclaimer content must not be flattened into one announcement.',
+        );
 
         $this->assertSame(5, substr_count($template, '<svg'), 'The bundled template should still contain its five control icons.');
         $this->assertSame(5, substr_count($template, 'aria-hidden="true" focusable="false"'), 'Every control icon must remain decorative.');
@@ -107,25 +123,41 @@ class ChatWidgetAccessibilityTest extends TestCase
 
         $this->assertStringNotContainsString('outline: none', $css);
 
-        foreach (['toggle', 'send', 'minimize', 'theme-toggle', 'disclaimer-toggle', 'disclaimer-close', 'input'] as $control) {
+        foreach (['toggle', 'send', 'minimize', 'theme-toggle', 'disclaimer-toggle', 'disclaimer-close', 'disclaimer-body', 'input'] as $control) {
             $this->assertStringContainsString(".ai-chat-{$control}:focus-visible", $css);
         }
 
         $this->assertStringContainsString('clip-path: inset(50%)', $css);
         $this->assertStringContainsString('white-space: nowrap', $css);
 
-        foreach (['disclaimer-toggle', 'theme-toggle', 'minimize'] as $control) {
+        foreach (['disclaimer-toggle', 'theme-toggle', 'minimize', 'disclaimer-close'] as $control) {
             $this->assertSame(1, preg_match("/(?:^|\\n)\\.ai-chat-{$control}\\s*\\{([^}]*)\\}/s", $css, $rule));
             $this->assertStringContainsString('min-width: 44px', $rule[1]);
             $this->assertStringContainsString('min-height: 44px', $rule[1]);
         }
 
-        $this->assertSame(1, preg_match('/\\.ai-chat-disclaimer-dialog\\s*\\{([^}]*)\\}/s', $css, $dialog));
-        $this->assertSame(1, preg_match('/z-index:\s*(\d+)/', $dialog[1], $zIndex));
-        $this->assertGreaterThan(10000, (int) $zIndex[1]);
+        $this->assertSame(1, preg_match('/(?:^|\\n)\\.ai-chat-disclaimer-content\\s*\\{([^}]*)\\}/s', $css, $content));
+        $this->assertStringContainsString('min-height: 0', $content[1]);
+        $this->assertDoesNotMatchRegularExpression('/(?<!max-)height:\\s*100%/', $content[1]);
+        $this->assertStringContainsString('::backdrop', $css);
+        $this->assertStringContainsString('html.ai-chat-disclaimer-open', $css);
+        $this->assertStringContainsString('overscroll-behavior: contain', $css);
+        $this->assertStringContainsString('@media (max-width: 767px)', $css);
+        $this->assertStringNotContainsString('max-height: 60vh', $css);
+        $this->assertMatchesRegularExpression(
+            '/div\.ai-chat-disclaimer-dialog \.ai-chat-disclaimer-content\s*\{[^}]*flex-grow:\s*0/s',
+            $css,
+            'The legacy div fallback must retain its configured desktop width.',
+        );
 
+        $this->assertStringContainsString('showModal', $js);
+        $this->assertStringContainsString("wrapper.querySelector('.ai-chat-disclaimer-body')", $js);
+        $this->assertStringContainsString('disclaimerBody.focus()', $js);
         $this->assertStringContainsString('inertDisclaimerBackground', $js);
         $this->assertStringContainsString('restoreDisclaimerBackground', $js);
+        $this->assertStringContainsString('lockDisclaimerScroll', $js);
+        $this->assertStringContainsString('previousBodyTop = document.body.style.top', $js);
+        $this->assertStringContainsString('document.body.style.top = previousBodyTop', $js);
         $this->assertStringContainsString("'turbo:before-cache'", $js);
     }
 
