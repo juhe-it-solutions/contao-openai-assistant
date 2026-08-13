@@ -35,6 +35,16 @@ function initAiChat(wrapper) {
   const disclaimerToggleBtn = wrapper.querySelector('.ai-chat-disclaimer-toggle');
   const disclaimerDialog = wrapper.querySelector('.ai-chat-disclaimer-dialog');
   const disclaimerCloseBtn = wrapper.querySelector('.ai-chat-disclaimer-close');
+  const disclaimerBody = wrapper.querySelector('.ai-chat-disclaimer-body');
+  const isNativeDisclaimer = typeof HTMLDialogElement !== 'undefined'
+    && disclaimerDialog instanceof HTMLDialogElement
+    && typeof disclaimerDialog.showModal === 'function';
+
+  const isDisclaimerOpen = () => {
+    if (!disclaimerDialog) return false;
+    if (isNativeDisclaimer) return !!disclaimerDialog.open;
+    return disclaimerDialog.classList.contains('show');
+  };
 
   if (!container || !form || !input || !log) {
     console.error('AI Chat: Required elements not found');
@@ -168,6 +178,10 @@ function initAiChat(wrapper) {
   const setTheme = (theme) => {
     wrapper.classList.remove('theme-light', 'theme-dark');
     wrapper.classList.add(`theme-${theme}`);
+    if (disclaimerDialog) {
+      disclaimerDialog.classList.remove('theme-light', 'theme-dark');
+      disclaimerDialog.classList.add(`theme-${theme}`);
+    }
     
     // Update CSS variables
     const lightToggleIconColor = getComputedStyle(wrapper).getPropertyValue('--ai-chat-light-toggle-icon-color').trim();
@@ -248,7 +262,7 @@ function initAiChat(wrapper) {
     setTimeout(() => {
       if (!input.disabled
           && !wrapper.classList.contains('ai-chat-collapsed')
-          && !(disclaimerDialog && disclaimerDialog.classList.contains('show'))) {
+          && !isDisclaimerOpen()) {
         input.focus();
       }
     }, 100);
@@ -303,15 +317,17 @@ function initAiChat(wrapper) {
     themeToggleBtn.addEventListener('click', toggleTheme);
   }
 
-  // Disclaimer functionality. The dialog stays inside the themed wrapper, so
-  // inert every sibling branch between it and <body>. This disables the chat
-  // and the surrounding page without accidentally making the dialog inert too.
+  // Disclaimer. Native <dialog>.showModal() already provides a focus trap, Esc,
+  // inert background and top-layer stacking. Custom templates that still ship a
+  // div overlay keep the older inert-siblings path.
   let disclaimerInertedElements = [];
-  let previousBodyOverflow = '';
   let bodyScrollLocked = false;
+  let disclaimerScrollY = 0;
+  let previousBodyTop = '';
+  let restoreDisclaimerFocus = true;
 
   const inertDisclaimerBackground = () => {
-    if (!disclaimerDialog) return;
+    if (!disclaimerDialog || isNativeDisclaimer) return;
 
     let branch = disclaimerDialog;
     while (branch.parentElement) {
@@ -333,29 +349,38 @@ function initAiChat(wrapper) {
     disclaimerInertedElements = [];
   };
 
-  const showDisclaimer = () => {
-    if (!disclaimerDialog || disclaimerDialog.classList.contains('show')) return;
-
-    disclaimerDialog.removeAttribute('inert');
-    disclaimerDialog.classList.add('show');
-    disclaimerDialog.setAttribute('aria-hidden', 'false');
-    if (disclaimerToggleBtn) {
-      disclaimerToggleBtn.setAttribute('aria-expanded', 'true');
-    }
-    if (disclaimerCloseBtn) {
-      disclaimerCloseBtn.focus();
-    }
-    inertDisclaimerBackground();
-
-    previousBodyOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+  const lockDisclaimerScroll = () => {
+    if (bodyScrollLocked) return;
+    disclaimerScrollY = window.scrollY;
+    previousBodyTop = document.body.style.top;
+    document.documentElement.classList.add('ai-chat-disclaimer-open');
+    document.body.classList.add('ai-chat-disclaimer-open');
+    document.body.style.top = `-${disclaimerScrollY}px`;
     bodyScrollLocked = true;
   };
 
-  const hideDisclaimer = (restoreFocus = true) => {
-    if (!disclaimerDialog) return;
+  const unlockDisclaimerScroll = () => {
+    if (!bodyScrollLocked) return;
+    document.documentElement.classList.remove('ai-chat-disclaimer-open');
+    document.body.classList.remove('ai-chat-disclaimer-open');
+    document.body.style.top = previousBodyTop;
+    bodyScrollLocked = false;
+    window.scrollTo(0, disclaimerScrollY);
+  };
 
-    const wasOpen = disclaimerDialog.classList.contains('show');
+  const focusDisclaimerOnOpen = () => {
+    if (!isDisclaimerOpen()) return;
+    // Focus the named, scrollable region so long structured content is available
+    // without flattening it through aria-describedby. The close control stays
+    // visible in the fixed header and is one Shift+Tab away.
+    if (disclaimerBody) {
+      disclaimerBody.focus();
+    } else if (disclaimerCloseBtn) {
+      disclaimerCloseBtn.focus();
+    }
+  };
+
+  const finalizeDisclaimerClose = () => {
     if (disclaimerToggleBtn) {
       disclaimerToggleBtn.setAttribute('aria-expanded', 'false');
     }
@@ -364,21 +389,75 @@ function initAiChat(wrapper) {
     // A responsive collapse can happen while the modal is open. Preserve that
     // independent inert state instead of clearing it with the modal background.
     container.toggleAttribute('inert', wrapper.classList.contains('ai-chat-collapsed'));
+    unlockDisclaimerScroll();
 
-    if (restoreFocus && wasOpen && disclaimerToggleBtn && disclaimerToggleBtn.isConnected) {
+    if (!isNativeDisclaimer && disclaimerDialog) {
+      disclaimerDialog.classList.remove('show');
+      disclaimerDialog.setAttribute('aria-hidden', 'true');
+      disclaimerDialog.setAttribute('inert', '');
+    }
+
+    const shouldRestoreFocus = restoreDisclaimerFocus
+      && disclaimerToggleBtn
+      && disclaimerToggleBtn.isConnected
+      && !wrapper.classList.contains('ai-chat-collapsed');
+
+    // Native <dialog> returns focus to the opener. Do not blur() that away.
+    if (shouldRestoreFocus && !isNativeDisclaimer) {
       disclaimerToggleBtn.focus();
-    } else if (disclaimerDialog.contains(document.activeElement)
+    } else if (!isNativeDisclaimer && disclaimerDialog && disclaimerDialog.contains(document.activeElement)
         && typeof document.activeElement.blur === 'function') {
       document.activeElement.blur();
     }
 
-    disclaimerDialog.classList.remove('show');
-    disclaimerDialog.setAttribute('aria-hidden', 'true');
-    disclaimerDialog.setAttribute('inert', '');
-    if (bodyScrollLocked) {
-      document.body.style.overflow = previousBodyOverflow;
-      bodyScrollLocked = false;
+    restoreDisclaimerFocus = true;
+  };
+
+  const showDisclaimer = () => {
+    if (!disclaimerDialog || isDisclaimerOpen()) return;
+
+    if (isNativeDisclaimer) {
+      try {
+        disclaimerDialog.showModal();
+      } catch (error) {
+        console.warn('AI Chat: Could not open disclaimer dialog', error);
+        return;
+      }
+    } else {
+      disclaimerDialog.removeAttribute('inert');
+      disclaimerDialog.classList.add('show');
+      disclaimerDialog.setAttribute('aria-hidden', 'false');
+      inertDisclaimerBackground();
     }
+
+    if (disclaimerToggleBtn) {
+      disclaimerToggleBtn.setAttribute('aria-expanded', 'true');
+    }
+
+    lockDisclaimerScroll();
+    requestAnimationFrame(focusDisclaimerOnOpen);
+  };
+
+  const hideDisclaimer = (restoreFocus = true) => {
+    if (!disclaimerDialog) return;
+
+    restoreDisclaimerFocus = restoreFocus;
+
+    if (isNativeDisclaimer) {
+      if (disclaimerDialog.open) {
+        disclaimerDialog.close();
+        return;
+      }
+      finalizeDisclaimerClose();
+      return;
+    }
+
+    if (!disclaimerDialog.classList.contains('show')) {
+      finalizeDisclaimerClose();
+      return;
+    }
+
+    finalizeDisclaimerClose();
   };
 
   // Event listeners for disclaimer
@@ -387,11 +466,24 @@ function initAiChat(wrapper) {
   }
 
   if (disclaimerCloseBtn) {
-    disclaimerCloseBtn.addEventListener('click', hideDisclaimer);
+    disclaimerCloseBtn.addEventListener('click', () => hideDisclaimer());
   }
 
-  // Close dialog when clicking outside
   if (disclaimerDialog) {
+    if (isNativeDisclaimer) {
+      disclaimerDialog.addEventListener('close', finalizeDisclaimerClose);
+      disclaimerDialog.addEventListener('cancel', (e) => {
+        e.stopPropagation();
+      });
+      disclaimerDialog.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          e.stopPropagation();
+        }
+      });
+    }
+
+    // Backdrop dismiss: on <dialog>, a click on ::backdrop has the dialog as
+    // target. On the fallback overlay, the overlay itself is the target.
     disclaimerDialog.addEventListener('click', (e) => {
       if (e.target === disclaimerDialog) {
         hideDisclaimer();
@@ -399,35 +491,37 @@ function initAiChat(wrapper) {
     });
   }
 
-  // Close dialog with Escape key and handle focus trap
+  // Fallback overlay only: native showModal() already traps focus and handles Esc.
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && disclaimerDialog && disclaimerDialog.classList.contains('show')) {
+    if (isNativeDisclaimer || !isDisclaimerOpen()) return;
+
+    if (e.key === 'Escape') {
+      e.stopPropagation();
       hideDisclaimer();
+      return;
     }
-    
-    // Focus trap for dialog. inert handles the background; this wrap keeps Tab
-    // movement predictable inside the modal itself.
-    if (disclaimerDialog && disclaimerDialog.classList.contains('show') && e.key === 'Tab') {
-      const focusableElements = Array.from(disclaimerDialog.querySelectorAll(
-        'button, [href], input, select, textarea, [contenteditable="true"], [tabindex]:not([tabindex="-1"])'
-      )).filter(element => !element.hasAttribute('disabled') && element.getClientRects().length > 0);
 
-      if (focusableElements.length === 0) {
-        e.preventDefault();
-        return;
-      }
+    if (e.key !== 'Tab') return;
 
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
-      const focusIsOutside = !disclaimerDialog.contains(document.activeElement);
+    const focusableElements = Array.from(disclaimerDialog.querySelectorAll(
+      'button, [href], input, select, textarea, [contenteditable="true"], [tabindex]:not([tabindex="-1"])'
+    )).filter(element => !element.hasAttribute('disabled') && element.getClientRects().length > 0);
 
-      if (e.shiftKey && (document.activeElement === firstElement || focusIsOutside)) {
-        e.preventDefault();
-        lastElement.focus();
-      } else if (!e.shiftKey && (document.activeElement === lastElement || focusIsOutside)) {
-        e.preventDefault();
-        firstElement.focus();
-      }
+    if (focusableElements.length === 0) {
+      e.preventDefault();
+      return;
+    }
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    const focusIsOutside = !disclaimerDialog.contains(document.activeElement);
+
+    if (e.shiftKey && (document.activeElement === firstElement || focusIsOutside)) {
+      e.preventDefault();
+      lastElement.focus();
+    } else if (!e.shiftKey && (document.activeElement === lastElement || focusIsOutside)) {
+      e.preventDefault();
+      firstElement.focus();
     }
   });
 
@@ -1157,7 +1251,7 @@ function initAiChat(wrapper) {
     // If transitioning from desktop to mobile and chat is expanded, close the
     // modal first so its inert background/focus lock is fully released.
     if (wasDesktop && isMobile && !wrapper.classList.contains('ai-chat-collapsed')) {
-      if (disclaimerDialog && disclaimerDialog.classList.contains('show')) {
+      if (isDisclaimerOpen()) {
         hideDisclaimer(false);
       }
       collapse();
