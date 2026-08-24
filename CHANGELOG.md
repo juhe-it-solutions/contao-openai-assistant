@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1] - 2026-08-24
+
+### Fixed
+
+- **Premium marketing cards now remain readable in Contao's light backend theme.** The heading and border use Contao's theme colors instead of the low-contrast neon accent. The correction applies in both the OpenAI configuration and the Auto-Update dashboard.
+
 ## [2.2.0] - 2026-08-13
 
 > **Updating from 2.1.4 or earlier? Read [Upgrading to 2.2.0](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/v2.2.0/docs/upgrading-to-2.2.0.md) first.**
