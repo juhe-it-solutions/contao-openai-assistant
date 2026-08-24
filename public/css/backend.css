@@ -273,6 +273,15 @@ ul#sort_auto_update_site_root.oaa-picker-collapsed {
     margin: 1rem;
 }
 
+/* The fluorescent premium accent has insufficient visual contrast against the
+   light backend's blue info-card background. Keep it for the dark theme, but
+   use Contao's own readable blue and neutral border tokens in light mode.
+   "not dark" also covers Contao's default light mode, where no data attribute
+   is present. */
+html:not([data-color-scheme="dark"]) .oaa-info-card--premium {
+    border-color: var(--content-border);
+}
+
 /* The blue "Notes" block inside an info card. Was an inline style on two
    different blocks, which no media query could reach - the left indent alone
    ate 11px of a phone screen. */
@@ -289,6 +298,9 @@ ul#sort_auto_update_site_root.oaa-picker-collapsed {
 }
 .oaa-info-card--premium .oaa-info-card-heading {
     color: #d7ff64;
+}
+html:not([data-color-scheme="dark"]) .oaa-info-card--premium .oaa-info-card-heading {
+    color: var(--blue);
 }
 /* The onload welcome cards sit directly inside Contao's plain .tl_message
    wrapper (no field/widget spacing applies there), so they touch the page
