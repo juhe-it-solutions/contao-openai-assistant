@@ -16,6 +16,25 @@ package requires Contao 5, while 3.x requires Contao 6. Composer therefore has t
 requirements in one dependency-resolution operation. Do not try to install Contao 6 while
 leaving this extension constrained to 2.x.
 
+### Starting from Contao 5.3 with extension 2.2.0
+
+This starting point is supported, but it is not a one-command upgrade. Version 2.2.0
+already contains the extension schema changes that 3.0.0 needs; there are no additional
+extension migration files between `v2.2.0` and this 3.x branch. The Contao 6 platform
+migration, PHP 8.4 requirement, and DBAFS re-hash still apply.
+
+Before changing the platform, finish the 2.2.0 update while the site is on Contao 5:
+
+```bash
+php bin/console contao:migrate
+php bin/console contao:filesync
+```
+
+Then update to the latest Contao 5.7 release and latest 2.x release (currently 2.2.1),
+and run the migration and a successful synchronisation described below. Do not assume
+that a migration was applied just because 2.2.0 is installed; the migration history is
+the source of truth.
+
 1. **Update to the latest Contao 5.7 and extension 2.x releases first.** If you are on 2.1.4 or earlier, read
    [Upgrading to 2.2.0](upgrading-to-2.2.0.md) and complete it - including the first
    synchronisation, which rebuilds the whole knowledge base once. Run `contao:migrate` and
@@ -42,6 +61,16 @@ leaving this extension constrained to 2.x.
    ```bash
    composer update --with-all-dependencies
    ```
+
+   For testing the unreleased branch against Contao 6.0, use the explicit
+   development constraint instead of `^3.0` after changing the Contao requirements:
+
+   ```bash
+   composer require juhe-it-solutions/contao-openai-assistant:dev-main --with-all-dependencies
+   ```
+
+   Do not run that command while the project still has Contao 5 constraints; the
+   v2.x package and the Contao 5 platform cannot be part of the same solve as v3.x.
 
    Commit the changed `composer.json` and `composer.lock` only after reviewing the resolved
    package versions. Follow Contao's official migration notes for any additional project-level
