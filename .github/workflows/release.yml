@@ -20,14 +20,13 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: 8.2
+        php-version: 8.4
         extensions: mbstring, xml, ctype, iconv, intl, dom
+        tools: composer:2.10.2
 
-    # Pin to the 5.3 LTS line: on PHP 8.2 a plain install resolves the
-    # end-of-life Contao 5.6 line, which has open advisories and would fail
-    # the security check below.
+    # Resolve the same minimum platform supported by the 3.x package line.
     - name: Install dependencies
-      run: composer update --prefer-dist --no-progress --with contao/core-bundle:"5.3.*"
+      run: composer update --prefer-dist --no-progress --with contao/core-bundle:"^6.0"
 
     - name: Validate composer.json
       run: composer validate
@@ -43,7 +42,7 @@ jobs:
       run: vendor/bin/ecs check
 
     - name: Run PHPStan analysis
-      run: vendor/bin/phpstan analyse src/ --level=5
+      run: php -d memory_limit=1G vendor/bin/phpstan analyse src/ --level=5
 
     - name: Run PHPUnit
       run: vendor/bin/phpunit
@@ -52,6 +51,9 @@ jobs:
     # vulnerable dependency. Abandoned transitive packages are reported only.
     - name: Run security check
       run: composer audit --abandoned=report
+
+    - name: Verify release archive
+      run: bash scripts/check-release-archive.sh "$GITHUB_SHA"
 
     # The release body is the tag's section from CHANGELOG.md — fail the
     # release if the section is missing so a tag can never ship without notes.
@@ -79,8 +81,8 @@ jobs:
 
         ## 🔗 Links
 
-        - [Documentation](https://github.com/juhe-it-solutions/contao-openai-assistant/tree/main/docs)
-        - [Full changelog](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/main/CHANGELOG.md)
+        - [Documentation](https://github.com/juhe-it-solutions/contao-openai-assistant/tree/$GITHUB_REF_NAME/docs)
+        - [Full changelog](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/$GITHUB_REF_NAME/CHANGELOG.md)
         EOF
 
     # Updates the existing release instead of failing when one was already

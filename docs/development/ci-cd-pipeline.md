@@ -4,17 +4,20 @@ The GitHub Actions workflows are intentionally small and mirror the local develo
 
 ## CI
 
-`.github/workflows/ci.yml` runs on code changes to `main`, `develop` and pull requests to `main`. It uses PHP 8.2 and checks:
+`.github/workflows/ci.yml` runs on changes to `main` and `develop`, and on pull requests to `main`. PHP 8.4 and 8.5 are blocking compatibility targets for Contao 6. The workflow checks:
 
 - Composer metadata
-- PHP syntax in `src/`
+- PHP syntax in `src/`, `tests/`, and `contao/`
 - ECS code style
 - PHPStan level 5
+- PHPUnit
 - Composer audit
 
 ## Release
 
-`.github/workflows/release.yml` runs on `v*` tags. It repeats the quality checks and creates a GitHub release.
+`.github/workflows/release.yml` runs on `v*` tags. It resolves the PHP 8.4 and Contao 6 baseline, repeats the quality and archive checks, and creates or updates the GitHub release. Release links point to the tag, not a moving branch.
+
+Run `scripts/release.sh --check 3.0.0` from a clean, up-to-date `main` checkout to execute the release gates without creating or pushing a tag. Omitting `--check` crosses the release boundary and creates the tag.
 
 ## Configuration
 

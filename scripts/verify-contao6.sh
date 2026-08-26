@@ -10,9 +10,9 @@
 # Usage: ./scripts/verify-contao6.sh [ecs|phpstan|phpunit]
 #        ./scripts/verify-contao6.sh --rebuild     # discard the cached workspace
 #
-# The repository is never modified: the checkout is exported to a workspace under
-# /tmp and its own vendor/ is installed there. Dependencies are cached between runs,
-# so only the first run pays the install.
+# The repository is never modified: the checkout is exported to an isolated workspace
+# under /tmp and its own vendor/ is installed there. Composer's download cache is shared,
+# but run directories are not, so concurrent verification cannot corrupt either run.
 
 set -e
 
@@ -23,7 +23,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-WORKSPACE="${CONTAO6_VERIFY_DIR:-/tmp/contao6-verify}"
+WORKSPACE_ROOT="${CONTAO6_VERIFY_DIR:-/tmp/contao6-verify}"
 IMAGE="php:8.4-cli"
 # Built once and reused: intl/gd/zip plus Composer take minutes to install every run.
 BUILT_IMAGE="contao-openai-assistant-verify:php8.4"
@@ -46,8 +46,8 @@ fi
 
 BRANCH="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD)"
 
-if [ "$BRANCH" != "contao6" ]; then
-    echo -e "${YELLOW}Warning: the checkout is on '$BRANCH', not 'contao6'.${NC}"
+if [ "$BRANCH" != "main" ]; then
+    echo -e "${YELLOW}Warning: the checkout is on '$BRANCH', not 'main'.${NC}"
     echo -e "${YELLOW}Verifying it against Contao 6 and PHP 8.4 anyway.${NC}"
     echo ""
 fi
@@ -58,8 +58,8 @@ run_in_container() {
     # run. Composer is given an explicit HOME because the uid has no passwd entry.
     docker run --rm \
         --user "$(id -u):$(id -g)" \
-        -v "$WORKSPACE/app:/app" \
-        -v "$VENDOR_CACHE:/composer-cache" \
+        -v "$APP_DIR:/app" \
+        -v "$COMPOSER_CACHE:/composer-cache" \
         -e COMPOSER_HOME=/composer-cache/home \
         -w /app \
         "$BUILT_IMAGE" bash -c "$1"
@@ -97,36 +97,25 @@ EOF
 fi
 
 if [ "$REBUILD" = "1" ]; then
-    remove_path "$WORKSPACE"
+    remove_path "$WORKSPACE_ROOT"
 fi
 
-VENDOR_CACHE="$WORKSPACE/.vendor-cache"
-mkdir -p "$VENDOR_CACHE" "$WORKSPACE/app"
+COMPOSER_CACHE="$WORKSPACE_ROOT/composer-cache"
+mkdir -p "$COMPOSER_CACHE"
+APP_DIR=$(mktemp -d "$WORKSPACE_ROOT/app.XXXXXX")
 
-echo -e "${BLUE}Exporting $BRANCH to $WORKSPACE/app...${NC}"
+echo -e "${BLUE}Exporting $BRANCH to $APP_DIR...${NC}"
 
 # git archive honours export-ignore, which drops tests/, the docs and every tool
-# config - exactly what has to be verified. So the tracked tree is copied instead,
-# and only vendor/ is left behind (it belongs to the main line and must not leak in).
-remove_path "$WORKSPACE/app"
-mkdir -p "$WORKSPACE/app"
-git -C "$REPO_ROOT" ls-files -z | while IFS= read -r -d '' file; do
-    mkdir -p "$WORKSPACE/app/$(dirname "$file")"
-    cp "$REPO_ROOT/$file" "$WORKSPACE/app/$file"
+# config - exactly what has to be verified. Copy tracked and untracked, non-ignored
+# source files so a newly added test is verified before its first commit as well.
+git -C "$REPO_ROOT" ls-files -z --cached --others --exclude-standard | while IFS= read -r -d '' file; do
+    mkdir -p "$APP_DIR/$(dirname "$file")"
+    cp "$REPO_ROOT/$file" "$APP_DIR/$file"
 done
 
-# Reuse the previous run's vendor/ so composer only resolves what actually changed.
-if [ -d "$VENDOR_CACHE/vendor" ]; then
-    cp -r "$VENDOR_CACHE/vendor" "$WORKSPACE/app/vendor"
-fi
-
-echo -e "${BLUE}Installing Contao 6 dependencies (cached after the first run)...${NC}"
+echo -e "${BLUE}Installing Contao 6 dependencies (downloads are cached)...${NC}"
 run_in_container 'composer update --prefer-dist --no-progress --with contao/core-bundle:"^6.0" 2>&1 | tail -3'
-
-remove_path "$VENDOR_CACHE/vendor.tmp"
-cp -r "$WORKSPACE/app/vendor" "$VENDOR_CACHE/vendor.tmp"
-remove_path "$VENDOR_CACHE/vendor"
-mv "$VENDOR_CACHE/vendor.tmp" "$VENDOR_CACHE/vendor"
 
 FAILED=""
 
@@ -164,8 +153,9 @@ echo ""
 
 if [ -n "$FAILED" ]; then
     echo -e "${RED}Failed:$FAILED${NC}"
-    echo -e "${YELLOW}The workspace is kept at $WORKSPACE/app for inspection.${NC}"
+    echo -e "${YELLOW}The workspace is kept at $APP_DIR for inspection.${NC}"
     exit 1
 fi
 
+remove_path "$APP_DIR"
 echo -e "${GREEN}All contao6 checks passed.${NC}"

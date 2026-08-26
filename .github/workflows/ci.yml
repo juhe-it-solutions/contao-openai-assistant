@@ -2,12 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop, contao6 ]
+    branches: [ main, develop ]
     paths-ignore:
       - 'docs/**'
       - '**.md'
   pull_request:
-    branches: [ main, contao6 ]
+    branches: [ main ]
     paths-ignore:
       - 'docs/**'
       - '**.md'
@@ -35,7 +35,7 @@ jobs:
       run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
     - name: Cache dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.composer-cache.outputs.dir }}
         key: ${{ runner.os }}-php-8.4-composer-${{ hashFiles('**/composer.lock') }}
@@ -58,25 +58,22 @@ jobs:
       run: vendor/bin/ecs check
 
     - name: Run PHPStan analysis
-      run: vendor/bin/phpstan analyse src/ --level=5
+      run: php -d memory_limit=1G vendor/bin/phpstan analyse src/ --level=5
 
   tests:
     name: PHPUnit (PHP ${{ matrix.php }}, Contao ${{ matrix.contao }})
     runs-on: ubuntu-latest
 
-    # 3.0 is Contao-6-only. Gate on the minimum supported PHP (8.4). PHP 8.5 is
-    # still pre-GA, so its leg is allowed to fail (experimental) until 8.5 ships.
-    continue-on-error: ${{ matrix.experimental }}
+    # 3.0 is Contao-6-only. Test both the minimum supported PHP version and the
+    # current PHP release as blocking compatibility gates.
     strategy:
       fail-fast: false
       matrix:
         include:
           - php: '8.4'
             contao: '^6.0'
-            experimental: false
           - php: '8.5'
             contao: '^6.0'
-            experimental: true
 
     steps:
     - name: Checkout code
@@ -126,18 +123,14 @@ jobs:
     name: Security Check (PHP ${{ matrix.php }}, Contao ${{ matrix.contao }})
     runs-on: ubuntu-latest
 
-    # PHP 8.5 is still pre-GA; keep its leg non-blocking (see the tests job).
-    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - php: '8.4'
             contao: '^6.0'
-            experimental: false
           - php: '8.5'
             contao: '^6.0'
-            experimental: true
 
     steps:
     - name: Checkout code
