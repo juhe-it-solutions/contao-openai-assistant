@@ -3,35 +3,69 @@
 For installations moving to **Contao 6**. The [CHANGELOG](../CHANGELOG.md) has the detail of
 every individual change.
 
-**3.0.0 is a platform change, not a feature change.** It requires Contao 6.0 and PHP 8.4, and
-that is the only breaking difference. No feature was removed, no setting was renamed, and the
-database schema is identical to 2.2.0. The 2.x line stays maintained in parallel for Contao 5.3
-and 5.7 and carries the same features - if you are staying on Contao 5, you are not missing
-anything by not upgrading here.
+**3.0.0 is a platform change.** It requires Contao 6.0 and PHP 8.4. No feature was removed and
+no setting was renamed. Install the latest 2.x release and run its migrations before changing
+platforms so that the database is already at the schema expected by 3.0.0.
 
 ---
 
 ## The order matters
 
-Contao 5 to Contao 6 is **Contao's own migration**, and this extension follows it rather than
-driving it. Doing the two in the wrong order leaves you with an extension that cannot install.
+Contao 5 to Contao 6 is **Contao's own migration**, and this extension follows it. The 2.x
+package requires Contao 5, while 3.x requires Contao 6. Composer therefore has to change both
+requirements in one dependency-resolution operation. Do not try to install Contao 6 while
+leaving this extension constrained to 2.x.
 
-1. **Get to 2.2.0 first, on Contao 5.** If you are on 2.1.4 or earlier, read
+1. **Update to the latest Contao 5.7 and extension 2.x releases first.** If you are on 2.1.4 or earlier, read
    [Upgrading to 2.2.0](upgrading-to-2.2.0.md) and complete it - including the first
-   synchronisation, which rebuilds the whole knowledge base once. Do that while you are still on
-   familiar ground rather than on the far side of a Contao major upgrade.
-2. **Upgrade Contao 5 to Contao 6**, following the Contao project's own upgrade notes, with this
-   extension still at 2.2.0. 2.2.0 does not claim Contao 6 support, so treat this as the step
-   where the chatbot may be down.
-3. **Then upgrade this extension to 3.0.0:**
+   synchronisation, which rebuilds the whole knowledge base once. Run `contao:migrate` and
+   complete a successful synchronisation while the site is still on Contao 5.
+2. **Synchronise files and take a backup.** Contao 6 changes the DBAFS hash algorithm, so make
+   sure the filesystem and database agree before upgrading:
 
    ```bash
-   composer require juhe-it-solutions/contao-openai-assistant:^3.0
+   php bin/console contao:filesync
    ```
 
-4. **Run `contao:migrate`.** The schema is the same as 2.2.0, so on an installation that already
-   ran the 2.2.0 migration this reports nothing to do. Run it anyway - it is what proves it.
-5. **Purge the Contao and page caches**, and hard-reload the backend once. Contao 6 navigates
+   Then take a tested database and file backup. See Contao's
+   [6.0 API upgrade notes](https://github.com/contao/contao/blob/6.0/UPGRADE.md) and
+   [Contao 6 release overview](https://contao.org/de/news/contao-6-0-veroeffentlicht) before
+   changing the project.
+3. **Change Contao and this extension together.** In Contao Manager, select Contao 6.0 and set
+   this extension's version constraint to `^3.0` before applying the changes. Review the dry-run
+   result, then let the Manager update both packages in the same operation.
+
+   For command-line deployments, first update every root `contao/*-bundle` requirement in
+   `composer.json` to Contao 6 (`^6.0`, with `contao/manager-bundle` at `6.0.*`) and change this
+   package to `^3.0`. Then resolve the complete set together:
+
+   ```bash
+   composer update --with-all-dependencies
+   ```
+
+   Commit the changed `composer.json` and `composer.lock` only after reviewing the resolved
+   package versions. Follow Contao's official migration notes for any additional project-level
+   changes.
+4. **Use removal and reinstall only as a fallback.** If your deployment tooling cannot change
+   both sets of constraints in one operation, remove this extension while the project still runs
+   Contao 5, upgrade Contao to 6, and then require the extension at `^3.0`. Removing the package
+   does not remove its database tables, but keep the backup until the migration is verified.
+
+   ```bash
+   composer remove juhe-it-solutions/contao-openai-assistant --with-all-dependencies
+   # Upgrade all root Contao requirements and resolve Contao 6 here.
+   composer require juhe-it-solutions/contao-openai-assistant:^3.0 --with-all-dependencies
+   ```
+5. **Run `contao:migrate` and synchronise files again.** A site that ran every migration from
+   the latest 2.x release should report no extension-specific schema changes. Run it anyway to
+   verify the final state.
+
+   ```bash
+   php bin/console contao:migrate
+   php bin/console contao:filesync
+   ```
+
+6. **Purge the Contao and page caches**, and hard-reload the backend once. Contao 6 navigates
    the backend with Turbo, and a cached copy of the previous backend JavaScript is the usual
    cause of buttons that appear dead right after the upgrade.
 
@@ -47,12 +81,12 @@ most, and it is where a problem would show up first.
 
 **Going back to 2.x means going back to Contao 5.** 3.0.0 changes no data, so the extension
 itself has nothing to undo: reinstalling `^2.2` restores the previous line and every
-configuration, prompt, file and vector-store record is read by it unchanged. But 2.x does not
+configuration, prompt, file and vector-store record remains available. But 2.x does not
 install on Contao 6, so a downgrade of the extension alone is not a working state - you would be
 reverting the Contao upgrade too, which is a Contao-level restore from your backup, not a
 Composer operation.
 
-This is the reason for step 1 above: complete the 2.2.0 upgrade and its first synchronisation
+This is the reason for step 1 above: complete the latest 2.x upgrade and its first synchronisation
 while you can still go back easily.
 
 ## Expected on Contao 6 - not faults

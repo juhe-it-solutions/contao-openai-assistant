@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 >
 > **Read [Upgrading to 3.0.0](docs/upgrading-to-3.0.0.md) first.** It covers the order the two
 > upgrades have to happen in: Contao 5 to Contao 6 is the Contao project's own migration, and
-> this extension follows it rather than driving it.
+> Composer must change the Contao and extension constraints in the same dependency-resolution
+> operation; the 2.x package cannot remain installed with Contao 6.
 >
 > **Coming from 2.1.4 or earlier as well?** Then [Upgrading to 2.2.0](docs/upgrading-to-2.2.0.md)
 > applies on top: run `contao:migrate` immediately after deploying the code, and expect the
@@ -24,8 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Requires Contao 6.0 and PHP 8.4.** The previous line required Contao 5.3 and PHP 8.2. This
   is the only breaking change in 3.0.0: no feature was removed, no setting was renamed, and the
-  database schema is the same as 2.2.0, so an installation moving from 2.2.0 on Contao 6 has
-  nothing to do beyond the usual `contao:migrate`.
+  database schema is the same as the latest 2.x release, so an installation that ran all 2.x
+  migrations has nothing to do beyond the usual `contao:migrate`.
 - **Adapted to the Contao 6 template and backend APIs.** No `.html5` templates are shipped any
   more; rich text passes through Contao 6's own `sanitize_html`, CSP and insert-tag pipeline;
   the removed `child_record_callback` is replaced by label callbacks returning `RecordLabel`
@@ -48,6 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **You can now see which OpenAI file holds which page (premium).** Each page is uploaded as its own file in the vector store, and the OpenAI platform only lists those files by their file ID - which said nothing about the page behind it. Three additions close that gap: a new backend list **AI Tools → "OpenAI Vector-Store-Dateien"** (page, URL, part, size, file ID and status, searchable by file ID, with a link into the site structure and to the live page), a **"Indexierte Dateien anzeigen"** button on the auto-sync dashboard that opens that list for the configuration at hand, and the **downloadable run manifest**, which now names the vector-store file of every page plus what happened to it (added, updated, unchanged, failed). Uploads also carry a readable file name in the OpenAI platform (`seite-7-preise.md`) instead of a random one; files uploaded by an earlier version keep their old name until the page changes and is re-uploaded. The new list is read-only: it is the synchronisation's own state, and deleting a row would upload the page twice. See `docs/features/indexing.md`.
 
 ### Fixed
+- **Premium marketing cards remain readable in Contao's light backend theme.** The heading and
+  border use Contao's theme colors instead of the low-contrast neon accent. The correction
+  applies in both the OpenAI configuration and the Auto-Update dashboard.
 - **The disclaimer is now a true modal dialog.** It stays above the chat and site chrome, traps focus, blocks background interaction and scrolling, keeps its close button visible beside long text, and adapts to touch devices, small screens, safe areas and reduced-motion preferences. Legacy `div` templates remain supported.
 - **The chat widget is now more accessible and reliable on phones.** Expanded, collapsed and disclaimer states are exposed to assistive technology, keyboard focus is handled consistently, and control and typing labels are localized. Touch devices keep multiline Enter behaviour without unwanted autofocus, while visual-viewport and safe-area handling prevents the software keyboard or screen cutouts from covering the chat.
 - **HTML in the chat module's texts works again.** Formatting an editor entered in **"Erste Bot-Nachricht"**, **"Chat-Titel"** or **"Willkommensnachricht"** - a `<br>` between two sentences, a `<strong>`, a link - was shown to visitors as literal text (`<h3>Moin!</h3>`) instead of being applied. Version 2.1.0 hardened the widget against markup smuggled in through the AI model's answers, and that escaping also caught these three fields, which are not written by the model but by the site's own editors. The three fields are now marked as HTML fields in the DCA and their content is sanitized on the server before it is rendered: text formatting, line breaks, lists and links survive, while scripts, event handlers, `javascript:` addresses and inline styles are removed. Answers from the AI model keep being escaped exactly as before, and a greeting written as plain text keeps its automatic link recognition and link shortening. Title and welcome line sit inside a heading and a paragraph, so they take text-level markup only; a pasted block element loses its tag but keeps its words. **Nothing has to be re-entered:** on Contao 5.3 and 5.7 these fields were stored in an encoded form (`&#60;br&#62;`), and such values are decoded before they are sanitized, so an existing greeting starts formatting itself right after the update. Sites that worked around this with an own `allowHtml` snippet in `contao/dca/tl_module.php` can delete it - it is part of the extension now. See `docs/features/chat-text-html.md`.

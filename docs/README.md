@@ -1,12 +1,13 @@
 # Documentation
 
-This directory documents the current Contao OpenAI Assistant 2.x codebase. The extension uses OpenAI's Responses API and Conversations API; the old Assistants API is used only once during the 1.x upgrade cleanup migration.
+This directory documents the Contao OpenAI Assistant 3.x codebase for Contao 6. The extension uses OpenAI's Responses API and Conversations API; the old Assistants API is used only once during the 1.x upgrade cleanup migration.
 
 ## Start Here
 
 - [Requirements](requirements.md)
 - [Installation](installation.md)
 - [Quick start](quick-start.md)
+- [Upgrading to 3.0.0](upgrading-to-3.0.0.md) - read before moving an existing site to Contao 6
 - [Upgrading to 2.2.0](upgrading-to-2.2.0.md) - read before updating a production site from 2.1.4 or earlier
 
 ## Configuration
