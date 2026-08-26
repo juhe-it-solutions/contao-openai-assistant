@@ -39,10 +39,12 @@
     "phpunit/phpunit": "^12.0"
   },
   "extra": {
-    "contao-manager-plugin": "JuheItSolutions\\ContaoOpenaiAssistant\\ContaoManagerPlugin"
+    "contao-manager-plugin": "JuheItSolutions\\ContaoOpenaiAssistant\\ContaoManagerPlugin",
+    "branch-alias": {
+      "dev-main": "3.0.x-dev"
+    }
   },
   "keywords": ["contao", "openai", "assistant", "ai", "chatbot"],
-  "minimum-stability": "RC",
   "prefer-stable": true,
   "config": {
     "allow-plugins": {
