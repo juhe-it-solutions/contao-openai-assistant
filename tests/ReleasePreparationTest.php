@@ -39,8 +39,9 @@ class ReleasePreparationTest extends TestCase
         $this->assertStringContainsString('contao/core-bundle:"^6.0"', $workflow);
         $this->assertStringNotContainsString('php-version: 8.2', $workflow);
         $this->assertStringNotContainsString('contao/core-bundle:"5.3.*"', $workflow);
-        $this->assertStringContainsString('tree/$GITHUB_REF_NAME/docs', $workflow);
+        $this->assertStringContainsString('"$GITHUB_REPOSITORY" "$GITHUB_REF_NAME"', $workflow);
         $this->assertStringContainsString('blob/$GITHUB_REF_NAME/CHANGELOG.md', $workflow);
+        $this->assertStringNotContainsString('tree/$GITHUB_REF_NAME/docs)', $workflow);
     }
 
     public function testReleaseScriptChecksV3WithoutCreatingATag(): void

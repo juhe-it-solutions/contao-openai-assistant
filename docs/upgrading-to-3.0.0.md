@@ -62,15 +62,9 @@ the source of truth.
    composer update --with-all-dependencies
    ```
 
-   For testing the unreleased branch against Contao 6.0, use the explicit
-   development constraint instead of `^3.0` after changing the Contao requirements:
-
-   ```bash
-   composer require juhe-it-solutions/contao-openai-assistant:dev-main --with-all-dependencies
-   ```
-
-   Do not run that command while the project still has Contao 5 constraints; the
-   v2.x package and the Contao 5 platform cannot be part of the same solve as v3.x.
+   Do not update this extension separately while the project still has Contao 5
+   constraints; the v2.x package and the Contao 5 platform cannot be part of the
+   same solve as v3.x.
 
    Commit the changed `composer.json` and `composer.lock` only after reviewing the resolved
    package versions. Follow Contao's official migration notes for any additional project-level

@@ -80,10 +80,13 @@ jobs:
         ```
 
         ## 🔗 Links
-
-        - [Documentation](https://github.com/juhe-it-solutions/contao-openai-assistant/tree/$GITHUB_REF_NAME/docs)
-        - [Full changelog](https://github.com/juhe-it-solutions/contao-openai-assistant/blob/$GITHUB_REF_NAME/CHANGELOG.md)
         EOF
+
+        printf '\n- [Documentation](https://github.com/%s/tree/%s/docs)\n' \
+          "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" >> release-notes.md
+        printf '%s\n' \
+          "- [Full changelog](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/CHANGELOG.md)" \
+          >> release-notes.md
 
     # Updates the existing release instead of failing when one was already
     # created manually for the tag (that broke the v2.0.2 release run).
