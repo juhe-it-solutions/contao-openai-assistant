@@ -41,7 +41,7 @@ $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
             'all' => [
                 'href' => 'act=select',
                 'class' => 'header_edit_all',
-                'attributes' => 'onclick="Backend.getScrollOffset()" accesskey="e"',
+                'attributes' => 'data-contao--scroll-offset-target="scrollTo" accesskey="e"',
             ],
         ],
         'operations' => [
@@ -52,7 +52,7 @@ $GLOBALS['TL_DCA']['tl_openai_prompts'] = [
             'delete' => [
                 'href' => 'act=delete',
                 'icon' => 'delete.svg',
-                'attributes' => 'onclick="if(!confirm(\''.($GLOBALS['TL_LANG']['MSC']['deleteConfirm'] ?? '').'\'))return false;Backend.getScrollOffset()"',
+                'attributes' => 'data-contao--scroll-offset-target="scrollTo" onclick="if(!confirm(\''.($GLOBALS['TL_LANG']['MSC']['deleteConfirm'] ?? '').'\'))return false"',
             ],
             'show' => [
                 'href' => 'act=show',

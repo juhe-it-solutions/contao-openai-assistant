@@ -127,10 +127,8 @@
                Do not reference this from aria-describedby on the dialog: lists,
                links and paragraphs must not be flattened into one announcement. #}
             <div class="ai-chat-disclaimer-body" id="ai-chat-disclaimer-description-{{ module_id|replace({'ai-chat-': ''}) }}" role="region" tabindex="0" aria-labelledby="ai-chat-disclaimer-title-{{ module_id|replace({'ai-chat-': ''}) }}">
-                {# insert_tag_raw works across all of Contao 6.x (RC1 → stable). It was
-                   renamed to insert_tag_html (contao/contao#10037, after 6.0.0-RC1) and is
-                   deprecated toward Contao 7 — switch to insert_tag_html when dropping 6.0 RC support. #}
-                {{ disclaimer_text|default(default_disclaimer_text)|sanitize_html('contao')|csp_inline_styles|insert_tag_raw }}
+                {# Parse insert tags only after Contao sanitizes the editor-managed HTML. #}
+                {{ disclaimer_text|default(default_disclaimer_text)|sanitize_html('contao')|csp_inline_styles|insert_tag_html }}
             </div>
         </div>
     </dialog>
