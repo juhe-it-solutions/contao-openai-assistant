@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Premium product and help links now use the static Contao Assistant site; checkout and subscription
+  management use the namespaced Licenses routes. License validation and deactivation API URLs are
+  unchanged for compatibility.
+
 ## [2.2.1] - 2026-08-24
 
 ### Fixed
@@ -108,7 +116,7 @@ No functional changes for users of the extension; identical runtime behaviour to
 ## [2.1.0] - 2026-07-16
 
 ### Added
-- **Premium add-on: automatic vector-store updates.** Keeps the OpenAI vector store in sync with selected Contao pages (manual or scheduled runs, backend status dashboard). Requires a [premium subscription](https://licenses.juhe-it-solutions.at/en/openai-assistant/help).
+- **Premium add-on: automatic vector-store updates.** Keeps the OpenAI vector store in sync with selected Contao pages (manual or scheduled runs, backend status dashboard). Requires a [premium subscription](https://contao-chatbot.juhe-it-solutions.at/en/help).
 - **Chat rate limiting - on by default after upgrade.** Two new settings in the OpenAI configuration: per-IP limit (`chat_ip_rate_limit`, default 10/minute) and daily message cap (`chat_daily_limit`, default 1000/day); `0` disables. Raise or disable the IP limit on intranets/NAT where many users share one IP. See [docs/security/rate-limiting.md](docs/security/rate-limiting.md).
 - **Link shortening - on by default after upgrade.** New AI-Chatbot module checkbox **Shorten plain URLs** (`tl_module.shorten_urls`, default on): plain URLs in bot answers are rendered as short localized labels ("Download" / "Seite aufrufen" / "Visit page") instead of the full URL. The complete URL stays in `href` and `title`; Markdown links with descriptive text keep it and show the URL as tooltip. Disable the checkbox to restore full-URL rendering. See [docs/features/link-shortening.md](docs/features/link-shortening.md).
 

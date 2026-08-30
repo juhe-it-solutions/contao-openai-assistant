@@ -248,8 +248,8 @@
                 <target>Lizenzschlüssel</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_key.1">
-                <source>Enter the license key you received after purchase at https://licenses.juhe-it-solutions.at/openai-assistant. Leave the masked value unchanged to keep the current key; clear the field to remove it.</source>
-                <target>Geben Sie den Lizenzschlüssel ein, den Sie nach dem Kauf auf https://licenses.juhe-it-solutions.at/openai-assistant erhalten haben. Lassen Sie den maskierten Wert unverändert, um den aktuellen Schlüssel zu behalten; leeren Sie das Feld, um ihn zu entfernen.</target>
+                <source>Enter the license key you received after purchase at https://licenses.juhe-it-solutions.at/en/products/contao-openai-assistant/checkout. Leave the masked value unchanged to keep the current key; clear the field to remove it.</source>
+                <target>Geben Sie den Lizenzschlüssel ein, den Sie nach dem Kauf auf https://licenses.juhe-it-solutions.at/de/products/contao-openai-assistant/checkout erhalten haben. Lassen Sie den maskierten Wert unverändert, um den aktuellen Schlüssel zu behalten; leeren Sie das Feld, um ihn zu entfernen.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.check_license_key">
                 <source>Check key</source>

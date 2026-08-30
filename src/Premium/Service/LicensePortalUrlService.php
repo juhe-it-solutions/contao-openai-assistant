@@ -29,9 +29,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 class LicensePortalUrlService
 {
-    private const BASE_URL = 'https://licenses.juhe-it-solutions.at';
+    private const CHATBOT_BASE_URL = 'https://contao-chatbot.juhe-it-solutions.at';
 
-    private const PRODUCT_SLUG = 'openai-assistant';
+    private const LICENSES_BASE_URL = 'https://licenses.juhe-it-solutions.at';
+
+    private const PRODUCT_SLUG = 'contao-openai-assistant';
 
     public function __construct(private readonly TranslatorInterface $translator)
     {
@@ -39,17 +41,22 @@ class LicensePortalUrlService
 
     public function getProductUrl(): string
     {
-        return self::BASE_URL.'/'.$this->resolveLocalePrefix().'/'.self::PRODUCT_SLUG;
+        return self::CHATBOT_BASE_URL.'/'.$this->resolveLocalePrefix().'/';
     }
 
     public function getHelpUrl(): string
     {
-        return $this->getProductUrl().'/help';
+        return self::CHATBOT_BASE_URL.'/'.$this->resolveLocalePrefix().'/help';
+    }
+
+    public function getCheckoutUrl(): string
+    {
+        return self::LICENSES_BASE_URL.'/'.$this->resolveLocalePrefix().'/products/'.self::PRODUCT_SLUG.'/checkout';
     }
 
     public function getManageUrl(): string
     {
-        return $this->getProductUrl().'/manage';
+        return self::LICENSES_BASE_URL.'/'.$this->resolveLocalePrefix().'/products/'.self::PRODUCT_SLUG.'/manage';
     }
 
     /**

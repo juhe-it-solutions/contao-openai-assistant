@@ -2,7 +2,7 @@
 
 Technical reference for which content reaches the vector store, and why content
 sometimes does not. The customer-facing version of this lives in the
-[premium add-on help pages](https://licenses.juhe-it-solutions.at/en/openai-assistant/help);
+[premium add-on help pages](https://contao-chatbot.juhe-it-solutions.at/en/help);
 this document records the mechanics and cites the Contao core code they rest on.
 
 The synchronisation never reads your pages directly. It reads **Contao's search

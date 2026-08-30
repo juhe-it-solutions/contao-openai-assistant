@@ -23,7 +23,7 @@ use Symfony\Component\HttpClient\Response\MockResponse;
 
 /**
  * Cross-project contract test: consumes the SAME fixture as the licensing server's
- * route tests (juhe-reviews tests/fixtures/openai-assistant-validate-contract.json,
+ * route tests (juhe-licenses tests/fixtures/openai-assistant-validate-contract.json,
  * mirrored to tests/Premium/Fixtures/validate-contract.json - keep both identical).
  *
  * The server side asserts each license row produces the fixture response; this side
