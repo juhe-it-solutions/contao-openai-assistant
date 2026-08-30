@@ -1,5 +1,5 @@
 {
-  "description": "Shared contract fixture for GET /api/openai-assistant/validate. Mirrored verbatim between juhe-reviews (tests/fixtures/openai-assistant-validate-contract.json) and contao-openai-assistant (tests/Premium/Fixtures/validate-contract.json) - keep both copies identical. The server test asserts these license rows produce these responses; the Contao test asserts LicenseValidationService grants/denies sync for these responses.",
+  "description": "Shared contract fixture for GET /api/openai-assistant/validate. Mirrored verbatim between juhe-licenses and contao-openai-assistant; keep both copies identical.",
   "entitlement_cases": [
     {
       "name": "active_starter_within_period",
