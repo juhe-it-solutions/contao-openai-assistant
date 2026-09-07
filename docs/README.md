@@ -44,6 +44,6 @@ This directory documents the current Contao OpenAI Assistant 2.x codebase. The e
 
 ## Premium Add-On
 
-Automatic vector-store updates are documented only lightly in this repository. For setup, licensing and operating details, use the [premium add-on help pages](https://contao-chatbot.juhe-it-solutions.at/en/help).
+Automatic vector-store updates are documented only lightly in this repository. For setup, licensing and operating details, use the [premium add-on help pages](https://contao-chatbot.com/en/help).
 
 The premium add-on code lives under `src/Premium/` and is proprietary (see [`LICENSE-PREMIUM`](../LICENSE-PREMIUM)); the rest of the extension is LGPL-3.0-or-later (see [`LICENSE`](../LICENSE)).

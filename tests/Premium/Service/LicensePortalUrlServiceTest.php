@@ -43,11 +43,11 @@ class LicensePortalUrlServiceTest extends TestCase
         $service = new LicensePortalUrlService($translator);
 
         $this->assertSame(
-            "https://contao-chatbot.juhe-it-solutions.at/{$pathLocale}/",
+            "https://contao-chatbot.com/{$pathLocale}/",
             $service->getProductUrl(),
         );
         $this->assertSame(
-            "https://contao-chatbot.juhe-it-solutions.at/{$pathLocale}/help",
+            "https://contao-chatbot.com/{$pathLocale}/help",
             $service->getHelpUrl(),
         );
         $this->assertSame(

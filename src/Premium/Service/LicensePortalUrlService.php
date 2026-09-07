@@ -29,7 +29,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 class LicensePortalUrlService
 {
-    private const CHATBOT_BASE_URL = 'https://contao-chatbot.juhe-it-solutions.at';
+    private const CHATBOT_BASE_URL = 'https://contao-chatbot.com';
 
     private const LICENSES_BASE_URL = 'https://licenses.juhe-it-solutions.at';
 
