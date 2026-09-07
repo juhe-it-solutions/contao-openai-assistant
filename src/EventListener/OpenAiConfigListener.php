@@ -663,7 +663,7 @@ class OpenAiConfigListener
     public function premiumLicenseIntroField(DataContainer $dc, string $xlabel = ''): string
     {
         $lang = $this->loadConfigLang();
-        $licenseUrl = $this->licensePortalUrls->getProductUrl();
+        $checkoutUrl = $this->licensePortalUrls->getCheckoutUrl();
         $helpUrl = $this->licensePortalUrls->getHelpUrl();
         $manageUrl = $this->licensePortalUrls->getManageUrl();
         // Resolved through the bundle's asset package rather than hard-coded, so the
@@ -712,12 +712,12 @@ class OpenAiConfigListener
                 .'</span>'
                 .'</span></span>',
                 (string) ($lang['premium_license_info_heading'] ?? 'Premium: automatic vector store sync'),
-                htmlspecialchars($licenseUrl, ENT_QUOTES),
+                htmlspecialchars($checkoutUrl, ENT_QUOTES),
                 htmlspecialchars($logoUrl, ENT_QUOTES),
                 (string) ($lang['premium_license_info_text'] ?? ''),
                 (string) ($lang['premium_license_info_purchase'] ?? 'Get a license at'),
-                htmlspecialchars($licenseUrl, ENT_QUOTES),
-                htmlspecialchars($licenseUrl, ENT_QUOTES),
+                htmlspecialchars($checkoutUrl, ENT_QUOTES),
+                htmlspecialchars($checkoutUrl, ENT_QUOTES),
                 htmlspecialchars($manageUrl, ENT_QUOTES),
                 (string) ($lang['premium_license_info_manage'] ?? 'Manage subscription'),
                 htmlspecialchars($helpUrl, ENT_QUOTES),

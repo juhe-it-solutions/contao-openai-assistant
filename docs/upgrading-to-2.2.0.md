@@ -189,4 +189,4 @@ indexing mode.
 Further reading: [What gets indexed](features/indexing.md) ·
 [Page links](features/page-links.md) ·
 [Troubleshooting](development/troubleshooting.md) ·
-[premium help pages](https://licenses.juhe-it-solutions.at/en/openai-assistant/help)
+[premium help pages](https://contao-chatbot.com/en/help)
