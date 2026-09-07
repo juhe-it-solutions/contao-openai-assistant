@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Updates the premium links in the backend.
+- Renames the premium product to Contao OpenAI Assistant Premium.
 
 ## [2.2.1] - 2026-08-24
 
