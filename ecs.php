@@ -31,7 +31,7 @@ return ECSConfig::configure()
         // annotations are kept because they aid PHPStan. Re-enable once the upstream
         // fixer bug is fixed.
         CommentLengthFixer::class,
-        // Premium add-on files carry a proprietary header (see LICENSE-PREMIUM); the
+        // Premium files carry a proprietary header (see LICENSE-PREMIUM); the
         // HeaderCommentFixer would overwrite it with the LGPL header, i.e. rewrite a
         // licence grant.
         //
