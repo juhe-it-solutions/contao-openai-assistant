@@ -43,7 +43,7 @@ Then run the Contao database migration. Detailed setup is documented in [`docs/i
 >
 > The premium add-on can crawl selected Contao pages and update the OpenAI vector store from your website content. It supports manual or scheduled runs and requires a valid premium license.
 >
-> Learn more in the [premium add-on help pages](https://licenses.juhe-it-solutions.at/en/openai-assistant/help).
+> Learn more in the [premium add-on help pages](https://contao-chatbot.com/en/help).
 
 ## Documentation
 
@@ -58,7 +58,7 @@ Then run the Contao database migration. Detailed setup is documented in [`docs/i
 This extension is dual-licensed:
 
 - **Core extension** (backend dashboard, prompts, knowledge-base files, frontend chatbot): LGPL-3.0-or-later, see [`LICENSE`](LICENSE).
-- **Premium add-on** (automatic vector-store sync and license validation; the files listed in [`LICENSE-PREMIUM`](LICENSE-PREMIUM)): proprietary. The files ship with the package, but using the premium features requires a valid [premium subscription](https://licenses.juhe-it-solutions.at).
+- **Premium add-on** (automatic vector-store sync and license validation; the files listed in [`LICENSE-PREMIUM`](LICENSE-PREMIUM)): proprietary. The files ship with the package, but using the premium features requires a valid [premium subscription](https://licenses.juhe-it-solutions.at/en/products/contao-openai-assistant/checkout).
 
 Versions tagged before the introduction of `LICENSE-PREMIUM` remain entirely under LGPL-3.0-or-later.
 

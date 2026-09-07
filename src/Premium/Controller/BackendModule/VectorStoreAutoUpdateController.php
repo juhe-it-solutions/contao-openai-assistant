@@ -332,7 +332,7 @@ class VectorStoreAutoUpdateController extends AbstractBackendController
             // whose migration is pending has configurations, they just cannot be read yet,
             // and inviting the operator to buy what they already own would be absurd.
             'schema_outdated' => $schemaOutdated,
-            'purchase_url' => $this->licensePortalUrls->getProductUrl(),
+            'purchase_url' => $this->licensePortalUrls->getCheckoutUrl(),
             'help_url' => $this->licensePortalUrls->getHelpUrl(),
             'manage_url' => $this->licensePortalUrls->getManageUrl(),
             'request_token' => $this->csrfTokenManager->getToken($this->csrfTokenName)->getValue(),
