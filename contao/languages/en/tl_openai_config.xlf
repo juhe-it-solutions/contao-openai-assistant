@@ -168,12 +168,12 @@
 
             <!-- No-files notice on dashboard -->
             <trans-unit id="tl_openai_config.no_files_notice">
-                <source>No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform - without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.</source>
-                <target>No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform - without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.</target>
+                <source>No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform - without it Premium (automatic sync) will not work either. Go to «File upload» to add your first file.</source>
+                <target>No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform - without it Premium (automatic sync) will not work either. Go to «File upload» to add your first file.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.no_files_notice_premium_hint">
-                <source>If you use the Premium Add-on, you can delete the initially uploaded file again after the first successful sync so its content does not influence the chatbot's answers - the vector store itself is kept.</source>
-                <target>If you use the Premium Add-on, you can delete the initially uploaded file again after the first successful sync so its content does not influence the chatbot's answers - the vector store itself is kept.</target>
+                <source>If you use Premium, you can delete the initially uploaded file again after the first successful sync so its content does not influence the chatbot's answers - the vector store itself is kept.</source>
+                <target>If you use Premium, you can delete the initially uploaded file again after the first successful sync so its content does not influence the chatbot's answers - the vector store itself is kept.</target>
             </trans-unit>
 
             <!-- Single Config Limitation Notice -->
@@ -196,12 +196,12 @@
                 <target>Premium License</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_heading">
-                <source>Premium add-on: Auto-Update Vector Store</source>
-                <target>Premium add-on: Auto-Update Vector Store</target>
+                <source>Premium: Auto-Update Vector Store</source>
+                <target>Premium: Auto-Update Vector Store</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_text">
-                <source>With our premium add-on, your integrated chatbot stays up to date. Updated website content is automatically incorporated into the chatbot's knowledge base. 14-day free trial, then billed monthly per domain.</source>
-                <target>With our premium add-on, your integrated chatbot stays up to date. Updated website content is automatically incorporated into the chatbot's knowledge base. 14-day free trial, then billed monthly per domain.</target>
+                <source>Contao OpenAI Assistant Premium keeps your integrated chatbot up to date. Updated website content is automatically incorporated into the chatbot's knowledge base. 14-day free trial, then billed monthly per domain.</source>
+                <target>Contao OpenAI Assistant Premium keeps your integrated chatbot up to date. Updated website content is automatically incorporated into the chatbot's knowledge base. 14-day free trial, then billed monthly per domain.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.premium_license_info_purchase">
                 <source>Get a license at</source>

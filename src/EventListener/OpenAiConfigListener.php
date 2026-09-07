@@ -1574,12 +1574,12 @@ class OpenAiConfigListener
         if (0 === $count && !$this->connection->fetchOne('SELECT vector_store_id FROM tl_openai_config WHERE id = ? AND vector_store_id IS NOT NULL AND vector_store_id != \'\'', [$configId])) {
             $text = htmlspecialchars($this->getTranslatedString(
                 'no_files_notice',
-                'No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform - without it the Premium Add-on (automatic sync) will not work either. Go to «File upload» to add your first file.',
+                'No files have been uploaded to the OpenAI vector store yet. The chatbot cannot answer questions without knowledge documents. Important: at least one file upload is also required for the OpenAI vector store to be created on the platform - without it Premium (automatic sync) will not work either. Go to «File upload» to add your first file.',
             ), ENT_QUOTES);
 
             $premiumHint = htmlspecialchars($this->getTranslatedString(
                 'no_files_notice_premium_hint',
-                'If you use the Premium Add-on, you can delete the initially uploaded file again after the first successful sync so its content does not influence the chatbot\'s answers - the vector store itself is kept.',
+                'If you use Premium, you can delete the initially uploaded file again after the first successful sync so its content does not influence the chatbot\'s answers - the vector store itself is kept.',
             ), ENT_QUOTES);
 
             Message::addRaw(
