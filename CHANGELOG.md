@@ -11,16 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The paid product is now named **Contao OpenAI Assistant Premium** consistently. "Premium add-on"
-  and "Premium-Addon" are gone from the back-end strings, README and translations; "Auto-Update"
-  stays as the name of the capability Premium unlocks, not of the product. Translation keys,
-  package name, licence-key format and all API URLs are unchanged.
-- Premium product and help links now point at `https://contao-chatbot.com`; checkout and
-  subscription management use the namespaced Licenses routes
-  (`/{de|en}/products/contao-openai-assistant/{checkout,manage}`). The license validation and
-  deactivation API URLs are unchanged, so existing installations keep validating exactly as before.
-  The previous back-end links resolved only through a server-side redirect; they now point at the
-  final destinations.
+- Updates the premium links in the backend.
 
 ## [3.0.0] - 2026-08-27
 
