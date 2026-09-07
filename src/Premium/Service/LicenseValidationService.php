@@ -57,7 +57,7 @@ class LicenseValidationService
      * server-delivered per-license override yet. The plan name itself comes from the
      * licensing server, so an upgrade still takes effect within the hour.
      *
-     * Kept in sync by hand with maxReaderItemsForPlan() in the juhe-reviews licensing
+     * Kept in sync by hand with maxReaderItemsForPlan() in the juhe-licenses
      * app (src/shared/billing/openaiAssistantPlans.ts), which drives checkout, help and
      * billing e-mail copy. Change both or customers are quoted a limit we do not apply.
      */
