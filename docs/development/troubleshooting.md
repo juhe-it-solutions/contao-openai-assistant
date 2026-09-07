@@ -53,7 +53,7 @@ The extension resolves file paths through Contao's `%contao.web_dir%` parameter.
 
 ## Premium Add-On Sync
 
-Automatic vector-store updates require a valid premium license. Details are intentionally kept in the [premium add-on help pages](https://contao-chatbot.juhe-it-solutions.at/en/help).
+Automatic vector-store updates require a valid premium license. Details are intentionally kept in the [premium add-on help pages](https://contao-chatbot.com/en/help).
 
 Useful checks:
 

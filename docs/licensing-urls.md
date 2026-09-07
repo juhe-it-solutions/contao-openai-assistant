@@ -6,8 +6,8 @@ German backend locales to `de`; every other locale maps to `en`.
 
 | Purpose | Canonical URL |
 | --- | --- |
-| Product information | `https://contao-chatbot.juhe-it-solutions.at/{de\|en}/` |
-| Help and guide | `https://contao-chatbot.juhe-it-solutions.at/{de\|en}/help` |
+| Product information | `https://contao-chatbot.com/{de\|en}/` |
+| Help and guide | `https://contao-chatbot.com/{de\|en}/help` |
 | Buy a license | `https://licenses.juhe-it-solutions.at/{de\|en}/products/contao-openai-assistant/checkout` |
 | Manage a subscription | `https://licenses.juhe-it-solutions.at/{de\|en}/products/contao-openai-assistant/manage` |
 | Validate a license | `https://licenses.juhe-it-solutions.at/api/openai-assistant/validate` |

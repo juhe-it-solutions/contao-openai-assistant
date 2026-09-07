@@ -43,7 +43,7 @@ Then run the Contao database migration. Detailed setup is documented in [`docs/i
 >
 > The premium add-on can crawl selected Contao pages and update the OpenAI vector store from your website content. It supports manual or scheduled runs and requires a valid premium license.
 >
-> Learn more in the [premium add-on help pages](https://contao-chatbot.juhe-it-solutions.at/en/help).
+> Learn more in the [premium add-on help pages](https://contao-chatbot.com/en/help).
 
 ## Documentation
 
