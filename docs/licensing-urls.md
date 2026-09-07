@@ -23,9 +23,9 @@ The validation fixture is mirrored between
 contract change:
 
 ```bash
-sha256sum \
-  tests/Premium/Fixtures/validate-contract.json \
-  /home/julle/projects/juhe-licenses/tests/fixtures/openai-assistant-validate-contract.json
+# Run once here, once in a juhe-licenses checkout, and compare the two digests.
+sha256sum tests/Premium/Fixtures/validate-contract.json
+sha256sum tests/fixtures/openai-assistant-validate-contract.json
 ```
 
 The two SHA-256 values must match. Never place license keys, customer data, or production
