@@ -111,8 +111,12 @@ if ! bash scripts/check-release-archive.sh HEAD; then
 fi
 
 CURRENT_PHP_SERIES=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
-if [ "$CURRENT_PHP_SERIES" != "$PHP_SERIES" ]; then
+if [ "$RELEASE_BRANCH" = '2.x' ] && [ "$CURRENT_PHP_SERIES" != "$PHP_SERIES" ]; then
     fail "The $VERSION release baseline requires PHP $PHP_SERIES; current PHP is $CURRENT_PHP_SERIES."
+fi
+
+if [ "$RELEASE_BRANCH" = 'main' ] && ! php -r 'exit(version_compare(PHP_VERSION, "8.4.0", ">=") ? 0 : 1);'; then
+    fail "The $VERSION release baseline requires PHP 8.4 or newer; current PHP is $CURRENT_PHP_SERIES."
 fi
 
 COMPOSER_VERSION=$(composer --no-ansi --version | awk '/^Composer version / { print $3; exit }')
