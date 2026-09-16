@@ -67,6 +67,21 @@ class ChatWidgetAssetsTest extends TestCase
         $this->assertStringContainsString('color: var(--ai-chat-text-secondary)', $matches[1]);
     }
 
+    public function testInputFocusRingStaysInsideTheRoundedPanel(): void
+    {
+        $css = file_get_contents(__DIR__.'/../../public/css/ai-chat.css');
+        $this->assertIsString($css);
+
+        $this->assertSame(
+            1,
+            preg_match('/\.mod_ai_chat\s+\.ai-chat-input:focus-visible\s*\{([^}]*)\}/s', $css, $matches),
+            'The focused input must have a widget-scoped focus rule.',
+        );
+
+        $this->assertStringContainsString('outline: 3px solid var(--ai-chat-toggle-icon-color)', $matches[1]);
+        $this->assertStringContainsString('outline-offset: -3px', $matches[1]);
+    }
+
     /**
      * The rule must stay inside the widget: this stylesheet ships on the customer's public
      * website, and switching off animations the site itself defines is not ours to do.
