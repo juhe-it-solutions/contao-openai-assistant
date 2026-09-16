@@ -17,16 +17,34 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v5
 
+    - name: Select release lane
+      id: lane
+      shell: bash
+      run: |
+        case "$GITHUB_REF_NAME" in
+          v2.*)
+            echo "php=8.2" >> "$GITHUB_OUTPUT"
+            echo "contao=5.3.*" >> "$GITHUB_OUTPUT"
+            ;;
+          v3.*)
+            echo "php=8.4" >> "$GITHUB_OUTPUT"
+            echo "contao=^6.0" >> "$GITHUB_OUTPUT"
+            ;;
+          *)
+            echo "Unsupported release tag: $GITHUB_REF_NAME" >&2
+            exit 1
+            ;;
+        esac
+
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: 8.4
+        php-version: ${{ steps.lane.outputs.php }}
         extensions: mbstring, xml, ctype, iconv, intl, dom
         tools: composer:2.10.2
 
-    # Resolve the same minimum platform supported by the 3.x package line.
     - name: Install dependencies
-      run: composer update --prefer-dist --no-progress --with contao/core-bundle:"^6.0"
+      run: composer update --prefer-dist --no-progress --with contao/core-bundle:"${{ steps.lane.outputs.contao }}"
 
     - name: Validate composer.json
       run: composer validate

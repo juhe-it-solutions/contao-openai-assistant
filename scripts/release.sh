@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-# Validate or trigger a Contao OpenAI Assistant 3.x release.
+# Release script for Contao OpenAI Assistant.
 # Usage: ./scripts/release.sh [--check] <version>
+# Example: ./scripts/release.sh --check 3.0.2
 
 set -euo pipefail
 
@@ -31,31 +32,44 @@ fi
 VERSION="$1"
 TAG="v$VERSION"
 
-if [[ ! "$VERSION" =~ ^3\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
-    fail "Version must be a 3.x semantic version without the leading v."
+if [[ ! "$VERSION" =~ ^[23]\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+    fail "Only 2.x and 3.x semantic versions can be released by this script."
 fi
+
+case "$VERSION" in
+    2.*)
+        RELEASE_BRANCH='2.x'
+        PHP_SERIES='8.2'
+        CONTAO_CONSTRAINT='5.3.*'
+        ;;
+    3.*)
+        RELEASE_BRANCH='main'
+        PHP_SERIES='8.4'
+        CONTAO_CONSTRAINT='^6.0'
+        ;;
+esac
 
 PROJECT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$PROJECT_DIR"
 
-echo -e "${BLUE}Preparing release $VERSION...${NC}"
+echo -e "${BLUE}Preparing release $VERSION ($RELEASE_BRANCH lane)...${NC}"
 
 CURRENT_BRANCH=$(git branch --show-current)
-if [ "$CURRENT_BRANCH" != "main" ]; then
-    fail "You must be on the main branch to prepare a 3.x release."
+if [ "$CURRENT_BRANCH" != "$RELEASE_BRANCH" ]; then
+    fail "Release $VERSION must be prepared from the $RELEASE_BRANCH branch."
 fi
 
 if [ -n "$(git status --porcelain)" ]; then
     fail "Working directory is not clean. Commit or stash the changes first."
 fi
 
-echo -e "${BLUE}Checking origin/main and existing tags...${NC}"
-if ! git fetch --quiet origin main --tags; then
-    fail "Could not fetch origin/main and tags."
+echo -e "${BLUE}Checking origin/$RELEASE_BRANCH and existing tags...${NC}"
+if ! git fetch --quiet origin "$RELEASE_BRANCH" --tags; then
+    fail "Could not fetch origin/$RELEASE_BRANCH and tags."
 fi
 
-if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
-    fail "Local main must exactly match origin/main before releasing."
+if [ "$(git rev-parse HEAD)" != "$(git rev-parse "origin/$RELEASE_BRANCH")" ]; then
+    fail "Local $RELEASE_BRANCH must exactly match origin/$RELEASE_BRANCH before releasing."
 fi
 
 if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
@@ -95,9 +109,13 @@ if ! bash scripts/check-release-archive.sh HEAD; then
     fail "Release archive contains an unexpected, missing, or potentially sensitive file."
 fi
 
-PHP_SERIES=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
-if [ "$PHP_SERIES" != "8.4" ]; then
-    fail "The 3.x release baseline requires PHP 8.4; current PHP is $PHP_SERIES."
+CURRENT_PHP_SERIES=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
+if [ "$RELEASE_BRANCH" = '2.x' ] && [ "$CURRENT_PHP_SERIES" != "$PHP_SERIES" ]; then
+    fail "The $VERSION release baseline requires PHP $PHP_SERIES; current PHP is $CURRENT_PHP_SERIES."
+fi
+
+if [ "$RELEASE_BRANCH" = 'main' ] && ! php -r 'exit(version_compare(PHP_VERSION, "8.4.0", ">=") ? 0 : 1);'; then
+    fail "The $VERSION release baseline requires PHP 8.4 or newer; current PHP is $CURRENT_PHP_SERIES."
 fi
 
 COMPOSER_VERSION=$(composer --no-ansi --version | awk '/^Composer version / { print $3; exit }')
@@ -105,8 +123,8 @@ if ! php -r 'exit(version_compare($argv[1], "2.10.2", ">=") ? 0 : 1);' "$COMPOSE
     fail "Composer 2.10.2 or newer is required; current version is $COMPOSER_VERSION."
 fi
 
-echo -e "${BLUE}Resolving the release baseline (PHP 8.4 / Contao 6.0)...${NC}"
-if ! composer update --prefer-dist --no-progress --no-interaction --with 'contao/core-bundle:^6.0'; then
+echo -e "${BLUE}Resolving the release baseline (PHP $PHP_SERIES / Contao $CONTAO_CONSTRAINT)...${NC}"
+if ! composer update --prefer-dist --no-progress --no-interaction --with "contao/core-bundle:$CONTAO_CONSTRAINT"; then
     fail "Dependency resolution failed."
 fi
 
