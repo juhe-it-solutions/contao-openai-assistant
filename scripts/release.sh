@@ -93,7 +93,7 @@ if ! grep -Fqx "## [$VERSION] - $RELEASE_DATE" CHANGELOG.md; then
 fi
 
 CHANGELOG_SECTION=$(awk -v heading="$CHANGELOG_HEADING" '
-    $0 == heading {
+    $0 == heading || index($0, heading " - ") == 1 {
         found = 1
         next
     }
