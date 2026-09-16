@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # Release script for Contao OpenAI Assistant
-# Usage: ./scripts/release.sh <version>
-# Example: ./scripts/release.sh 2.2.0
+# Usage: ./scripts/release.sh [--check] <version>
+# Example: ./scripts/release.sh --check 2.2.3
 
 set -euo pipefail
 
@@ -13,53 +13,87 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 fail() {
-    echo -e "${RED}❌ $1${NC}" >&2
+    echo -e "${RED}Error: $1${NC}" >&2
     exit 1
 }
 
+CHECK_ONLY=false
+if [ "${1:-}" = "--check" ]; then
+    CHECK_ONLY=true
+    shift
+fi
+
 if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <version>"
-    echo "Example: $0 2.2.0"
+    echo "Usage: $0 [--check] <version>"
+    echo "Example: $0 --check 2.2.3"
     exit 1
 fi
 
 VERSION="$1"
 TAG="v$VERSION"
 
-if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
-    fail "Version must be a semantic version without the leading v (for example 2.2.0)."
+if [[ ! "$VERSION" =~ ^[23]\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+    fail "Only 2.x and 3.x semantic versions can be released by this script."
 fi
+
+case "$VERSION" in
+    2.*)
+        RELEASE_BRANCH='2.x'
+        PHP_SERIES='8.2'
+        CONTAO_CONSTRAINT='5.3.*'
+        ;;
+    3.*)
+        RELEASE_BRANCH='main'
+        PHP_SERIES='8.4'
+        CONTAO_CONSTRAINT='^6.0'
+        ;;
+esac
 
 PROJECT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$PROJECT_DIR"
 
-echo -e "${BLUE}🚀 Preparing release $VERSION...${NC}"
+echo -e "${BLUE}Preparing release $VERSION ($RELEASE_BRANCH lane)...${NC}"
 
 CURRENT_BRANCH=$(git branch --show-current)
-if [ "$CURRENT_BRANCH" != "main" ]; then
-    fail "You must be on the main branch to create a release."
+if [ "$CURRENT_BRANCH" != "$RELEASE_BRANCH" ]; then
+    fail "Release $VERSION must be prepared from the $RELEASE_BRANCH branch."
 fi
 
 if [ -n "$(git status --porcelain)" ]; then
     fail "Working directory is not clean. Commit or stash the changes first."
 fi
 
-echo -e "${BLUE}🔄 Checking origin/main and existing tags...${NC}"
-if ! git fetch --quiet origin main --tags; then
-    fail "Could not fetch origin/main and tags."
+echo -e "${BLUE}Checking origin/$RELEASE_BRANCH and existing tags...${NC}"
+if ! git fetch --quiet origin "$RELEASE_BRANCH" --tags; then
+    fail "Could not fetch origin/$RELEASE_BRANCH and tags."
 fi
 
-if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
-    fail "Local main must exactly match origin/main before releasing."
+if [ "$(git rev-parse HEAD)" != "$(git rev-parse "origin/$RELEASE_BRANCH")" ]; then
+    fail "Local $RELEASE_BRANCH must exactly match origin/$RELEASE_BRANCH before releasing."
 fi
 
 if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
-    fail "Tag $TAG already exists."
+    fail "Tag $TAG already exists locally."
 fi
 
-echo -e "${BLUE}📝 Checking CHANGELOG.md...${NC}"
-CHANGELOG_SECTION=$(awk -v heading="## [$VERSION]" '
-    index($0, heading) == 1 && (length($0) == length(heading) || substr($0, length(heading) + 1, 3) == " - ") {
+if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+    fail "Tag $TAG already exists on origin."
+fi
+
+echo -e "${BLUE}Checking CHANGELOG.md...${NC}"
+CHANGELOG_HEADING="## [$VERSION]"
+RELEASE_DATE=$(date +%Y-%m-%d)
+if ! grep -Fqx "## [$VERSION] - $RELEASE_DATE" CHANGELOG.md; then
+    if [ "$CHECK_ONLY" = true ] && grep -Fqx "## [Unreleased] - $VERSION" CHANGELOG.md; then
+        CHANGELOG_HEADING="## [Unreleased] - $VERSION"
+        echo -e "${YELLOW}Check-only mode accepts the unreleased $VERSION section; date it before tagging.${NC}"
+    else
+        fail "CHANGELOG.md needs the heading '## [$VERSION] - $RELEASE_DATE' before release."
+    fi
+fi
+
+CHANGELOG_SECTION=$(awk -v heading="$CHANGELOG_HEADING" '
+    $0 == heading {
         found = 1
         next
     }
@@ -68,89 +102,67 @@ CHANGELOG_SECTION=$(awk -v heading="## [$VERSION]" '
 ' CHANGELOG.md)
 
 if [ -z "${CHANGELOG_SECTION//[[:space:]]/}" ]; then
-    fail "CHANGELOG.md needs a non-empty [$VERSION] section before release."
+    fail "CHANGELOG.md needs non-empty release notes for $VERSION."
 fi
-echo -e "${GREEN}✅ CHANGELOG.md contains release notes for $VERSION${NC}"
 
-echo -e "${BLUE}📦 Verifying the exported release package...${NC}"
+echo -e "${BLUE}Verifying the exported release package...${NC}"
 if ! bash scripts/check-release-archive.sh HEAD; then
-    fail "Release archive contains an unexpected, missing or potentially sensitive file."
+    fail "Release archive contains an unexpected, missing, or potentially sensitive file."
 fi
 
-PHP_SERIES=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
-if [ "$PHP_SERIES" != "8.2" ]; then
-    fail "The main release baseline requires PHP 8.2; current PHP is $PHP_SERIES."
+CURRENT_PHP_SERIES=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
+if [ "$CURRENT_PHP_SERIES" != "$PHP_SERIES" ]; then
+    fail "The $VERSION release baseline requires PHP $PHP_SERIES; current PHP is $CURRENT_PHP_SERIES."
 fi
 
-# Composer 2.10.2 fixes the 2026 package-name and bin-path validation advisories.
-# Refuse to resolve release dependencies with an older, vulnerable executable.
 COMPOSER_VERSION=$(composer --no-ansi --version | awk '/^Composer version / { print $3; exit }')
 if ! php -r 'exit(version_compare($argv[1], "2.10.2", ">=") ? 0 : 1);' "$COMPOSER_VERSION"; then
-    fail "Composer 2.10.2 or newer is required for the release checks; current version is $COMPOSER_VERSION."
+    fail "Composer 2.10.2 or newer is required; current version is $COMPOSER_VERSION."
 fi
 
-# This intentionally performs a full update. The bundle does not track composer.lock,
-# so composer install would otherwise reuse an arbitrary ignored local lock or resolve an
-# unsupported Contao line. This matches the GitHub release workflow's 5.3 LTS baseline.
-echo -e "${BLUE}📦 Resolving the release dependency baseline (PHP 8.2 / Contao 5.3)...${NC}"
-if ! composer update --prefer-dist --no-progress --no-interaction --with 'contao/core-bundle:5.3.*'; then
+echo -e "${BLUE}Resolving the release baseline (PHP $PHP_SERIES / Contao $CONTAO_CONSTRAINT)...${NC}"
+if ! composer update --prefer-dist --no-progress --no-interaction --with "contao/core-bundle:$CONTAO_CONSTRAINT"; then
     fail "Dependency resolution failed."
 fi
 
-echo -e "${BLUE}🔍 Running release checks...${NC}"
+echo -e "${BLUE}Running release checks...${NC}"
 
-echo -e "${YELLOW}📦 Validating Composer metadata...${NC}"
 if ! composer validate; then
     fail "Composer validation failed."
 fi
 
-echo -e "${YELLOW}🔍 Checking PHP syntax...${NC}"
 if ! find src/ tests/ contao/ -name '*.php' -print0 | xargs -0 -r -n1 php -l >/dev/null; then
     fail "PHP syntax check failed."
 fi
 
-echo -e "${YELLOW}🎨 Checking code style...${NC}"
 if ! vendor/bin/ecs check; then
     fail "Code style check failed. Run vendor/bin/ecs check --fix."
 fi
 
-echo -e "${YELLOW}🔬 Running static analysis...${NC}"
-if ! vendor/bin/phpstan analyse src/ --level=5; then
+if ! php -d memory_limit=1G vendor/bin/phpstan analyse src/ --level=5; then
     fail "Static analysis failed."
 fi
 
-echo -e "${YELLOW}🧪 Running PHPUnit...${NC}"
 if ! vendor/bin/phpunit; then
     fail "PHPUnit failed."
 fi
 
-echo -e "${YELLOW}🛡️ Running security audit...${NC}"
 if ! composer audit --abandoned=report; then
     fail "Security audit failed. No release tag was created."
 fi
 
-echo -e "${GREEN}✅ All release checks passed.${NC}"
+echo -e "${GREEN}All release checks passed.${NC}"
 
-echo -e "${BLUE}🏷️ Creating tag $TAG...${NC}"
+if [ "$CHECK_ONLY" = true ]; then
+    echo -e "${GREEN}Check-only mode completed; no tag was created or pushed.${NC}"
+    exit 0
+fi
+
+echo -e "${YELLOW}Creating and pushing $TAG. This is the release boundary.${NC}"
 git tag -a "$TAG" -m "Release $VERSION"
 
-MAX_RETRIES=3
-RETRY_COUNT=0
+if ! git push origin "$TAG"; then
+    fail "Could not push $TAG. The local tag remains; inspect the remote before retrying."
+fi
 
-while [ "$RETRY_COUNT" -lt "$MAX_RETRIES" ]; do
-    if git push origin "$TAG"; then
-        echo -e "${GREEN}✅ Tag $TAG pushed successfully.${NC}"
-        break
-    fi
-
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-    if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
-        fail "Could not push $TAG after $MAX_RETRIES attempts. The local tag remains; check the remote before retrying manually."
-    fi
-
-    echo -e "${YELLOW}⚠️ Push failed; retrying in 5 seconds ($RETRY_COUNT/$MAX_RETRIES)...${NC}"
-    sleep 5
-done
-
-echo -e "${GREEN}🎉 Release $VERSION has been triggered.${NC}"
-echo -e "${BLUE}The GitHub release workflow will repeat the checks and create the release.${NC}"
+echo -e "${GREEN}Release $VERSION has been triggered.${NC}"

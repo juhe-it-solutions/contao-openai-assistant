@@ -20,18 +20,34 @@ jobs:
     - name: Verify release archive contents
       run: bash scripts/check-release-archive.sh "$GITHUB_SHA"
 
+    - name: Select release lane
+      id: lane
+      shell: bash
+      run: |
+        case "$GITHUB_REF_NAME" in
+          v2.*)
+            echo "php=8.2" >> "$GITHUB_OUTPUT"
+            echo "contao=5.3.*" >> "$GITHUB_OUTPUT"
+            ;;
+          v3.*)
+            echo "php=8.4" >> "$GITHUB_OUTPUT"
+            echo "contao=^6.0" >> "$GITHUB_OUTPUT"
+            ;;
+          *)
+            echo "Unsupported release tag: $GITHUB_REF_NAME" >&2
+            exit 1
+            ;;
+        esac
+
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: 8.2
+        php-version: ${{ steps.lane.outputs.php }}
         extensions: mbstring, xml, ctype, iconv, intl, dom
         tools: composer:2.10.2
 
-    # Pin to the 5.3 LTS line: on PHP 8.2 a plain install resolves the
-    # end-of-life Contao 5.6 line, which has open advisories and would fail
-    # the security check below.
     - name: Install dependencies
-      run: composer update --prefer-dist --no-progress --with contao/core-bundle:"5.3.*"
+      run: composer update --prefer-dist --no-progress --with contao/core-bundle:"${{ steps.lane.outputs.contao }}"
 
     - name: Validate composer.json
       run: composer validate
@@ -47,7 +63,7 @@ jobs:
       run: vendor/bin/ecs check
 
     - name: Run PHPStan analysis
-      run: vendor/bin/phpstan analyse src/ --level=5
+      run: php -d memory_limit=1G vendor/bin/phpstan analyse src/ --level=5
 
     - name: Run PHPUnit
       run: vendor/bin/phpunit
