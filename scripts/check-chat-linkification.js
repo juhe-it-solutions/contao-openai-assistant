@@ -188,6 +188,27 @@ check('md-extra-10 punctuation', fmt(mdCases[9][0]).endsWith('</a>.'), fmt(mdCas
   out = fmt('Answer【4:0†source】done');
   check('fmt-3 citation stripped', out === 'Answerdone', out);
 
+  // Private-use citation markers of newer models (U+E200 start, U+E202
+  // separator, U+E201 end). The server strips them; fmt() is the second layer.
+  {
+    const mark = (...refs) => 'filecite' + refs.join('') + '';
+    out = fmt('internal organisation. ' + mark('turn5file0', 'turn5file2') + '\n\nUse **LHT**. ' + mark('turn5file1'));
+    check('cite-1 reported shape', out === 'internal organisation.<br><br>Use <strong>LHT</strong>.', out);
+    out = fmt('Siehe Leitfaden ' + mark('turn0file0') + '.');
+    check('cite-2 before punctuation', out === 'Siehe Leitfaden.', out);
+    out = fmt('Wort ' + mark('turn0file0') + 'Wort');
+    check('cite-3 words are not joined', out === 'Wort Wort', out);
+    out = fmt('X ' + mark('turn1file0') + mark('turn1file1') + ' Y');
+    check('cite-3b run of markers', out === 'X Y', out);
+    out = fmt('Text weiter');
+    check('cite-4 stray delimiter', out === 'Text weiter', out);
+    out = fmt('https://example.com/a.pdf ' + mark('turn0file0'));
+    check('cite-5 link before a marker stays intact',
+      out === '<a href="https://example.com/a.pdf" target="_blank" rel="noopener">https://example.com/a.pdf</a>', out);
+    out = fmt(' Pay');
+    check('cite-6 Apple logo kept', out === ' Pay', out);
+  }
+
   // Literal ">" directly after a URL is stripped from the visible output (pre-change behavior).
   out = fmt('https://example.com>');
   check('fmt-4 trailing bracket after url', out.includes('href="https://example.com"') && !out.includes('&gt;'), out);

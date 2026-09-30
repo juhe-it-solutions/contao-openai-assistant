@@ -827,6 +827,17 @@ function initAiChat(wrapper) {
     return ' target="_blank" rel="noopener"';
   };
 
+  // Citation markers of newer models are framed by private-use characters
+  // (U+E200 "filecite" U+E202 "turn5file0" U+E201). The server removes them
+  // (CitationMarkerStripper); fmt() is only the second layer, so that a marker
+  // can never reach the visitor as placeholder boxes. A marker (or a run of
+  // them) before punctuation or a blank takes the blank in front of it along;
+  // anywhere else the blanks stay, so two words are never joined. U+F8FF is
+  // kept in the final private-use sweep: it is the Apple logo on Apple devices.
+  const citeMarker = '\\uE200[^\\uE200\\uE201\\n]*\\uE201';
+  const citeBeforeBreakRe = new RegExp(`[ \\t]+${citeMarker}(?:[ \\t]*${citeMarker})*(?=[\\s.,;:!?)\\]}…]|$)`, 'g');
+  const citeRe = new RegExp(citeMarker, 'g');
+
   const fmt = c => {
     // Emphasis/code delimiters must start at a word boundary (start of line,
     // whitespace or an opening bracket/quote). Without this, a single "*" or
@@ -836,6 +847,9 @@ function initAiChat(wrapper) {
     // lookbehind (Safari/iOS < 16.4): the boundary char is captured and
     // re-emitted. Content stays line-local ([^*\n]) like the old ".*?".
     let result = escapeHtml(c)
+      .replace(citeBeforeBreakRe, '')
+      .replace(citeRe, '')
+      .replace(/[-]/g, '')
       // Complete 【...】 pairs are citation markers from OpenAI file search
       // ("【4:0†source】") and are stripped - UNLESS the content is a URL:
       // models also wrap URLs in the same brackets, and deleting those loses

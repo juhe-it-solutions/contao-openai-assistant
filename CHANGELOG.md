@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Internal citation markers no longer appear in chatbot answers.** Newer OpenAI models mark passages taken from the vector store with markers such as `filecite turn5file0`, framed by characters that show up as placeholder boxes. The Responses API does not always remove them, and system instructions cannot switch them off. They are now removed on the server, in live answers and in the restored chat history.
+
 ## [2.2.3] - 2026-09-16
 
 ### Fixed

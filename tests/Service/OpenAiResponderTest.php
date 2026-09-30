@@ -306,6 +306,49 @@ class OpenAiResponderTest extends TestCase
         );
     }
 
+    /**
+     * Newer models frame their file-search citations in private-use characters, and
+     * the Responses API does not always take them out. They must not reach the visitor.
+     */
+    public function testCitationMarkersAreRemovedFromTheReply(): void
+    {
+        $requests = [];
+        $http = new MockHttpClient($this->createResponseFactory($requests, [
+            new MockResponse('{"id": "conv_1"}'),
+            new MockResponse($this->completedResponseJson("Use **American English**. \u{E200}filecite\u{E202}turn5file1\u{E202}turn5file4\u{E201}")),
+        ]));
+
+        $reply = $this->createResponder($http, [])->processMessage('Frage', $this->createSession());
+
+        $this->assertSame('Use **American English**.', $reply);
+    }
+
+    /**
+     * The conversation stored at OpenAI keeps the markers, so a page reload would
+     * bring them back. The visitor's own messages are returned as typed.
+     */
+    public function testCitationMarkersAreRemovedFromTheHistory(): void
+    {
+        $requests = [];
+        $itemsJson = json_encode([
+            'data' => [
+                ['type' => 'message', 'role' => 'assistant', 'created_at' => 100, 'content' => [['type' => 'output_text', 'text' => "Answer. \u{E200}filecite\u{E202}turn0file0\u{E201}"]]],
+                ['type' => 'message', 'role' => 'user', 'created_at' => 50, 'content' => [['type' => 'input_text', 'text' => "Was bedeutet \u{E200}filecite\u{E202}turn0file0\u{E201}?"]]],
+            ],
+        ], \JSON_THROW_ON_ERROR);
+
+        $http = new MockHttpClient($this->createResponseFactory($requests, [
+            new MockResponse($itemsJson),
+        ]));
+
+        $history = $this->createResponder($http, [])->getConversationHistory('conv_1', 'sk-test');
+
+        $this->assertSame(
+            ["Was bedeutet \u{E200}filecite\u{E202}turn0file0\u{E201}?", 'Answer.'],
+            array_column($history, 'content'),
+        );
+    }
+
     public function testOtherApiErrorsAreNotRetried(): void
     {
         $requests = [];
