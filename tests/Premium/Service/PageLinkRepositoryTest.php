@@ -17,7 +17,8 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
-use Doctrine\DBAL\Types\BooleanType;
+use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageLink;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageLinkRepository;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\PageProtectionResolver;
@@ -35,7 +36,7 @@ class PageLinkRepositoryTest extends TestCase
         // Real Column objects are never null; isset() would be false for null and
         // the schema guard would wrongly report "not migrated".
         $schemaManager->method('listTableColumns')->willReturn(
-            $schemaReady ? ['auto_update_include_links' => new Column('auto_update_include_links', new BooleanType())] : [],
+            $schemaReady ? ['auto_update_include_links' => new Column('auto_update_include_links', Type::getType(Types::BOOLEAN))] : [],
         );
 
         $connection = $this->createMock(Connection::class);
@@ -172,7 +173,7 @@ class PageLinkRepositoryTest extends TestCase
         $schemaManager = $this->createMock(AbstractSchemaManager::class);
         $schemaManager->method('tablesExist')->willReturn(true);
         $schemaManager->method('listTableColumns')->willReturn(
-            ['auto_update_include_links' => new Column('auto_update_include_links', new BooleanType())],
+            ['auto_update_include_links' => new Column('auto_update_include_links', Type::getType(Types::BOOLEAN))],
         );
 
         $connection = $this->createMock(Connection::class);
@@ -210,7 +211,7 @@ class PageLinkRepositoryTest extends TestCase
         $schemaManager = $this->createMock(AbstractSchemaManager::class);
         $schemaManager->method('tablesExist')->willReturn(true);
         $schemaManager->method('listTableColumns')->willReturn(
-            ['auto_update_include_links' => new Column('auto_update_include_links', new BooleanType())],
+            ['auto_update_include_links' => new Column('auto_update_include_links', Type::getType(Types::BOOLEAN))],
         );
 
         $connection = $this->createMock(Connection::class);

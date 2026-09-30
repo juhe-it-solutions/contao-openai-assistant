@@ -18,7 +18,8 @@ use Contao\CoreBundle\Util\ProcessUtil;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
-use Doctrine\DBAL\Types\IntegerType;
+use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Controller\BackendModule\VectorStoreAutoUpdateController;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\BoilerplateFilter;
 use JuheItSolutions\ContaoOpenaiAssistant\Premium\Service\LicenseValidationService;
@@ -1821,7 +1822,7 @@ class VectorStoreAutoUpdateServiceTest extends TestCase
     {
         $toColumns = static fn (array $names): array => array_combine(
             $names,
-            array_map(static fn (string $name): Column => new Column($name, new IntegerType()), $names),
+            array_map(static fn (string $name): Column => new Column($name, Type::getType(Types::INTEGER)), $names),
         );
 
         $schemaManager = $this->createMock(AbstractSchemaManager::class);
