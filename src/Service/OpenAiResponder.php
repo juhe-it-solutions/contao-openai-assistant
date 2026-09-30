@@ -16,6 +16,7 @@ use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Exception\ContextWindowExceededException;
 use JuheItSolutions\ContaoOpenaiAssistant\Exception\ConversationNotFoundException;
 use JuheItSolutions\ContaoOpenaiAssistant\Exception\UnbilledRequestException;
+use JuheItSolutions\ContaoOpenaiAssistant\String\CitationMarkerStripper;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
@@ -693,6 +694,8 @@ class OpenAiResponder
                 }
             }
 
+            $collected = CitationMarkerStripper::strip($collected);
+
             if ('' !== $collected) {
                 return $collected;
             }
@@ -718,7 +721,9 @@ class OpenAiResponder
             }
         }
 
-        return $text;
+        // The stored conversation keeps the markers, so a restored history has to
+        // be cleaned like the live reply. What the visitor typed is left alone.
+        return 'assistant' === $role ? CitationMarkerStripper::strip($text) : $text;
     }
 
     /**
