@@ -162,8 +162,21 @@ if [ "$CHECK_ONLY" = true ]; then
     exit 0
 fi
 
+# The summary paragraph above the first "###" heading of the changelog section
+# (if any) goes into the annotated tag, so the tag carries the same short info
+# as the top of the GitHub release.
+TAG_SUMMARY=$(printf '%s\n' "$CHANGELOG_SECTION" | awk '
+    /^### / { exit }
+    { print }
+' | sed -e '/./,$!d')
+
+TAG_MESSAGE="Release $VERSION"
+if [ -n "${TAG_SUMMARY//[[:space:]]/}" ]; then
+    TAG_MESSAGE=$(printf '%s\n\n%s' "$TAG_MESSAGE" "$TAG_SUMMARY")
+fi
+
 echo -e "${YELLOW}Creating and pushing $TAG. This is the release boundary.${NC}"
-git tag -a "$TAG" -m "Release $VERSION"
+git tag -a "$TAG" --cleanup=verbatim -m "$TAG_MESSAGE"
 
 if ! git push origin "$TAG"; then
     fail "Could not push $TAG. The local tag remains; inspect the remote before retrying."
