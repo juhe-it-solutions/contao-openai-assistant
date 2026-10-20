@@ -1,5 +1,5 @@
 {
-  "description": "Shared contract fixture for GET /api/openai-assistant/validate. Mirrored verbatim between juhe-licenses and contao-openai-assistant; keep both copies identical.",
+  "description": "Shared contract fixture for GET /api/openai-assistant/validate. Mirrored verbatim between juhe-licenses and contao-openai-assistant; keep both copies identical. Since 2026-10-20 (audit billing-legal-9) active, trialing and past_due stay valid for 3 days after the period end.",
   "entitlement_cases": [
     {
       "name": "active_starter_within_period",
@@ -65,13 +65,31 @@
       "expected_valid": true
     },
     {
+      "name": "past_due_within_grace",
+      "status": "past_due",
+      "plan": "business",
+      "max_crawl_pages": 50,
+      "cancel_at_period_end": false,
+      "current_period_end_days_from_now": -2,
+      "expected_valid": true
+    },
+    {
       "name": "past_due_period_expired",
       "status": "past_due",
       "plan": "business",
       "max_crawl_pages": 50,
       "cancel_at_period_end": false,
-      "current_period_end_days_from_now": -1,
+      "current_period_end_days_from_now": -4,
       "expected_valid": false
+    },
+    {
+      "name": "active_within_grace",
+      "status": "active",
+      "plan": "starter",
+      "max_crawl_pages": 20,
+      "cancel_at_period_end": false,
+      "current_period_end_days_from_now": -2,
+      "expected_valid": true
     },
     {
       "name": "active_period_expired",
@@ -79,7 +97,7 @@
       "plan": "starter",
       "max_crawl_pages": 20,
       "cancel_at_period_end": false,
-      "current_period_end_days_from_now": -1,
+      "current_period_end_days_from_now": -4,
       "expected_valid": false
     },
     {
