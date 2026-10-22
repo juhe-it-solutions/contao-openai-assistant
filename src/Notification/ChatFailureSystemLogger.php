@@ -195,12 +195,9 @@ class ChatFailureSystemLogger
 
     private function write(string $level, string $message, string $action, Request $request): void
     {
-        $this->logger->log(
-            $level,
-            $message, [
-                'contao' => PrivacySafeContaoContext::create(self::FUNC, $action, $request),
-        ],
-        );
+        $context = ['contao' => PrivacySafeContaoContext::create(self::FUNC, $action, $request)];
+
+        $this->logger->log($level, $message, $context);
     }
 
     /**
