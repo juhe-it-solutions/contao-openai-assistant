@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The disclaimer dialog is centered on desktop again. Since 3.0.0, a website theme that resets the margin of every element pinned it to the top left corner.
+
 ## [3.0.3] - 2026-10-01
 
 Removes OpenAI's internal citation markers (e.g. `filecite turn5file0`) from chatbot answers. No database migration required.
