@@ -16,6 +16,8 @@ use Contao\CoreBundle\Controller\AbstractController;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\CoreBundle\Framework\ContaoFramework;
 use JuheItSolutions\ContaoOpenaiAssistant\Exception\UnbilledRequestException;
+use JuheItSolutions\ContaoOpenaiAssistant\Notification\AdminNotifier;
+use JuheItSolutions\ContaoOpenaiAssistant\Notification\ChatFailureSystemLogger;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\ChatRateLimiter;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiResponder;
@@ -45,6 +47,8 @@ class AiChatController extends AbstractController
         private readonly string $csrfTokenName,
         private readonly LoggerInterface $logger,
         private readonly ChatRateLimiter $rateLimiter,
+        private readonly ChatFailureSystemLogger $systemLogger,
+        private readonly AdminNotifier $adminNotifier,
     ) {
     }
 
@@ -160,6 +164,20 @@ class AiChatController extends AbstractController
         $dailyLimit = $activeConfig ? (int) ($activeConfig['chat_daily_limit'] ?? 0) : 0;
 
         if ($activeConfig && !$this->rateLimiter->reserveConfigDaily((int) $activeConfig['id'], $dailyLimit)) {
+            // Both services catch everything themselves; the guards here make sure a future
+            // change can never break the visitor's response, and that one failing reporter
+            // cannot keep the other from running. Both cost one cache read per request once
+            // they have reported for the day.
+            try {
+                $this->systemLogger->logDailyLimitReached($activeConfig, $dailyLimit, $request);
+            } catch (\Throwable) {
+            }
+
+            try {
+                $this->adminNotifier->notifyDailyLimitReached($activeConfig, $dailyLimit, $request);
+            } catch (\Throwable) {
+            }
+
             return new JsonResponse(
                 [
                     'error' => $this->getErrorMessage('daily_limit_reached', $language),
@@ -188,9 +206,9 @@ class AiChatController extends AbstractController
                 $this->rateLimiter->releaseConfigDaily((int) $activeConfig['id'], $dailyLimit);
             }
 
-            return $this->handleChatFailure($e, $message, $language);
+            return $this->handleChatFailure($e, $message, $language, $activeConfig, $request);
         } catch (\Exception $e) {
-            return $this->handleChatFailure($e, $message, $language);
+            return $this->handleChatFailure($e, $message, $language, $activeConfig, $request);
         }
     }
 
@@ -318,8 +336,12 @@ class AiChatController extends AbstractController
      *
      * Shared by both catch blocks so that whether a slot was handed back is invisible to the
      * visitor: a failure looks and reads exactly the same either way.
+     *
+     * The full-detail line goes to var/logs only (no ContaoContext): the exception message can
+     * quote the visitor. The system log entry and the administrator email are built from the
+     * privacy-safe classification instead.
      */
-    private function handleChatFailure(\Exception $e, string $message, string $language): JsonResponse
+    private function handleChatFailure(\Exception $e, string $message, string $language, array|null $activeConfig, Request $request): JsonResponse
     {
         $this->logger->error(
             'Error processing chat message: '.$e->getMessage(),
@@ -329,6 +351,21 @@ class AiChatController extends AbstractController
                 'message_length' => mb_strlen($message),
             ],
         );
+
+        // Each in its own guard: neither may change the response, and a failing system log
+        // must not prevent the email (or the other way round). Without a configuration there
+        // is nobody to email, but the system log entry is exactly what an admin needs then.
+        try {
+            $this->systemLogger->logChatFailure($activeConfig, $e, $request);
+        } catch (\Throwable) {
+        }
+
+        if (null !== $activeConfig) {
+            try {
+                $this->adminNotifier->notifyChatFailure($activeConfig, $e, $request);
+            } catch (\Throwable) {
+            }
+        }
 
         return new JsonResponse(
             [
