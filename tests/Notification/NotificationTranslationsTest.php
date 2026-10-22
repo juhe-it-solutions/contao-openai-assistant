@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Notification;
 
+use JuheItSolutions\ContaoOpenaiAssistant\Notification\AdminNotificationTestResult;
 use JuheItSolutions\ContaoOpenaiAssistant\Notification\ChatFailureReason;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -37,6 +38,23 @@ class NotificationTranslationsTest extends TestCase
         foreach ($this->usedMailKeys() as $key) {
             $this->assertArrayHasKey($key, $en, $key.' is missing in en');
             $this->assertArrayHasKey($key, $de, $key.' is missing in de');
+        }
+    }
+
+    public function testEveryBackendKeyExistsInBothLanguages(): void
+    {
+        $keys = ['admin_notify_legend', 'admin_notify_enabled.0', 'admin_notify_enabled.1', 'admin_notify_recipients.0', 'admin_notify_recipients.1', 'admin_notify_recipients_required', 'admin_notify_recipients_too_many', 'admin_notify_language.0', 'admin_notify_language.1', 'admin_notify_language_options.de', 'admin_notify_language_options.en', 'admin_notify_test_button', 'admin_notify_test_hint', 'admin_notify_test_sending'];
+
+        foreach (AdminNotificationTestResult::cases() as $result) {
+            $keys[] = substr($result->translationKey(), \strlen('tl_openai_config.'));
+        }
+
+        foreach (['en', 'de'] as $locale) {
+            $messages = XlfTranslator::load('tl_openai_config', $locale);
+
+            foreach ($keys as $key) {
+                $this->assertArrayHasKey('tl_openai_config.'.$key, $messages, $key.' is missing in '.$locale);
+            }
         }
     }
 
@@ -67,6 +85,7 @@ class NotificationTranslationsTest extends TestCase
     public static function provideLanguageFiles(): iterable
     {
         yield 'mail texts' => ['oaa_notify', 'oaa_notify.'];
+        yield 'backend texts' => ['tl_openai_config', 'tl_openai_config.admin_notify_'];
     }
 
     /**

@@ -27,6 +27,15 @@ services:
             $csrfTokenName: '%contao.csrf_token_name%'
         public: true
 
+    # AdminNotificationTestController - the "Send test email" button; recipients come from
+    # the saved row only, never from the request
+    JuheItSolutions\ContaoOpenaiAssistant\Controller\AdminNotificationTestController:
+        arguments:
+            $csrfTokenManager: '@contao.csrf.token_manager'
+            $csrfTokenName: '%contao.csrf_token_name%'
+            $connection: '@doctrine.dbal.default_connection'
+        public: true
+
     JuheItSolutions\ContaoOpenaiAssistant\Premium\Controller\LicenseValidationController:
         arguments:
             $csrfTokenManager: '@contao.csrf.token_manager'
@@ -40,6 +49,15 @@ services:
     # kernel.debug is on. Public keeps the notice field working in dev as well as
     # prod, on Contao 5.3, 5.7 and 6.0 alike.
     JuheItSolutions\ContaoOpenaiAssistant\EventListener\AiChatModuleNoticeListener:
+        public: true
+
+    # AdminNotificationFieldsListener - DCA callbacks of the "Administrator notifications"
+    # section, referenced by class name from tl_openai_config, so public for the same
+    # reason as AiChatModuleNoticeListener above.
+    JuheItSolutions\ContaoOpenaiAssistant\EventListener\AdminNotificationFieldsListener:
+        arguments:
+            $csrfTokenManager: '@contao.csrf.token_manager'
+            $csrfTokenName: '%contao.csrf_token_name%'
         public: true
 
     # FrontendModule Controller

@@ -129,8 +129,8 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
         ],
     ],
     'palettes' => [
-        '__selector__' => ['auto_update_trigger', 'auto_update_include_links'],
-        'default' => '{title_legend},title,api_key;{chat_protection_legend},chat_daily_limit,chat_ip_rate_limit;{config_legend},vector_store_id'
+        '__selector__' => ['admin_notify_enabled', 'auto_update_trigger', 'auto_update_include_links'],
+        'default' => '{title_legend},title,api_key;{chat_protection_legend},chat_daily_limit,chat_ip_rate_limit;{admin_notify_legend},admin_notify_enabled;{config_legend},vector_store_id'
             . ';{premium_legend},premium_license_intro,premium_license_key'
             // Field order follows the groups of the legend: the master switch, the
             // schedule (trigger + its subpalette), the indexing mode with the two
@@ -139,6 +139,8 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             . ';{auto_update_legend},auto_update_enabled,auto_update_first_sync_hint,auto_update_trigger,auto_update_mode,auto_update_model,auto_update_prompt_template,auto_update_crawl_mode,auto_update_site_root,auto_update_include_links',
     ],
     'subpalettes' => [
+        // Recipients, language and the test button only while notifications are enabled.
+        'admin_notify_enabled' => 'admin_notify_recipients,admin_notify_language,admin_notify_test',
         // Schedule fields only make sense for the automatic trigger; hidden in manual mode.
         'auto_update_trigger_scheduled' => 'auto_update_schedule_hour,auto_update_schedule_minute,auto_update_schedule_weekday,auto_update_schedule_day',
         // Link options only make sense while link collection is switched on.
@@ -247,6 +249,69 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
                 'type'     => 'integer',
                 'unsigned' => true,
                 'default'  => 10,
+            ],
+        ],
+        // Administrator notifications (AdminNotifier). Off by default and without any
+        // fallback address: nobody gets an email until an administrator opts in here. The
+        // system log entries for failed chat requests are always on and need no field.
+        'admin_notify_enabled' => [
+            'label'     => &$GLOBALS['TL_LANG']['tl_openai_config']['admin_notify_enabled'],
+            'exclude'   => true,
+            'inputType' => 'checkbox',
+            'eval'      => [
+                'submitOnChange' => true,
+                'tl_class'       => 'clr',
+            ],
+            'sql' => [
+                'type'    => 'boolean',
+                'default' => false,
+            ],
+        ],
+        'admin_notify_recipients' => [
+            'label'         => &$GLOBALS['TL_LANG']['tl_openai_config']['admin_notify_recipients'],
+            'exclude'       => true,
+            'inputType'     => 'listWizard',
+            // rgxp is checked per row: Widget::validator() recurses into arrays.
+            'eval'          => [
+                'rgxp'           => 'email',
+                'maxlength'      => 254,
+                'decodeEntities' => true,
+                'tl_class'       => 'clr',
+            ],
+            'save_callback' => [
+                ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\AdminNotificationFieldsListener', 'normaliseRecipients'],
+            ],
+            'sql' => [
+                'type'    => 'blob',
+                'length'  => 65535,
+                'notnull' => false,
+            ],
+        ],
+        'admin_notify_language' => [
+            'label'         => &$GLOBALS['TL_LANG']['tl_openai_config']['admin_notify_language'],
+            'exclude'       => true,
+            'inputType'     => 'select',
+            'options'       => ['de', 'en'],
+            'reference'     => &$GLOBALS['TL_LANG']['tl_openai_config']['admin_notify_language_options'],
+            'eval'          => [
+                'mandatory' => true,
+                'tl_class'  => 'w50',
+            ],
+            'load_callback' => [
+                ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\AdminNotificationFieldsListener', 'defaultLanguage'],
+            ],
+            'sql' => [
+                'type'    => 'string',
+                'length'  => 2,
+                'default' => '',
+            ],
+        ],
+        'admin_notify_test' => [
+            'label'                => [''],
+            'exclude'              => true,
+            'input_field_callback' => [
+                'JuheItSolutions\ContaoOpenaiAssistant\EventListener\AdminNotificationFieldsListener',
+                'testButtonField',
             ],
         ],
 
