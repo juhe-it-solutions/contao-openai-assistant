@@ -16,6 +16,8 @@ use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\CoreBundle\Framework\ContaoFramework;
 use JuheItSolutions\ContaoOpenaiAssistant\Controller\AiChatController;
 use JuheItSolutions\ContaoOpenaiAssistant\Exception\UnbilledRequestException;
+use JuheItSolutions\ContaoOpenaiAssistant\Notification\AdminNotifier;
+use JuheItSolutions\ContaoOpenaiAssistant\Notification\ChatFailureSystemLogger;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\ChatRateLimiter;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiResponder;
@@ -185,6 +187,249 @@ class AiChatControllerTest extends TestCase
         yield 'Delaware-style prefix is not German' => ['den', 'Your message is too long'];
     }
 
+    /**
+     * A failed chat turn is reported to the system log first, then to the notifier, both
+     * with the active configuration - and the visitor's response stays exactly the same.
+     */
+    public function testAFailureIsLoggedAndNotifiedWithTheActiveConfig(): void
+    {
+        $config = ['id' => 1, 'chat_daily_limit' => 5];
+        $exception = new \RuntimeException('Responses API returned HTTP 500');
+        $order = [];
+
+        $responder = $this->createMock(OpenAiResponder::class);
+        $responder->method('getActiveConfig')->willReturn($config);
+        $responder->method('processMessage')->willThrowException($exception);
+
+        $systemLogger = $this->createMock(ChatFailureSystemLogger::class);
+        $systemLogger
+            ->expects($this->once())
+            ->method('logChatFailure')
+            ->with($config, $exception, $this->isInstanceOf(Request::class))
+            ->willReturnCallback(static function () use (&$order): void {
+                $order[] = 'log';
+            })
+        ;
+
+        $notifier = $this->createMock(AdminNotifier::class);
+        $notifier
+            ->expects($this->once())
+            ->method('notifyChatFailure')
+            ->with($config, $exception, $this->isInstanceOf(Request::class))
+            ->willReturnCallback(static function () use (&$order): void {
+                $order[] = 'notify';
+            })
+        ;
+
+        $response = $this->createController($responder, $this->acceptingRateLimiter(), $systemLogger, $notifier)->send($this->createChatRequest('Hallo'));
+
+        $this->assertSame(['log', 'notify'], $order);
+        $this->assertSame(500, $response->getStatusCode());
+        $this->assertSame('{"error":"Service temporarily unavailable"}', $response->getContent());
+    }
+
+    public function testAnUnbilledFailureReleasesTheSlotAndIsStillReported(): void
+    {
+        $responder = $this->createMock(OpenAiResponder::class);
+        $responder->method('getActiveConfig')->willReturn(['id' => 1, 'chat_daily_limit' => 5]);
+        $responder->method('processMessage')->willThrowException(new UnbilledRequestException('No valid API key available'));
+
+        $rateLimiter = $this->acceptingRateLimiter();
+        $rateLimiter->expects($this->once())->method('releaseConfigDaily')->with(1, 5);
+
+        $systemLogger = $this->createMock(ChatFailureSystemLogger::class);
+        $systemLogger->expects($this->once())->method('logChatFailure');
+
+        $notifier = $this->createMock(AdminNotifier::class);
+        $notifier->expects($this->once())->method('notifyChatFailure');
+
+        $response = $this->createController($responder, $rateLimiter, $systemLogger, $notifier)->send($this->createChatRequest('Hallo'));
+
+        $this->assertSame(500, $response->getStatusCode());
+    }
+
+    public function testAnExhaustedDailyBudgetIsLoggedAndNotified(): void
+    {
+        $config = ['id' => 1, 'chat_daily_limit' => 5];
+
+        $responder = $this->createMock(OpenAiResponder::class);
+        $responder->expects($this->never())->method('processMessage');
+        $responder->method('getActiveConfig')->willReturn($config);
+
+        $rateLimiter = $this->createMock(ChatRateLimiter::class);
+        $rateLimiter->method('acceptClientIp')->willReturn(true);
+        $rateLimiter->method('reserveConfigDaily')->willReturn(false);
+
+        $systemLogger = $this->createMock(ChatFailureSystemLogger::class);
+        $systemLogger->expects($this->once())->method('logDailyLimitReached')->with($config, 5, $this->isInstanceOf(Request::class));
+        $systemLogger->expects($this->never())->method('logChatFailure');
+
+        $notifier = $this->createMock(AdminNotifier::class);
+        $notifier->expects($this->once())->method('notifyDailyLimitReached')->with($config, 5, $this->isInstanceOf(Request::class));
+        $notifier->expects($this->never())->method('notifyChatFailure');
+
+        $response = $this->createController($responder, $rateLimiter, $systemLogger, $notifier)->send($this->createChatRequest('Hallo'));
+
+        $this->assertSame(429, $response->getStatusCode());
+        $this->assertStringContainsString('daily message limit', (string) $response->getContent());
+    }
+
+    /**
+     * Visitor-side protections are intended behaviour, not failures: none of them may
+     * produce a system log entry or an email.
+     */
+    #[DataProvider('provideVisitorSideRejections')]
+    public function testVisitorSideRejectionsAreNotReported(string $case): void
+    {
+        $responder = $this->createMock(OpenAiResponder::class);
+        $responder->method('getActiveConfig')->willReturn(['id' => 1, 'chat_daily_limit' => 5]);
+        $responder->expects($this->never())->method('processMessage');
+
+        $rateLimiter = $this->createMock(ChatRateLimiter::class);
+        $rateLimiter->method('acceptClientIp')->willReturn('ip_limit' !== $case);
+        $rateLimiter->method('reserveConfigDaily')->willReturn(true);
+
+        $systemLogger = $this->createMock(ChatFailureSystemLogger::class);
+        $systemLogger->expects($this->never())->method('logChatFailure');
+        $systemLogger->expects($this->never())->method('logDailyLimitReached');
+
+        $notifier = $this->createMock(AdminNotifier::class);
+        $notifier->expects($this->never())->method('notifyChatFailure');
+        $notifier->expects($this->never())->method('notifyDailyLimitReached');
+
+        $request = match ($case) {
+            'too_long' => $this->createChatRequest(str_repeat('a', AiChatController::MAX_MESSAGE_LENGTH + 1)),
+            'empty' => $this->createChatRequest('   '),
+            default => $this->createChatRequest('Hallo'),
+        };
+
+        if ('missing_csrf' === $case) {
+            $request->request->remove('REQUEST_TOKEN');
+        }
+
+        if ('non_ajax' === $case) {
+            $request->headers->remove('X-Requested-With');
+        }
+
+        if ('session_throttle' === $case) {
+            $request->getSession()->set('ai_chat_last_request', time());
+        }
+
+        $response = $this->createController($responder, $rateLimiter, $systemLogger, $notifier, 'invalid_csrf' !== $case)->send($request);
+
+        $this->assertGreaterThanOrEqual(400, $response->getStatusCode());
+        $this->assertLessThan(500, $response->getStatusCode());
+    }
+
+    public static function provideVisitorSideRejections(): iterable
+    {
+        yield 'IP rate limit' => ['ip_limit'];
+        yield 'session throttle' => ['session_throttle'];
+        yield 'message too long' => ['too_long'];
+        yield 'missing CSRF token' => ['missing_csrf'];
+        yield 'invalid CSRF token' => ['invalid_csrf'];
+        yield 'not an AJAX request' => ['non_ajax'];
+        yield 'empty message' => ['empty'];
+    }
+
+    public function testAThrowingSystemLoggerNeitherStopsTheNotifierNorChangesTheResponse(): void
+    {
+        $responder = $this->createMock(OpenAiResponder::class);
+        $responder->method('getActiveConfig')->willReturn(['id' => 1, 'chat_daily_limit' => 5]);
+        $responder->method('processMessage')->willThrowException(new \RuntimeException('boom'));
+
+        $systemLogger = $this->createMock(ChatFailureSystemLogger::class);
+        $systemLogger->method('logChatFailure')->willThrowException(new \RuntimeException('tl_log down'));
+
+        $notifier = $this->createMock(AdminNotifier::class);
+        $notifier->expects($this->once())->method('notifyChatFailure');
+
+        $response = $this->createController($responder, $this->acceptingRateLimiter(), $systemLogger, $notifier)->send($this->createChatRequest('Hallo'));
+
+        $this->assertSame(500, $response->getStatusCode());
+        $this->assertSame('{"error":"Service temporarily unavailable"}', $response->getContent());
+    }
+
+    public function testAThrowingNotifierDoesNotChangeTheResponse(): void
+    {
+        $responder = $this->createMock(OpenAiResponder::class);
+        $responder->method('getActiveConfig')->willReturn(['id' => 1, 'chat_daily_limit' => 5]);
+        $responder->method('processMessage')->willThrowException(new \RuntimeException('boom'));
+
+        $notifier = $this->createMock(AdminNotifier::class);
+        $notifier->method('notifyChatFailure')->willThrowException(new \RuntimeException('mailer down'));
+
+        $response = $this->createController($responder, $this->acceptingRateLimiter(), null, $notifier)->send($this->createChatRequest('Hallo'));
+
+        $this->assertSame(500, $response->getStatusCode());
+        $this->assertSame('{"error":"Service temporarily unavailable"}', $response->getContent());
+    }
+
+    public function testThrowingReportersDoNotChangeTheDailyLimitResponse(): void
+    {
+        $responder = $this->createMock(OpenAiResponder::class);
+        $responder->method('getActiveConfig')->willReturn(['id' => 1, 'chat_daily_limit' => 5]);
+
+        $rateLimiter = $this->createMock(ChatRateLimiter::class);
+        $rateLimiter->method('acceptClientIp')->willReturn(true);
+        $rateLimiter->method('reserveConfigDaily')->willReturn(false);
+
+        $systemLogger = $this->createMock(ChatFailureSystemLogger::class);
+        $systemLogger->method('logDailyLimitReached')->willThrowException(new \RuntimeException('tl_log down'));
+
+        $notifier = $this->createMock(AdminNotifier::class);
+        $notifier->expects($this->once())->method('notifyDailyLimitReached')->willThrowException(new \RuntimeException('mailer down'));
+
+        $response = $this->createController($responder, $rateLimiter, $systemLogger, $notifier)->send($this->createChatRequest('Hallo'));
+
+        $this->assertSame(429, $response->getStatusCode());
+    }
+
+    public function testWithoutAConfigurationOnlyTheSystemLogIsWritten(): void
+    {
+        $exception = new UnbilledRequestException('No OpenAI configuration found');
+
+        $responder = $this->createMock(OpenAiResponder::class);
+        $responder->method('getActiveConfig')->willReturn(null);
+        $responder->method('processMessage')->willThrowException($exception);
+
+        $systemLogger = $this->createMock(ChatFailureSystemLogger::class);
+        $systemLogger->expects($this->once())->method('logChatFailure')->with(null, $exception, $this->isInstanceOf(Request::class));
+
+        $notifier = $this->createMock(AdminNotifier::class);
+        $notifier->expects($this->never())->method('notifyChatFailure');
+
+        $response = $this->createController($responder, $this->acceptingRateLimiter(), $systemLogger, $notifier)->send($this->createChatRequest('Hallo'));
+
+        $this->assertSame(500, $response->getStatusCode());
+    }
+
+    public function testASuccessfulAnswerIsNotReported(): void
+    {
+        $responder = $this->createMock(OpenAiResponder::class);
+        $responder->method('getActiveConfig')->willReturn(['id' => 1, 'chat_daily_limit' => 5]);
+        $responder->method('processMessage')->willReturn('Hello');
+
+        $systemLogger = $this->createMock(ChatFailureSystemLogger::class);
+        $systemLogger->expects($this->never())->method($this->anything());
+
+        $notifier = $this->createMock(AdminNotifier::class);
+        $notifier->expects($this->never())->method($this->anything());
+
+        $response = $this->createController($responder, $this->acceptingRateLimiter(), $systemLogger, $notifier)->send($this->createChatRequest('Hallo'));
+
+        $this->assertSame(200, $response->getStatusCode());
+    }
+
+    private function acceptingRateLimiter(): ChatRateLimiter
+    {
+        $rateLimiter = $this->createMock(ChatRateLimiter::class);
+        $rateLimiter->method('acceptClientIp')->willReturn(true);
+        $rateLimiter->method('reserveConfigDaily')->willReturn(true);
+
+        return $rateLimiter;
+    }
+
     private function createChatRequest(string $message, string|null $acceptLanguage = null): Request
     {
         $server = ['HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest'];
@@ -209,10 +454,10 @@ class AiChatControllerTest extends TestCase
         return $request;
     }
 
-    private function createController(OpenAiResponder $responder, ChatRateLimiter $rateLimiter): AiChatController
+    private function createController(OpenAiResponder $responder, ChatRateLimiter $rateLimiter, ChatFailureSystemLogger|null $systemLogger = null, AdminNotifier|null $adminNotifier = null, bool $csrfValid = true): AiChatController
     {
         $csrfTokenManager = $this->createMock(ContaoCsrfTokenManager::class);
-        $csrfTokenManager->method('isTokenValid')->willReturn(true);
+        $csrfTokenManager->method('isTokenValid')->willReturn($csrfValid);
 
         return new AiChatController(
             $responder,
@@ -222,6 +467,8 @@ class AiChatControllerTest extends TestCase
             'REQUEST_TOKEN',
             new NullLogger(),
             $rateLimiter,
+            $systemLogger ?? $this->createMock(ChatFailureSystemLogger::class),
+            $adminNotifier ?? $this->createMock(AdminNotifier::class),
         );
     }
 }
