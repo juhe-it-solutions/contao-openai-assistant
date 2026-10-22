@@ -26,6 +26,10 @@ Prompts are local Contao records by default. You can optionally reference an Ope
 
 The public chat endpoint is rate-limited per client IP and capped per day so abuse cannot run up an unbounded OpenAI bill. Both limits are configuration fields: **"Daily chat message limit"** (default 1000) and **"Chat messages per minute per IP address"** (default 10 — raise it or set `0` on intranets/NAT where many users share one IP); `0` disables either. Details, tuning and the reverse-proxy note: [Chat rate limiting and cost protection](../security/rate-limiting.md).
 
+## Failure Reporting
+
+Failed chat requests are listed in the Contao system log, and administrators can opt in to an email when the chatbot fails or the daily limit is reached: [Chatbot failure reporting](admin-notifications.md).
+
 ## Verify
 
 After sending a frontend test message, check the OpenAI platform:

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Chatbot failures now appear in the Contao system log.** When the chatbot cannot answer a visitor, an entry under System > System log names the website and the reason (for example "quota_exceeded, HTTP 429"). Reaching the daily message limit is logged once per day. The entries contain no visitor data (no message text, user agent or username). At most 100 entries per hour; all details remain in var/logs as before.
+- **Email notifications when the chatbot fails.** Optional and off by default. In the OpenAI configuration, the new section "Administrator notifications" sends an email to the addresses you enter when the chatbot cannot answer visitors (for example because the OpenAI credit is used up or the API key is invalid) or when the daily message limit is reached. The email names the affected website and the reason. At most one failure email per hour and one limit email per day. No visitor data is included. A "Send test email" button checks the mail setup. Requires a database update.
+
 ## [2.2.5] - 2026-10-22
 
 Centers the disclaimer dialog on desktop again. No database migration required.
