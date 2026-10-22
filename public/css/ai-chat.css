@@ -823,6 +823,9 @@ body.ai-chat-disclaimer-open {
 
 dialog.ai-chat-disclaimer-dialog {
   box-sizing: border-box;
+  /* Restate the UA centering: a theme reset that zeroes the margin of every
+     element would otherwise pin the modal to the top left corner. */
+  margin: auto;
   padding: 0;
   border: 1px solid var(--ai-chat-border);
   border-radius: 8px;

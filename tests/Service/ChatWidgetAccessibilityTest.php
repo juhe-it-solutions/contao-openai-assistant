@@ -149,6 +149,12 @@ class ChatWidgetAccessibilityTest extends TestCase
             $css,
             'The native dialog width cap must not create an uneven mobile gutter.',
         );
+        $this->assertSame(1, preg_match('/(?:^|\\n)dialog\\.ai-chat-disclaimer-dialog\\s*\\{([^}]*)\\}/s', $css, $nativeDialog));
+        $this->assertMatchesRegularExpression(
+            '/(?:^|\\s)margin:\\s*auto;/',
+            $nativeDialog[1],
+            'The native dialog must stay centered when a theme resets margins on every element.',
+        );
         $this->assertMatchesRegularExpression(
             '/div\.ai-chat-disclaimer-dialog \.ai-chat-disclaimer-content\s*\{[^}]*flex-grow:\s*0/s',
             $css,
