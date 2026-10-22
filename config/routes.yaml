@@ -37,6 +37,17 @@ contao_license_key_validate:
         _scope: backend
         _token_check: true
 
+# "Send test email" in the administrator notification settings. Same placement and
+# protection as the validation endpoints above; the controller re-checks the module
+# permission and reads the recipients from the saved configuration only.
+contao_openai_admin_notify_test:
+    path: '%contao.backend.route_prefix%/openai-admin-notify-test'
+    controller: JuheItSolutions\ContaoOpenaiAssistant\Controller\AdminNotificationTestController
+    methods: [POST]
+    defaults:
+        _scope: backend
+        _token_check: true
+
 ai_chat_send:
     path: /ai-chat/send
     controller: JuheItSolutions\ContaoOpenaiAssistant\Controller\AiChatController::send
