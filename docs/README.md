@@ -18,6 +18,7 @@ This directory documents the Contao OpenAI Assistant 3.x codebase for Contao 6. 
 - [API key management](security/api-key-management.md)
 - [Encryption](security/encryption.md)
 - [Chat rate limiting and cost protection](security/rate-limiting.md)
+- [Chatbot failure reporting (system log and email notifications)](configuration/admin-notifications.md)
 
 ## Features And Operation
 

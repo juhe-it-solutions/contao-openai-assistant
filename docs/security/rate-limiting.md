@@ -22,6 +22,8 @@ The frontend chatbot endpoint (`POST /ai-chat/send`) is public and anonymous, an
 
    **When it resets:** at midnight UTC, on a fixed calendar day. For Central European time that is 01:00 local in winter and 02:00 in summer. The reset is the same instant on every web server of an installation, which a rolling window would not be.
 
+   **When it is reached:** the first rejected request of the day writes one entry to the Contao system log, and administrators who opted in get one email per day. Neither contains visitor data. See [Chatbot failure reporting](../configuration/admin-notifications.md).
+
 The CSRF token endpoint (`GET /ai-chat/token`) additionally allows at most one token request per 10 seconds per session.
 
 ## Configuring The Limits
