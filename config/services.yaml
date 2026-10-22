@@ -89,6 +89,14 @@ services:
             $cache: '@cache.app'
             $connection: '@doctrine.dbal.default_connection'
 
+    # Chatbot failure reporting: always-on system log entries. Throttled in the shared
+    # application cache (one counter per key, no personal data); logs through the Contao
+    # channel, where only records with a ContaoContext reach the system log.
+    JuheItSolutions\ContaoOpenaiAssistant\Notification\ChatFailureSystemLogger:
+        arguments:
+            $logger: '@monolog.logger.contao'
+            $cache: '@cache.app'
+
     # OpenAiConfigListener
     JuheItSolutions\ContaoOpenaiAssistant\EventListener\OpenAiConfigListener:
         arguments:
