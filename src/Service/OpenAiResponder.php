@@ -15,7 +15,10 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Service;
 use Doctrine\DBAL\Connection;
 use JuheItSolutions\ContaoOpenaiAssistant\Exception\ContextWindowExceededException;
 use JuheItSolutions\ContaoOpenaiAssistant\Exception\ConversationNotFoundException;
+use JuheItSolutions\ContaoOpenaiAssistant\Exception\OpenAiRequestException;
 use JuheItSolutions\ContaoOpenaiAssistant\Exception\UnbilledRequestException;
+use JuheItSolutions\ContaoOpenaiAssistant\Notification\ChatFailureDetails;
+use JuheItSolutions\ContaoOpenaiAssistant\Notification\ChatFailureReason;
 use JuheItSolutions\ContaoOpenaiAssistant\String\CitationMarkerStripper;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
@@ -143,19 +146,19 @@ class OpenAiResponder
         // whole day for free.
         $config = $this->getActiveConfig();
         if (!$config) {
-            throw new UnbilledRequestException('No OpenAI configuration found');
+            throw new UnbilledRequestException('No OpenAI configuration found', 0, null, new ChatFailureDetails(ChatFailureReason::NotConfigured));
         }
 
         $prompt = $this->getActivePrompt((int) $config['id']);
         if (!$prompt) {
-            throw new UnbilledRequestException('No prompt configured');
+            throw new UnbilledRequestException('No prompt configured', 0, null, new ChatFailureDetails(ChatFailureReason::NotConfigured));
         }
 
         $apiKey = $this->encryption->getApiKeyForConfig((int) $config['id'])
             ?? $this->encryption->processApiKey((string) ($config['api_key'] ?? ''));
 
         if (!$apiKey) {
-            throw new UnbilledRequestException('No valid API key available');
+            throw new UnbilledRequestException('No valid API key available', 0, null, new ChatFailureDetails(ChatFailureReason::NotConfigured));
         }
 
         $this->dropLegacyThreadId($session);
@@ -401,14 +404,23 @@ class OpenAiResponder
 
             $status = $response->getStatusCode();
             if ($status < 200 || $status >= 300) {
-                throw new \RuntimeException('Conversations API returned HTTP '.$status.'.');
+                // Only for the status and error code of the failure report. ANY throwable is
+                // swallowed, not just a decoding error: a connection dropping while the body is
+                // read throws a transport exception, and that must not replace the HTTP failure.
+                try {
+                    $errorData = $response->toArray(false);
+                } catch (\Throwable) {
+                    $errorData = [];
+                }
+
+                throw new OpenAiRequestException('Conversations API returned HTTP '.$status.'.', ChatFailureDetails::fromHttpStatus($status, $errorData));
             }
 
             $data = $response->toArray(false);
             $id = (string) ($data['id'] ?? '');
 
             if ('' === $id) {
-                throw new \RuntimeException('OpenAI did not return a conversation id');
+                throw new OpenAiRequestException('OpenAI did not return a conversation id', new ChatFailureDetails(ChatFailureReason::IncompleteResponse));
             }
 
             $session->set(self::SESSION_CONVERSATION_KEY, $id);
@@ -428,7 +440,7 @@ class OpenAiResponder
 
             // Conversation creation does not invoke a model. Whatever its failure mode, no
             // completion can have been generated or billed.
-            throw new UnbilledRequestException('Failed to create conversation: '.$e->getMessage(), 0, $e);
+            throw new UnbilledRequestException('Failed to create conversation: '.$e->getMessage(), 0, $e, ChatFailureDetails::fromThrowable($e));
         }
     }
 
@@ -525,10 +537,10 @@ class OpenAiResponder
                 // was charged. A failure later in the exchange (a read timeout, say) may
                 // still have produced a billed completion, so it stays a plain failure.
                 if ($this->isConnectPhaseError($e)) {
-                    throw new UnbilledRequestException('Failed to process message: '.$e->getMessage());
+                    throw new UnbilledRequestException('Failed to process message: '.$e->getMessage(), 0, null, new ChatFailureDetails(ChatFailureReason::ConnectionFailed));
                 }
 
-                throw new \RuntimeException('Failed to process message: '.$e->getMessage());
+                throw new OpenAiRequestException('Failed to process message: '.$e->getMessage(), new ChatFailureDetails(ChatFailureReason::ConnectionFailed));
             }
 
             if (200 !== $statusCode) {
@@ -564,11 +576,11 @@ class OpenAiResponder
                 // The detectors below read the FULL error text; only what ends up
                 // in the exception (and therefore in the log) is shortened.
                 if ($this->isContextWindowError($statusCode, $data, $error)) {
-                    throw new ContextWindowExceededException('Responses API returned HTTP '.$statusCode.': '.self::summariseError($error));
+                    throw new ContextWindowExceededException('Responses API returned HTTP '.$statusCode.': '.self::summariseError($error), 0, null, ChatFailureDetails::fromHttpStatus($statusCode, $data));
                 }
 
                 if ($this->isConversationNotFoundError($statusCode, $error)) {
-                    throw new ConversationNotFoundException('Responses API returned HTTP '.$statusCode.': '.self::summariseError($error));
+                    throw new ConversationNotFoundException('Responses API returned HTTP '.$statusCode.': '.self::summariseError($error), 0, null, ChatFailureDetails::fromHttpStatus($statusCode, $data));
                 }
 
                 // A 4xx is a rejected request, not a completed model invocation (the two
@@ -576,10 +588,10 @@ class OpenAiResponder
                 // before processing. None can have produced a billed completion, so a bad
                 // key/model/request or an outage must not exhaust the daily cap for free.
                 if (($statusCode >= 400 && $statusCode < 500) || 503 === $statusCode) {
-                    throw new UnbilledRequestException('Responses API returned HTTP '.$statusCode.': '.self::summariseError($error));
+                    throw new UnbilledRequestException('Responses API returned HTTP '.$statusCode.': '.self::summariseError($error), 0, null, ChatFailureDetails::fromHttpStatus($statusCode, $data));
                 }
 
-                throw new \RuntimeException('Responses API returned HTTP '.$statusCode.': '.self::summariseError($error));
+                throw new OpenAiRequestException('Responses API returned HTTP '.$statusCode.': '.self::summariseError($error), ChatFailureDetails::fromHttpStatus($statusCode, $data));
             }
 
             $status = (string) ($data['status'] ?? 'unknown');
@@ -588,12 +600,12 @@ class OpenAiResponder
                     ?? $data['error']['message']
                     ?? $status);
 
-                throw new \RuntimeException('Response did not complete ('.$status.'): '.$reason);
+                throw new OpenAiRequestException('Response did not complete ('.$status.'): '.$reason, new ChatFailureDetails(ChatFailureReason::IncompleteResponse));
             }
 
             $text = $this->extractAssistantText($data);
             if ('' === $text) {
-                throw new \RuntimeException('No assistant response found');
+                throw new OpenAiRequestException('No assistant response found', new ChatFailureDetails(ChatFailureReason::IncompleteResponse));
             }
 
             return $text;

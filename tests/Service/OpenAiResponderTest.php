@@ -13,7 +13,11 @@ declare(strict_types=1);
 namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\Service;
 
 use Doctrine\DBAL\Connection;
+use JuheItSolutions\ContaoOpenaiAssistant\Exception\ChatFailureDetailsAwareInterface;
+use JuheItSolutions\ContaoOpenaiAssistant\Exception\OpenAiRequestException;
 use JuheItSolutions\ContaoOpenaiAssistant\Exception\UnbilledRequestException;
+use JuheItSolutions\ContaoOpenaiAssistant\Notification\ChatFailureDetails;
+use JuheItSolutions\ContaoOpenaiAssistant\Notification\ChatFailureReason;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\EncryptionService;
 use JuheItSolutions\ContaoOpenaiAssistant\Service\OpenAiResponder;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -393,6 +397,197 @@ class OpenAiResponderTest extends TestCase
 
         $this->expectException(UnbilledRequestException::class);
         $this->createResponder($http, [])->processMessage('Frage', $this->createSession());
+    }
+
+    /**
+     * The failure report needs the reason in a privacy-safe form. Billing classification is
+     * untouched: a final 429 stays unbilled, only the details are added.
+     */
+    public function testAFinalQuotaErrorCarriesItsDetails(): void
+    {
+        $requests = [];
+        $quota = '{"error":{"message":"You exceeded your current quota","type":"insufficient_quota","code":"insufficient_quota"}}';
+        $http = new MockHttpClient($this->createResponseFactory($requests, [
+            new MockResponse('{"id":"conv_1"}'),
+            new MockResponse($quota, ['http_code' => 429]),
+            new MockResponse($quota, ['http_code' => 429]),
+        ]));
+
+        $e = $this->catchProcessMessageFailure($http);
+
+        $this->assertInstanceOf(UnbilledRequestException::class, $e);
+        $this->assertCount(3, $requests, 'The retry itself is unchanged.');
+        $this->assertFailureDetails($e, ChatFailureReason::QuotaExceeded, 429, 'insufficient_quota');
+    }
+
+    public function testATransient429FollowedBySuccessReturnsTheReply(): void
+    {
+        $requests = [];
+        $http = new MockHttpClient($this->createResponseFactory($requests, [
+            new MockResponse('{"id":"conv_1"}'),
+            new MockResponse('{"error":{"message":"Rate limit reached","code":"rate_limit_exceeded"}}', ['http_code' => 429]),
+            new MockResponse($this->completedResponseJson('Answer')),
+        ]));
+
+        $this->assertSame('Answer', $this->createResponder($http, [])->processMessage('Frage', $this->createSession()));
+    }
+
+    public function testARejectedKeyIsClassifiedAsAuthenticationFailed(): void
+    {
+        $requests = [];
+        $http = new MockHttpClient($this->createResponseFactory($requests, [
+            new MockResponse('{"id":"conv_1"}'),
+            new MockResponse('{"error":{"message":"Incorrect API key provided: sk-test","code":"invalid_api_key"}}', ['http_code' => 401]),
+        ]));
+
+        $e = $this->catchProcessMessageFailure($http);
+
+        $this->assertInstanceOf(UnbilledRequestException::class, $e);
+        $this->assertFailureDetails($e, ChatFailureReason::AuthenticationFailed, 401, 'invalid_api_key');
+    }
+
+    public function testAServerErrorIsAnOpenAiRequestExceptionWithDetails(): void
+    {
+        $requests = [];
+        $http = new MockHttpClient($this->createResponseFactory($requests, [
+            new MockResponse('{"id":"conv_1"}'),
+            new MockResponse('{"error":{"message":"The server had an error"}}', ['http_code' => 500]),
+        ]));
+
+        $e = $this->catchProcessMessageFailure($http);
+
+        $this->assertInstanceOf(OpenAiRequestException::class, $e);
+        $this->assertInstanceOf(\RuntimeException::class, $e);
+        $this->assertNotInstanceOf(UnbilledRequestException::class, $e, 'A possibly billed failure must stay billed.');
+        $this->assertFailureDetails($e, ChatFailureReason::OpenAiUnavailable, 500, null);
+        $this->assertSame('Responses API returned HTTP 500: The server had an error', $e->getMessage(), 'The log line depends on the message.');
+    }
+
+    public function testARepeatedConnectPhaseErrorIsAnUnbilledConnectionFailure(): void
+    {
+        $requests = [];
+        $http = new MockHttpClient($this->createResponseFactory($requests, [
+            new MockResponse('{"id":"conv_1"}'),
+            new MockResponse('', ['error' => 'Could not resolve host: api.openai.com']),
+            new MockResponse('', ['error' => 'Could not resolve host: api.openai.com']),
+        ]));
+
+        $e = $this->catchProcessMessageFailure($http);
+
+        $this->assertInstanceOf(UnbilledRequestException::class, $e);
+        $this->assertFailureDetails($e, ChatFailureReason::ConnectionFailed, null, null);
+        $this->assertSame('Failed to process message: Could not resolve host: api.openai.com', $e->getMessage());
+    }
+
+    #[DataProvider('provideConversationCreationRejections')]
+    public function testAConversationCreationRejectionCarriesTheStatus(string $body, ChatFailureReason $expected, string|null $code): void
+    {
+        $requests = [];
+        $http = new MockHttpClient($this->createResponseFactory($requests, [
+            new MockResponse($body, ['http_code' => 429]),
+        ]));
+
+        $e = $this->catchProcessMessageFailure($http);
+
+        $this->assertInstanceOf(UnbilledRequestException::class, $e);
+        $this->assertFailureDetails($e, $expected, 429, $code);
+        $this->assertSame('Failed to create conversation: Conversations API returned HTTP 429.', $e->getMessage());
+    }
+
+    public static function provideConversationCreationRejections(): iterable
+    {
+        yield 'rate limit' => ['{"error":{"message":"Rate limit reached","code":"rate_limit_exceeded"}}', ChatFailureReason::RateLimited, 'rate_limit_exceeded'];
+        yield 'quota' => ['{"error":{"message":"You exceeded your current quota","code":"insufficient_quota"}}', ChatFailureReason::QuotaExceeded, 'insufficient_quota'];
+        yield 'unreadable body' => ['<html>Too Many Requests</html>', ChatFailureReason::RateLimited, null];
+    }
+
+    public function testAnIncompleteResponseIsClassified(): void
+    {
+        $requests = [];
+        $http = new MockHttpClient($this->createResponseFactory($requests, [
+            new MockResponse('{"id":"conv_1"}'),
+            new MockResponse('{"status":"incomplete","incomplete_details":{"reason":"max_output_tokens"}}'),
+        ]));
+
+        $e = $this->catchProcessMessageFailure($http);
+
+        $this->assertInstanceOf(OpenAiRequestException::class, $e);
+        $this->assertFailureDetails($e, ChatFailureReason::IncompleteResponse, null, null);
+    }
+
+    public function testAnEmptyAnswerIsClassifiedAsIncomplete(): void
+    {
+        $requests = [];
+        $http = new MockHttpClient($this->createResponseFactory($requests, [
+            new MockResponse('{"id":"conv_1"}'),
+            new MockResponse($this->completedResponseJson('')),
+        ]));
+
+        $e = $this->catchProcessMessageFailure($http);
+
+        $this->assertInstanceOf(OpenAiRequestException::class, $e);
+        $this->assertSame('No assistant response found', $e->getMessage());
+        $this->assertFailureDetails($e, ChatFailureReason::IncompleteResponse, null, null);
+    }
+
+    public function testAMissingPromptIsClassifiedAsNotConfigured(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('fetchAllAssociative')->willReturn([['id' => 1, 'api_key' => 'encrypted']]);
+        $connection->method('fetchAssociative')->willReturn(false);
+
+        $responder = new OpenAiResponder(new MockHttpClient(), new NullLogger(), $connection, $this->createMock(EncryptionService::class));
+
+        try {
+            $responder->processMessage('Frage', $this->createSession());
+            $this->fail('Expected an UnbilledRequestException');
+        } catch (UnbilledRequestException $e) {
+            $this->assertSame('No prompt configured', $e->getMessage());
+            $this->assertFailureDetails($e, ChatFailureReason::NotConfigured, null, null);
+        }
+    }
+
+    public function testAMissingApiKeyIsClassifiedAsNotConfigured(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('fetchAllAssociative')->willReturn([['id' => 1, 'api_key' => '']]);
+        $connection->method('fetchAssociative')->willReturn(['name' => 'Default', 'status' => 'active']);
+
+        $encryption = $this->createMock(EncryptionService::class);
+        $encryption->method('getApiKeyForConfig')->willReturn(null);
+        $encryption->method('processApiKey')->willReturn(null);
+
+        $responder = new OpenAiResponder(new MockHttpClient(), new NullLogger(), $connection, $encryption);
+
+        try {
+            $responder->processMessage('Frage', $this->createSession());
+            $this->fail('Expected an UnbilledRequestException');
+        } catch (UnbilledRequestException $e) {
+            $this->assertSame('No valid API key available', $e->getMessage());
+            $this->assertFailureDetails($e, ChatFailureReason::NotConfigured, null, null);
+        }
+    }
+
+    private function catchProcessMessageFailure(MockHttpClient $http): \RuntimeException
+    {
+        try {
+            $this->createResponder($http, [])->processMessage('Frage', $this->createSession());
+        } catch (\RuntimeException $e) {
+            return $e;
+        }
+
+        $this->fail('Expected processMessage() to fail');
+    }
+
+    private function assertFailureDetails(\Throwable $e, ChatFailureReason $reason, int|null $status, string|null $code): void
+    {
+        $this->assertInstanceOf(ChatFailureDetailsAwareInterface::class, $e);
+
+        $details = ChatFailureDetails::fromThrowable($e);
+
+        $this->assertSame($reason, $details->reason);
+        $this->assertSame($status, $details->httpStatus);
+        $this->assertSame($code, $details->openAiErrorCode);
     }
 
     private function completedResponseJson(string $text): string

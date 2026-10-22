@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Exception;
 
+use JuheItSolutions\ContaoOpenaiAssistant\Notification\ChatFailureDetails;
+
 /**
  * The request failed without OpenAI ever processing it, so nothing was charged.
  *
@@ -31,7 +33,27 @@ namespace JuheItSolutions\ContaoOpenaiAssistant\Exception;
  * call. Getting the classification wrong in the generous direction would reopen the hole the
  * reservation exists to close - anyone could take the chatbot offline for the day with
  * requests that cost nothing - so when in doubt, the slot stays spent.
+ *
+ * The optional failure details only feed the system log and the administrator email; they
+ * have no say in the billing classification.
  */
-class UnbilledRequestException extends \RuntimeException
+class UnbilledRequestException extends \RuntimeException implements ChatFailureDetailsAwareInterface
 {
+    /**
+     * The parameter order of \RuntimeException is kept, with the details appended, so every
+     * existing "new UnbilledRequestException($message, 0, $previous)" stays valid.
+     */
+    public function __construct(
+        string $message = '',
+        int $code = 0,
+        \Throwable|null $previous = null,
+        private readonly ChatFailureDetails|null $details = null,
+    ) {
+        parent::__construct($message, $code, $previous);
+    }
+
+    public function getFailureDetails(): ChatFailureDetails|null
+    {
+        return $this->details;
+    }
 }
