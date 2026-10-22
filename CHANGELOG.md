@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.4] - 2026-10-22
+
+Centers the disclaimer dialog on desktop again. No database migration required.
+
 ### Fixed
 
-- The disclaimer dialog is centered on desktop again. Since 3.0.0, a website theme that resets the margin of every element pinned it to the top left corner.
+- The disclaimer dialog no longer sticks to the top left corner when the website theme resets all margins.
 
 ## [3.0.3] - 2026-10-01
 
