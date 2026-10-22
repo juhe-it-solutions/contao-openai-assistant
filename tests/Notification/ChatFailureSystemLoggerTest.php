@@ -23,7 +23,6 @@ use JuheItSolutions\ContaoOpenaiAssistant\Notification\NotificationSiteResolver;
 use JuheItSolutions\ContaoOpenaiAssistant\Notification\ResolvedSite;
 use Monolog\Handler\TestHandler;
 use Monolog\Logger;
-use Monolog\LogRecord;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemInterface;
@@ -35,6 +34,7 @@ use Symfony\Component\HttpFoundation\Request;
 
 class ChatFailureSystemLoggerTest extends TestCase
 {
+    use CapturedLogTrait;
     use HostileInputTrait;
 
     private string $timezone;
@@ -59,11 +59,11 @@ class ChatFailureSystemLoggerTest extends TestCase
 
         $this->createLogger($handler)->logChatFailure(['id' => 1], $this->quotaException(), $this->createRequest());
 
-        $records = $handler->getRecords();
+        $records = self::capturedRecords($handler);
         $this->assertCount(1, $records);
-        $this->assertSame('ERROR', $records[0]->level->getName());
+        $this->assertSame('ERROR', $records[0]['level']);
 
-        $context = $records[0]->context['contao'];
+        $context = $records[0]['context']['contao'];
         $this->assertInstanceOf(ContaoContext::class, $context);
         $this->assertSame(ContaoContext::ERROR, $context->getAction());
         $this->assertSame(AiChatController::class.'::send', $context->getFunc());
@@ -79,7 +79,7 @@ class ChatFailureSystemLoggerTest extends TestCase
 
         $this->createLogger($handler, $site)->logChatFailure($config, $e, $this->createRequest());
 
-        $this->assertSame($expected, $handler->getRecords()[0]->message);
+        $this->assertSame($expected, self::capturedRecords($handler)[0]['message']);
     }
 
     public static function provideMessages(): iterable
@@ -139,9 +139,9 @@ class ChatFailureSystemLoggerTest extends TestCase
         $this->createLogger($handler)->logChatFailure(['id' => 1], self::hostileException(), self::createHostileRequest());
         $this->createLogger($handler)->logDailyLimitReached(['id' => 1], 5, self::createHostileRequest());
 
-        $this->assertCount(2, $handler->getRecords());
+        $this->assertCount(2, self::capturedRecords($handler));
 
-        foreach ($handler->getRecords() as $record) {
+        foreach (self::capturedRecords($handler) as $record) {
             $this->assertNoVisitorData($this->dumpRecord($record));
         }
     }
@@ -164,23 +164,23 @@ class ChatFailureSystemLoggerTest extends TestCase
             $logger->logChatFailure(['id' => 1], $this->quotaException(), $this->createRequest());
         }
 
-        $records = $handler->getRecords();
+        $records = self::capturedRecords($handler);
         $this->assertCount(101, $records);
-        $this->assertStringStartsWith('Chatbot could not answer a visitor', $records[99]->message);
+        $this->assertStringStartsWith('Chatbot could not answer a visitor', $records[99]['message']);
         $this->assertSame(
             'Chatbot failures on "Main site" (example.com): more than 100 entries this hour. Further failures until 16:00 CEST are only written to var/logs.',
-            $records[100]->message,
+            $records[100]['message'],
         );
-        $this->assertSame(ContaoContext::ERROR, $records[100]->context['contao']->getAction());
+        $this->assertSame(ContaoContext::ERROR, $records[100]['context']['contao']->getAction());
 
         // A separate configuration has its own counter.
         $logger->logChatFailure(['id' => 2], $this->quotaException(), $this->createRequest());
-        $this->assertCount(102, $handler->getRecords());
+        $this->assertCount(102, self::capturedRecords($handler));
 
         // The next UTC hour starts over.
         $clock = $this->now->modify('+1 hour');
         $logger->logChatFailure(['id' => 1], $this->quotaException(), $this->createRequest());
-        $this->assertCount(103, $handler->getRecords());
+        $this->assertCount(103, self::capturedRecords($handler));
     }
 
     public function testOverTheCapTheWebsiteIsNotResolved(): void
@@ -199,7 +199,7 @@ class ChatFailureSystemLoggerTest extends TestCase
         $logger = new ChatFailureSystemLogger(new Logger('test', [$handler]), $cache, $resolver, fn (): \DateTimeImmutable => $this->now);
         $logger->logChatFailure(['id' => 1], $this->quotaException(), $this->createRequest());
 
-        $this->assertCount(0, $handler->getRecords());
+        $this->assertCount(0, self::capturedRecords($handler));
     }
 
     public function testAnAlreadyClaimedDailyLimitEntryDoesNotResolveTheWebsite(): void
@@ -218,7 +218,7 @@ class ChatFailureSystemLoggerTest extends TestCase
         $logger = new ChatFailureSystemLogger(new Logger('test', [$handler]), $cache, $resolver, fn (): \DateTimeImmutable => $this->now);
         $logger->logDailyLimitReached(['id' => 1], 5, $this->createRequest());
 
-        $this->assertCount(0, $handler->getRecords());
+        $this->assertCount(0, self::capturedRecords($handler));
     }
 
     #[DataProvider('provideBrokenCaches')]
@@ -228,8 +228,8 @@ class ChatFailureSystemLoggerTest extends TestCase
 
         $this->createLogger($handler, null, $cache)->logChatFailure(['id' => 1], $this->quotaException(), $this->createRequest());
 
-        $this->assertCount(1, $handler->getRecords());
-        $this->assertArrayHasKey('contao', $handler->getRecords()[0]->context);
+        $this->assertCount(1, self::capturedRecords($handler));
+        $this->assertArrayHasKey('contao', self::capturedRecords($handler)[0]['context']);
     }
 
     public static function provideBrokenCaches(): iterable
@@ -263,22 +263,22 @@ class ChatFailureSystemLoggerTest extends TestCase
         $logger->logDailyLimitReached(['id' => 1], 500, $this->createRequest());
         $logger->logDailyLimitReached(['id' => 1], 500, $this->createRequest());
 
-        $records = $handler->getRecords();
+        $records = self::capturedRecords($handler);
         $this->assertCount(1, $records);
-        $this->assertSame('WARNING', $records[0]->level->getName());
-        $this->assertSame(ContaoContext::GENERAL, $records[0]->context['contao']->getAction());
+        $this->assertSame('WARNING', $records[0]['level']);
+        $this->assertSame(ContaoContext::GENERAL, $records[0]['context']['contao']->getAction());
         $this->assertSame(
             'Chatbot reached its daily limit of 500 messages on "Main site" (example.com). Visitors get no answers until the limit resets at 2026-10-23 02:00 CEST.',
-            $records[0]->message,
+            $records[0]['message'],
         );
 
         // Another configuration is logged separately.
         $logger->logDailyLimitReached(['id' => 2], 500, $this->createRequest());
-        $this->assertCount(2, $handler->getRecords());
+        $this->assertCount(2, self::capturedRecords($handler));
 
         $clock = $this->now->modify('+1 day');
         $logger->logDailyLimitReached(['id' => 1], 500, $this->createRequest());
-        $this->assertCount(3, $handler->getRecords());
+        $this->assertCount(3, self::capturedRecords($handler));
     }
 
     public function testAFailingSystemLogFallsBackToAPlainLine(): void
@@ -315,7 +315,7 @@ class ChatFailureSystemLoggerTest extends TestCase
 
         $this->createLogger($handler)->logChatFailure($config, $this->quotaException(), $this->createRequest());
 
-        $this->assertCount(1, $handler->getRecords());
+        $this->assertCount(1, self::capturedRecords($handler));
     }
 
     public static function provideNotificationSettings(): iterable
@@ -356,11 +356,11 @@ class ChatFailureSystemLoggerTest extends TestCase
         return Request::create('https://example.com/ai-chat/send', 'POST');
     }
 
-    private function dumpRecord(LogRecord $record): string
+    private function dumpRecord(array $record): string
     {
-        $context = $record->context['contao'] ?? null;
+        $context = $record['context']['contao'] ?? null;
 
-        return $record->message.' '.print_r($record->context, true).' '.($context instanceof ContaoContext
+        return $record['message'].' '.print_r($record['context'], true).' '.($context instanceof ContaoContext
             ? implode(' ', [$context->getBrowser(), $context->getUsername(), $context->getUri(), $context->getIp(), $context->getFunc()])
             : '');
     }

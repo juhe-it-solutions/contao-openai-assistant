@@ -25,7 +25,6 @@ use JuheItSolutions\ContaoOpenaiAssistant\Notification\NotificationSiteResolver;
 use JuheItSolutions\ContaoOpenaiAssistant\Notification\ResolvedSite;
 use Monolog\Handler\TestHandler;
 use Monolog\Logger;
-use Monolog\LogRecord;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemInterface;
@@ -37,6 +36,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 class AdminNotifierTest extends TestCase
 {
+    use CapturedLogTrait;
     use HostileInputTrait;
 
     private const CONFIG = [
@@ -84,7 +84,7 @@ class AdminNotifierTest extends TestCase
         $notifier->sendPending();
 
         $this->assertSame([], $this->mailer->sent);
-        $this->assertSame([], $this->logs->getRecords());
+        $this->assertSame([], self::capturedRecords($this->logs));
     }
 
     public static function provideDisabledConfigs(): iterable
@@ -187,11 +187,11 @@ class AdminNotifierTest extends TestCase
 
         $this->assertSame([], $this->mailer->sent);
 
-        $records = $this->logs->getRecords();
+        $records = self::capturedRecords($this->logs);
         $this->assertCount(2, $records);
-        $this->assertSame('WARNING', $records[0]->level->getName());
-        $this->assertSame('Administrator notification skipped: throttle could not be stored', $records[0]->message);
-        $this->assertArrayNotHasKey('contao', $records[0]->context, 'Must not reach tl_log: it could happen on every request.');
+        $this->assertSame('WARNING', $records[0]['level']);
+        $this->assertSame('Administrator notification skipped: throttle could not be stored', $records[0]['message']);
+        $this->assertArrayNotHasKey('contao', $records[0]['context'], 'Must not reach tl_log: it could happen on every request.');
     }
 
     public function testAThrowingCacheSendsNothing(): void
@@ -204,7 +204,7 @@ class AdminNotifierTest extends TestCase
         $notifier->sendPending();
 
         $this->assertSame([], $this->mailer->sent);
-        $this->assertArrayNotHasKey('contao', $this->logs->getRecords()[0]->context);
+        $this->assertArrayNotHasKey('contao', self::capturedRecords($this->logs)[0]['context']);
     }
 
     public function testWithoutValidRecipientsNothingIsSentAndTheSystemLogSaysSo(): void
@@ -218,9 +218,9 @@ class AdminNotifierTest extends TestCase
 
         $this->assertSame([], $this->mailer->sent);
 
-        $records = $this->logs->getRecords();
+        $records = self::capturedRecords($this->logs);
         $this->assertCount(1, $records, 'The second occurrence within the hour is throttled.');
-        $this->assertSame('Chatbot notification email not sent: no valid recipient address is configured.', $records[0]->message);
+        $this->assertSame('Chatbot notification email not sent: no valid recipient address is configured.', $records[0]['message']);
         $this->assertPrivacySafeSystemLogContext($records[0], 'notifyChatFailure');
     }
 
@@ -234,9 +234,9 @@ class AdminNotifierTest extends TestCase
 
         $this->assertSame([], $this->mailer->sent);
 
-        $records = $this->logs->getRecords();
+        $records = self::capturedRecords($this->logs);
         $this->assertCount(1, $records);
-        $this->assertSame('Chatbot notification email not sent: no administrator email address is set in System > Settings.', $records[0]->message);
+        $this->assertSame('Chatbot notification email not sent: no administrator email address is set in System > Settings.', $records[0]['message']);
         $this->assertPrivacySafeSystemLogContext($records[0], 'notifyDailyLimitReached');
     }
 
@@ -256,10 +256,10 @@ class AdminNotifierTest extends TestCase
         $notifier->notifyChatFailure(self::CONFIG, $this->quotaException(), $this->createRequest());
         $notifier->sendPending();
 
-        $records = $this->logs->getRecords();
+        $records = self::capturedRecords($this->logs);
         $this->assertCount(1, $records);
-        $this->assertSame('Chatbot notification email could not be sent (TransportException). Check the mail settings of the installation.', $records[0]->message);
-        $this->assertStringNotContainsString('smtp.internal', print_r($records[0]->context, true));
+        $this->assertSame('Chatbot notification email could not be sent (TransportException). Check the mail settings of the installation.', $records[0]['message']);
+        $this->assertStringNotContainsString('smtp.internal', print_r($records[0]['context'], true));
         $this->assertPrivacySafeSystemLogContext($records[0], 'sendPending');
     }
 
@@ -273,8 +273,8 @@ class AdminNotifierTest extends TestCase
         $notifier->sendPending();
 
         $this->assertSame([], $this->mailer->sent);
-        $this->assertSame('Chatbot notification email could not be sent (InvalidArgumentException). Check the mail settings of the installation.', $this->logs->getRecords()[0]->message);
-        $this->assertPrivacySafeSystemLogContext($this->logs->getRecords()[0], 'notifyChatFailure');
+        $this->assertSame('Chatbot notification email could not be sent (InvalidArgumentException). Check the mail settings of the installation.', self::capturedRecords($this->logs)[0]['message']);
+        $this->assertPrivacySafeSystemLogContext(self::capturedRecords($this->logs)[0], 'notifyChatFailure');
     }
 
     public function testAThrowingResolverDoesNotEscape(): void
@@ -287,7 +287,7 @@ class AdminNotifierTest extends TestCase
         $notifier->sendPending();
 
         $this->assertSame([], $this->mailer->sent);
-        $this->assertSame('Chatbot notification email could not be sent (RuntimeException). Check the mail settings of the installation.', $this->logs->getRecords()[0]->message);
+        $this->assertSame('Chatbot notification email could not be sent (RuntimeException). Check the mail settings of the installation.', self::capturedRecords($this->logs)[0]['message']);
     }
 
     public function testTheSentLineDoesNotReachTheSystemLog(): void
@@ -296,12 +296,12 @@ class AdminNotifierTest extends TestCase
         $notifier->notifyChatFailure(self::CONFIG, $this->quotaException(), $this->createRequest());
         $notifier->sendPending();
 
-        $records = $this->logs->getRecords();
+        $records = self::capturedRecords($this->logs);
         $this->assertCount(1, $records);
-        $this->assertSame('INFO', $records[0]->level->getName());
-        $this->assertSame('Administrator notification sent', $records[0]->message);
-        $this->assertArrayNotHasKey('contao', $records[0]->context);
-        $this->assertSame(['config_id' => 1, 'recipient_count' => 2], $records[0]->context);
+        $this->assertSame('INFO', $records[0]['level']);
+        $this->assertSame('Administrator notification sent', $records[0]['message']);
+        $this->assertArrayNotHasKey('contao', $records[0]['context']);
+        $this->assertSame(['config_id' => 1, 'recipient_count' => 2], $records[0]['context']);
     }
 
     public function testSendPendingEmptiesTheQueueAndAttemptsEveryMail(): void
@@ -341,7 +341,7 @@ class AdminNotifierTest extends TestCase
         // By kernel.terminate the request stack is empty; the notifier never consults it.
         $notifier->sendPending();
 
-        $context = $this->logs->getRecords()[0]->context['contao'];
+        $context = self::capturedRecords($this->logs)[0]['context']['contao'];
         $this->assertInstanceOf(ContaoContext::class, $context);
         $this->assertSame('/ai-chat/send', $context->getUri());
         $this->assertSame('N/A', $context->getBrowser());
@@ -495,7 +495,7 @@ class AdminNotifierTest extends TestCase
             $this->assertNoVisitorData($email->getSubject().' '.$email->getTextBody().' '.$email->getHeaders()->toString());
         }
 
-        foreach ($this->logs->getRecords() as $record) {
+        foreach (self::capturedRecords($this->logs) as $record) {
             $this->assertNoVisitorData($this->dumpRecord($record));
         }
 
@@ -545,8 +545,8 @@ class AdminNotifierTest extends TestCase
         $this->assertSame([], $this->mailer->sent);
 
         // Test failures go to var/logs only: the backend user sees the result directly.
-        foreach ($this->logs->getRecords() as $record) {
-            $this->assertArrayNotHasKey('contao', $record->context);
+        foreach (self::capturedRecords($this->logs) as $record) {
+            $this->assertArrayNotHasKey('contao', $record['context']);
         }
     }
 
@@ -571,11 +571,11 @@ class AdminNotifierTest extends TestCase
         $this->assertSame([], AdminNotifier::recipients(['admin_notify_recipients' => 'garbage']));
     }
 
-    private function assertPrivacySafeSystemLogContext(LogRecord $record, string $method): void
+    private function assertPrivacySafeSystemLogContext(array $record, string $method): void
     {
-        $this->assertSame('ERROR', $record->level->getName());
+        $this->assertSame('ERROR', $record['level']);
 
-        $context = $record->context['contao'] ?? null;
+        $context = $record['context']['contao'] ?? null;
         $this->assertInstanceOf(ContaoContext::class, $context);
         $this->assertSame(ContaoContext::ERROR, $context->getAction());
         $this->assertSame(AdminNotifier::class.'::'.$method, $context->getFunc());
@@ -584,11 +584,11 @@ class AdminNotifierTest extends TestCase
         $this->assertSame('/ai-chat/send', $context->getUri());
     }
 
-    private function dumpRecord(LogRecord $record): string
+    private function dumpRecord(array $record): string
     {
-        $context = $record->context['contao'] ?? null;
+        $context = $record['context']['contao'] ?? null;
 
-        return $record->message.' '.print_r(array_diff_key($record->context, ['contao' => true]), true).' '.($context instanceof ContaoContext
+        return $record['message'].' '.print_r(array_diff_key($record['context'], ['contao' => true]), true).' '.($context instanceof ContaoContext
             ? implode(' ', [$context->getBrowser(), $context->getUsername(), $context->getUri(), $context->getIp(), $context->getFunc()])
             : '');
     }
