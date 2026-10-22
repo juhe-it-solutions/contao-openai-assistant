@@ -20,6 +20,8 @@
     "symfony/dom-crawler": "^6.4 || ^7.0 || ^8.0",
     "symfony/html-sanitizer": "^7.4 || ^8.0",
     "symfony/http-client": "^7.4 || ^8.0",
+    "symfony/mailer": "^7.4 || ^8.0",
+    "symfony/mime": "^7.4 || ^8.0",
     "symfony/rate-limiter": "^7.4 || ^8.0"
   },
   "autoload": {

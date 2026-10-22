@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 http://docs.oasis-open.org/xliff/v1.2/os/xliff-core-1.2-strict.xsd">
+    <file source-language="en" target-language="de" datatype="plaintext" original="oaa_notify.xlf">
+        <body>
+            <!-- Administrator notification emails only (AdminNotificationComposer). Kept out of default.xlf so
+                 they are loaded only when a mail is composed, never on an ordinary request. -->
+            <trans-unit id="oaa_notify.subject_failure">
+                <source>[Chatbot] %1$s: chatbot not available</source>
+                <target>[Chatbot] %1$s: Chatbot nicht verfügbar</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.subject_daily_limit">
+                <source>[Chatbot] %1$s: daily message limit reached</source>
+                <target>[Chatbot] %1$s: Tageslimit für Nachrichten erreicht</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.subject_test">
+                <source>[Chatbot] %1$s: test notification</source>
+                <target>[Chatbot] %1$s: Testbenachrichtigung</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.intro_failure">
+                <source>The chatbot on %1$s could not answer a visitor's message.</source>
+                <target>Der Chatbot auf %1$s konnte die Nachricht eines Besuchers nicht beantworten.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.site_intro_with_root">
+                <source>the website "%1$s" (%2$s)</source>
+                <target>der Website "%1$s" (%2$s)</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.label_reason">
+                <source>Reason</source>
+                <target>Grund</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.label_action">
+                <source>What to do</source>
+                <target>Was ist zu tun</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.label_details">
+                <source>Details</source>
+                <target>Details</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.label_page_name">
+                <source>Website (page name)</source>
+                <target>Website (Seitenname)</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.label_domain">
+                <source>Domain</source>
+                <target>Domain</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.label_installation_roots">
+                <source>Websites in this installation</source>
+                <target>Websites in dieser Installation</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.label_time">
+                <source>Time</source>
+                <target>Zeitpunkt</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.label_config">
+                <source>OpenAI configuration</source>
+                <target>OpenAI-Konfiguration</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.label_http_status">
+                <source>HTTP status</source>
+                <target>HTTP-Status</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.label_error_code">
+                <source>OpenAI error code</source>
+                <target>OpenAI-Fehlercode</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.label_recipients">
+                <source>Recipients</source>
+                <target>Empfänger</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.label_language">
+                <source>Language</source>
+                <target>Sprache</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.language_de">
+                <source>German</source>
+                <target>Deutsch</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.language_en">
+                <source>English</source>
+                <target>Englisch</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.page_name_value">
+                <source>"%1$s" (ID %2$s)</source>
+                <target>"%1$s" (ID %2$s)</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.page_name_unknown">
+                <source>unknown: no website root matches this domain</source>
+                <target>unbekannt: kein Startpunkt passt zu dieser Domain</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.domain_unverified_no_dns">
+                <source>%1$s (unverified: no domain is set in this website root)</source>
+                <target>%1$s (nicht verifiziert: in diesem Startpunkt ist keine Domain eingetragen)</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.domain_unverified_no_root">
+                <source>%1$s (unverified)</source>
+                <target>%1$s (nicht verifiziert)</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.unknown_host">
+                <source>(unknown host)</source>
+                <target>(unbekannter Host)</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.untitled">
+                <source>(untitled)</source>
+                <target>(ohne Titel)</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.throttle_failure">
+                <source>Further failures will not trigger another email for 60 minutes.</source>
+                <target>Weitere Ausfälle lösen in den nächsten 60 Minuten keine weitere E-Mail aus.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.log_hint">
+                <source>Every failure is listed in the Contao system log (System &gt; System log). Technical details are in the application log of the installation (var/logs).</source>
+                <target>Jeder Ausfall ist im Contao-System-Log aufgeführt (System &gt; System-Log). Technische Details stehen im Anwendungs-Log der Installation (var/logs).</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.footer">
+                <source>Sent by the Contao OpenAI Assistant extension. You can change or switch off these notifications in the Contao backend under AI Tools &gt; OpenAI Dashboard &gt; edit the configuration &gt; section "Administrator notifications".</source>
+                <target>Gesendet von der Erweiterung Contao OpenAI Assistant. Sie können diese Benachrichtigungen im Contao-Backend ändern oder abschalten unter KI-Tools &gt; OpenAI Dashboard &gt; Konfiguration bearbeiten &gt; Bereich "Administrator-Benachrichtigungen".</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.daily_intro">
+                <source>The chatbot on %1$s has reached its daily limit of %2$s messages.</source>
+                <target>Der Chatbot auf %1$s hat sein Tageslimit von %2$s Nachrichten erreicht.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.daily_explain">
+                <source>The limit applies to all visitors together. Until it resets at %1$s, visitors see a notice that the daily limit has been reached and the chatbot does not answer.</source>
+                <target>Das Limit gilt für alle Besucher gemeinsam. Bis es um %1$s zurückgesetzt wird, sehen Besucher einen Hinweis auf das erreichte Tageslimit und der Chatbot antwortet nicht.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.daily_action">
+                <source>If this is normal use, raise "Daily chat message limit" in the OpenAI configuration. If you did not expect this many messages, check the system log and the application log for unusual activity.</source>
+                <target>Wenn das normale Nutzung ist, erhöhen Sie "Tägliches Chat-Nachrichtenlimit" in der OpenAI-Konfiguration. Wenn Sie nicht mit so vielen Nachrichten gerechnet haben, prüfen Sie System-Log und Anwendungs-Log auf ungewöhnliche Aktivität.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.daily_once">
+                <source>You will receive this email at most once per day.</source>
+                <target>Sie erhalten diese E-Mail höchstens einmal pro Tag.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.test_intro">
+                <source>This is a test email. Notifications for the chatbot on %1$s are set up correctly and reach this address.</source>
+                <target>Dies ist eine Test-E-Mail. Die Benachrichtigungen für den Chatbot auf %1$s sind korrekt eingerichtet und erreichen diese Adresse.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.reason_quota_exceeded">
+                <source>OpenAI rejected the request because the OpenAI account has no credit or quota left.</source>
+                <target>OpenAI hat die Anfrage abgelehnt, weil das OpenAI-Konto kein Guthaben oder Kontingent mehr hat.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.action_quota_exceeded">
+                <source>Check the credit balance and billing settings of the OpenAI account that owns the API key.</source>
+                <target>Prüfen Sie Guthaben und Abrechnungseinstellungen des OpenAI-Kontos, zu dem der API-Schlüssel gehört.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.reason_rate_limited">
+                <source>OpenAI rejected the request because too many requests or tokens were sent in a short time (rate limit).</source>
+                <target>OpenAI hat die Anfrage abgelehnt, weil in kurzer Zeit zu viele Anfragen oder Tokens gesendet wurden (Rate-Limit).</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.action_rate_limited">
+                <source>This usually resolves itself within minutes. If it happens often, check the rate limits of the OpenAI account or project.</source>
+                <target>Das löst sich meist innerhalb weniger Minuten von selbst. Tritt es häufig auf, prüfen Sie die Rate-Limits des OpenAI-Kontos oder -Projekts.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.reason_authentication_failed">
+                <source>OpenAI rejected the API key (invalid, revoked, or missing permissions).</source>
+                <target>OpenAI hat den API-Schlüssel abgelehnt (ungültig, widerrufen oder ohne ausreichende Berechtigung).</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.action_authentication_failed">
+                <source>Check the API key in the OpenAI configuration and test it with the key check button next to the field.</source>
+                <target>Prüfen Sie den API-Schlüssel in der OpenAI-Konfiguration und testen Sie ihn mit der Prüfschaltfläche neben dem Feld.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.reason_request_rejected">
+                <source>OpenAI rejected the request as invalid, for example because of an unknown model or an invalid prompt setting.</source>
+                <target>OpenAI hat die Anfrage als ungültig abgelehnt, zum Beispiel wegen eines unbekannten Modells oder einer ungültigen Prompt-Einstellung.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.action_request_rejected">
+                <source>Check the model and prompt settings in the OpenAI configuration. The application log contains the details.</source>
+                <target>Prüfen Sie Modell und Prompt-Einstellungen in der OpenAI-Konfiguration. Details stehen im Anwendungs-Log.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.reason_openai_unavailable">
+                <source>OpenAI's servers returned an error or were temporarily unavailable.</source>
+                <target>Die Server von OpenAI haben einen Fehler gemeldet oder waren vorübergehend nicht erreichbar.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.action_openai_unavailable">
+                <source>Nothing needs to be changed on your side. Check the OpenAI status page (status.openai.com). The chatbot works again once OpenAI has recovered.</source>
+                <target>Auf Ihrer Seite ist nichts zu ändern. Prüfen Sie die OpenAI-Statusseite (status.openai.com). Der Chatbot funktioniert wieder, sobald OpenAI den Fehler behoben hat.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.reason_connection_failed">
+                <source>The connection from this server to OpenAI failed or timed out.</source>
+                <target>Die Verbindung von diesem Server zu OpenAI ist fehlgeschlagen oder hat zu lange gedauert.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.action_connection_failed">
+                <source>If this persists, check the server's outgoing network connection and firewall. Occasional timeouts can also be caused by slow OpenAI responses.</source>
+                <target>Hält das an, prüfen Sie die ausgehende Netzwerkverbindung und Firewall des Servers. Gelegentliche Zeitüberschreitungen können auch durch langsame OpenAI-Antworten entstehen.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.reason_incomplete_response">
+                <source>OpenAI did not return a usable answer (the response was incomplete or empty).</source>
+                <target>OpenAI hat keine verwendbare Antwort geliefert (die Antwort war unvollständig oder leer).</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.action_incomplete_response">
+                <source>This is usually a one-off. If it repeats, check the application log.</source>
+                <target>Das ist meist ein Einzelfall. Wiederholt es sich, prüfen Sie das Anwendungs-Log.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.reason_not_configured">
+                <source>The chatbot is not fully configured: no prompt or no valid API key is set.</source>
+                <target>Der Chatbot ist nicht vollständig eingerichtet: Es fehlt ein Prompt oder ein gültiger API-Schlüssel.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.action_not_configured">
+                <source>Complete the OpenAI configuration: enter a valid API key and create a prompt.</source>
+                <target>Vervollständigen Sie die OpenAI-Konfiguration: Tragen Sie einen gültigen API-Schlüssel ein und legen Sie einen Prompt an.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.reason_unknown">
+                <source>An unexpected error occurred while processing the message.</source>
+                <target>Bei der Verarbeitung der Nachricht ist ein unerwarteter Fehler aufgetreten.</target>
+            </trans-unit>
+            <trans-unit id="oaa_notify.action_unknown">
+                <source>Check the application log of the installation for details.</source>
+                <target>Prüfen Sie das Anwendungs-Log der Installation auf Details.</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>
