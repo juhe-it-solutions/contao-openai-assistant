@@ -42,7 +42,7 @@ final readonly class ChatFailureDetails
         $code = self::extractErrorCode($responseData);
 
         $reason = match (true) {
-            429 === $status && 'insufficient_quota' === $code => ChatFailureReason::QuotaExceeded,
+            429 === $status && ('insufficient_quota' === $code || 'insufficient_quota' === ($responseData['error']['type'] ?? null)) => ChatFailureReason::QuotaExceeded,
             429 === $status => ChatFailureReason::RateLimited,
             401 === $status, 403 === $status => ChatFailureReason::AuthenticationFailed,
             $status >= 400 && $status < 500 => ChatFailureReason::RequestRejected,
