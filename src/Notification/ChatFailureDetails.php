@@ -100,7 +100,7 @@ final readonly class ChatFailureDetails
             $code = $error['type'] ?? null;
         }
 
-        if (!\is_string($code) || 1 !== preg_match('/^[a-z0-9_.-]{1,64}$/i', $code)) {
+        if (!\is_string($code) || 1 !== preg_match('/^[a-z0-9_.-]{1,64}$/iD', $code)) {
             return null;
         }
 

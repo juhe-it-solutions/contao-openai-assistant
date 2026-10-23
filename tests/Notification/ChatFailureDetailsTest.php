@@ -77,6 +77,13 @@ class ChatFailureDetailsTest extends TestCase
         $this->assertSame('billing_limit', $details->openAiErrorCode);
     }
 
+    public function testAnErrorCodeWithATrailingNewlineIsRejected(): void
+    {
+        $details = ChatFailureDetails::fromHttpStatus(400, ['error' => ['code' => "invalid_value\n"]]);
+
+        $this->assertNull($details->openAiErrorCode);
+    }
+
     public function testTheErrorMessageIsNeverUsedAsTheCode(): void
     {
         $details = ChatFailureDetails::fromHttpStatus(400, ['error' => ['message' => 'invalid_value']]);
