@@ -69,6 +69,14 @@ class ChatFailureDetailsTest extends TestCase
         yield 'missing' => [null, null];
     }
 
+    public function testQuotaTypeWinsEvenWhenAnotherCodeIsPresent(): void
+    {
+        $details = ChatFailureDetails::fromHttpStatus(429, ['error' => ['code' => 'billing_limit', 'type' => 'insufficient_quota']]);
+
+        $this->assertSame(ChatFailureReason::QuotaExceeded, $details->reason);
+        $this->assertSame('billing_limit', $details->openAiErrorCode);
+    }
+
     public function testTheErrorMessageIsNeverUsedAsTheCode(): void
     {
         $details = ChatFailureDetails::fromHttpStatus(400, ['error' => ['message' => 'invalid_value']]);
