@@ -21,6 +21,7 @@ enum AdminNotificationTestResult: string
     case Sent = 'sent';
     case NoRecipients = 'no_recipients';
     case NoSender = 'no_sender';
+    case LanguageRequired = 'language_required';
     case TooFrequent = 'too_frequent';
     case Failed = 'failed';
 

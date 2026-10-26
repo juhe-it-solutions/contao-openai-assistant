@@ -102,6 +102,14 @@
                 <source>Language of the notification emails. German and English are supported, independently of the website-root languages.</source>
                 <target>Language of the notification emails. German and English are supported, independently of the website-root languages.</target>
             </trans-unit>
+            <trans-unit id="tl_openai_config.admin_notify_language_blank">
+                <source>Please choose ...</source>
+                <target>Please choose ...</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.admin_notify_language_required">
+                <source>Please choose German or English and save the configuration.</source>
+                <target>Please choose German or English and save the configuration.</target>
+            </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_language_options.de">
                 <source>German</source>
                 <target>German</target>
@@ -131,6 +139,10 @@ Important: Save the configuration first.</target>
             <trans-unit id="tl_openai_config.admin_notify_test_no_recipients">
                 <source>No saved recipient. Enter at least one address and save first.</source>
                 <target>No saved recipient. Enter at least one address and save first.</target>
+            </trans-unit>
+            <trans-unit id="tl_openai_config.admin_notify_test_language_required">
+                <source>Please choose German or English and save the configuration before sending a test email.</source>
+                <target>Please choose German or English and save the configuration before sending a test email.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_test_no_sender">
                 <source>No sender address: set the administrator email address under System &gt; Settings.</source>

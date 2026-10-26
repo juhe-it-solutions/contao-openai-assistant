@@ -295,11 +295,13 @@ $GLOBALS['TL_DCA']['tl_openai_config'] = [
             'options'       => ['de', 'en'],
             'reference'     => &$GLOBALS['TL_LANG']['tl_openai_config']['admin_notify_language_options'],
             'eval'          => [
-                'mandatory' => true,
-                'tl_class'  => 'w50',
+                'mandatory'          => true,
+                'includeBlankOption' => true,
+                'blankOptionLabel'   => &$GLOBALS['TL_LANG']['tl_openai_config']['admin_notify_language_blank'],
+                'tl_class'           => 'w50',
             ],
-            'load_callback' => [
-                ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\AdminNotificationFieldsListener', 'defaultLanguage'],
+            'save_callback' => [
+                ['JuheItSolutions\ContaoOpenaiAssistant\EventListener\AdminNotificationFieldsListener', 'validateLanguage'],
             ],
             'sql' => [
                 'type'    => 'string',

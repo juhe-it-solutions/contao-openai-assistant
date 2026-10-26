@@ -529,6 +529,20 @@ class AdminNotifierTest extends TestCase
         $this->assertSame(AdminNotificationTestResult::Sent, $notifier->sendTestNotification($disabled, $this->createRequest()));
     }
 
+    public function testTestMailRequiresASavedLanguageAndUsesSavedGerman(): void
+    {
+        foreach (['', null, 'fr'] as $index => $language) {
+            $config = ['id' => 100 + $index, 'admin_notify_language' => $language] + self::CONFIG;
+            $this->assertSame(AdminNotificationTestResult::LanguageRequired, $this->createNotifier()->sendTestNotification($config, $this->createRequest()));
+        }
+
+        $this->assertSame([], $this->mailer->sent);
+        $config = ['id' => 200, 'admin_notify_language' => 'de'] + self::CONFIG;
+        $this->assertSame(AdminNotificationTestResult::Sent, $this->createNotifier()->sendTestNotification($config, $this->createRequest()));
+        $this->assertStringContainsString('Testbenachrichtigung', $this->mailer->sent[0]->getSubject());
+        $this->assertStringContainsString('Sprache: Deutsch', (string) $this->mailer->sent[0]->getTextBody());
+    }
+
     public function testTheTestMailFailures(): void
     {
         $noRecipients = ['id' => 2, 'admin_notify_recipients' => null] + self::CONFIG;

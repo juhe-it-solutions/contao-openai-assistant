@@ -176,7 +176,11 @@ class AdminNotifier implements ResetInterface
                 return AdminNotificationTestResult::NoSender;
             }
 
-            $locale = AdminNotificationComposer::normaliseLocale($config['admin_notify_language'] ?? '');
+            $locale = $config['admin_notify_language'] ?? '';
+
+            if ('de' !== $locale && 'en' !== $locale) {
+                return AdminNotificationTestResult::LanguageRequired;
+            }
             $site = $this->composer->buildSite($this->siteResolver->resolve($request), $locale);
             $message = $this->composer->composeTest($site, $recipients, $locale);
 

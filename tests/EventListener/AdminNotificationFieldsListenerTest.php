@@ -12,16 +12,13 @@ declare(strict_types=1);
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\Tests\EventListener;
 
-use Contao\BackendUser;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\DataContainer;
 use JuheItSolutions\ContaoOpenaiAssistant\EventListener\AdminNotificationFieldsListener;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Csrf\CsrfToken;
-use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 class AdminNotificationFieldsListenerTest extends TestCase
@@ -83,37 +80,45 @@ class AdminNotificationFieldsListenerTest extends TestCase
         yield 'company' => ['office@juhe-it-solutions.at'];
     }
 
-    #[DataProvider('provideLanguageDefaults')]
-    public function testTheLanguageDefaultsToTheBackendUser(mixed $stored, string|null $userLanguage, bool $backendUser, string $expected): void
+    #[DataProvider('provideLanguages')]
+    public function testLanguageRequiresAnExplicitSupportedSelection(mixed $value, bool $valid): void
     {
-        $user = null;
-
-        if (null !== $userLanguage) {
-            if ($backendUser) {
-                $user = $this->createMock(BackendUser::class);
-                $user->method('__get')->willReturnCallback(static fn (string $key): string|null => 'language' === $key ? $userLanguage : null);
-            } else {
-                $user = $this->createMock(UserInterface::class);
-            }
+        if (!$valid) {
+            $this->expectException(\RuntimeException::class);
+            $this->expectExceptionMessage('tl_openai_config.admin_notify_language_required');
         }
 
-        $security = $this->createMock(Security::class);
-        $security->method('getUser')->willReturn($user);
-
-        $this->assertSame($expected, $this->createListener($security)->defaultLanguage($stored, $this->createMock(DataContainer::class)));
+        $this->assertSame($value, $this->createListener()->validateLanguage($value, $this->createMock(DataContainer::class)));
     }
 
-    public static function provideLanguageDefaults(): iterable
+    public static function provideLanguages(): iterable
     {
-        yield 'German user' => ['', 'de', true, 'de'];
-        yield 'Austrian German user' => ['', 'de_AT', true, 'de'];
-        yield 'English user' => ['', 'en', true, 'en'];
-        yield 'French user' => ['', 'fr', true, 'en'];
-        yield 'no user' => ['', null, true, 'en'];
-        yield 'not a backend user' => ['', 'de', false, 'en'];
-        yield 'stored German is kept' => ['de', 'en', true, 'de'];
-        yield 'stored English is kept' => ['en', 'de', true, 'en'];
-        yield 'stored garbage is replaced' => ['xx', 'de', true, 'de'];
+        yield 'German' => ['de', true];
+        yield 'English' => ['en', true];
+        yield 'placeholder' => ['', false];
+        yield 'missing' => [null, false];
+        yield 'unsupported' => ['fr', false];
+    }
+
+    public function testLanguageDcaDoesNotMaskAnEmptyStoredValue(): void
+    {
+        $dca = $GLOBALS['TL_DCA'] ?? [];
+        $language = $GLOBALS['TL_LANG'] ?? [];
+
+        try {
+            require __DIR__.'/../../contao/dca/tl_openai_config.php';
+            $field = $GLOBALS['TL_DCA']['tl_openai_config']['fields']['admin_notify_language'];
+
+            $this->assertSame(['de', 'en'], $field['options']);
+            $this->assertTrue($field['eval']['mandatory']);
+            $this->assertTrue($field['eval']['includeBlankOption']);
+            $this->assertArrayNotHasKey('load_callback', $field);
+            $this->assertSame([[AdminNotificationFieldsListener::class, 'validateLanguage']], $field['save_callback']);
+            $this->assertSame('', $field['sql']['default']);
+        } finally {
+            $GLOBALS['TL_DCA'] = $dca;
+            $GLOBALS['TL_LANG'] = $language;
+        }
     }
 
     public function testTheTestButtonEscapesItsAttributesAndUsesTheRoute(): void
@@ -138,7 +143,7 @@ class AdminNotificationFieldsListenerTest extends TestCase
         $dc = $this->createMock(DataContainer::class);
         $dc->method('__get')->willReturnCallback(static fn (string $key): string|null => 'id' === $key ? '5"' : null);
 
-        $html = (new AdminNotificationFieldsListener($this->createMock(Security::class), $router, $translator, $csrf))->testButtonField($dc);
+        $html = (new AdminNotificationFieldsListener($router, $translator, $csrf))->testButtonField($dc);
 
         $this->assertStringContainsString('class="widget clr oaa-admin-notify-test"', $html);
         $this->assertStringContainsString('data-url="/contao/openai-admin-notify-test?a=1&amp;b=&quot;2&quot;"', $html);
@@ -184,13 +189,12 @@ class AdminNotificationFieldsListenerTest extends TestCase
         }
     }
 
-    private function createListener(Security|null $security = null): AdminNotificationFieldsListener
+    private function createListener(): AdminNotificationFieldsListener
     {
         $translator = $this->createMock(TranslatorInterface::class);
         $translator->method('trans')->willReturnCallback(static fn (string $id): string => $id);
 
         return new AdminNotificationFieldsListener(
-            $security ?? $this->createMock(Security::class),
             $this->createMock(RouterInterface::class),
             $translator,
             $this->createMock(ContaoCsrfTokenManager::class),

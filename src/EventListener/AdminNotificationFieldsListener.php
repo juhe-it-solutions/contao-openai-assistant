@@ -12,12 +12,10 @@ declare(strict_types=1);
 
 namespace JuheItSolutions\ContaoOpenaiAssistant\EventListener;
 
-use Contao\BackendUser;
 use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\DataContainer;
 use Contao\StringUtil;
 use JuheItSolutions\ContaoOpenaiAssistant\Notification\AdminNotifier;
-use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -30,7 +28,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 class AdminNotificationFieldsListener
 {
     public function __construct(
-        private readonly Security $security,
         private readonly RouterInterface $router,
         private readonly TranslatorInterface $translator,
         private readonly ContaoCsrfTokenManager $csrfTokenManager,
@@ -79,22 +76,16 @@ class AdminNotificationFieldsListener
     }
 
     /**
-     * load_callback of admin_notify_language: preselect the language of the backend user
-     * who opens the form when nothing valid is stored yet.
+     * Require an explicit supported language; never replace an empty saved value
+     * in a load callback, because DC_Table compares submitted values against it.
      */
-    public function defaultLanguage(mixed $value, DataContainer $dc): string
+    public function validateLanguage(mixed $value, DataContainer $dc): string
     {
-        if ('de' === $value || 'en' === $value) {
-            return $value;
+        if ('de' !== $value && 'en' !== $value) {
+            throw new \RuntimeException($this->trans('tl_openai_config.admin_notify_language_required'));
         }
 
-        $user = $this->security->getUser();
-
-        if (!$user instanceof BackendUser) {
-            return 'en';
-        }
-
-        return str_starts_with((string) $user->language, 'de') ? 'de' : 'en';
+        return $value;
     }
 
     /**

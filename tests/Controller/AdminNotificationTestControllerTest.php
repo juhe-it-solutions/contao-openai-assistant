@@ -74,6 +74,7 @@ class AdminNotificationTestControllerTest extends TestCase
         yield 'sent' => [AdminNotificationTestResult::Sent, true, 'tl_openai_config.admin_notify_test_sent'];
         yield 'no recipients' => [AdminNotificationTestResult::NoRecipients, false, 'tl_openai_config.admin_notify_test_no_recipients'];
         yield 'no sender' => [AdminNotificationTestResult::NoSender, false, 'tl_openai_config.admin_notify_test_no_sender'];
+        yield 'language required' => [AdminNotificationTestResult::LanguageRequired, false, 'tl_openai_config.admin_notify_test_language_required'];
         yield 'too frequent' => [AdminNotificationTestResult::TooFrequent, false, 'tl_openai_config.admin_notify_test_too_frequent'];
         yield 'failed' => [AdminNotificationTestResult::Failed, false, 'tl_openai_config.admin_notify_test_failed'];
     }
