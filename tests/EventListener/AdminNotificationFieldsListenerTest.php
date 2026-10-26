@@ -154,6 +154,8 @@ class AdminNotificationFieldsListenerTest extends TestCase
         $this->assertStringContainsString('&lt;b&gt;tl_openai_config.admin_notify_test_hint&lt;/b&gt;', $html);
         $this->assertStringNotContainsString('<b>', $html);
         $this->assertStringContainsString("&quot;<br>\nImportant: Save first.</p>", $html);
+        $this->assertStringContainsString('<p class="tl_help">', $html);
+        $this->assertStringNotContainsString('tl_tip', $html);
     }
 
     public function testNotificationTranslationsKeepTheHelpLineBreaks(): void

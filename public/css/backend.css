@@ -341,7 +341,10 @@ html:not([data-color-scheme="dark"]) .oaa-info-card--premium .oaa-info-card-head
    full help text is always visible under the checkbox instead of only in
    a hover popup, since that popup cannot be made to work for text this
    long (see the comment on .tip above). */
-.widget:has(#ctrl_auto_update_include_links) > p.tl_help.tl_tip {
+.widget:has(#ctrl_auto_update_include_links) > p.tl_help.tl_tip,
+.widget:has(#ctrl_admin_notify_enabled) > p.tl_help.tl_tip,
+.widget:has(#ctrl_admin_notify_recipients) > p.tl_help.tl_tip,
+.widget:has(#ctrl_admin_notify_language) > p.tl_help.tl_tip {
     height: auto;
     overflow: visible;
     white-space: normal;

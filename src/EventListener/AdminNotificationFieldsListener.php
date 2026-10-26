@@ -105,7 +105,7 @@ class AdminNotificationFieldsListener
         data-sending-label="%4$s"
         data-error-label="%5$s">%6$s</button>
     <span class="oaa-admin-notify-test-result" aria-live="polite"></span>
-    <p class="tl_help tl_tip">%7$s</p>
+    <p class="tl_help">%7$s</p>
 </div>',
             htmlspecialchars($this->router->generate('contao_openai_admin_notify_test'), ENT_QUOTES),
             htmlspecialchars($this->csrfTokenManager->getToken($this->csrfTokenName)->getValue(), ENT_QUOTES),

@@ -27,10 +27,21 @@
     // the paired CSS rule in backend.css shows the full help text inline
     // and permanently instead, the way Contao's help texts worked before
     // the hover-tooltip UI existed.
-    var LONG_HELP_FIELD_IDS = ["ctrl_auto_update_include_links"];
+    // Notification instructions must also remain visible, including text after <br>.
+    var LONG_HELP_FIELD_IDS = [
+        "ctrl_auto_update_include_links",
+        "ctrl_admin_notify_enabled",
+        "ctrl_admin_notify_recipients",
+        "ctrl_admin_notify_language"
+    ];
 
     function isSuppressedTip(el) {
-        if (!el || typeof el.matches !== "function" || !el.matches("p.tl_help.tl_tip")) {
+        if (!el || typeof el.closest !== "function") {
+            return false;
+        }
+
+        el = el.closest("p.tl_help.tl_tip");
+        if (!el) {
             return false;
         }
 
@@ -47,7 +58,8 @@
     // Checked live against the DOM on every event rather than caching the
     // element, so this keeps working across Turbo re-renders without its
     // own re-init hook.
-    ["mouseenter", "touchend"].forEach(function (type) {
+    // Contao 5 uses mouseenter/touchend; Contao 6 delegates pointerover via Stimulus.
+    ["mouseenter", "touchend", "pointerover"].forEach(function (type) {
         document.addEventListener(type, function (e) {
             if (isSuppressedTip(e.target)) {
                 e.stopImmediatePropagation();
