@@ -75,8 +75,8 @@
                 <target>Email on chatbot failures</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_enabled.1">
-                <source>Send an email when the chatbot cannot answer visitors or the daily message limit is reached. At most one failure email per hour and one limit email per day. No visitor data is included.</source>
-                <target>Send an email when the chatbot cannot answer visitors or the daily message limit is reached. At most one failure email per hour and one limit email per day. No visitor data is included.</target>
+                <source>Send an email when the chatbot cannot answer visitors or the daily message limit is reached.&lt;br&gt;At most one failure email per hour and one limit email per day. No visitor data is included.</source>
+                <target>Send an email when the chatbot cannot answer visitors or the daily message limit is reached.&lt;br&gt;At most one failure email per hour and one limit email per day. No visitor data is included.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_recipients.0">
                 <source>Recipient email addresses</source>
@@ -99,8 +99,8 @@
                 <target>Email language</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_language.1">
-                <source>Language of the notification emails.</source>
-                <target>Language of the notification emails.</target>
+                <source>Language of the notification emails. German and English are supported, independently of the website-root languages.</source>
+                <target>Language of the notification emails. German and English are supported, independently of the website-root languages.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_language_options.de">
                 <source>German</source>
@@ -115,8 +115,10 @@
                 <target>Send test email</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_test_hint">
-                <source>Uses the saved settings. Save the configuration first.</source>
-                <target>Uses the saved settings. Save the configuration first.</target>
+                <source>Uses the saved settings.
+Important: Save the configuration first.</source>
+                <target>Uses the saved settings.
+Important: Save the configuration first.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_test_sending">
                 <source>Sending...</source>

@@ -20,6 +20,11 @@
     }
 }
 
+/* Separate the notification test action from the preceding language help text. */
+.widget.oaa-admin-notify-test {
+    padding-top: 1rem;
+}
+
 /* AI Tools Backend Menu Icon */
 
 /* Core Contao approach - background image on group element */

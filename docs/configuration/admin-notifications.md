@@ -62,7 +62,7 @@ The email is short plain text in German or English. It names the affected websit
 3. Open **AI Tools > OpenAI Dashboard** and edit the configuration.
 4. In the section **Administrator notifications**, tick **Email on chatbot failures**. The form reloads.
 5. Enter one to ten **recipient email addresses**, one per row. Use the row buttons to add or remove rows.
-6. Choose the **email language**. It defaults to the language of your backend user.
+6. Choose the **email language**. German and English are supported because these are the available email-template translations, independently of the website-root languages. It defaults to the language of your backend user (English for languages other than German).
 7. **Save** the configuration.
 8. Click **Send test email**. It uses the saved settings and confirms that the mail reaches every recipient. Check the spam folder too. You can send one test email every 30 seconds.
 

@@ -122,7 +122,7 @@ class AdminNotificationFieldsListener
             htmlspecialchars($this->trans('tl_openai_config.admin_notify_test_sending'), ENT_QUOTES),
             htmlspecialchars($this->trans('tl_openai_config.admin_notify_test_failed'), ENT_QUOTES),
             htmlspecialchars($this->trans('tl_openai_config.admin_notify_test_button'), ENT_QUOTES),
-            htmlspecialchars($this->trans('tl_openai_config.admin_notify_test_hint'), ENT_QUOTES),
+            nl2br(htmlspecialchars($this->trans('tl_openai_config.admin_notify_test_hint'), ENT_QUOTES), false),
         );
     }
 

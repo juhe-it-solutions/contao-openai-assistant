@@ -72,15 +72,15 @@
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_enabled.0">
                 <source>Email on chatbot failures</source>
-                <target>E-Mail bei Chatbot-Ausfällen</target>
+                <target>Email bei Chatbot-Ausfällen</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_enabled.1">
-                <source>Send an email when the chatbot cannot answer visitors or the daily message limit is reached. At most one failure email per hour and one limit email per day. No visitor data is included.</source>
-                <target>Sendet eine E-Mail, wenn der Chatbot Besuchern nicht antworten kann oder das Tageslimit erreicht ist. Höchstens eine Fehler-E-Mail pro Stunde und eine Limit-E-Mail pro Tag. Es werden keine Besucherdaten übermittelt.</target>
+                <source>Send an email when the chatbot cannot answer visitors or the daily message limit is reached.&lt;br&gt;At most one failure email per hour and one limit email per day. No visitor data is included.</source>
+                <target>Sendet eine Email, wenn Chatbot-Besuchern nicht geantwortet werden kann oder das Tageslimit erreicht ist.&lt;br&gt;Höchstens eine Fehler-Email pro Stunde und eine Limit-Email pro Tag. Es werden keine Besucherdaten übermittelt.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_recipients.0">
                 <source>Recipient email addresses</source>
-                <target>E-Mail-Adressen der Empfänger</target>
+                <target>Email-Adressen der Empfänger</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_recipients.1">
                 <source>One address per row, up to 10. Use the row buttons to add or remove addresses.</source>
@@ -88,19 +88,19 @@
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_recipients_required">
                 <source>Please enter at least one email address.</source>
-                <target>Bitte geben Sie mindestens eine E-Mail-Adresse ein.</target>
+                <target>Bitte geben Sie mindestens eine Email-Adresse ein.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_recipients_too_many">
                 <source>Please enter at most 10 email addresses.</source>
-                <target>Bitte geben Sie höchstens 10 E-Mail-Adressen ein.</target>
+                <target>Bitte geben Sie höchstens 10 Email-Adressen ein.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_language.0">
                 <source>Email language</source>
-                <target>Sprache der E-Mails</target>
+                <target>Sprache der Emails</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_language.1">
-                <source>Language of the notification emails.</source>
-                <target>Sprache der Benachrichtigungs-E-Mails.</target>
+                <source>Language of the notification emails. German and English are supported, independently of the website-root languages.</source>
+                <target>Sprache der Benachrichtigungs-Emails. Unterstützt werden Deutsch und Englisch, unabhängig von den Sprachen der Website-Startpunkte.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_language_options.de">
                 <source>German</source>
@@ -112,11 +112,13 @@
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_test_button">
                 <source>Send test email</source>
-                <target>Test-E-Mail senden</target>
+                <target>Test-Email senden</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_test_hint">
-                <source>Uses the saved settings. Save the configuration first.</source>
-                <target>Verwendet die gespeicherten Einstellungen. Speichern Sie die Konfiguration zuerst.</target>
+                <source>Uses the saved settings.
+Important: Save the configuration first.</source>
+                <target>Verwendet die gespeicherten Einstellungen.
+Wichtig: Speichern Sie die Konfiguration zuerst.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_test_sending">
                 <source>Sending...</source>
@@ -124,7 +126,7 @@
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_test_sent">
                 <source>Test email sent. Please check the inbox (and spam folder) of every recipient.</source>
-                <target>Test-E-Mail gesendet. Bitte prüfen Sie den Posteingang (und Spam-Ordner) aller Empfänger.</target>
+                <target>Test-Email gesendet. Bitte prüfen Sie den Posteingang (und Spam-Ordner) aller Empfänger.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_test_no_recipients">
                 <source>No saved recipient. Enter at least one address and save first.</source>
@@ -132,15 +134,15 @@
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_test_no_sender">
                 <source>No sender address: set the administrator email address under System &gt; Settings.</source>
-                <target>Keine Absenderadresse: Tragen Sie die E-Mail-Adresse des Systemadministrators unter System &gt; Einstellungen ein.</target>
+                <target>Keine Absenderadresse: Tragen Sie die Email-Adresse des Systemadministrators unter System &gt; Einstellungen ein.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_test_too_frequent">
                 <source>Please wait 30 seconds before sending another test email.</source>
-                <target>Bitte warten Sie 30 Sekunden, bevor Sie eine weitere Test-E-Mail senden.</target>
+                <target>Bitte warten Sie 30 Sekunden, bevor Sie eine weitere Test-Email senden.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.admin_notify_test_failed">
                 <source>The email could not be sent. Check the mail settings of the installation and the application log.</source>
-                <target>Die E-Mail konnte nicht gesendet werden. Prüfen Sie die E-Mail-Einstellungen der Installation und das Anwendungs-Log.</target>
+                <target>Die Email konnte nicht gesendet werden. Prüfen Sie die Email-Einstellungen der Installation und das Anwendungs-Log.</target>
             </trans-unit>
             <trans-unit id="tl_openai_config.max_tokens.0">
                 <source>Maximum Tokens</source>
