@@ -127,7 +127,10 @@ class AdminNotificationFieldsListenerTest extends TestCase
         ;
 
         $translator = $this->createMock(TranslatorInterface::class);
-        $translator->method('trans')->willReturnCallback(static fn (string $id): string => '<b>'.$id.'</b>"');
+        $translator
+            ->method('trans')
+            ->willReturnCallback(static fn (string $id): string => '<b>'.$id.'</b>"'.('tl_openai_config.admin_notify_test_hint' === $id ? "\nImportant: Save first." : ''))
+        ;
 
         $csrf = $this->createMock(ContaoCsrfTokenManager::class);
         $csrf->method('getToken')->willReturn(new CsrfToken('contao_csrf_token', 'tok"<en>'));
@@ -145,6 +148,40 @@ class AdminNotificationFieldsListenerTest extends TestCase
         $this->assertStringContainsString('>&lt;b&gt;tl_openai_config.admin_notify_test_button&lt;/b&gt;&quot;</button>', $html);
         $this->assertStringContainsString('&lt;b&gt;tl_openai_config.admin_notify_test_hint&lt;/b&gt;', $html);
         $this->assertStringNotContainsString('<b>', $html);
+        $this->assertStringContainsString("&quot;<br>\nImportant: Save first.</p>", $html);
+    }
+
+    public function testNotificationTranslationsKeepTheHelpLineBreaks(): void
+    {
+        foreach (['de', 'en'] as $locale) {
+            $document = new \DOMDocument();
+            $this->assertTrue($document->load(__DIR__.'/../../contao/languages/'.$locale.'/tl_openai_config.xlf'));
+            $xpath = new \DOMXPath($document);
+            $xpath->registerNamespace('x', 'urn:oasis:names:tc:xliff:document:1.2');
+            $translations = [];
+
+            foreach ($xpath->query('//x:trans-unit[starts-with(@id, "tl_openai_config.admin_notify_")]') as $unit) {
+                $translations[$unit->getAttribute('id')] = $xpath->evaluate('string(x:target)', $unit);
+            }
+
+            $help = $translations['tl_openai_config.admin_notify_enabled.1'];
+            $hint = $translations['tl_openai_config.admin_notify_test_hint'];
+            $languageHelp = $translations['tl_openai_config.admin_notify_language.1'];
+
+            $this->assertStringContainsString('<br>', $help);
+            $this->assertStringContainsString("\n".('de' === $locale ? 'Wichtig: ' : 'Important: '), $hint);
+            $this->assertStringContainsString('de' === $locale ? 'unabhängig' : 'independently', $languageHelp);
+
+            if ('de' === $locale) {
+                $this->assertStringContainsString('Chatbot-Besuchern', $help);
+
+                foreach ($translations as $key => $translation) {
+                    if (str_starts_with($key, 'tl_openai_config.admin_notify_')) {
+                        $this->assertStringNotContainsString('E-Mail', $translation, $key);
+                    }
+                }
+            }
+        }
     }
 
     private function createListener(Security|null $security = null): AdminNotificationFieldsListener
