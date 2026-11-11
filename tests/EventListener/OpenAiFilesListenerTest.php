@@ -99,7 +99,6 @@ class OpenAiFilesListenerTest extends TestCase
         $listener = $this->createListener($this->createMock(Connection::class), null, $client);
 
         $method = new \ReflectionMethod(OpenAiFilesListener::class, 'addFileToVectorStore');
-        $method->setAccessible(true);
 
         try {
             $method->invoke($listener, 'sk-test', 'vs_123', 'file_abc');
@@ -130,7 +129,6 @@ class OpenAiFilesListenerTest extends TestCase
         $listener = $this->createListener($this->createMock(Connection::class), null, $client);
 
         $method = new \ReflectionMethod(OpenAiFilesListener::class, 'addFileToVectorStore');
-        $method->setAccessible(true);
 
         $this->expectException(\Exception::class);
         $method->invoke($listener, 'sk-test', 'vs_123', 'file_abc');
@@ -175,7 +173,6 @@ class OpenAiFilesListenerTest extends TestCase
     private function invokeResolveParentConfigId(OpenAiFilesListener $listener, DataContainer|null $dc): int|null
     {
         $method = new \ReflectionMethod(OpenAiFilesListener::class, 'resolveParentConfigId');
-        $method->setAccessible(true);
 
         return $method->invoke($listener, $dc);
     }

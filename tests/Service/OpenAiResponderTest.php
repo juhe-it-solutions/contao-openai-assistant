@@ -693,7 +693,6 @@ class OpenAiResponderTest extends TestCase
         $responder = $this->createResponder(new MockHttpClient(), []);
 
         $secondsLeft = new \ReflectionMethod(OpenAiResponder::class, 'secondsLeft');
-        $secondsLeft->setAccessible(true);
 
         $budget = (new \ReflectionClassConstant(OpenAiResponder::class, 'RESPONSE_TIMEOUT'))->getValue();
         // A deadline far in the future must still never grant more than the budget. This is
