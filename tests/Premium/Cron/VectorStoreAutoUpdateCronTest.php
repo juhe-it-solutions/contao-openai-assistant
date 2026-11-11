@@ -33,7 +33,6 @@ class VectorStoreAutoUpdateCronTest extends TestCase
         );
 
         $method = new \ReflectionMethod(VectorStoreAutoUpdateCron::class, 'isDue');
-        $method->setAccessible(true);
 
         $this->assertFalse($method->invoke($cron, [
             'auto_update_last_run' => 0,
@@ -51,7 +50,6 @@ class VectorStoreAutoUpdateCronTest extends TestCase
         );
 
         $method = new \ReflectionMethod(VectorStoreAutoUpdateCron::class, 'isDue');
-        $method->setAccessible(true);
 
         $this->assertTrue($method->invoke($cron, [
             'auto_update_last_run' => time() - 86400 * 2,
@@ -69,7 +67,6 @@ class VectorStoreAutoUpdateCronTest extends TestCase
         );
 
         $method = new \ReflectionMethod(VectorStoreAutoUpdateCron::class, 'isDue');
-        $method->setAccessible(true);
 
         $this->assertFalse($method->invoke($cron, [
             'auto_update_last_run' => time() - 60,
